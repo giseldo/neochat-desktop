@@ -16,6 +16,7 @@ function ChatInput({
 	onModelChange,
 	onOpenMcpTools,
 	modelConfigs = {},
+	focusSignal = 0,
 }) {
 	const [message, setMessage] = useState("");
 	const [suggestion, setSuggestion] = useState("");
@@ -171,6 +172,13 @@ function ChatInput({
 			textareaRef.current.focus();
 		}
 	}, []);
+
+	// Focus the textarea whenever a new chat is created (focusSignal changes)
+	useEffect(() => {
+		if (textareaRef.current) {
+			textareaRef.current.focus();
+		}
+	}, [focusSignal]);
 
 	// Focus the textarea when loading changes from true to false (completion finished)
 	useEffect(() => {

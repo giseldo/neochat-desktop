@@ -103,6 +103,10 @@ function App() {
   // Track if using Responses API (needed for chat history compatibility)
   const [useResponsesApi, setUseResponsesApi] = useState(false);
 
+  // --- State for Chat Input Focus ---
+  const [chatFocusSignal, setChatFocusSignal] = useState(0);
+  // --- End State for Chat Input Focus ---
+
   // --- State for Tool Approval Flow ---
   const [pendingApprovalCall, setPendingApprovalCall] = useState(null); // Holds the tool call object needing approval
   const [pausedChatState, setPausedChatState] = useState(null); // Holds { currentMessages, finalAssistantMessage, accumulatedResponses }
@@ -1713,7 +1717,25 @@ function App() {
     
     // Create a new chat in history with the current API mode
     await createNewChat(selectedModel, useResponsesApi);
+
+    // Signal the ChatInput to focus on the text area
+    setChatFocusSignal(s => s + 1);
   }, [loading, createNewChat, selectedModel, useResponsesApi]);
+
+  // Keyboard shortcut: Ctrl+N (or Cmd+N on macOS) to create a new chat
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'n') {
+        e.preventDefault();
+        handleNewChat();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [handleNewChat]);
 
   // Handle when a chat is loaded from history - switch API mode if needed
   const handleChatLoaded = useCallback(async (chat) => {
@@ -1853,6 +1875,7 @@ function App() {
                     onModelChange={setSelectedModel}
                     onOpenMcpTools={() => setIsToolsPanelOpen(true)}
                     modelConfigs={modelConfigs}
+                    focusSignal={chatFocusSignal}
                   />
                 </div>
               </div>
@@ -1886,6 +1909,7 @@ function App() {
                     onModelChange={setSelectedModel}
                     onOpenMcpTools={() => setIsToolsPanelOpen(true)}
                     modelConfigs={modelConfigs}
+                    focusSignal={chatFocusSignal}
                   />
                 </div>
               </div>
