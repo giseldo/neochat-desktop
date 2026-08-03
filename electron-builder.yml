@@ -1,7 +1,7 @@
 appId: com.groq.desktop
-productName: Groq Desktop
+productName: NeoChat Desktop
 artifactName: "${productName}-${version}.${ext}"
-copyright: "Copyright © 2025 Groq"
+copyright: "Copyright © 2026 Neo"
 
 directories:
   buildResources: build
@@ -37,7 +37,7 @@ win:
     - nsis
     - portable
   icon: build/icon.ico
-  publisherName: Groq
+  publisherName: Neo
   verifyUpdateCodeSignature: false
   requestedExecutionLevel: asInvoker
 
@@ -50,7 +50,7 @@ nsis:
   installerHeaderIcon: build/installerHeaderIcon.ico
   createDesktopShortcut: true
   createStartMenuShortcut: true
-  shortcutName: Groq Desktop
+  shortcutName: NeoChat
   runAfterFinish: true
   deleteAppDataOnUninstall: false
   include: build/installer.nsh
@@ -62,17 +62,17 @@ linux:
     - deb
     - rpm
   category: Development
-  synopsis: Local Groq Desktop chat app with MCP support
-  description: Chat interface with image support and local MCP servers for Groq models
-  vendor: Groq
-  maintainer: Groq
+  synopsis: Local Desktop chat app with MCP support
+  description: Chat interface with image support and local MCP servers
+  vendor: Neo
+  maintainer: Neo
   icon: build/icon.png
-  executableName: groq-desktop
+  executableName: neochat-desktop
 
 publish:
   provider: github
-  owner: groq
-  repo: groq-desktop-beta
+  owner: giseldo
+  repo: groq-desktop-giseldo
 
 # Make sure scripts are executable
 fileAssociations:

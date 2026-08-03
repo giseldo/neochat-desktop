@@ -1854,14 +1854,14 @@ function App() {
             {messages.length === 0 ? (
               /* Welcome Screen */
               <div className="flex flex-col items-center justify-center h-full space-y-8">
-                <div className="text-center space-y-4">
+                {/* <div className="text-center space-y-4">
                   <h1 className="text-4xl font-bold text-primary">
                     Build Fast
                   </h1>
                   <p className="text-xl text-muted-foreground max-w-2xl">
                     Try the speed of Groq…
                   </p>
-                </div>
+                </div> */}
 
                 {/* Chat Input */}
                 <div className="w-full max-w-2xl">

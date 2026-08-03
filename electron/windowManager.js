@@ -4,7 +4,7 @@ let mainWindow; // Store the main window instance
 
 function createWindow(screen, BrowserWindow) {
   mainWindow = new BrowserWindow({
-    fullscreen: true,
+    maximized: true,
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,

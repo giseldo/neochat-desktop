@@ -384,7 +384,7 @@ function ChatInput({
 							onKeyDown={handleKeyDown}
 							onPaste={handlePaste}
 							onHeightChange={handleHeightChange}
-							placeholder={isDragOver ? "Drop files here..." : "Ask Groq anything..."}
+							placeholder={isDragOver ? "Drop files here..." : "Ask anything..."}
 							className={cn(
 								"w-full px-4 py-3 bg-transparent resize-none border-0 rounded-2xl text-foreground placeholder:text-muted-foreground focus:outline-none",
 								// Control overflow based on whether we're at max height
