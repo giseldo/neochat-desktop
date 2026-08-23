@@ -7,8 +7,6 @@ NeoChat Desktop features MCP server support for all function calling capable mod
 > xattr -c /Applications/Neochat\ Desktop.app
 > ```
 
-<img width="500" alt="Screenshot 2025-10-30 at 4 26 14 PM" src="https://github.com/user-attachments/assets/885a0461-3897-4737-8066-cbd9182d03e3" />
-
 ## Unofficial Homebrew Installation (macOS)
 
 You can install the latest release using [Homebrew](https://brew.sh/) via an unofficial tap:
