@@ -2,7 +2,7 @@ const Groq = require('groq-sdk');
 const fetch = require('node-fetch');
 const fs = require('fs');
 const path = require('path');
-const { pruneMessageHistory } = require('./messageUtils');
+const { pruneMessageHistory, extractThinking } = require('./messageUtils');
 const { supportsBuiltInTools } = require('../shared/models');
 const { getActiveApiKey, getProviderBaseUrl } = require('../shared/providers');
 const googleOAuthManager = require('./googleOAuthManager');
@@ -167,14 +167,19 @@ function cleanMessages(messages) {
             cleanMsg.content = cleanMsg.content.map(part => ({ type: part.type || 'text', ...part }));
         }
 
-        // Ensure assistant content is string format
-        if (cleanMsg.role === 'assistant' && typeof cleanMsg.content !== 'string') {
-            if (Array.isArray(cleanMsg.content)) {
-                cleanMsg.content = cleanMsg.content.filter(p => p.type === 'text').map(p => p.text).join('');
-            } else {
-                try {
-                    cleanMsg.content = JSON.stringify(cleanMsg.content);
-                } catch { cleanMsg.content = '[Non-string content]'; }
+        // Ensure assistant content is string format and clean think tags
+        if (cleanMsg.role === 'assistant') {
+            if (typeof cleanMsg.content !== 'string') {
+                if (Array.isArray(cleanMsg.content)) {
+                    cleanMsg.content = cleanMsg.content.filter(p => p.type === 'text').map(p => p.text).join('');
+                } else {
+                    try {
+                        cleanMsg.content = JSON.stringify(cleanMsg.content);
+                    } catch { cleanMsg.content = '[Non-string content]'; }
+                }
+            }
+            if (typeof cleanMsg.content === 'string') {
+                cleanMsg.content = extractThinking(cleanMsg.content).cleanContent;
             }
         }
 
@@ -479,11 +484,19 @@ function handleStreamCompletion(event, accumulatedData, finishReason, streamId) 
         };
     }
     
+    let finalContent = accumulatedData.content;
+    let finalReasoning = accumulatedData.reasoning;
+    const thinkResult = extractThinking(finalContent);
+    if (thinkResult.hasThink) {
+        finalContent = thinkResult.cleanContent;
+        finalReasoning = [finalReasoning, thinkResult.thinking].filter(Boolean).join('\n\n---\n\n');
+    }
+    
     const completionData = {
-        content: accumulatedData.content,
+        content: finalContent,
         role: "assistant",
         tool_calls: accumulatedData.toolCalls.length > 0 ? accumulatedData.toolCalls : undefined,
-        reasoning: accumulatedData.reasoning || undefined,
+        reasoning: finalReasoning || undefined,
         executed_tools: accumulatedData.executedTools.length > 0 ? accumulatedData.executedTools : undefined,
         finish_reason: finishReason,
         usage: accumulatedData.usage
@@ -1470,14 +1483,22 @@ async function handleResponsesApiStream(event, messages, model, settings, modelC
                     console.log(`[ChatHandler] Responses API response chunks written to: ${responseFilePath}`);
                 }
 
+                let finalContent = accumulatedContent;
+                let finalReasoning = accumulatedReasoning;
+                const thinkResult = extractThinking(finalContent);
+                if (thinkResult.hasThink) {
+                    finalContent = thinkResult.cleanContent;
+                    finalReasoning = [finalReasoning, thinkResult.thinking].filter(Boolean).join('\n\n---\n\n');
+                }
+
                 event.sender.send('chat-stream-complete', {
-                    content: accumulatedContent,
+                    content: finalContent,
                     role: "assistant",
                     finish_reason: finishReason,
                     tool_calls: toolCallsMap.size > 0 ? Array.from(toolCallsMap.values()) : undefined,
                     pre_calculated_tool_responses: toolResponses.length > 0 ? toolResponses : undefined,
                     executed_tools: executedTools.length > 0 ? executedTools : undefined,
-                    reasoning: accumulatedReasoning || undefined,
+                    reasoning: finalReasoning || undefined,
                     mcp_approval_requests: accumulatedData.mcpApprovalRequests || undefined,
                     usage: accumulatedData.usage || undefined
                 });

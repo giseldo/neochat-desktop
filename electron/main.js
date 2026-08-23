@@ -45,6 +45,9 @@ const PopupWindowManager = require('./popupWindow');
 // Import chat history manager
 const chatHistoryManager = require('./chatHistoryManager');
 
+// Import project manager
+const projectManager = require('./projectManager');
+
 // Global variable to hold the main window instance
 let mainWindow;
 
@@ -300,6 +303,11 @@ app.whenReady().then(async () => {
   chatHistoryManager.initialize(app, loadSettings);
   chatHistoryManager.initializeChatHistoryHandlers(ipcMain);
   console.log("[Main Init] Chat history manager initialized");
+
+  // Initialize project manager
+  projectManager.initialize(app, chatHistoryManager);
+  projectManager.initializeProjectHandlers(ipcMain);
+  console.log("[Main Init] Project manager initialized");
 
   // Initialize MCP handlers (use module object)
   mcpManager.initializeMcpHandlers(ipcMain, app, mainWindow, loadSettings, resolveCommandPath);

@@ -202,12 +202,22 @@ contextBridge.exposeInMainWorld('electron', {
   chatHistory: {
     list: () => ipcRenderer.invoke('chat-history-list'),
     load: (chatId) => ipcRenderer.invoke('chat-history-load', chatId),
-    create: (model, useResponsesApi) => ipcRenderer.invoke('chat-history-create', model, useResponsesApi),
+    create: (model, useResponsesApi, projectId) => ipcRenderer.invoke('chat-history-create', model, useResponsesApi, projectId),
     save: (chat) => ipcRenderer.invoke('chat-history-save', chat),
     updateMessages: (chatId, messages) => ipcRenderer.invoke('chat-history-update-messages', chatId, messages),
     updateTitle: (chatId, title) => ipcRenderer.invoke('chat-history-update-title', chatId, title),
+    updateProject: (chatId, projectId) => ipcRenderer.invoke('chat-history-update-project', chatId, projectId),
     delete: (chatId) => ipcRenderer.invoke('chat-history-delete', chatId),
     generateTitle: (userMessage) => ipcRenderer.invoke('chat-history-generate-title', userMessage),
+  },
+
+  // --- Projects Functions ---
+  projects: {
+    list: () => ipcRenderer.invoke('projects-list'),
+    get: (projectId) => ipcRenderer.invoke('projects-get', projectId),
+    create: (projectData) => ipcRenderer.invoke('projects-create', projectData),
+    update: (projectId, updates) => ipcRenderer.invoke('projects-update', projectId, updates),
+    delete: (projectId) => ipcRenderer.invoke('projects-delete', projectId),
   },
 
   // Audio Transcription (Whisper)

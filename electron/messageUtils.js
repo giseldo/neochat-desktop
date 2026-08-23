@@ -160,7 +160,83 @@ function estimateTokenCount(message) {
   return tokenCount;
 }
 
+/**
+ * Extracts <think> / <thought> / <thinking> tags from message content.
+ * Handles closed tags, multiple blocks, streaming unclosed tags, and code block preservation.
+ *
+ * @param {string|any} rawContent
+ * @returns {{
+ *   hasThink: boolean,
+ *   thinking: string,
+ *   cleanContent: string,
+ *   isStreamingThink: boolean
+ * }}
+ */
+function extractThinking(rawContent) {
+  if (typeof rawContent !== 'string' || !rawContent) {
+    return {
+      hasThink: false,
+      thinking: '',
+      cleanContent: typeof rawContent === 'string' ? rawContent : '',
+      isStreamingThink: false
+    };
+  }
+
+  // Preserve fenced code blocks
+  const codeBlocks = [];
+  const contentWithoutCode = rawContent.replace(/```[\s\S]*?```/g, (match) => {
+    const placeholder = `__THINK_CODE_BLOCK_${codeBlocks.length}__`;
+    codeBlocks.push(match);
+    return placeholder;
+  });
+
+  const restoreCodeBlocks = (str) => {
+    return str.replace(/__THINK_CODE_BLOCK_(\d+)__/g, (_, idx) => {
+      return codeBlocks[parseInt(idx, 10)] || '';
+    });
+  };
+
+  const thinkBlockRegex = /<\s*(think|thought|thinking)(?:\s[^>]*)?>([\s\S]*?)<\s*\/\s*\1\s*>/gi;
+  const unclosedThinkRegex = /<\s*(think|thought|thinking)(?:\s[^>]*)?>([\s\S]*)$/i;
+
+  const thinkingParts = [];
+  let cleanContent = contentWithoutCode;
+
+  // 1. Extract closed <think>...</think> blocks
+  cleanContent = cleanContent.replace(thinkBlockRegex, (match, tag, content) => {
+    const restored = restoreCodeBlocks(content).trim();
+    if (restored) {
+      thinkingParts.push(restored);
+    }
+    return '';
+  });
+
+  // 2. Check for an unclosed <think> tag at the end (active streaming)
+  let isStreamingThink = false;
+  const unclosedMatch = cleanContent.match(unclosedThinkRegex);
+  if (unclosedMatch) {
+    isStreamingThink = true;
+    const unclosedContent = unclosedMatch[2] ? restoreCodeBlocks(unclosedMatch[2]).trim() : '';
+    if (unclosedContent) {
+      thinkingParts.push(unclosedContent);
+    }
+    cleanContent = cleanContent.replace(unclosedThinkRegex, '');
+  }
+
+  cleanContent = restoreCodeBlocks(cleanContent).trim();
+  const thinking = thinkingParts.join('\n\n---\n\n').trim();
+  const hasThink = Boolean(thinking) || isStreamingThink;
+
+  return {
+    hasThink,
+    thinking,
+    cleanContent,
+    isStreamingThink
+  };
+}
+
 module.exports = {
     pruneMessageHistory,
-    estimateTokenCount
+    estimateTokenCount,
+    extractThinking
 }; 

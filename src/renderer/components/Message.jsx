@@ -1,10 +1,11 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import ToolCall from './ToolCall';
 import MarkdownRenderer from './MarkdownRenderer';
 import { TextShimmer } from './ui/text-shimmer';
 import { Badge } from './ui/badge';
 import { Zap, Volume2, VolumeX, Copy, Check, RotateCw, Clock, Gauge, Layers, Info } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
+import { extractThinking } from '../lib/messageUtils';
 import { cn } from '../lib/utils';
 
 function Message({
@@ -35,16 +36,45 @@ function Message({
   const actionTimeoutRef = useRef(null);
   
   const isUser = role === 'user';
-  const hasReasoning = (reasoning || liveReasoning || combinedReasoning) && !isUser;
-  const hasExecutedTools = (executed_tools?.length > 0 || liveExecutedTools?.length > 0) && !isUser;
   const isStreamingMessage = isStreaming === true;
+
+  // Extract <think> / <thought> tags from message content
+  const extracted = useMemo(() => {
+    if (isUser || !message.content) {
+      return { hasThink: false, thinking: '', cleanContent: message.content || '', isStreamingThink: false };
+    }
+    const rawText = typeof message.content === 'string'
+      ? message.content
+      : Array.isArray(message.content)
+        ? message.content.filter(p => p.type === 'text').map(p => p.text).join('\n')
+        : '';
+    return extractThinking(rawText);
+  }, [isUser, message.content]);
+
+  // Combine reasoning from all sources: combinedReasoning (grouping), liveReasoning, reasoning field, and extracted thinking
+  const currentReasoning = useMemo(() => {
+    if (isUser) return '';
+    const parts = [];
+    if (combinedReasoning) {
+      parts.push(combinedReasoning);
+    } else {
+      if (liveReasoning) parts.push(liveReasoning);
+      else if (reasoning) parts.push(reasoning);
+    }
+    if (extracted.thinking && !parts.some(p => p.includes(extracted.thinking))) {
+      parts.push(extracted.thinking);
+    }
+    return parts.join('\n\n---\n\n');
+  }, [isUser, combinedReasoning, liveReasoning, reasoning, extracted.thinking]);
+
+  const hasReasoning = (Boolean(currentReasoning) || extracted.isStreamingThink) && !isUser;
+  const hasExecutedTools = (executed_tools?.length > 0 || liveExecutedTools?.length > 0) && !isUser;
   const hasReasoningSummaries = reasoningSummaries && reasoningSummaries.length > 0;
   
-  const currentReasoning = combinedReasoning || liveReasoning || reasoning;
   const currentTools = liveExecutedTools?.length > 0 ? liveExecutedTools : executed_tools;
   const effectiveReasoningDuration = combinedReasoningDuration || reasoningDuration;
   
-  const isReasoningComplete = (effectiveReasoningDuration && hasReasoning) || (!isStreamingMessage && hasReasoning);
+  const isReasoningComplete = (effectiveReasoningDuration && hasReasoning) || (!isStreamingMessage && hasReasoning) || (!extracted.isStreamingThink && hasReasoning);
   
   // Auto-collapse when streaming finishes
   useEffect(() => {
@@ -126,9 +156,9 @@ function Message({
   const handleCopy = async () => {
     try {
       const textToCopy = typeof message.content === 'string' 
-        ? message.content 
+        ? (extracted.cleanContent !== undefined ? extracted.cleanContent : message.content)
         : Array.isArray(message.content)
-          ? message.content.map(p => p.text || '').join('\n')
+          ? extractThinking(message.content.filter(p => p.type === 'text').map(p => p.text || '').join('\n')).cleanContent
           : JSON.stringify(message.content);
 
       await navigator.clipboard.writeText(textToCopy || '');
@@ -148,9 +178,9 @@ function Message({
     } else {
       window.speechSynthesis.cancel();
       const rawText = typeof message.content === 'string' 
-        ? message.content 
+        ? (extracted.cleanContent !== undefined ? extracted.cleanContent : message.content)
         : Array.isArray(message.content)
-          ? message.content.map(p => p.text || '').join(' ')
+          ? extractThinking(message.content.filter(p => p.type === 'text').map(p => p.text || '').join(' ')).cleanContent
           : '';
       
       const cleanText = rawText.replace(/```[\s\S]*?```/g, t('message.ttsCodeOmitted'))
@@ -249,8 +279,12 @@ function Message({
                   >
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                   </svg>
-                  {isStreamingMessage && liveReasoning ? t('message.thinking') : t('message.viewReasoning')}
-                  {isStreamingMessage && liveReasoning && (
+                  {isStreamingMessage && (liveReasoning || extracted.isStreamingThink)
+                    ? t('message.thinking')
+                    : (effectiveReasoningDuration 
+                        ? t('message.thoughtFor', { duration: effectiveReasoningDuration }) 
+                        : t('message.viewReasoning'))}
+                  {isStreamingMessage && (liveReasoning || extracted.isStreamingThink) && (
                     <span className="w-2.5 h-2.5 ml-1.5 border-2 border-primary/30 border-t-primary rounded-full animate-spin"></span>
                   )}
                 </button>
@@ -285,7 +319,7 @@ function Message({
                   content={currentReasoning
                     .replace(/<tool[^>]*>([\s\S]*?)<\/tool>/gi, '**Tool call:**\n```$1```')
                     .replace(/<output[^>]*>([\s\S]*?)<\/output>/gi, '**Tool output:**\n $1')
-                    .replace(/<think[^>]*>([\s\S]*?)<\/think>/gi, language === 'pt' ? '### **Processo de pensamento:** $1' : '### **Thought process:** $1')
+                    .replace(/<\/?\s*(think|thought|thinking)(?:\s[^>]*)?>/gi, '')
                   }
                   disableMath={true}
                   onPreviewArtifact={onPreviewArtifact}

@@ -7,6 +7,7 @@ import { useLanguage } from '../context/LanguageContext';
 import { cn } from '../lib/utils';
 import MessageList from '../components/MessageList';
 import { SearchableSelect } from '../components/ui/SearchableSelect';
+import { extractThinking } from '../lib/messageUtils';
 
 const ContextPill = ({ title, onRemove }) => (
   <Badge variant="outline" className="inline-flex items-center gap-2 bg-background/50 backdrop-blur-sm border-border/50 text-foreground shadow-sm">
@@ -468,13 +469,21 @@ const PopupPage = () => {
       });
 
       streamHandler.onComplete((data) => {
+        const rawContent = data.content || finalContent;
+        const thinkResult = extractThinking(rawContent);
+        const completionContent = thinkResult.hasThink ? thinkResult.cleanContent : rawContent;
+        const completionReasoning = thinkResult.hasThink
+          ? [data.reasoning, thinkResult.thinking].filter(Boolean).join('\n\n---\n\n')
+          : data.reasoning;
+
         setMessages(prev => {
           const newMessages = [...prev];
           const lastIndex = newMessages.length - 1;
           if (newMessages[lastIndex] && newMessages[lastIndex].isStreaming) {
             newMessages[lastIndex] = {
               role: 'assistant',
-              content: data.content || finalContent,
+              content: completionContent,
+              reasoning: completionReasoning,
               isStreaming: false
             };
           }

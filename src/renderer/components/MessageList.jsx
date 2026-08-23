@@ -3,6 +3,7 @@ import Message from './Message';
 import MarkdownRenderer from './MarkdownRenderer';
 import { Bot } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
+import { extractThinking } from '../lib/messageUtils';
 
 function MessageList({ 
   messages = [], 
@@ -90,7 +91,9 @@ function MessageList({
       
       group.indices.forEach((idx) => {
         const msg = displayMessages[idx];
-        const reasoning = msg.liveReasoning || msg.reasoning;
+        const rawContent = typeof msg.content === 'string' ? msg.content : '';
+        const { thinking } = extractThinking(rawContent);
+        const reasoning = msg.liveReasoning || msg.reasoning || thinking;
         const duration = msg.reasoningDuration || 0;
         
         if (reasoning) {
@@ -183,7 +186,7 @@ function MessageList({
             </div>
           ) : message.role === 'assistant' ? (
             <MarkdownRenderer 
-              content={message.content || ''} 
+              content={typeof message.content === 'string' ? extractThinking(message.content).cleanContent : (message.content || '')} 
               onPreviewArtifact={onPreviewArtifact}
             />
           ) : null}

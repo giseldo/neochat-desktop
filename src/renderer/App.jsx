@@ -10,11 +10,15 @@ import PersonaSelector, { DEFAULT_PERSONAS } from './components/PersonaSelector'
 import ArtifactsPanel from './components/ArtifactsPanel';
 import McpCatalogModal from './components/McpCatalogModal';
 import ConversationStats from './components/ConversationStats';
+import ProjectModal from './components/ProjectModal';
+import MoveToProjectModal from './components/MoveToProjectModal';
 import { useChat } from './context/ChatContext';
+import { useProjects } from './context/ProjectContext';
 import { useLanguage } from './context/LanguageContext';
-import { Settings, Zap, MessageSquare, PanelLeftClose, PanelLeft, Radio, MessagesSquare, Sparkles, Store, Columns2 } from 'lucide-react';
+import { Settings, Zap, MessageSquare, PanelLeftClose, PanelLeft, Radio, MessagesSquare, Sparkles, Store, Columns2, X, FolderKanban } from 'lucide-react';
 import { Button } from './components/ui/button';
 import { Badge } from './components/ui/badge';
+import { extractThinking } from './lib/messageUtils';
 
 // LocalStorage keys
 const TOOL_APPROVAL_PREFIX = 'tool_approval_';
@@ -82,6 +86,12 @@ function App() {
     toggleSidebar,
     needsTitleGeneration
   } = useChat(); // Use context state
+  const {
+    activeProject,
+    activeProjectId,
+    setActiveProjectId,
+    openEditProjectModal
+  } = useProjects();
   const { t } = useLanguage();
   const [loading, setLoading] = useState(false);
   const [selectedModel, setSelectedModel] = useState('llama-3.3-70b-versatile');
@@ -790,10 +800,17 @@ function App() {
         };
         setMessages(prev => [...prev, assistantPlaceholder]);
 
-        // Prepare messages to send, including active persona system prompt if defined
+        // Prepare messages to send, including active project instructions and active persona system prompt if defined
         let messagesToSend = [...turnMessages];
-        if (activePersona?.systemPrompt && !messagesToSend.some(m => m.role === 'system')) {
-            messagesToSend = [{ role: 'system', content: activePersona.systemPrompt }, ...messagesToSend];
+        const systemParts = [];
+        if (activeProject?.customPrompt && activeProject.customPrompt.trim()) {
+            systemParts.push(`[Instruções do Projeto "${activeProject.name}"]:\n${activeProject.customPrompt.trim()}`);
+        }
+        if (activePersona?.systemPrompt && activePersona.systemPrompt.trim()) {
+            systemParts.push(activePersona.systemPrompt.trim());
+        }
+        if (systemParts.length > 0 && !messagesToSend.some(m => m.role === 'system')) {
+            messagesToSend = [{ role: 'system', content: systemParts.join('\n\n') }, ...messagesToSend];
         }
 
         // Start streaming chat
@@ -820,9 +837,20 @@ function App() {
         streamHandler.onContent(({ content }) => {
             finalAssistantData.content += content;
             
-            // If this is the first content token and we have reasoning, mark reasoning as complete
-            if (finalAssistantData.content === content && finalAssistantData.reasoningStartTime && !finalAssistantData.reasoningDuration) {
-                finalAssistantData.reasoningDuration = Math.round((Date.now() - finalAssistantData.reasoningStartTime) / 1000);
+            // Check if thinking tag is detected in streaming content
+            const thinkResult = extractThinking(finalAssistantData.content);
+            if (thinkResult.hasThink && !finalAssistantData.reasoningStartTime) {
+                finalAssistantData.reasoningStartTime = Date.now();
+            }
+
+            // If we have a reasoning start time and reasoning duration isn't set yet:
+            // Mark complete if think tag has closed and content started, or if regular content without think
+            if (finalAssistantData.reasoningStartTime && !finalAssistantData.reasoningDuration) {
+                if (thinkResult.hasThink && !thinkResult.isStreamingThink && thinkResult.cleanContent.length > 0) {
+                    finalAssistantData.reasoningDuration = Math.round((Date.now() - finalAssistantData.reasoningStartTime) / 1000);
+                } else if (!thinkResult.hasThink && finalAssistantData.content === content) {
+                    finalAssistantData.reasoningDuration = Math.round((Date.now() - finalAssistantData.reasoningStartTime) / 1000);
+                }
             }
             
             setMessages(prev => {
@@ -980,17 +1008,27 @@ function App() {
         // Handle stream completion
         await new Promise((resolve, reject) => {
             streamHandler.onComplete((data) => {
+                const rawContent = data.content || finalAssistantData.content || '';
+                const thinkResult = extractThinking(rawContent);
+                let finalContent = rawContent;
+                let finalReasoning = data.reasoning;
+
+                if (thinkResult.hasThink) {
+                    finalContent = thinkResult.cleanContent;
+                    finalReasoning = [data.reasoning, thinkResult.thinking].filter(Boolean).join('\n\n---\n\n');
+                }
+
                 // Use existing duration if already set, otherwise calculate it now
                 let reasoningDuration = finalAssistantData.reasoningDuration;
-                if (!reasoningDuration && finalAssistantData.reasoningStartTime && data.reasoning) {
+                if (!reasoningDuration && finalAssistantData.reasoningStartTime && (finalReasoning || data.reasoning)) {
                     reasoningDuration = Math.round((Date.now() - finalAssistantData.reasoningStartTime) / 1000);
                 }
                 
                 finalAssistantData = {
                     role: 'assistant',
-                    content: data.content || '',
+                    content: finalContent,
                     tool_calls: data.tool_calls,
-                    reasoning: data.reasoning,
+                    reasoning: finalReasoning,
                     executed_tools: data.executed_tools,
                     // Clear live streaming data on completion
                     liveReasoning: undefined,
@@ -1745,12 +1783,12 @@ function App() {
       setPausedChatState(null);
     }
     
-    // Create a new chat in history with the current API mode
-    await createNewChat(selectedModel, useResponsesApi);
+    // Create a new chat in history with the current API mode and active project
+    await createNewChat(selectedModel, useResponsesApi, activeProjectId);
 
     // Signal the ChatInput to focus on the text area
     setChatFocusSignal(s => s + 1);
-  }, [loading, createNewChat, selectedModel, useResponsesApi]);
+  }, [loading, createNewChat, selectedModel, useResponsesApi, activeProjectId]);
 
   // Keyboard shortcut: Ctrl+N (or Cmd+N on macOS) to create a new chat
   useEffect(() => {
@@ -1830,6 +1868,34 @@ function App() {
                 activePersona={activePersona}
                 onSelectPersona={setActivePersona}
               />
+
+              {/* Active Project Badge */}
+              {activeProject && (
+                <div 
+                  className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-xs font-medium cursor-pointer transition-colors shadow-2xs hover:opacity-90"
+                  style={{ 
+                    backgroundColor: `${activeProject.color || '#f55036'}18`, 
+                    borderColor: `${activeProject.color || '#f55036'}40`,
+                    color: activeProject.color || '#f55036' 
+                  }}
+                  onClick={() => openEditProjectModal(activeProject)}
+                  title={`${t('projects.activeBadge')}: ${activeProject.name}`}
+                >
+                  <span className="text-xs">{activeProject.icon || '📁'}</span>
+                  <span className="max-w-[120px] truncate font-semibold">{activeProject.name}</span>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setActiveProjectId(null);
+                    }}
+                    className="ml-0.5 hover:bg-black/10 dark:hover:bg-white/10 rounded-full p-0.5 transition-colors"
+                    title={t('projects.backToAll')}
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                </div>
+              )}
               
               {/* Status Badge */}
               {mcpTools.length > 0 && (
@@ -1984,6 +2050,10 @@ function App() {
           }}
         />
       )}
+
+      {/* Project Modals */}
+      <ProjectModal />
+      <MoveToProjectModal />
       </div>
     </div>
   );

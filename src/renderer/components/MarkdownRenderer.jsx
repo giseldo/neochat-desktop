@@ -5,6 +5,7 @@ import remarkMath from 'remark-math';
 import rehypeKatex from 'rehype-katex';
 import "katex/dist/katex.min.css";
 import CodeBlock from './CodeBlock';
+import { extractThinking } from '../lib/messageUtils';
 
 const imageFileExtensionsRegex = /\.(jpg|jpeg|png|gif|bmp|webp|svg)$/i;
 
@@ -12,6 +13,14 @@ function MarkdownRenderer({ content = '', disableMath = false, onPreviewArtifact
   // Filter out reference lines like 【4†L24-L30】【4†L32-L35】
   let processedContent = String(content || '').replace(/【\d+†L\d+-L\d+】/g, '');
   
+  // If rendering regular message content (disableMath is false), strip any think tags
+  if (!disableMath) {
+    processedContent = extractThinking(processedContent).cleanContent;
+  } else {
+    // If rendering reasoning content, strip raw think tags wrappers
+    processedContent = processedContent.replace(/<\/?\s*(think|thought|thinking)(?:\s[^>]*)?>/gi, '');
+  }
+
   // Only process LaTeX if math rendering is enabled
   if (!disableMath) {
     processedContent = processedContent

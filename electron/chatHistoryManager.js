@@ -46,12 +46,13 @@ function getChatFilePath(chatId) {
 }
 
 /**
- * Create a new chat with an optional initial message
+ * Create a new chat with an optional initial message and project association
  * @param {string} model - The model used for this chat
  * @param {boolean} useResponsesApi - Whether this chat uses Responses API
+ * @param {string|null} projectId - Optional project ID to associate with this chat
  * @returns {Object} The new chat object
  */
-function createChat(model = 'llama-3.3-70b-versatile', useResponsesApi = false) {
+function createChat(model = 'llama-3.3-70b-versatile', useResponsesApi = false, projectId = null) {
     const now = new Date().toISOString();
     const chat = {
         id: crypto.randomUUID(),
@@ -60,6 +61,7 @@ function createChat(model = 'llama-3.3-70b-versatile', useResponsesApi = false) 
         updatedAt: now,
         model: model,
         useResponsesApi: useResponsesApi,
+        projectId: projectId || null,
         messages: []
     };
     
@@ -165,7 +167,8 @@ function listChats() {
                         updatedAt: chat.updatedAt,
                         model: chat.model,
                         messageCount: chat.messages?.length || 0,
-                        useResponsesApi: chat.useResponsesApi || false
+                        useResponsesApi: chat.useResponsesApi || false,
+                        projectId: chat.projectId || null
                     });
                 } catch (error) {
                     console.error(`Error reading chat file ${file}:`, error);
@@ -214,6 +217,54 @@ function updateChatTitle(chatId, title) {
     chat.title = title;
     saveChat(chat);
     return chat;
+}
+
+/**
+ * Update a chat's associated project ID
+ * @param {string} chatId - The chat ID
+ * @param {string|null} projectId - The new project ID (or null to unassign)
+ * @returns {Object|null} The updated chat object
+ */
+function updateChatProject(chatId, projectId) {
+    const chat = loadChat(chatId);
+    if (!chat) {
+        console.error(`Chat ${chatId} not found`);
+        return null;
+    }
+    
+    chat.projectId = projectId || null;
+    saveChat(chat);
+    return chat;
+}
+
+/**
+ * Unassign a project from all chats that currently reference it
+ * @param {string} projectId - The project ID being deleted
+ */
+function unassignProjectFromChats(projectId) {
+    if (!projectId) return;
+    const chatDir = getChatHistoryDir();
+    try {
+        const files = fs.readdirSync(chatDir);
+        for (const file of files) {
+            if (file.endsWith('.json')) {
+                const filePath = path.join(chatDir, file);
+                try {
+                    const data = fs.readFileSync(filePath, 'utf8');
+                    const chat = JSON.parse(data);
+                    if (chat.projectId === projectId) {
+                        chat.projectId = null;
+                        chat.updatedAt = new Date().toISOString();
+                        fs.writeFileSync(filePath, JSON.stringify(chat, null, 2));
+                    }
+                } catch (err) {
+                    console.error(`Error unassigning project from chat file ${file}:`, err);
+                }
+            }
+        }
+    } catch (error) {
+        console.error('Error in unassignProjectFromChats:', error);
+    }
 }
 
 /**
@@ -318,9 +369,9 @@ function initializeChatHistoryHandlers(ipcMain) {
         return loadChat(chatId);
     });
     
-    // Create a new chat
-    ipcMain.handle('chat-history-create', async (event, model, useResponsesApi) => {
-        return createChat(model, useResponsesApi);
+    // Create a new chat (with optional projectId)
+    ipcMain.handle('chat-history-create', async (event, model, useResponsesApi, projectId) => {
+        return createChat(model, useResponsesApi, projectId);
     });
     
     // Save/update a chat
@@ -337,6 +388,11 @@ function initializeChatHistoryHandlers(ipcMain) {
     // Update chat title
     ipcMain.handle('chat-history-update-title', async (event, chatId, title) => {
         return updateChatTitle(chatId, title);
+    });
+
+    // Update chat project
+    ipcMain.handle('chat-history-update-project', async (event, chatId, projectId) => {
+        return updateChatProject(chatId, projectId);
     });
     
     // Delete a chat
@@ -361,6 +417,8 @@ module.exports = {
     listChats,
     updateChatMessages,
     updateChatTitle,
+    updateChatProject,
+    unassignProjectFromChats,
     generateChatTitle
 };
 
