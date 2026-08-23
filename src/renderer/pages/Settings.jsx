@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { Link, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Eye, EyeOff, Plus, Trash2, Edit3, Save, X, RefreshCw, Key, Settings as SettingsIcon, Zap, Cpu, Server, AlertCircle, CheckCircle, Sun, Moon, Laptop, Languages, Check } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
@@ -53,6 +54,8 @@ function Settings() {
   const [saveStatus, setSaveStatus] = useState(null);
   const [isSaving, setIsSaving] = useState(false);
   const [showApiKey, setShowApiKey] = useState(false);
+  const [isDeletingAllModalOpen, setIsDeletingAllModalOpen] = useState(false);
+  const [isDeletingAll, setIsDeletingAll] = useState(false);
   const [newMcpServer, setNewMcpServer] = useState({
     id: '',
     transport: 'stdio',
@@ -97,16 +100,20 @@ function Settings() {
   const saveTimeoutRef = useRef(null);
   const navigate = useNavigate();
 
-  // Handle Escape key to dismiss settings
+  // Handle Escape key to dismiss settings or modal
   useEffect(() => {
     const handleKeyDown = (e) => {
       if (e.key === 'Escape') {
-        navigate('/');
+        if (isDeletingAllModalOpen && !isDeletingAll) {
+          setIsDeletingAllModalOpen(false);
+        } else if (!isDeletingAllModalOpen) {
+          navigate('/');
+        }
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [navigate]);
+  }, [navigate, isDeletingAllModalOpen, isDeletingAll]);
 
   useEffect(() => {
     const loadProviders = async () => {
@@ -1165,6 +1172,31 @@ function Settings() {
       statusTimeoutRef.current = setTimeout(() => {
         setSaveStatus(null);
       }, 2000);
+    }
+  };
+
+  // Function to delete all chats and messages from disk
+  const handleDeleteAllChats = async () => {
+    setIsDeletingAll(true);
+    try {
+      const result = await window.electron.chatHistory.deleteAll();
+      if (result && result.success) {
+        setSaveStatus({ type: 'success', message: t('settings.deleteAllSuccess') });
+      } else {
+        setSaveStatus({ type: 'error', message: t('settings.errorDeletingAll', { error: result?.error || 'Unknown error' }) });
+      }
+    } catch (error) {
+      console.error('Error deleting all chats in settings:', error);
+      setSaveStatus({ type: 'error', message: t('settings.errorDeletingAll', { error: error.message }) });
+    } finally {
+      setIsDeletingAll(false);
+      setIsDeletingAllModalOpen(false);
+      if (statusTimeoutRef.current) {
+        clearTimeout(statusTimeoutRef.current);
+      }
+      statusTimeoutRef.current = setTimeout(() => {
+        setSaveStatus(null);
+      }, 3000);
     }
   };
 
@@ -2519,6 +2551,32 @@ function Settings() {
               </CardContent>
             </Card>
 
+            {/* Data & History */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center space-x-2">
+                  <Trash2 className="h-5 w-5 text-destructive" />
+                  <span>{t('settings.dataHistoryTitle')}</span>
+                </CardTitle>
+                <CardDescription>
+                  {t('settings.dataHistoryDesc')}
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Button
+                  variant="destructive"
+                  onClick={() => setIsDeletingAllModalOpen(true)}
+                  disabled={isSaving || isDeletingAll}
+                >
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  {t('settings.deleteAllChatsBtn')}
+                </Button>
+                <p className="text-xs text-muted-foreground mt-2">
+                  {t('settings.deleteAllChatsHelp')}
+                </p>
+              </CardContent>
+            </Card>
+
             {/* Custom Models */}
             <Card>
               <CardHeader>
@@ -2765,6 +2823,68 @@ function Settings() {
           </div>
         </div>
       </main>
+
+      {/* Delete All Chats Confirmation Modal */}
+      {isDeletingAllModalOpen && typeof document !== 'undefined' && createPortal(
+        <div
+          className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center z-[9999] p-4 animate-in fade-in-0"
+          onClick={(e) => {
+            if (e.target === e.currentTarget && !isDeletingAll) {
+              setIsDeletingAllModalOpen(false);
+            }
+          }}
+        >
+          <div className="bg-card border border-border rounded-2xl w-full max-w-sm p-4 shadow-2xl animate-in zoom-in-95 flex flex-col space-y-4">
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-xl bg-destructive/10 text-destructive flex items-center justify-center flex-shrink-0">
+                <Trash2 className="w-5 h-5" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <h3 className="font-semibold text-sm text-foreground">
+                  {t('sidebar.deleteAllConfirmTitle')}
+                </h3>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  {t('sidebar.deleteAllChats')}
+                </p>
+              </div>
+            </div>
+
+            <p className="text-xs text-muted-foreground leading-relaxed">
+              {t('sidebar.deleteAllConfirmMessage')}
+            </p>
+
+            <div className="flex items-center justify-end gap-2 pt-1">
+              <button
+                type="button"
+                onClick={() => setIsDeletingAllModalOpen(false)}
+                disabled={isDeletingAll}
+                className="px-3.5 py-1.5 rounded-lg text-xs font-medium text-muted-foreground hover:bg-muted transition-colors disabled:opacity-50"
+              >
+                {t('common.cancel')}
+              </button>
+              <button
+                type="button"
+                onClick={handleDeleteAllChats}
+                disabled={isDeletingAll}
+                className="px-4 py-1.5 rounded-lg text-xs font-semibold bg-destructive text-destructive-foreground hover:bg-destructive/90 transition-colors shadow-xs flex items-center gap-1.5 disabled:opacity-50"
+              >
+                {isDeletingAll ? (
+                  <>
+                    <div className="w-3 h-3 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                    <span>{t('common.loading')}</span>
+                  </>
+                ) : (
+                  <>
+                    <Trash2 className="w-3.5 h-3.5" />
+                    <span>{t('sidebar.deleteAllConfirmButton')}</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
     </div>
   );
 }

@@ -208,6 +208,8 @@ contextBridge.exposeInMainWorld('electron', {
     updateTitle: (chatId, title) => ipcRenderer.invoke('chat-history-update-title', chatId, title),
     updateProject: (chatId, projectId) => ipcRenderer.invoke('chat-history-update-project', chatId, projectId),
     delete: (chatId) => ipcRenderer.invoke('chat-history-delete', chatId),
+    deleteAll: () => ipcRenderer.invoke('chat-history-delete-all'),
+    clearMessages: (chatId) => ipcRenderer.invoke('chat-history-clear-messages', chatId),
     generateTitle: (userMessage) => ipcRenderer.invoke('chat-history-generate-title', userMessage),
   },
 

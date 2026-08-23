@@ -400,11 +400,66 @@ function initializeChatHistoryHandlers(ipcMain) {
         const success = deleteChat(chatId);
         return { success };
     });
+
+    // Delete all chats
+    ipcMain.handle('chat-history-delete-all', async () => {
+        return deleteAllChats();
+    });
+
+    // Clear messages for a specific chat
+    ipcMain.handle('chat-history-clear-messages', async (event, chatId) => {
+        const chat = clearChatMessages(chatId);
+        return { success: !!chat, chat };
+    });
     
     // Generate a title for a chat
     ipcMain.handle('chat-history-generate-title', async (event, userMessage) => {
         return generateChatTitle(userMessage);
     });
+}
+
+/**
+ * Delete all chats from disk
+ * @returns {Object} Result object with success status and deleted count
+ */
+function deleteAllChats() {
+    const chatDir = getChatHistoryDir();
+    try {
+        const files = fs.readdirSync(chatDir);
+        let count = 0;
+        for (const file of files) {
+            if (file.endsWith('.json')) {
+                const filePath = path.join(chatDir, file);
+                try {
+                    fs.unlinkSync(filePath);
+                    count++;
+                } catch (err) {
+                    console.error(`Error deleting chat file ${file}:`, err);
+                }
+            }
+        }
+        return { success: true, count };
+    } catch (error) {
+        console.error('Error deleting all chats:', error);
+        return { success: false, error: error.message };
+    }
+}
+
+/**
+ * Clear all messages from a specific chat
+ * @param {string} chatId - The chat ID
+ * @returns {Object|null} The updated chat object or null if not found
+ */
+function clearChatMessages(chatId) {
+    const chat = loadChat(chatId);
+    if (!chat) {
+        console.error(`Chat ${chatId} not found`);
+        return null;
+    }
+
+    chat.messages = [];
+    saveChat(chat);
+    return chat;
 }
 
 module.exports = {
@@ -414,6 +469,8 @@ module.exports = {
     loadChat,
     saveChat,
     deleteChat,
+    deleteAllChats,
+    clearChatMessages,
     listChats,
     updateChatMessages,
     updateChatTitle,

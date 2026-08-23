@@ -162,6 +162,39 @@ export const ChatProvider = ({ children }) => {
     return false;
   }, [loadChatList]);
 
+  // Delete all chats
+  const deleteAllChats = useCallback(async () => {
+    try {
+      const result = await window.electron.chatHistory.deleteAll();
+      if (result && result.success) {
+        currentChatIdRef.current = null;
+        setCurrentChatId(null);
+        setMessages([]);
+        needsTitleGeneration.current = false;
+        await loadChatList();
+        return true;
+      }
+    } catch (error) {
+      console.error('Error deleting all chats:', error);
+    }
+    return false;
+  }, [loadChatList]);
+
+  // Clear messages in the current chat
+  const clearCurrentChat = useCallback(async () => {
+    const chatId = currentChatIdRef.current;
+    if (chatId) {
+      try {
+        await window.electron.chatHistory.clearMessages(chatId);
+      } catch (error) {
+        console.error('Error clearing chat messages:', error);
+      }
+    }
+    setMessages([]);
+    needsTitleGeneration.current = false;
+    await loadChatList();
+  }, [loadChatList]);
+
   // Start a fresh chat (clear current without creating new)
   const startFreshChat = useCallback(() => {
     currentChatIdRef.current = null;
@@ -237,6 +270,8 @@ export const ChatProvider = ({ children }) => {
     loadChat,
     saveCurrentChat,
     deleteChat,
+    deleteAllChats,
+    clearCurrentChat,
     updateChatProject,
     startFreshChat,
     toggleSidebar,

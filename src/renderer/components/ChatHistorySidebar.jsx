@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import { useChat } from '../context/ChatContext';
 import { useProjects } from '../context/ProjectContext';
 import { useLanguage } from '../context/LanguageContext';
@@ -142,6 +143,7 @@ function ChatHistorySidebar({ onNewChat, onChatLoaded, loading }) {
     currentChatId, 
     loadChat, 
     deleteChat, 
+    deleteAllChats,
     isSidebarCollapsed, 
     toggleSidebar,
     isLoadingChats 
@@ -164,6 +166,9 @@ function ChatHistorySidebar({ onNewChat, onChatLoaded, loading }) {
   const [hoveredChatId, setHoveredChatId] = useState(null);
   const [menuOpenChatId, setMenuOpenChatId] = useState(null);
   const [deletingChatId, setDeletingChatId] = useState(null);
+  const [chatToDelete, setChatToDelete] = useState(null);
+  const [isDeletingAllModalOpen, setIsDeletingAllModalOpen] = useState(false);
+  const [isDeletingAll, setIsDeletingAll] = useState(false);
   const [menuPosition, setMenuPosition] = useState({ top: 0, left: 0 });
   const menuButtonRefs = useRef({});
 
@@ -249,13 +254,54 @@ function ChatHistorySidebar({ onNewChat, onChatLoaded, loading }) {
     }
   };
 
-  const handleDeleteChat = async (e, chatId) => {
+  const handlePromptDelete = (e, chat) => {
     e.stopPropagation();
-    setDeletingChatId(chatId);
-    await deleteChat(chatId);
-    setDeletingChatId(null);
     setMenuOpenChatId(null);
+    setChatToDelete(chat);
   };
+
+  const handleConfirmDelete = async () => {
+    if (!chatToDelete) return;
+    const chatId = chatToDelete.id;
+    setDeletingChatId(chatId);
+    try {
+      await deleteChat(chatId);
+    } catch (err) {
+      console.error('Error deleting chat:', err);
+    } finally {
+      setDeletingChatId(null);
+      setChatToDelete(null);
+    }
+  };
+
+  const handleConfirmDeleteAll = async () => {
+    setIsDeletingAll(true);
+    try {
+      await deleteAllChats();
+    } catch (err) {
+      console.error('Error deleting all chats:', err);
+    } finally {
+      setIsDeletingAll(false);
+      setIsDeletingAllModalOpen(false);
+    }
+  };
+
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        if (chatToDelete && !deletingChatId) {
+          setChatToDelete(null);
+        }
+        if (isDeletingAllModalOpen && !isDeletingAll) {
+          setIsDeletingAllModalOpen(false);
+        }
+      }
+    };
+    if (chatToDelete || isDeletingAllModalOpen) {
+      window.addEventListener('keydown', handleKeyDown);
+      return () => window.removeEventListener('keydown', handleKeyDown);
+    }
+  }, [chatToDelete, deletingChatId, isDeletingAllModalOpen, isDeletingAll]);
 
   const handleOpenMoveModal = (e, chat) => {
     e.stopPropagation();
@@ -344,7 +390,7 @@ function ChatHistorySidebar({ onNewChat, onChatLoaded, loading }) {
                 
                 {!isSidebarCollapsed && (
                   <>
-                    <div className="flex-1 min-w-0 pr-5">
+                    <div className="flex-1 min-w-0 pr-14">
                       <div className="truncate text-xs font-medium">
                         {chat.title || t('sidebar.newChat')}
                       </div>
@@ -372,9 +418,17 @@ function ChatHistorySidebar({ onNewChat, onChatLoaded, loading }) {
                       </div>
                     </div>
 
-                    {/* Action menu button */}
-                    {(hoveredChatId === chat.id || menuOpenChatId === chat.id) && (
-                      <div className="absolute right-2 top-1/2 -translate-y-1/2">
+                    {/* Action buttons (Direct Delete & 3-dots menu) */}
+                    {(hoveredChatId === chat.id || menuOpenChatId === chat.id || chatToDelete?.id === chat.id) && (
+                      <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-0.5">
+                        <button
+                          type="button"
+                          onClick={(e) => handlePromptDelete(e, chat)}
+                          className="p-1 rounded-md hover:bg-background/80 text-muted-foreground hover:text-destructive transition-colors"
+                          title={t('sidebar.deleteChat')}
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </button>
                         <button
                           ref={(el) => menuButtonRefs.current[chat.id] = el}
                           onClick={(e) => handleMenuToggle(e, chat.id)}
@@ -434,7 +488,7 @@ function ChatHistorySidebar({ onNewChat, onChatLoaded, loading }) {
                         <div className="my-1 border-t border-border" />
 
                         <button
-                          onClick={(e) => handleDeleteChat(e, chat.id)}
+                          onClick={(e) => handlePromptDelete(e, chat)}
                           className="w-full flex items-center gap-2 px-3 py-1.5 text-destructive hover:bg-destructive/10 transition-colors text-left"
                         >
                           <Trash2 className="h-3.5 w-3.5" />
@@ -487,6 +541,17 @@ function ChatHistorySidebar({ onNewChat, onChatLoaded, loading }) {
           <h2 className="font-semibold text-sm text-foreground">{t('sidebar.title')}</h2>
         )}
         <div className={cn("flex items-center gap-1", isSidebarCollapsed && "w-full justify-center")}>
+          {!isSidebarCollapsed && chatList.length > 0 && (
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setIsDeletingAllModalOpen(true)}
+              className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-muted"
+              title={t('sidebar.deleteAllChats')}
+            >
+              <Trash2 className="h-4 w-4" />
+            </Button>
+          )}
           <Button
             variant="ghost"
             size="icon"
@@ -749,6 +814,130 @@ function ChatHistorySidebar({ onNewChat, onChatLoaded, loading }) {
             </>
           )}
         </div>
+      )}
+
+      {/* Delete Chat Confirmation Modal */}
+      {chatToDelete && typeof document !== 'undefined' && createPortal(
+        <div
+          className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center z-[9999] p-4 animate-in fade-in-0"
+          onClick={(e) => {
+            if (e.target === e.currentTarget && !deletingChatId) {
+              setChatToDelete(null);
+            }
+          }}
+        >
+          <div className="bg-card border border-border rounded-2xl w-full max-w-sm p-4 shadow-2xl animate-in zoom-in-95 flex flex-col space-y-4">
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-xl bg-destructive/10 text-destructive flex items-center justify-center flex-shrink-0">
+                <Trash2 className="w-5 h-5" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <h3 className="font-semibold text-sm text-foreground">
+                  {t('sidebar.deleteChatConfirmTitle')}
+                </h3>
+                <p className="text-xs text-muted-foreground truncate mt-0.5" title={chatToDelete.title || t('sidebar.conversationDefault')}>
+                  "{chatToDelete.title || t('sidebar.conversationDefault')}"
+                </p>
+              </div>
+            </div>
+
+            <p className="text-xs text-muted-foreground leading-relaxed">
+              {t('sidebar.deleteChatConfirmMessage')}
+            </p>
+
+            <div className="flex items-center justify-end gap-2 pt-1">
+              <button
+                type="button"
+                onClick={() => setChatToDelete(null)}
+                disabled={Boolean(deletingChatId)}
+                className="px-3.5 py-1.5 rounded-lg text-xs font-medium text-muted-foreground hover:bg-muted transition-colors disabled:opacity-50"
+              >
+                {t('common.cancel')}
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmDelete}
+                disabled={Boolean(deletingChatId)}
+                className="px-4 py-1.5 rounded-lg text-xs font-semibold bg-destructive text-destructive-foreground hover:bg-destructive/90 transition-colors shadow-xs flex items-center gap-1.5 disabled:opacity-50"
+              >
+                {deletingChatId ? (
+                  <>
+                    <div className="w-3 h-3 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                    <span>{t('common.loading')}</span>
+                  </>
+                ) : (
+                  <>
+                    <Trash2 className="w-3.5 h-3.5" />
+                    <span>{t('common.delete')}</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {/* Delete All Chats Confirmation Modal */}
+      {isDeletingAllModalOpen && typeof document !== 'undefined' && createPortal(
+        <div
+          className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center z-[9999] p-4 animate-in fade-in-0"
+          onClick={(e) => {
+            if (e.target === e.currentTarget && !isDeletingAll) {
+              setIsDeletingAllModalOpen(false);
+            }
+          }}
+        >
+          <div className="bg-card border border-border rounded-2xl w-full max-w-sm p-4 shadow-2xl animate-in zoom-in-95 flex flex-col space-y-4">
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-xl bg-destructive/10 text-destructive flex items-center justify-center flex-shrink-0">
+                <Trash2 className="w-5 h-5" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <h3 className="font-semibold text-sm text-foreground">
+                  {t('sidebar.deleteAllConfirmTitle')}
+                </h3>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  {chatList.length} {chatList.length === 1 ? 'conversa salva' : 'conversas salvas'}
+                </p>
+              </div>
+            </div>
+
+            <p className="text-xs text-muted-foreground leading-relaxed">
+              {t('sidebar.deleteAllConfirmMessage')}
+            </p>
+
+            <div className="flex items-center justify-end gap-2 pt-1">
+              <button
+                type="button"
+                onClick={() => setIsDeletingAllModalOpen(false)}
+                disabled={isDeletingAll}
+                className="px-3.5 py-1.5 rounded-lg text-xs font-medium text-muted-foreground hover:bg-muted transition-colors disabled:opacity-50"
+              >
+                {t('common.cancel')}
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmDeleteAll}
+                disabled={isDeletingAll}
+                className="px-4 py-1.5 rounded-lg text-xs font-semibold bg-destructive text-destructive-foreground hover:bg-destructive/90 transition-colors shadow-xs flex items-center gap-1.5 disabled:opacity-50"
+              >
+                {isDeletingAll ? (
+                  <>
+                    <div className="w-3 h-3 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                    <span>{t('common.loading')}</span>
+                  </>
+                ) : (
+                  <>
+                    <Trash2 className="w-3.5 h-3.5" />
+                    <span>{t('sidebar.deleteAllConfirmButton')}</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
       )}
     </div>
   );

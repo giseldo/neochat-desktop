@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { Link } from 'react-router-dom';
 import MessageList from './components/MessageList';
 import ChatInput from './components/ChatInput';
@@ -15,7 +16,7 @@ import MoveToProjectModal from './components/MoveToProjectModal';
 import { useChat } from './context/ChatContext';
 import { useProjects } from './context/ProjectContext';
 import { useLanguage } from './context/LanguageContext';
-import { Settings, Zap, MessageSquare, PanelLeftClose, PanelLeft, Radio, MessagesSquare, Sparkles, Store, Columns2, X, FolderKanban } from 'lucide-react';
+import { Settings, Zap, PanelLeftClose, PanelLeft, Radio, MessagesSquare, Sparkles, Store, Columns2, X, FolderKanban, Trash2 } from 'lucide-react';
 import { Button } from './components/ui/button';
 import { Badge } from './components/ui/badge';
 import { extractThinking } from './lib/messageUtils';
@@ -81,6 +82,7 @@ function App() {
     setMessages, 
     currentChatId,
     createNewChat, 
+    clearCurrentChat,
     startFreshChat,
     isSidebarCollapsed,
     toggleSidebar,
@@ -94,6 +96,8 @@ function App() {
   } = useProjects();
   const { t } = useLanguage();
   const [loading, setLoading] = useState(false);
+  const [isClearChatModalOpen, setIsClearChatModalOpen] = useState(false);
+  const [isClearingChat, setIsClearingChat] = useState(false);
   const [selectedModel, setSelectedModel] = useState('llama-3.3-70b-versatile');
   const [mcpTools, setMcpTools] = useState([]);
   const [isToolsPanelOpen, setIsToolsPanelOpen] = useState(false);
@@ -1827,6 +1831,35 @@ function App() {
       }
     }
   }, [useResponsesApi]);
+
+  // Handle clearing current chat messages
+  const handleConfirmClearChat = useCallback(async () => {
+    setIsClearingChat(true);
+    try {
+      if (loading) {
+        handleStopGeneration();
+      }
+      await clearCurrentChat();
+    } catch (err) {
+      console.error('Error clearing chat messages:', err);
+    } finally {
+      setIsClearingChat(false);
+      setIsClearChatModalOpen(false);
+    }
+  }, [loading, clearCurrentChat]);
+
+  // Escape key handler to dismiss clear chat modal
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape' && isClearChatModalOpen && !isClearingChat) {
+        setIsClearChatModalOpen(false);
+      }
+    };
+    if (isClearChatModalOpen) {
+      window.addEventListener('keydown', handleKeyDown);
+      return () => window.removeEventListener('keydown', handleKeyDown);
+    }
+  }, [isClearChatModalOpen, isClearingChat]);
   return (
     <div className="flex h-screen bg-background">
       {/* Chat History Sidebar */}
@@ -1896,6 +1929,9 @@ function App() {
                   </button>
                 </div>
               )}
+
+              {/* Total Conversation Metrics & Token Summation */}
+              <ConversationStats messages={messages} />
               
               {/* Status Badge */}
               {mcpTools.length > 0 && (
@@ -1907,8 +1943,19 @@ function App() {
             </div>
 
             <div className="flex items-center space-x-2">
-              {/* Total Conversation Metrics & Token Summation */}
-              <ConversationStats messages={messages} />
+              {/* Clear Messages Button (when messages exist) */}
+              {messages.length > 0 && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setIsClearChatModalOpen(true)}
+                  className="text-xs text-muted-foreground hover:text-destructive hover:bg-muted h-8 px-2 flex items-center gap-1.5"
+                  title={t('header.clearChat')}
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                  <span className="hidden md:inline">{t('header.clearChat')}</span>
+                </Button>
+              )}
 
               {/* MCP Catalog Button */}
               <Button
@@ -1925,18 +1972,6 @@ function App() {
               {/* Theme Toggle Button */}
               <ThemeToggle />
 
-              {/* New Chat Button */}
-              {messages.length > 0 && (
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  onClick={handleNewChat}
-                  className="text-foreground border-border hover:bg-muted"
-                >
-                  <MessageSquare className="h-4 w-4 mr-1.5" />
-                  <span className="hidden md:inline">{t('header.newChat')}</span>
-                </Button>
-              )}
               
               <Link to="/settings">
                 <Button variant="ghost" size="icon" className="text-foreground hover:bg-muted" title={t('header.settings')}>
@@ -2054,6 +2089,68 @@ function App() {
       {/* Project Modals */}
       <ProjectModal />
       <MoveToProjectModal />
+
+      {/* Clear Current Chat Messages Modal */}
+      {isClearChatModalOpen && typeof document !== 'undefined' && createPortal(
+        <div
+          className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center z-[9999] p-4 animate-in fade-in-0"
+          onClick={(e) => {
+            if (e.target === e.currentTarget && !isClearingChat) {
+              setIsClearChatModalOpen(false);
+            }
+          }}
+        >
+          <div className="bg-card border border-border rounded-2xl w-full max-w-sm p-4 shadow-2xl animate-in zoom-in-95 flex flex-col space-y-4">
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-xl bg-destructive/10 text-destructive flex items-center justify-center flex-shrink-0">
+                <Trash2 className="w-5 h-5" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <h3 className="font-semibold text-sm text-foreground">
+                  {t('header.clearChatConfirmTitle')}
+                </h3>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  {messages.length} {messages.length === 1 ? 'mensagem' : 'mensagens'}
+                </p>
+              </div>
+            </div>
+
+            <p className="text-xs text-muted-foreground leading-relaxed">
+              {t('header.clearChatConfirmMessage')}
+            </p>
+
+            <div className="flex items-center justify-end gap-2 pt-1">
+              <button
+                type="button"
+                onClick={() => setIsClearChatModalOpen(false)}
+                disabled={isClearingChat}
+                className="px-3.5 py-1.5 rounded-lg text-xs font-medium text-muted-foreground hover:bg-muted transition-colors disabled:opacity-50"
+              >
+                {t('common.cancel')}
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmClearChat}
+                disabled={isClearingChat}
+                className="px-4 py-1.5 rounded-lg text-xs font-semibold bg-destructive text-destructive-foreground hover:bg-destructive/90 transition-colors shadow-xs flex items-center gap-1.5 disabled:opacity-50"
+              >
+                {isClearingChat ? (
+                  <>
+                    <div className="w-3 h-3 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                    <span>{t('common.loading')}</span>
+                  </>
+                ) : (
+                  <>
+                    <Trash2 className="w-3.5 h-3.5" />
+                    <span>{t('common.clear')}</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
       </div>
     </div>
   );
