@@ -3,15 +3,34 @@ import ToolCall from './ToolCall';
 import MarkdownRenderer from './MarkdownRenderer';
 import { TextShimmer } from './ui/text-shimmer';
 import { Badge } from './ui/badge';
-import { Zap } from 'lucide-react';
+import { Zap, Volume2, VolumeX, Copy, Check, RotateCw, Clock, Gauge, Layers, Info } from 'lucide-react';
+import { useLanguage } from '../context/LanguageContext';
+import { cn } from '../lib/utils';
 
-function Message({ message, children, onToolCallExecute, allMessages, isLastMessage, messageIndex, onReloadFromMessage, loading, onActionsVisible, hideReasoningUI = false, combinedReasoning = null, combinedReasoningDuration = null }) {
+function Message({
+  message,
+  children,
+  onToolCallExecute,
+  allMessages,
+  isLastMessage,
+  messageIndex,
+  onReloadFromMessage,
+  loading,
+  onActionsVisible,
+  hideReasoningUI = false,
+  combinedReasoning = null,
+  combinedReasoningDuration = null,
+  onPreviewArtifact
+}) {
+  const { t, language } = useLanguage();
   const { role, tool_calls, reasoning, isStreaming, executed_tools, liveReasoning, liveExecutedTools, reasoningSummaries, reasoningDuration, usage } = message;
   const [showReasoning, setShowReasoning] = useState(false);
   const [showExecutedTools, setShowExecutedTools] = useState(false);
-  const [collapsedOutputs, setCollapsedOutputs] = useState(new Set()); // Track which tool outputs are collapsed
+  const [collapsedOutputs, setCollapsedOutputs] = useState(new Set());
   const [copySuccess, setCopySuccess] = useState(false);
   const [showActions, setShowActions] = useState(false);
+  const [isSpeaking, setIsSpeaking] = useState(false);
+  const [showDetailedStats, setShowDetailedStats] = useState(false);
   const wasStreamingRef = useRef(false);
   const actionTimeoutRef = useRef(null);
   
@@ -21,45 +40,44 @@ function Message({ message, children, onToolCallExecute, allMessages, isLastMess
   const isStreamingMessage = isStreaming === true;
   const hasReasoningSummaries = reasoningSummaries && reasoningSummaries.length > 0;
   
-  // Get current reasoning and tools (live or final)
-  // Use combined reasoning from grouped messages if available (for MCP approval continuation flows)
   const currentReasoning = combinedReasoning || liveReasoning || reasoning;
   const currentTools = liveExecutedTools?.length > 0 ? liveExecutedTools : executed_tools;
-  // Use combined duration if available
   const effectiveReasoningDuration = combinedReasoningDuration || reasoningDuration;
   
-  // Reasoning is complete if we have a duration (even while still streaming) OR if stream ended with reasoning
-  // Use effective duration which may include combined duration from grouped messages
   const isReasoningComplete = (effectiveReasoningDuration && hasReasoning) || (!isStreamingMessage && hasReasoning);
   
   // Auto-collapse when streaming finishes
   useEffect(() => {
     if (wasStreamingRef.current && !isStreamingMessage) {
-      // Streaming just finished, auto-collapse
       setShowReasoning(false);
     }
     wasStreamingRef.current = isStreamingMessage;
   }, [isStreamingMessage]);
 
-  // Debounced show actions - only show when not loading and is last message
+  // Clean up speech synthesis on unmount
   useEffect(() => {
-    // Clear any existing timeout
+    return () => {
+      if (typeof window !== 'undefined' && window.speechSynthesis) {
+        window.speechSynthesis.cancel();
+      }
+    };
+  }, []);
+
+  // Debounced show actions
+  useEffect(() => {
     if (actionTimeoutRef.current) {
       clearTimeout(actionTimeoutRef.current);
     }
 
-    // Hide actions immediately if loading or not last message
     if (loading || !isLastMessage || isStreamingMessage) {
       setShowActions(false);
       return;
     }
 
-    // Debounce showing actions by 300ms
     actionTimeoutRef.current = setTimeout(() => {
       setShowActions(true);
-    }, 300);
+    }, 200);
 
-    // Cleanup
     return () => {
       if (actionTimeoutRef.current) {
         clearTimeout(actionTimeoutRef.current);
@@ -70,32 +88,25 @@ function Message({ message, children, onToolCallExecute, allMessages, isLastMess
   // Scroll to bottom when actions become visible
   useEffect(() => {
     if (showActions && onActionsVisible) {
-      // Use a small delay to ensure the DOM has updated with the new buttons
       setTimeout(() => {
-        onActionsVisible(true); // Pass true for instant scroll
+        onActionsVisible(true);
       }, 50);
     }
   }, [showActions, onActionsVisible]);
 
-  // Find tool results for this message's tool calls in the messages array
   const findToolResult = (toolCallId) => {
     if (!allMessages) return null;
-    
-    // Look for a tool message that matches this tool call ID
     const toolMessage = allMessages.find(
       msg => msg.role === 'tool' && msg.tool_call_id === toolCallId
     );
-    
     return toolMessage ? toolMessage.content : null;
   };
 
   const messageClasses = `flex ${isUser ? 'justify-end' : 'justify-start'}`;
-  // Apply background only for user messages
-  const bubbleStyle = isUser ? 'bg-[#E9E9DF]' : ''; // No background for assistant/system
   const bubbleClasses = isUser
-    ? `relative overflow-x-auto px-4 py-3 rounded-lg max-w-xl max-h-[500px] overflow-y-auto cursor-pointer ${bubbleStyle}`
-    : `relative w-full`; // Assistant bubbles full-width, no background, text wraps naturally
-  const wrapperClasses = `message-content-wrapper ${isUser ? 'text-black' : 'text-black'} break-words text-sm overflow-hidden`; // Keep text black for both, use break-words, smaller font, contain overflow
+    ? `relative overflow-x-auto px-4 py-3 rounded-2xl max-w-xl max-h-[500px] overflow-y-auto bg-primary/10 border border-primary/20 text-foreground shadow-xs`
+    : `relative w-full text-foreground`;
+  const wrapperClasses = `message-content-wrapper text-foreground break-words text-sm overflow-hidden leading-relaxed`;
 
   const toggleReasoning = () => setShowReasoning(!showReasoning);
   const toggleExecutedTools = () => setShowExecutedTools(!showExecutedTools);
@@ -114,7 +125,13 @@ function Message({ message, children, onToolCallExecute, allMessages, isLastMess
 
   const handleCopy = async () => {
     try {
-      await navigator.clipboard.writeText(message.content || '');
+      const textToCopy = typeof message.content === 'string' 
+        ? message.content 
+        : Array.isArray(message.content)
+          ? message.content.map(p => p.text || '').join('\n')
+          : JSON.stringify(message.content);
+
+      await navigator.clipboard.writeText(textToCopy || '');
       setCopySuccess(true);
       setTimeout(() => setCopySuccess(false), 2000);
     } catch (err) {
@@ -122,47 +139,73 @@ function Message({ message, children, onToolCallExecute, allMessages, isLastMess
     }
   };
 
-  // By default, collapse outputs. Show them only if explicitly expanded
+  const toggleSpeech = () => {
+    if (typeof window === 'undefined' || !window.speechSynthesis) return;
+
+    if (isSpeaking) {
+      window.speechSynthesis.cancel();
+      setIsSpeaking(false);
+    } else {
+      window.speechSynthesis.cancel();
+      const rawText = typeof message.content === 'string' 
+        ? message.content 
+        : Array.isArray(message.content)
+          ? message.content.map(p => p.text || '').join(' ')
+          : '';
+      
+      const cleanText = rawText.replace(/```[\s\S]*?```/g, t('message.ttsCodeOmitted'))
+                               .replace(/[#*`_~]/g, '');
+
+      if (!cleanText.trim()) return;
+
+      const utterance = new SpeechSynthesisUtterance(cleanText);
+      utterance.lang = language === 'pt' ? 'pt-BR' : 'en-US';
+      utterance.rate = 1.05;
+
+      utterance.onend = () => setIsSpeaking(false);
+      utterance.onerror = () => setIsSpeaking(false);
+
+      setIsSpeaking(true);
+      window.speechSynthesis.speak(utterance);
+    }
+  };
+
   const isOutputCollapsed = (toolIndex) => {
-    // Default to collapsed unless explicitly expanded (both during and after streaming)
     return !collapsedOutputs.has(toolIndex);
   };
+
+  // Calculate speed & tokens
+  const completionTokens = usage?.completion_tokens || 0;
+  const promptTokens = usage?.prompt_tokens || 0;
+  const totalTokens = usage?.total_tokens || (completionTokens + promptTokens);
+  const durationSec = usage?.completion_time || usage?.total_time || usage?.client_duration || 0;
+  const tokensPerSec = durationSec > 0 && completionTokens > 0 
+    ? Math.round(completionTokens / durationSec) 
+    : 0;
+  const ttftMs = usage?.ttft ? Math.round(usage.ttft) : null;
 
   return (
     <div className={messageClasses}>
       <div className={bubbleClasses}>
         {isStreamingMessage && (
-          <div className="streaming-indicator mb-1">
+          <div className="streaming-indicator mb-2">
             <span className="dot-1"></span>
             <span className="dot-2"></span>
             <span className="dot-3"></span>
           </div>
         )}
 
-        {/* Simple dropdowns - always visible when content exists */}
-        {/* Hide reasoning UI for non-first messages in consecutive assistant message groups (MCP approval continuation flows) */}
+        {/* Reasoning and Tools Dropdowns */}
         {!isUser && (hasReasoning || hasExecutedTools || hasReasoningSummaries) && (
-          <div className="pb-1 space-y-0.5">
-            <div className="flex flex-wrap gap-2">
-              {/* Reasoning summaries - displayed as activity lines while streaming AND reasoning not yet complete */}
-              {/* Hide shimmer if content has started streaming, even if reasoningDuration not set yet */}
-              {/* Only show the most recent summary to avoid multiple shimmering texts */}
-              {/* Hide if this is a continuation message in an MCP approval flow */}
+          <div className="pb-1.5 space-y-1">
+            <div className="flex flex-wrap items-center gap-2">
               {!hideReasoningUI && hasReasoningSummaries && isStreamingMessage && !effectiveReasoningDuration && !message.content && (
                 <div className="flex flex-col gap-1.5 w-full mb-2">
                   {(() => {
                     const latestSummary = reasoningSummaries[reasoningSummaries.length - 1];
                     return (
-                      <div 
-                        key={latestSummary.index}
-                        className="flex items-center text-sm"
-                      >
-                        <TextShimmer 
-                          as="span" 
-                          duration={2.5} 
-                          spread={3}
-                          className="text-sm font-medium text-gray-700"
-                        >
+                      <div key={latestSummary.index} className="flex items-center text-sm">
+                        <TextShimmer as="span" duration={2.5} spread={3} className="text-sm font-medium text-foreground">
                           {latestSummary.summary}
                         </TextShimmer>
                       </div>
@@ -171,17 +214,16 @@ function Message({ message, children, onToolCallExecute, allMessages, isLastMess
                 </div>
               )}
               
-              {/* When reasoning completes, show "Thought for Xs" toggle (can happen while still streaming content) */}
-              {/* Hide if this is a continuation message in an MCP approval flow */}
               {!hideReasoningUI && hasReasoningSummaries && isReasoningComplete && effectiveReasoningDuration != null && (
                 <button 
                   onClick={toggleReasoning}
-                  className="flex items-center text-sm font-medium text-gray-700 hover:text-gray-900 transition-colors duration-200 cursor-pointer bg-transparent border-none p-0"
+                  className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors px-2 py-1 rounded-md bg-muted/60 hover:bg-muted border border-border/50 cursor-pointer"
                 >
-                  <span>Thought for {effectiveReasoningDuration}s</span>
+                  <Clock className="w-3 h-3 text-primary" />
+                  <span>{t('message.thoughtFor', { duration: effectiveReasoningDuration })}</span>
                   <svg 
                     xmlns="http://www.w3.org/2000/svg" 
-                    className={`h-3 w-3 ml-1 transition-transform duration-200 ${showReasoning ? 'rotate-90' : ''}`} 
+                    className={`h-3 w-3 ml-0.5 transition-transform duration-200 ${showReasoning ? 'rotate-90' : ''}`} 
                     fill="none" 
                     viewBox="0 0 24 24" 
                     stroke="currentColor"
@@ -192,16 +234,14 @@ function Message({ message, children, onToolCallExecute, allMessages, isLastMess
                 </button>
               )}
               
-              {/* Reasoning dropdown - blue (only show if no summaries, for backward compatibility) */}
-              {/* Hide if this is a continuation message in an MCP approval flow */}
               {!hideReasoningUI && hasReasoning && !hasReasoningSummaries && (
                 <button 
                   onClick={toggleReasoning}
-                  className="flex items-center text-sm px-3 py-1 rounded-md bg-blue-100 hover:bg-blue-200 text-blue-800 transition-colors duration-200"
+                  className="flex items-center text-xs px-2.5 py-1 rounded-md bg-primary/10 hover:bg-primary/20 text-primary border border-primary/30 transition-colors font-medium cursor-pointer"
                 >
                   <svg 
                     xmlns="http://www.w3.org/2000/svg" 
-                    className={`h-10 w-4 mr-1 transition-transform duration-200 ${showReasoning ? 'rotate-90' : ''}`} 
+                    className={`h-3 w-3 mr-1 transition-transform duration-200 ${showReasoning ? 'rotate-90' : ''}`} 
                     fill="none" 
                     viewBox="0 0 24 24" 
                     stroke="currentColor"
@@ -209,25 +249,21 @@ function Message({ message, children, onToolCallExecute, allMessages, isLastMess
                   >
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                   </svg>
-                  {isStreamingMessage && liveReasoning ? 'Thinking...' : 'Show reasoning'}
+                  {isStreamingMessage && liveReasoning ? t('message.thinking') : t('message.viewReasoning')}
                   {isStreamingMessage && liveReasoning && (
-                    <svg className="animate-spin ml-2 h-4 w-4 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                    </svg>
+                    <span className="w-2.5 h-2.5 ml-1.5 border-2 border-primary/30 border-t-primary rounded-full animate-spin"></span>
                   )}
                 </button>
               )}
               
-              {/* Tool execution dropdown - badge style matching header "5 tools" chip */}
               {hasExecutedTools && (
                 <Badge 
                   variant="secondary" 
-                  className="bg-[#E9E9DF] hover:bg-[#DDD9D0] cursor-pointer transition-colors duration-200"
+                  className="bg-muted hover:bg-muted/80 text-foreground border border-border cursor-pointer transition-colors"
                   onClick={toggleExecutedTools}
                 >
-                  <Zap className="w-3 h-3 mr-1" />
-                  <span>{`Built in tool calling [${currentTools?.length || 0}]`}</span>
+                  <Zap className="w-3 h-3 mr-1 text-amber-500" />
+                  <span>{t('message.executedTools', { count: currentTools?.length || 0 })}</span>
                   <svg 
                     xmlns="http://www.w3.org/2000/svg" 
                     className={`h-3 w-3 ml-1 transition-transform duration-200 ${showExecutedTools ? 'rotate-90' : ''}`} 
@@ -238,118 +274,74 @@ function Message({ message, children, onToolCallExecute, allMessages, isLastMess
                   >
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                   </svg>
-                  {isStreamingMessage && currentTools?.some(t => !t.output) && (
-                    <svg className="animate-spin ml-1.5 h-3 w-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                    </svg>
-                  )}
                 </Badge>
               )}
             </div>
             
-            {/* Reasoning content - only show when toggled (not during streaming if we have summaries) */}
-            {/* Hide if this is a continuation message in an MCP approval flow */}
+            {/* Reasoning content */}
             {!hideReasoningUI && showReasoning && currentReasoning && (
-              <div 
-                className="mt-2 text-md transition-all duration-200 max-h-[600px] overflow-y-auto reasoning-content"
-              >
-                <div className="whitespace-pre-wrap break-words italic text-gray-700">
-                  <MarkdownRenderer
-                    content={currentReasoning
-                      .replace(/<tool[^>]*>([\s\S]*?)<\/tool>/gi, '**Tool call:**\n```$1```')
-                      .replace(/<output[^>]*>([\s\S]*?)<\/output>/gi, '**Tool output:**\n $1')
-                      .replace(/<think[^>]*>([\s\S]*?)<\/think>/gi, '### **Thought process:** $1')
-                    }
-                    disableMath={true}
-                  />
-                </div>
+              <div className="mt-2 p-3 rounded-lg bg-muted/40 border border-border/60 text-xs text-muted-foreground transition-all duration-200 max-h-[500px] overflow-y-auto font-mono">
+                <MarkdownRenderer
+                  content={currentReasoning
+                    .replace(/<tool[^>]*>([\s\S]*?)<\/tool>/gi, '**Tool call:**\n```$1```')
+                    .replace(/<output[^>]*>([\s\S]*?)<\/output>/gi, '**Tool output:**\n $1')
+                    .replace(/<think[^>]*>([\s\S]*?)<\/think>/gi, language === 'pt' ? '### **Processo de pensamento:** $1' : '### **Thought process:** $1')
+                  }
+                  disableMath={true}
+                  onPreviewArtifact={onPreviewArtifact}
+                />
               </div>
             )}
             
             {/* Tool execution content */}
             {showExecutedTools && currentTools?.length > 0 && (
-              <div className="space-y-2">
+              <div className="space-y-2 mt-2">
                 {currentTools.map((tool, index) => {
                   const isLive = liveExecutedTools?.length > 0;
                   const isExecuting = isLive && !tool.output;
                   return (
-                    <div key={`tool-${tool.index || index}`} className="p-3 rounded-md text-sm border bg-[#F5F5F0] border-[#E5E5DC]">
-                      <div className="flex items-center gap-2 mb-2 text-gray-700">
-                        <span className="font-medium">{tool.name || tool.type || 'function'}</span>
+                    <div key={`tool-${tool.index || index}`} className="p-3 rounded-lg text-xs border border-border bg-card">
+                      <div className="flex items-center gap-2 mb-2">
+                        <span className="font-semibold text-foreground">{tool.name || tool.type || 'tool'}</span>
                         {tool.server_label && (
-                          <span className="px-1.5 py-0.5 text-xs rounded bg-[#E9E9DF] text-gray-600">
+                          <span className="px-1.5 py-0.5 text-[10px] rounded bg-muted text-muted-foreground border border-border/50">
                             {tool.server_label}
                           </span>
                         )}
-                        <span className={`text-xs ${isExecuting ? 'text-amber-600' : 'text-gray-500'}`}>
-                          {isExecuting ? '• running' : '• done'}
+                        <span className={`text-[11px] font-medium ${isExecuting ? 'text-amber-500 animate-pulse' : 'text-green-500'}`}>
+                          {isExecuting ? t('message.executing') : t('message.completed')}
                         </span>
                       </div>
                       
                       {tool.arguments && (
                         <div className="mb-2">
-                          <div className="text-xs mb-1 text-gray-500">Code:</div>
-                          <pre className="p-2 rounded overflow-x-auto text-xs bg-white/60 text-gray-800 border border-[#E5E5DC]">
-                            {typeof tool.arguments === 'string' ? 
-                              (tool.arguments.startsWith('{') ? 
-                                (() => {
-                                  try {
-                                    return JSON.parse(tool.arguments).code || tool.arguments;
-                                  } catch (e) {
-                                    return tool.arguments;
-                                  }
-                                })() : 
-                                tool.arguments
-                              ) : 
-                              JSON.stringify(tool.arguments, null, 2)
-                            }
+                          <div className="text-[11px] mb-1 text-muted-foreground font-medium">{t('message.arguments')}</div>
+                          <pre className="p-2 rounded overflow-x-auto text-[11px] bg-muted/60 border border-border text-foreground font-mono">
+                            {typeof tool.arguments === 'string' ? tool.arguments : JSON.stringify(tool.arguments, null, 2)}
                           </pre>
                         </div>
                       )}
                       
                       {tool.output && (
                         <div>
-                          {(() => {
-                            const outputLineCount = tool.output.split('\n').length;
-                            const shouldShowCollapse = outputLineCount > 10;
-                            
-                            if (!shouldShowCollapse) {
-                              // Show output directly for 10 lines or fewer
-                              return (
-                                <div>
-                                  <div className="text-xs mb-1 text-gray-500">Output:</div>
-                                  <pre className="bg-white p-2 rounded overflow-x-auto text-xs border border-[#E5E5DC] text-gray-800">
-                                    {tool.output}
-                                  </pre>
-                                </div>
-                              );
-                            }
-                            
-                            // Show collapse/expand for outputs with more than 10 lines
-                            return (
-                              <div>
-                                <div className="flex items-center justify-between mb-1">
-                                  <div className="text-xs text-gray-500">Output:</div>
-                                  <button
-                                    onClick={() => toggleOutputCollapse(tool.index || index)}
-                                    className="text-xs px-2 py-0.5 rounded bg-[#E9E9DF] text-gray-600 hover:bg-[#DDD9D0] transition-colors"
-                                  >
-                                    {isOutputCollapsed(tool.index || index) ? 'Show' : 'Hide'}
-                                  </button>
-                                </div>
-                                {isOutputCollapsed(tool.index || index) ? (
-                                  <div className="bg-white p-2 rounded text-xs border border-[#E5E5DC] text-gray-500 italic">
-                                    Output available (click Show to expand)
-                                  </div>
-                                ) : (
-                                  <pre className="bg-white p-2 rounded overflow-x-auto text-xs border border-[#E5E5DC] text-gray-800">
-                                    {tool.output}
-                                  </pre>
-                                )}
-                              </div>
-                            );
-                          })()}
+                          <div className="flex items-center justify-between mb-1">
+                            <div className="text-[11px] text-muted-foreground font-medium">{t('message.output')}</div>
+                            <button
+                              onClick={() => toggleOutputCollapse(tool.index || index)}
+                              className="text-[10px] px-2 py-0.5 rounded bg-muted text-foreground hover:bg-muted/80 transition-colors border border-border/50"
+                            >
+                              {isOutputCollapsed(tool.index || index) ? t('message.expand') : t('message.collapse')}
+                            </button>
+                          </div>
+                          {isOutputCollapsed(tool.index || index) ? (
+                            <div className="bg-muted/40 p-2 rounded text-[11px] border border-border text-muted-foreground italic">
+                              {t('message.hiddenOutput', { count: tool.output.length })}
+                            </div>
+                          ) : (
+                            <pre className="bg-muted/60 p-2 rounded overflow-x-auto text-[11px] border border-border text-foreground font-mono max-h-60 overflow-y-auto">
+                              {tool.output}
+                            </pre>
+                          )}
                         </div>
                       )}
                     </div>
@@ -364,12 +356,11 @@ function Message({ message, children, onToolCallExecute, allMessages, isLastMess
           {children}
         </div>
         
-        {/* Client-side tool calls (filter out remote MCP tools which are shown separately) */}
+        {/* Client-side tool calls */}
         {tool_calls && tool_calls.length > 0 && (() => {
-          // Filter out remote MCP tools - they have server_label set
           const clientSideToolCalls = tool_calls.filter(tc => !tc.server_label);
           return clientSideToolCalls.length > 0 ? (
-            <div className="mb-2 space-y-0.5">
+            <div className="mb-2 space-y-1">
               {clientSideToolCalls.map((toolCall, index) => (
                 <ToolCall 
                   key={toolCall.id || index} 
@@ -381,53 +372,87 @@ function Message({ message, children, onToolCallExecute, allMessages, isLastMess
           ) : null;
         })()}
 
-        {/* Usage stats, copy, and reload button for the last assistant message only */}
-        {!isUser && showActions && (
-          <div className="flex items-center gap-3 mt-3 pt-3 border-t border-gray-200 text-xs text-gray-600">
-            {usage?.completion_tokens && usage?.completion_time && (
-              <div className="flex items-center gap-1.5">
-                <svg className="w-3.5 h-3.5" viewBox="0 0 370 563" fill="#F43E01" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M165.98 342.21H0L272.4 1.5l-68.75 220.11H369.6L97.23 562.32z"/>
-                </svg>
-                <span className="font-medium">
-                  {Math.round(usage.completion_tokens / usage.completion_time)} t/s
-                </span>
-              </div>
-            )}
-            <div className="relative group">
+        {/* Action bar and Performance Metrics */}
+        {!isUser && (
+          <div className="flex flex-wrap items-center justify-between gap-3 mt-3 pt-2.5 border-t border-border/70 text-xs text-muted-foreground">
+            {/* Speed & Performance Metrics */}
+            <div className="flex flex-wrap items-center gap-2">
+              {tokensPerSec > 0 && (
+                <div 
+                  className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/25 font-semibold cursor-pointer hover:bg-primary/20 transition-colors"
+                  onClick={() => setShowDetailedStats(!showDetailedStats)}
+                  title={t('message.metricsTooltip')}
+                >
+                  <Zap className="w-3 h-3 text-primary fill-primary" />
+                  <span>{tokensPerSec} t/s</span>
+                </div>
+              )}
+
+              {ttftMs != null && ttftMs > 0 && (
+                <div className="flex items-center gap-1 text-[11px] text-muted-foreground bg-muted/60 px-2 py-0.5 rounded-md border border-border/50">
+                  <Clock className="w-3 h-3" />
+                  <span>TTFT: {ttftMs}ms</span>
+                </div>
+              )}
+
+              {durationSec > 0 && (
+                <div className="text-[11px] text-muted-foreground">
+                  {durationSec.toFixed(2)}s
+                </div>
+              )}
+
+              {/* Detailed popover/stats */}
+              {showDetailedStats && (
+                <div className="w-full mt-1 p-2 rounded-lg bg-card border border-border shadow-md text-xs space-y-1 animate-in fade-in-0">
+                  <div className="flex items-center justify-between text-muted-foreground border-b border-border/50 pb-1 font-medium">
+                    <span className="flex items-center gap-1"><Gauge className="w-3.5 h-3.5 text-primary" /> {t('message.inferenceMetrics')}</span>
+                    <button onClick={() => setShowDetailedStats(false)} className="hover:text-foreground">✕</button>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2 pt-1 text-[11px]">
+                    <div>{t('message.tokensPrompt')} <span className="font-semibold text-foreground">{promptTokens}</span></div>
+                    <div>{t('message.tokensResponse')} <span className="font-semibold text-foreground">{completionTokens}</span></div>
+                    <div>{t('message.totalTokens')} <span className="font-semibold text-foreground">{totalTokens}</span></div>
+                    <div>{t('message.speed')} <span className="font-semibold text-primary">{tokensPerSec} t/s</span></div>
+                    {ttftMs && <div>{t('message.ttft')} <span className="font-semibold text-foreground">{ttftMs}ms</span></div>}
+                    {usage?.queue_time && <div>{t('message.groqQueue')} <span className="font-semibold text-foreground">{(usage.queue_time * 1000).toFixed(0)}ms</span></div>}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Actions: TTS, Copy, Reload */}
+            <div className="flex items-center gap-1">
+              <button
+                onClick={toggleSpeech}
+                className={cn(
+                  "flex items-center gap-1 p-1.5 rounded-md transition-colors",
+                  isSpeaking
+                    ? "bg-primary text-primary-foreground animate-pulse"
+                    : "hover:bg-muted text-muted-foreground hover:text-foreground"
+                )}
+                title={isSpeaking ? t('message.ttsStop') : t('message.ttsListen')}
+              >
+                {isSpeaking ? <VolumeX className="w-3.5 h-3.5" /> : <Volume2 className="w-3.5 h-3.5" />}
+              </button>
+
               <button
                 onClick={handleCopy}
-                className="flex items-center justify-center p-1.5 rounded hover:bg-[#E9E9DF] transition-colors"
+                className="flex items-center gap-1 p-1.5 rounded-md hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
+                title={t('message.copyMessage')}
               >
-                {copySuccess ? (
-                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                  </svg>
-                ) : (
-                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                  </svg>
-                )}
+                {copySuccess ? <Check className="w-3.5 h-3.5 text-green-500" /> : <Copy className="w-3.5 h-3.5" />}
               </button>
-              <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 bg-gray-900 text-white text-xs rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
-                {copySuccess ? 'Copied!' : 'Copy'}
-              </div>
-            </div>
-            {onReloadFromMessage && messageIndex !== undefined && (
-              <div className="relative group">
+
+              {onReloadFromMessage && messageIndex !== undefined && (
                 <button
                   onClick={() => onReloadFromMessage(messageIndex)}
-                  className="flex items-center justify-center p-1.5 rounded hover:bg-[#E9E9DF] transition-colors"
+                  className="flex items-center gap-1 p-1.5 rounded-md hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
+                  title={t('message.regenerate')}
                 >
-                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                  </svg>
+                  <RotateCw className="w-3.5 h-3.5" />
                 </button>
-                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 bg-gray-900 text-white text-xs rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
-                  Reload
-                </div>
-              </div>
-            )}
+              )}
+            </div>
           </div>
         )}
       </div>

@@ -4,6 +4,7 @@ const fs = require('fs');
 const path = require('path');
 const { pruneMessageHistory } = require('./messageUtils');
 const { supportsBuiltInTools } = require('../shared/models');
+const { getActiveApiKey, getProviderBaseUrl } = require('../shared/providers');
 const googleOAuthManager = require('./googleOAuthManager');
 
 // Track active streams to allow cancellation
@@ -37,8 +38,9 @@ function cleanupStream(streamId) {
 }
 
 function validateApiKey(settings) {
-    if (!settings.GROQ_API_KEY || settings.GROQ_API_KEY === "<replace me>") {
-        throw new Error("API key not configured. Please add your GROQ API key in settings.");
+    const apiKey = getActiveApiKey(settings);
+    if (!apiKey || apiKey === "<replace me>") {
+        throw new Error(`API key not configured. Please add your API key for the "${settings.provider || 'groq'}" provider in settings.`);
     }
 }
 
@@ -236,8 +238,19 @@ function buildApiParams(prunedMessages, modelToUse, settings, tools, modelContex
         // Tools skipped for compound models
     }
 
+    // Extract any incoming system messages and non-system messages
+    const customSystemMessages = prunedMessages.filter(m => m.role === 'system');
+    const nonSystemMessages = prunedMessages.filter(m => m.role !== 'system');
+
+    if (customSystemMessages.length > 0) {
+        const customPromptText = customSystemMessages
+            .map(m => (typeof m.content === 'string' ? m.content : JSON.stringify(m.content)))
+            .join('\n\n');
+        systemPrompt += `\n\n${customPromptText}`;
+    }
+
     const apiParams = {
-        messages: [{ role: "system", content: systemPrompt }, ...prunedMessages],
+        messages: [{ role: "system", content: systemPrompt }, ...nonSystemMessages],
         model: modelToUse,
         temperature: settings.temperature ?? 0.7,
         top_p: settings.top_p ?? 0.95,
@@ -265,10 +278,12 @@ function processStreamChunk(chunk, event, accumulatedData, groq, streamId, setti
     }
 
     if (accumulatedData.isFirstChunk) {
+        accumulatedData.ttft = Date.now() - (accumulatedData.startTime || Date.now());
         accumulatedData.streamId = chunk.id;
         event.sender.send('chat-stream-start', {
             id: accumulatedData.streamId,
-            role: delta?.role || "assistant"
+            role: delta?.role || "assistant",
+            ttft: accumulatedData.ttft
         });
         accumulatedData.isFirstChunk = false;
     }
@@ -329,7 +344,7 @@ function processStreamChunk(chunk, event, accumulatedData, groq, streamId, setti
                     const last300Words = getLastNWords(accumulatedData.reasoning, 300);
                     
                     // Trigger summarization asynchronously (non-blocking)
-                    summarizeReasoningChunk(groq, last300Words, event, streamId, accumulatedData.summaryCount)
+                    summarizeReasoningChunk(groq, last300Words, event, streamId, accumulatedData.summaryCount, chatCompletionParams.model)
                         .catch(err => console.error('[Backend] Error in background summarization:', err));
                 }
             }, 2000);
@@ -443,6 +458,26 @@ function handleStreamCompletion(event, accumulatedData, finishReason, streamId) 
             streamInfo.summaryInterval = null;
         }
     }
+
+    const elapsedSeconds = Math.max(0.001, (Date.now() - (accumulatedData.startTime || Date.now())) / 1000);
+
+    if (accumulatedData.usage) {
+        accumulatedData.usage.ttft = accumulatedData.ttft || 0;
+        if (!accumulatedData.usage.total_time && accumulatedData.usage.completion_time) {
+            accumulatedData.usage.total_time = accumulatedData.usage.completion_time;
+        }
+        accumulatedData.usage.client_duration = elapsedSeconds;
+    } else {
+        const estimatedCompletionTokens = Math.max(1, Math.round((accumulatedData.content || '').length / 4));
+        accumulatedData.usage = {
+            completion_tokens: estimatedCompletionTokens,
+            completion_time: elapsedSeconds,
+            total_time: elapsedSeconds,
+            ttft: accumulatedData.ttft || 0,
+            client_duration: elapsedSeconds,
+            is_estimated: true
+        };
+    }
     
     const completionData = {
         content: accumulatedData.content,
@@ -469,7 +504,7 @@ function getLastNWords(text, n) {
 }
 
 // Summarize reasoning chunk using llama-3.1-8b-instant (non-blocking)
-async function summarizeReasoningChunk(groq, reasoningText, event, streamId, summaryIndex) {
+async function summarizeReasoningChunk(groq, reasoningText, event, streamId, summaryIndex, model) {
     try {
         const response = await groq.chat.completions.create({
             messages: [
@@ -482,7 +517,7 @@ async function summarizeReasoningChunk(groq, reasoningText, event, streamId, sum
                     content: `What activity is happening here in 3-5 words:\n\n${reasoningText}\n\nRespond with ONLY 3-5 plain words:`
                 }
             ],
-            model: 'llama-3.1-8b-instant',
+            model: model || 'llama-3.1-8b-instant',
             temperature: 0.3,
             max_tokens: 10,
             stream: false
@@ -548,7 +583,9 @@ async function executeStreamWithRetry(groq, chatCompletionParams, event, streamI
             lastSummarizedTime: 0,
             summaryCount: 0,
             summaryInterval: null,
-            usage: null
+            usage: null,
+            startTime: Date.now(),
+            ttft: null
         };
         
         try {
@@ -800,6 +837,7 @@ async function handleResponsesApiStream(event, messages, model, settings, modelC
         });
 
         validateApiKey(settings);
+        const providerApiKey = getActiveApiKey(settings);
         const { modelToUse } = determineModel(model, settings, modelContextSizes);
 
         // Check if we need to refresh Google OAuth token before using connectors
@@ -1048,11 +1086,11 @@ async function handleResponsesApiStream(event, messages, model, settings, modelC
             responseFilePath = path.join('/tmp', `responses-api-response-${requestTimestamp}-${streamId}.json`);
         }
 
-        const response = await fetch("https://api.groq.com/openai/v1/responses", {
+        const response = await fetch(`${getProviderBaseUrl(settings) || 'https://api.groq.com/openai/v1'}/responses`, {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
-                "Authorization": `Bearer ${settings.GROQ_API_KEY}`,
+                "Authorization": `Bearer ${providerApiKey}`,
                 "Groq-Beta": "inference-metrics"
             },
             body: body
@@ -1522,32 +1560,29 @@ async function handleChatStream(event, messages, model, settings, modelContextSi
             return;
         }
 
-        const groqConfig = { apiKey: settings.GROQ_API_KEY };
-        
-        // Use custom API base URL if enabled and provided (use exactly as provided)
-        if (settings.customApiBaseUrlEnabled && settings.customApiBaseUrl && settings.customApiBaseUrl.trim()) {
-            groqConfig.baseURL = settings.customApiBaseUrl.trim();
+        const providerApiKey = getActiveApiKey(settings);
+        const providerBaseUrl = getProviderBaseUrl(settings);
+        const groqConfig = { apiKey: providerApiKey };
+
+        // Use the active provider's base URL (OpenAI-compatible /v1/ endpoint)
+        if (providerBaseUrl) {
+            groqConfig.baseURL = providerBaseUrl;
         }
-        
+
         const groq = new Groq(groqConfig);
-        
-        // Monkey patch the SDK when using custom baseURL
-        // Custom baseURL should end with /v1/ (e.g., http://example.com/v1/ or https://api.groq.com/openai/v1/)
-        if (settings.customApiBaseUrlEnabled && settings.customApiBaseUrl && settings.customApiBaseUrl.trim()) {
-            const originalPost = groq.post.bind(groq);
+
+        // The groq-sdk resource paths include an /openai/v1/ prefix. When a
+        // baseURL that already ends in /v1/ is used, strip that prefix so the
+        // requests land on the right endpoint (works for every OpenAI-compatible
+        // provider: Groq, OpenAI, Mistral, xAI, DeepSeek, OpenRouter, custom...).
+        if (providerBaseUrl) {
             const originalBuildURL = groq.buildURL.bind(groq);
-            
-            // Intercept buildURL to strip /openai/v1/ prefix since custom baseURL includes the full path
-            groq.buildURL = function(path, query, defaultBaseURL) {
-                // Strip the /openai/v1/ prefix - custom baseURL should include the full path up to /v1/
+
+            groq.buildURL = function(path, query) {
                 if (path.startsWith('/openai/v1/')) {
                     path = path.replace(/^\/openai\/v1/, '');
                 }
-                return originalBuildURL(path, query, defaultBaseURL);
-            };
-            
-            groq.post = function(path, ...args) {
-                return originalPost(path, ...args);
+                return originalBuildURL(path, query);
             };
         }
         

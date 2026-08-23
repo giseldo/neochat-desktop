@@ -109,16 +109,24 @@
     @apply list-decimal;
   }
 
-  .markdown-content code {
-    @apply bg-muted px-1 py-0.5 rounded;
+  /* Inline code styling */
+  .markdown-content :not(pre):not(.group\/code) > code:not([class*="language-"]):not(.code-block-content) {
+    @apply bg-muted px-1.5 py-0.5 mx-0.5 rounded font-mono text-xs text-foreground border border-border/60;
   }
 
-  .markdown-content pre {
-    @apply bg-muted p-3 rounded my-2 overflow-auto;
+  /* Code block resets to avoid unwanted background or padding on block code */
+  .markdown-content pre,
+  .group\/code pre {
+    @apply bg-transparent p-0 m-0 rounded-none border-none;
   }
 
-  .markdown-content pre code {
-    @apply bg-transparent p-0;
+  .markdown-content pre code,
+  .markdown-content code[class*="language-"],
+  .markdown-content .code-block-content,
+  .group\/code code {
+    @apply bg-transparent p-0 rounded-none border-none text-inherit;
+    background-color: transparent !important;
+    background: transparent !important;
   }
 
   .markdown-content blockquote {

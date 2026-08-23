@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Check, ChevronDown } from 'lucide-react';
+import { useLanguage } from '../../context/LanguageContext';
 import { cn } from '../../lib/utils';
 
 /**
@@ -16,6 +17,7 @@ export function SearchableSelect({
   getOptionLabel,
   getOptionValue
 }) {
+  const { t } = useLanguage();
   const [isOpen, setIsOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [highlightedIndex, setHighlightedIndex] = useState(0);
@@ -153,7 +155,7 @@ export function SearchableSelect({
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               onKeyDown={handleKeyDown}
-              placeholder="Type to filter..."
+              placeholder={t('common.typeToFilter')}
               className="w-full px-2 py-1.5 text-sm bg-background rounded-lg border border-input focus:outline-none focus:ring-2 focus:ring-ring text-foreground"
             />
           </div>
@@ -166,7 +168,7 @@ export function SearchableSelect({
           >
             {filteredOptions.length === 0 ? (
               <div className="py-6 text-center text-sm text-muted-foreground">
-                No models found
+                {t('common.noModelsFound')}
               </div>
             ) : (
               filteredOptions.map((option, index) => {

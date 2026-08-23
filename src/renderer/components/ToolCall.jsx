@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
+import { useLanguage } from '../context/LanguageContext';
 
 function ToolCall({ toolCall, toolResult }) {
+  const { t } = useLanguage();
   const [isExpanded, setIsExpanded] = useState(false);
   const [result, setResult] = useState(null);
   const [error, setError] = useState(null);
@@ -85,7 +87,7 @@ function ToolCall({ toolCall, toolResult }) {
 
         {isExpanded && (
           <div className="mt-3 pt-3 border-t border-gray-600">
-            <div className="text-sm font-medium text-foreground mb-1">Arguments:</div>
+            <div className="text-sm font-medium text-foreground mb-1">{t('toolCall.arguments')}:</div>
             <div className="rounded-md text-sm overflow-x-auto">
               <SyntaxHighlighter 
                 language="json" 
@@ -109,13 +111,13 @@ function ToolCall({ toolCall, toolResult }) {
                   <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                   <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                 </svg>
-                Executing...
+                {t('toolCall.executing')}
               </div>
             )}
 
             {error && (
               <div className="text-red-500 text-sm mt-2 p-2 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-md">
-                <div className="font-medium mb-1">Error:</div>
+                <div className="font-medium mb-1">{t('toolCall.error')}:</div>
                 <pre className="whitespace-pre-wrap break-words">{error}</pre>
               </div>
             )}
@@ -123,9 +125,9 @@ function ToolCall({ toolCall, toolResult }) {
             {result && !error && (
               <div className="mt-2">
                 <div className="text-sm font-medium text-foreground mb-1 flex items-center justify-between">
-                  <span>Result:</span>
+                  <span>{t('toolCall.result')}:</span>
                   <span className="text-xs text-gray-500 font-normal">
-                    {result.length.toLocaleString()} characters
+                    {t('toolCall.characters', { count: result.length.toLocaleString() })}
                   </span>
                 </div>
                 <div className="rounded-md text-sm overflow-x-auto">

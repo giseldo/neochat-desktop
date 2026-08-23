@@ -2,207 +2,200 @@ import React from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import remarkMath from 'remark-math';
-import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
-import { oneDark } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import rehypeKatex from 'rehype-katex';
 import "katex/dist/katex.min.css";
+import CodeBlock from './CodeBlock';
 
-const newLineRegex = /\n/;
-const newLineAtTheEndRegex = /\n$/;
-const codeLanguageRegex = /language-(\w+)/;
 const imageFileExtensionsRegex = /\.(jpg|jpeg|png|gif|bmp|webp|svg)$/i;
-const components = {
-          span: ({ node, children, ...props }) => {
-            // Apply word-wrap styles to KaTeX elements to prevent overflow
-            if (props.className && props.className.includes('katex')) {
-              return (
-                <span 
-                  {...props} 
-                  style={{
-                    wordWrap: 'break-word',
-                    overflowWrap: 'break-word',
-                    wordBreak: 'break-all',
-                    ...props.style
-                  }}
-                >
-                  {children}
-                </span>
-              );
-            }
-            return <span {...props}>{children}</span>;
-          },
-          // Custom renderer for code blocks to add syntax highlighting
-          code({ node, inline, className, children, ...props }) {
-            const match = /language-(\w+)/.exec(className || '');
-            return !inline && match ? (
-              <SyntaxHighlighter
-                style={oneDark} // Apply the chosen theme
-                language={match[1]}
-                PreTag="div"
-                className="rounded-xl"
-                customStyle={{ fontSize: '0.875rem' }} // Make code blocks smaller (text-sm equivalent)
-                {...props}
-              >
-                {String(children).replace(/\n$/, '')}
-              </SyntaxHighlighter>
-            ) : (
-              <code className={className} {...props}>
-                {children}
-              </code>
-            );
-          },
-          h1: ({ node: _, children, ...props }) => (
-            <h1 className="text-xl font-bold mb-4 mt-3" {...props}>
-              {children}
-            </h1>
-          ),
-          h2: ({ node: _, children, ...props }) => (
-            <h2 className="text-lg font-semibold mb-3 mt-3" {...props}>
-              {children}
-            </h2>
-          ),
-          h3: ({ node: _, children, ...props }) => (
-            <h3 className="text-base font-medium mb-3 mt-8" {...props}>
-              {children}
-            </h3>
-          ),
-          h4: ({ node: _, children, ...props }) => (
-            <h4 className="text-sm font-medium mb-2 mt-7" {...props}>
-              {children}
-            </h4>
-          ),
-          h5: ({ node: _, children, ...props }) => (
-            <h5 className="text-sm font-medium mb-2 mt-7" {...props}>
-              {children}
-            </h5>
-          ),
-          h6: ({ node: _, children, ...props }) => (
-            <h6 className="text-xs font-medium mb-1 mt-6" {...props}>
-              {children}
-            </h6>
-          ),
-          tr: ({ node: _, ...props }) => <tr className="border-b" {...props} />,
-          td: ({ node: _, children, ...props }) => {
-            return (
-              <td
-                className="border-r border-gray-200 p-2 font-normal first:border-l text-left text-sm"
-                {...props}
-              >
-                {children}
-              </td>
-            );
-          },
-          th: ({ node: _, children, ...props }) => {
-            return (
-              <th
-                className="border-r border-gray-200 p-2 font-medium first:border-l border-t text-left text-sm"
-                {...props}
-              >
-                {children}
-              </th>
-            );
-          },
-          table: ({ node: _, ...props }) => (
-            <table className="table-auto w-full mb-1" {...props} />
-          ),
-          thead: ({ node: _, ...props }) => (
-            <thead className="text-left" {...props} />
-          ),
-          tbody: ({ node: _, ...props }) => <tbody {...props} />,
-          ol: ({ node: _, children, ...props }) => {
-            return (
-              <ol
-                className="ml-0 mb-1 list-decimal"
-                {...props}
-              >
-                {children}
-              </ol>
-            );
-          },
-          ul: ({ node: _, children, ...props }) => {
-            return (
-              <ul
-                className="ml-0 mb-1 list-disc"
-                {...props}
-              >
-                {children}
-              </ul>
-            );
-          },
-          li: ({ node: _, ...props }) => <li className="ml-10 mb-2" {...props} />,
-          p({ children, ...props }) {
-            return (
-              <p className="text-left mb-3 text-sm" {...props}>
-                {children}
-              </p>
-            );
-          },
-          img({ src, alt, ...props }) {
-            // biome-ignore lint/a11y/useAltText: <explanation>
-            return <img src={src} alt={alt} {...props} />;
-          },
-          a({ href, children, ...props }) {
-            // Check if the href is an image link
-            const isImageLink = href && imageFileExtensionsRegex.test(href);
-            if (isImageLink) {
-              return (
-                <div>
-                  <a href={href} {...props} target={"_blank"} rel="noreferrer">
-                    {children}
-                  </a>
-                  <div className="mt-2">
-                    <img
-                      src={href}
-                      alt={`Image at ${href}`}
-                      className="max-w-full h-auto"
-                    />
-                  </div>
-                </div>
-              );
-            }
-            // Default link rendering for non-image links
-            return (
-              <a
-                href={href}
-                {...props}
-                target={"_blank"}
-                rel="noreferrer"
-                className="text-primaryaccent hover:text-[#0AAFC8]"
-              >
-                {children}
-              </a>
-            );
-          },
-        }
-function MarkdownRenderer({ content, disableMath = false }) {
+
+function MarkdownRenderer({ content = '', disableMath = false, onPreviewArtifact }) {
   // Filter out reference lines like 【4†L24-L30】【4†L32-L35】
-  content = content.replace(/【\d+†L\d+-L\d+】/g, '');
+  let processedContent = String(content || '').replace(/【\d+†L\d+-L\d+】/g, '');
   
   // Only process LaTeX if math rendering is enabled
   if (!disableMath) {
-    content = content.replace(/\\\[/g, "$$$$\n")
+    processedContent = processedContent
+      .replace(/\\\[/g, "$$$$\n")
       .replace(/\\\]/g, "\n$$$$")
       .replace(/\\\(/g, "$$")
       .replace(/\\\)/g, "$$")
       .replace(/```latex([\s\S]*?)```/g, "$$$$$1$$$$");
   }
 
-  // Conditionally include math plugins based on disableMath prop
-  // Configure remarkMath to only use $$ for display math, not single $ (to avoid conflicts with dollar amounts)
+  // Remark & Rehype plugins
   const remarkPlugins = disableMath ? [remarkGfm] : [remarkGfm, [remarkMath, { singleDollarTextMath: false }]];
   const rehypePlugins = disableMath ? [] : [rehypeKatex];
 
+  const components = {
+    span: ({ node, children, ...props }) => {
+      // Apply word-wrap styles to KaTeX elements to prevent overflow
+      if (props.className && props.className.includes('katex')) {
+        return (
+          <span 
+            {...props} 
+            style={{
+              wordWrap: 'break-word',
+              overflowWrap: 'break-word',
+              wordBreak: 'break-all',
+              ...props.style
+            }}
+          >
+            {children}
+          </span>
+        );
+      }
+      return <span {...props}>{children}</span>;
+    },
+    // Custom renderer for code blocks and inline code
+    code({ node, inline, className, children, ...props }) {
+      const match = /language-(\w+)/.exec(className || '');
+      const codeString = String(children || '');
+
+      // If inline or no newline and short, render as inline code badge
+      if (inline || (!match && !codeString.includes('\n') && codeString.length < 80)) {
+        return (
+          <code 
+            className="px-1.5 py-0.5 mx-0.5 rounded font-mono text-xs bg-muted text-foreground border border-border/60"
+            {...props}
+          >
+            {children}
+          </code>
+        );
+      }
+
+      // Block code
+      return (
+        <CodeBlock
+          language={match ? match[1] : ''}
+          code={codeString}
+          onPreviewArtifact={onPreviewArtifact}
+        />
+      );
+    },
+    // Avoid double pre wrappers around CodeBlock
+    pre({ children }) {
+      return <>{children}</>;
+    },
+    h1: ({ node: _, children, ...props }) => (
+      <h1 className="text-xl font-bold mb-3 mt-4 text-foreground border-b border-border pb-1" {...props}>
+        {children}
+      </h1>
+    ),
+    h2: ({ node: _, children, ...props }) => (
+      <h2 className="text-lg font-semibold mb-2 mt-3 text-foreground" {...props}>
+        {children}
+      </h2>
+    ),
+    h3: ({ node: _, children, ...props }) => (
+      <h3 className="text-base font-medium mb-2 mt-3 text-foreground" {...props}>
+        {children}
+      </h3>
+    ),
+    h4: ({ node: _, children, ...props }) => (
+      <h4 className="text-sm font-semibold mb-1 mt-2 text-foreground" {...props}>
+        {children}
+      </h4>
+    ),
+    h5: ({ node: _, children, ...props }) => (
+      <h5 className="text-sm font-medium mb-1 mt-2 text-foreground" {...props}>
+        {children}
+      </h5>
+    ),
+    h6: ({ node: _, children, ...props }) => (
+      <h6 className="text-xs font-semibold mb-1 mt-2 text-foreground uppercase tracking-wider" {...props}>
+        {children}
+      </h6>
+    ),
+    table: ({ node: _, ...props }) => (
+      <div className="overflow-x-auto my-3 rounded-lg border border-border">
+        <table className="table-auto w-full text-left text-sm" {...props} />
+      </div>
+    ),
+    thead: ({ node: _, ...props }) => (
+      <thead className="bg-muted/80 text-foreground border-b border-border font-medium" {...props} />
+    ),
+    tbody: ({ node: _, ...props }) => <tbody className="divide-y divide-border" {...props} />,
+    tr: ({ node: _, ...props }) => <tr className="hover:bg-muted/40 transition-colors" {...props} />,
+    td: ({ node: _, children, ...props }) => (
+      <td className="p-2.5 text-sm text-foreground" {...props}>
+        {children}
+      </td>
+    ),
+    th: ({ node: _, children, ...props }) => (
+      <th className="p-2.5 font-semibold text-sm text-foreground" {...props}>
+        {children}
+      </th>
+    ),
+    ol: ({ node: _, children, ...props }) => (
+      <ol className="ml-5 mb-3 list-decimal space-y-1 text-foreground" {...props}>
+        {children}
+      </ol>
+    ),
+    ul: ({ node: _, children, ...props }) => (
+      <ul className="ml-5 mb-3 list-disc space-y-1 text-foreground" {...props}>
+        {children}
+      </ul>
+    ),
+    li: ({ node: _, ...props }) => <li className="pl-1" {...props} />,
+    p({ children, ...props }) {
+      return (
+        <p className="text-left mb-3 text-sm text-foreground leading-relaxed" {...props}>
+          {children}
+        </p>
+      );
+    },
+    blockquote: ({ node: _, children, ...props }) => (
+      <blockquote className="border-l-4 border-primary/60 bg-muted/40 pl-3.5 py-1 my-3 text-muted-foreground italic rounded-r" {...props}>
+        {children}
+      </blockquote>
+    ),
+    hr: ({ node: _, ...props }) => <hr className="my-4 border-border" {...props} />,
+    img({ src, alt, ...props }) {
+      return <img src={src} alt={alt} className="max-w-full h-auto rounded-lg my-2 border border-border" {...props} />;
+    },
+    a({ href, children, ...props }) {
+      const isImageLink = href && imageFileExtensionsRegex.test(href);
+      if (isImageLink) {
+        return (
+          <div>
+            <a href={href} {...props} target="_blank" rel="noreferrer" className="text-primary hover:underline">
+              {children}
+            </a>
+            <div className="mt-2">
+              <img
+                src={href}
+                alt={`Image at ${href}`}
+                className="max-w-full h-auto rounded-lg border border-border"
+              />
+            </div>
+          </div>
+        );
+      }
+      return (
+        <a
+          href={href}
+          {...props}
+          target="_blank"
+          rel="noreferrer"
+          className="text-primary hover:underline font-medium"
+        >
+          {children}
+        </a>
+      );
+    },
+  };
+
   return (
-    <div className="font-inter text-sm">
+    <div className="font-inter text-sm markdown-content text-foreground">
       <ReactMarkdown
         components={components}
-        remarkPlugins={remarkPlugins} // Enable GitHub Flavored Markdown, conditionally enable math
+        remarkPlugins={remarkPlugins}
         rehypePlugins={rehypePlugins}
       >
-        {content}
+        {processedContent}
       </ReactMarkdown>
     </div>
   );
 }
 
-export default MarkdownRenderer; 
+export default MarkdownRenderer;

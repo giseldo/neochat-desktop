@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import AnsiToHtml from 'ansi-to-html';
+import { useLanguage } from '../context/LanguageContext';
 
 const converter = new AnsiToHtml({ newline: true, colors: {
     0: '#000', // black
@@ -21,7 +22,7 @@ const converter = new AnsiToHtml({ newline: true, colors: {
 }}); // Create a converter instance
 
 // Custom hook for LogViewerModal to separate logic
-function useLogViewer(serverId, transportType) {
+function useLogViewer(serverId, transportType, t) {
   const [logs, setLogs] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -36,7 +37,7 @@ function useLogViewer(serverId, transportType) {
   useEffect(() => {
     if (transportType === 'sse') {
       // For SSE, just display the info message and don't fetch
-      setLogs(["[Info: Logs for SSE servers must be checked directly on the server. Stdout/stderr is not captured.]"]);
+      setLogs([t('logViewer.sseInfo')]);
       setIsLoading(false);
       setError(null);
       return; // Skip fetching and live updates for SSE
@@ -48,10 +49,10 @@ function useLogViewer(serverId, transportType) {
       setError(null);
       try {
         const result = await window.electron.getMcpServerLogs(serverId);
-        setLogs(result?.logs || ['No logs available yet.']);
+        setLogs(result?.logs || [t('logViewer.noLogs')]);
       } catch (err) {
         console.error(`Error fetching logs for ${serverId}:`, err);
-        setError(`Failed to load logs: ${err.message}`);
+        setError(t('logViewer.failedLoad', { error: err.message }));
         setLogs([`[Error loading logs: ${err.message}]`]);
       } finally {
         setIsLoading(false);
@@ -61,10 +62,10 @@ function useLogViewer(serverId, transportType) {
     if (serverId) {
       fetchLogs();
     } else {
-       setLogs(['[No server ID specified]']);
+       setLogs([t('logViewer.noServer')]);
        setIsLoading(false);
     }
-  }, [serverId, transportType]);
+  }, [serverId, transportType, t]);
 
   // Subscribe to live log updates
   useEffect(() => {
@@ -79,9 +80,6 @@ function useLogViewer(serverId, transportType) {
            // Append new lines, splitting the chunk if it contains multiple lines
            const newLines = logChunk.split('\n');
            const updated = [...prevLogs, ...newLines];
-           // Maintain max lines (optional, main process already limits buffer)
-           // const MAX_VIEW_LINES = 1000; // Example limit for frontend display
-           // return updated.slice(-MAX_VIEW_LINES);
            return updated;
         });
       }
@@ -105,9 +103,10 @@ function useLogViewer(serverId, transportType) {
 }
 
 function LogViewerModal({ serverId, transportType, onClose }) {
+  const { t } = useLanguage();
   const logsEndRef = useRef(null);
   // Pass transportType to the custom hook
-  const { logs, isLoading, error } = useLogViewer(serverId, transportType);
+  const { logs, isLoading, error } = useLogViewer(serverId, transportType, t);
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-[60]"> {/* Higher z-index than ToolsPanel */}
@@ -115,7 +114,7 @@ function LogViewerModal({ serverId, transportType, onClose }) {
         {/* Header */}
         <div className="p-4 border-b border-gray-700 flex justify-between items-center bg-gray-800">
           <h2 className="text-lg font-semibold text-white">
-            Logs for Server: <span className="font-mono text-primary">{serverId}</span>
+            {t('logViewer.title')}: <span className="font-mono text-primary">{serverId}</span>
           </h2>
           <button
             onClick={onClose}
@@ -131,7 +130,7 @@ function LogViewerModal({ serverId, transportType, onClose }) {
         {/* Log Content */}
         <div className="flex-1 overflow-y-auto p-4 bg-black text-sm font-mono">
           {isLoading ? (
-            <p className="text-gray-400">Loading logs...</p>
+            <p className="text-gray-400">{t('logViewer.loading')}</p>
           ) : error ? (
              <p className="text-red-400">{error}</p>
           ) : (
@@ -152,7 +151,7 @@ function LogViewerModal({ serverId, transportType, onClose }) {
             onClick={onClose}
             className="py-2 px-4 bg-gray-600 hover:bg-gray-500 text-white rounded transition-colors text-sm"
           >
-            Close
+            {t('common.close')}
           </button>
         </div>
       </div>

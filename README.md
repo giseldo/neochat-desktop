@@ -1,12 +1,12 @@
-# Groq Desktop
+# NeoChat Desktop
 
 [![Latest macOS Build](https://img.shields.io/github/v/release/groq/groq-desktop-beta?include_prereleases&label=latest%20macOS%20.dmg%20build)](https://github.com/groq/groq-desktop-beta/releases/latest)
 
-Groq Desktop features MCP server support for all function calling capable models hosted on Groq. Now available for Windows, macOS, and Linux!
+NeoChat Desktop features MCP server support for all function calling capable models hosted on Groq. Now available for Windows, macOS, and Linux!
 
 > **Note for macOS Users**: After installing on macOS, you may need to run this command to open the app:
 > ```sh
-> xattr -c /Applications/Groq\ Desktop.app
+> xattr -c /Applications/Neochat\ Desktop.app
 > ```
 
 <img width="500" alt="Screenshot 2025-10-30 at 4 26 14 PM" src="https://github.com/user-attachments/assets/885a0461-3897-4737-8066-cbd9182d03e3" />

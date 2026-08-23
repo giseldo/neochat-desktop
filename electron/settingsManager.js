@@ -12,6 +12,7 @@ function loadSettings() {
         console.error("App instance not initialized in settingsManager.");
         // Return minimal defaults to avoid crashing downstream logic
         return {
+            language: 'pt',
             GROQ_API_KEY: process.env.GROQ_API_KEY || "<replace me>",
             model: process.env.GROQ_DEFAULT_MODEL || "llama-3.3-70b-versatile",
             temperature: 0.7,
@@ -39,6 +40,9 @@ function loadSettings() {
     const userDataPath = appInstance.getPath('userData');
     const settingsPath = path.join(userDataPath, 'settings.json');
     const defaultSettings = {
+        language: 'pt',
+        provider: 'groq',
+        apiKeys: {},
         GROQ_API_KEY: process.env.GROQ_API_KEY || "<replace me>",
         model: process.env.GROQ_DEFAULT_MODEL || "llama-3.3-70b-versatile",
         temperature: 0.7,
@@ -81,10 +85,18 @@ function loadSettings() {
                 settings.GROQ_API_KEY = settings.GROQ_API_KEY || defaultSettings.GROQ_API_KEY;
             }
 
+            settings.language = settings.language || defaultSettings.language;
             settings.model = settings.model || defaultSettings.model;
             settings.temperature = settings.temperature ?? defaultSettings.temperature; // Use nullish coalescing
             settings.top_p = settings.top_p ?? defaultSettings.top_p;
             settings.reasoning_effort = settings.reasoning_effort || defaultSettings.reasoning_effort;
+            settings.provider = settings.provider || defaultSettings.provider;
+            settings.apiKeys = settings.apiKeys || {};
+
+            // Migrate legacy GROQ_API_KEY into apiKeys.groq (and keep in sync)
+            if (settings.GROQ_API_KEY && settings.GROQ_API_KEY !== "<replace me>" && !settings.apiKeys.groq) {
+                settings.apiKeys.groq = settings.GROQ_API_KEY;
+            }
             settings.mcpServers = settings.mcpServers || defaultSettings.mcpServers;
             settings.disabledMcpServers = settings.disabledMcpServers || defaultSettings.disabledMcpServers;
             settings.customSystemPrompt = settings.customSystemPrompt || defaultSettings.customSystemPrompt;
@@ -174,6 +186,15 @@ function initializeSettingsHandlers(ipcMain, app) {
             if (!settings || typeof settings !== 'object') {
                 throw new Error("Invalid settings object provided.");
             }
+            // Ensure provider-related fields are always present
+            settings.provider = settings.provider || 'groq';
+            settings.apiKeys = settings.apiKeys || {};
+            // Keep legacy GROQ_API_KEY in sync with apiKeys.groq
+            if (settings.apiKeys.groq) {
+                settings.GROQ_API_KEY = settings.apiKeys.groq;
+            } else if (settings.GROQ_API_KEY) {
+                settings.apiKeys.groq = settings.GROQ_API_KEY;
+            }
             // Optionally add more validation here
             fs.writeFileSync(settingsPath, JSON.stringify(settings, null, 2));
             return { success: true };
@@ -201,6 +222,13 @@ async function saveSettings(settings) {
     try {
         if (!settings || typeof settings !== 'object') {
             throw new Error("Invalid settings object provided.");
+        }
+        settings.provider = settings.provider || 'groq';
+        settings.apiKeys = settings.apiKeys || {};
+        if (settings.apiKeys.groq) {
+            settings.GROQ_API_KEY = settings.apiKeys.groq;
+        } else if (settings.GROQ_API_KEY) {
+            settings.apiKeys.groq = settings.GROQ_API_KEY;
         }
         fs.writeFileSync(settingsPath, JSON.stringify(settings, null, 2));
         return { success: true };

@@ -75,7 +75,7 @@
   },
   "build": {
     "appId": "com.groq.desktop",
-    "productName": "Groq Desktop",
+    "productName": "NeoChat Desktop",
     "files": [
       "dist/**/*",
       "electron/**/*",

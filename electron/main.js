@@ -17,13 +17,14 @@ const logStream = fs.createWriteStream(logFile, { flags: 'a' });
   };
 });
 
-console.log('Groq Desktop started, logging to', logFile);
+console.log('NeoChat Desktop started, logging to', logFile);
 
 // Import necessary Electron modules
 const { BrowserWindow, ipcMain, screen, shell } = require('electron');
 
 // Import shared models
 const { MODEL_CONTEXT_SIZES, getModelContextSizes, getModelsFromAPIWithCache } = require('../shared/models.js');
+const { PROVIDER_LIST, getActiveApiKey, getProviderBaseUrl, getModelsUrl } = require('../shared/providers.js');
 
 // Import handlers
 const chatHandler = require('./chatHandler');
@@ -198,12 +199,14 @@ app.whenReady().then(async () => {
   // Initialize command resolver first (might be needed by others)
   initializeCommandResolver(app);
 
-  // Load model context sizes from the API
+  // Load model context sizes from the active provider's API
   try {
     const currentSettings = loadSettings();
-    if (currentSettings.GROQ_API_KEY && currentSettings.GROQ_API_KEY !== "<replace me>") {
-      console.log('Fetching models from Groq API...');
-      modelContextSizes = await getModelsFromAPIWithCache(currentSettings.GROQ_API_KEY);
+    const apiKey = getActiveApiKey(currentSettings);
+    const modelsUrl = getModelsUrl(currentSettings);
+    if (apiKey && modelsUrl) {
+      console.log(`Fetching models from provider API...`);
+      modelContextSizes = await getModelsFromAPIWithCache(apiKey, modelsUrl);
       console.log('Successfully loaded models from API.');
     } else {
       console.warn('No valid API key found, using default model configuration.');
@@ -215,15 +218,24 @@ app.whenReady().then(async () => {
   }
 
   // --- Early IPC Handlers required by popup and renderer before other init --- //
+  let lastModelFetchProvider = null; // Track which provider/key the model cache reflects
+
   ipcMain.handle('get-model-configs', async () => {
     // Return a copy to prevent accidental modification with custom models merged in
     const currentSettings = loadSettings();
+    const apiKey = getActiveApiKey(currentSettings);
+    const modelsUrl = getModelsUrl(currentSettings);
+    const providerId = currentSettings.provider || 'groq';
     
-    // Try to fetch fresh models if API key is available
+    // Try to fetch fresh models if a key is available
     let apiModels = modelContextSizes;
-    if (currentSettings.GROQ_API_KEY && currentSettings.GROQ_API_KEY !== "<replace me>") {
+    const providerSignature = `${providerId}|${apiKey || ''}|${modelsUrl || ''}`;
+    const providerChanged = lastModelFetchProvider !== providerSignature;
+    if (apiKey && apiKey !== "<replace me>" && modelsUrl) {
       try {
-        apiModels = await getModelsFromAPIWithCache(currentSettings.GROQ_API_KEY);
+        // Force refresh when the active provider or key changed
+        apiModels = await getModelsFromAPIWithCache(apiKey, modelsUrl, providerChanged);
+        lastModelFetchProvider = providerSignature;
       } catch (error) {
         console.error('Error fetching models in get-model-configs:', error);
         // Fall back to cached modelContextSizes
@@ -232,6 +244,11 @@ app.whenReady().then(async () => {
     
     const mergedModelContextSizes = getModelContextSizes(currentSettings.customModels || {}, apiModels);
     return JSON.parse(JSON.stringify(mergedModelContextSizes));
+  });
+
+  // Return the list of supported providers (for the settings UI)
+  ipcMain.handle('get-providers', async () => {
+    return JSON.parse(JSON.stringify(PROVIDER_LIST));
   });
 
   ipcMain.handle('get-captured-context', async () => {
@@ -321,11 +338,13 @@ app.whenReady().then(async () => {
     const currentSettings = loadSettings();
     const { discoveredTools } = mcpManager.getMcpState(); // Use module object
     
-    // Try to get fresh models from API
+    // Try to get fresh models from the active provider
     let apiModels = modelContextSizes;
-    if (currentSettings.GROQ_API_KEY && currentSettings.GROQ_API_KEY !== "<replace me>") {
+    const apiKey = getActiveApiKey(currentSettings);
+    const modelsUrl = getModelsUrl(currentSettings);
+    if (apiKey && apiKey !== "<replace me>" && modelsUrl) {
       try {
-        apiModels = await getModelsFromAPIWithCache(currentSettings.GROQ_API_KEY);
+        apiModels = await getModelsFromAPIWithCache(apiKey, modelsUrl);
       } catch (error) {
         console.error('Error fetching models in chat-stream:', error);
         // Fall back to cached modelContextSizes
@@ -405,8 +424,6 @@ app.whenReady().then(async () => {
     return popupWindowManager ? popupWindowManager.isOpen() : false;
   });
 
-  // resize-popup handler already registered above during early initialization
-
   // --- Auth IPC Handler ---
   console.log("[Main Init] Registering auth handler...");
   ipcMain.handle('start-mcp-auth-flow', async (event, { serverId, serverUrl }) => {
@@ -421,6 +438,73 @@ app.whenReady().then(async () => {
           console.error(`[Main] Error handling start-mcp-auth-flow for ${serverId}:`, error);
           throw error;
       }
+  });
+
+  // --- Audio Transcription (Whisper) ---
+  ipcMain.handle('transcribe-audio', async (event, { audioBase64, mimeType = 'audio/webm' }) => {
+    const currentSettings = loadSettings();
+    const apiKey = currentSettings.GROQ_API_KEY || (currentSettings.apiKeys && currentSettings.apiKeys.groq) || process.env.GROQ_API_KEY;
+    if (!apiKey || apiKey === '<replace me>') {
+      return { success: false, error: 'Chave Groq API Key não configurada nas configurações.' };
+    }
+
+    const ext = mimeType.includes('wav') ? 'wav' : (mimeType.includes('mp4') ? 'm4a' : 'webm');
+    const tempDir = app.getPath('temp');
+    const tempFile = path.join(tempDir, `whisper-${Date.now()}.${ext}`);
+
+    try {
+      const base64Data = audioBase64.includes('base64,') ? audioBase64.split('base64,')[1] : audioBase64;
+      const buffer = Buffer.from(base64Data, 'base64');
+      fs.writeFileSync(tempFile, buffer);
+
+      const Groq = require('groq-sdk');
+      const groq = new Groq({ apiKey });
+
+      const transcription = await groq.audio.transcriptions.create({
+        file: fs.createReadStream(tempFile),
+        model: 'whisper-large-v3',
+        response_format: 'json',
+      });
+
+      return { success: true, text: transcription.text };
+    } catch (err) {
+      console.error('[Whisper] Transcription error:', err);
+      return { success: false, error: err.message };
+    } finally {
+      if (fs.existsSync(tempFile)) {
+        try { fs.unlinkSync(tempFile); } catch (e) {}
+      }
+    }
+  });
+
+  // --- Export Chat File ---
+  ipcMain.handle('export-chat-file', async (event, { format, title, content }) => {
+    const { dialog } = require('electron');
+    const cleanTitle = (title || 'conversa').replace(/[^\w\s-]/g, '').trim() || 'conversa';
+    const defaultFilename = `${cleanTitle}.${format}`;
+
+    const { canceled, filePath } = await dialog.showSaveDialog(mainWindow, {
+      title: `Exportar Conversa (${format.toUpperCase()})`,
+      defaultPath: path.join(app.getPath('downloads'), defaultFilename),
+      filters: [
+        format === 'md' ? { name: 'Markdown (.md)', extensions: ['md'] } :
+        format === 'html' ? { name: 'HTML Document (.html)', extensions: ['html'] } :
+        format === 'json' ? { name: 'JSON (.json)', extensions: ['json'] } :
+        { name: 'Todos os arquivos', extensions: ['*'] }
+      ]
+    });
+
+    if (canceled || !filePath) {
+      return { success: false, canceled: true };
+    }
+
+    try {
+      fs.writeFileSync(filePath, content, 'utf8');
+      return { success: true, filePath };
+    } catch (err) {
+      console.error('Error saving exported chat:', err);
+      return { success: false, error: err.message };
+    }
   });
 
   // --- Post-initialization Tasks --- //

@@ -6,6 +6,8 @@ import App from './App';
 import Settings from './pages/Settings';
 import PopupPage from './pages/PopupPage';
 import { ChatProvider } from './context/ChatContext';
+import { ThemeProvider } from './context/ThemeContext';
+import { LanguageProvider } from './context/LanguageContext';
 
 const router = createHashRouter([
   {
@@ -24,8 +26,12 @@ const router = createHashRouter([
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
-    <ChatProvider>
-      <RouterProvider router={router} />
-    </ChatProvider>
+    <LanguageProvider>
+      <ThemeProvider>
+        <ChatProvider>
+          <RouterProvider router={router} />
+        </ChatProvider>
+      </ThemeProvider>
+    </LanguageProvider>
   </React.StrictMode>
-); 
+);

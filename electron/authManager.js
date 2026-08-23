@@ -39,7 +39,7 @@ let _mcpRetryFunc = null; // Variable to hold injected retry function
 })();
 
 // --- Constants ---
-const CLIENT_NAME = 'Groq Desktop';
+const CLIENT_NAME = 'NeoChat Desktop';
 const CALLBACK_PATH = '/auth-callback'; // Path for the local server
 
 // --- Find Free Port --- (Helper function)

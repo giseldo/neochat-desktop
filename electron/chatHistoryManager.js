@@ -2,6 +2,7 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 const Groq = require('groq-sdk');
+const { getActiveApiKey, getProviderBaseUrl, getDefaultModel } = require('../shared/providers');
 
 let appInstance = null;
 let settingsLoader = null;
@@ -217,7 +218,7 @@ function updateChatTitle(chatId, title) {
 
 /**
  * Generate a title for a chat based on the first user message
- * Uses llama-3.1-8b-instant for fast title generation
+ * Uses the active provider's default model for fast title generation
  * @param {string} userMessage - The first user message content
  * @returns {Promise<string>} Generated title
  */
@@ -228,14 +229,29 @@ async function generateChatTitle(userMessage) {
     }
     
     const settings = settingsLoader();
-    
-    if (!settings.GROQ_API_KEY || settings.GROQ_API_KEY === '<replace me>') {
+
+    const apiKey = getActiveApiKey(settings);
+    if (!apiKey || apiKey === '<replace me>') {
         console.warn('API key not configured, using default title');
         return 'New Chat';
     }
-    
+
     try {
-        const groq = new Groq({ apiKey: settings.GROQ_API_KEY });
+        const groq = new Groq({ apiKey });
+
+        const baseUrl = getProviderBaseUrl(settings);
+        if (baseUrl) {
+            groq.baseURL = baseUrl;
+            // The groq-sdk paths include an /openai/v1/ prefix; strip it since
+            // our baseURL already ends in /v1/ (see chatHandler for details).
+            const originalBuildURL = groq.buildURL.bind(groq);
+            groq.buildURL = function(path, query) {
+                if (path.startsWith('/openai/v1/')) {
+                    path = path.replace(/^\/openai\/v1/, '');
+                }
+                return originalBuildURL(path, query);
+            };
+        }
         
         // Extract text content if structured message
         let textContent = userMessage;
@@ -253,6 +269,9 @@ async function generateChatTitle(userMessage) {
         // Limit the input to first 500 characters
         const truncatedMessage = textContent.slice(0, 500);
         
+        // Prefer the user's selected model; fall back to the provider default
+        const titleModel = (settings.model && settings.model !== 'default') ? settings.model : getDefaultModel(settings);
+
         const response = await groq.chat.completions.create({
             messages: [
                 {
@@ -264,7 +283,7 @@ async function generateChatTitle(userMessage) {
                     content: `Generate a short title for a conversation that starts with this message:\n\n${truncatedMessage}`
                 }
             ],
-            model: 'llama-3.1-8b-instant',
+            model: titleModel,
             temperature: 0.3,
             max_tokens: 20,
             stream: false

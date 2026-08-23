@@ -1,10 +1,11 @@
-import { ArrowUp, Loader2, ImagePlus, Hammer, Upload, Zap, ZapOff, Square } from "lucide-react";
+import { ArrowUp, Loader2, ImagePlus, Hammer, Upload, Zap, ZapOff, Square, Mic, MicOff } from "lucide-react";
 import React, { useContext, useEffect, useRef, useState, useMemo } from "react";
 import TextAreaAutosize from "react-textarea-autosize";
 import { SearchableSelect } from "./ui/SearchableSelect";
 import { Button } from "./ui/button";
 import { cn } from "../lib/utils";
 import { ChatContext } from "../context/ChatContext";
+import { useLanguage } from "../context/LanguageContext";
 
 function ChatInput({
 	onSendMessage,
@@ -18,6 +19,7 @@ function ChatInput({
 	modelConfigs = {},
 	focusSignal = 0,
 }) {
+	const { t } = useLanguage();
 	const [message, setMessage] = useState("");
 	const [suggestion, setSuggestion] = useState("");
 	const [autocompleteEnabled, setAutocompleteEnabled] = useState(true);
@@ -27,6 +29,69 @@ function ChatInput({
 	const [files, setFiles] = useState([]); // Changed from images to files to handle all file types
 	const [textareaHeight, setTextareaHeight] = useState(null);
 	const [rowHeight, setRowHeight] = useState(null);
+	const [isRecording, setIsRecording] = useState(false);
+	const [isTranscribing, setIsTranscribing] = useState(false);
+	const mediaRecorderRef = useRef(null);
+	const audioChunksRef = useRef([]);
+
+	// Start voice recording for Whisper STT
+	const startRecording = async () => {
+		try {
+			const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+			audioChunksRef.current = [];
+			const mimeType = MediaRecorder.isTypeSupported('audio/webm') ? 'audio/webm' : 'audio/mp4';
+			const mediaRecorder = new MediaRecorder(stream, { mimeType });
+			mediaRecorderRef.current = mediaRecorder;
+
+			mediaRecorder.ondataavailable = (event) => {
+				if (event.data && event.data.size > 0) {
+					audioChunksRef.current.push(event.data);
+				}
+			};
+
+			mediaRecorder.onstop = async () => {
+				const audioBlob = new Blob(audioChunksRef.current, { type: mimeType });
+				stream.getTracks().forEach(track => track.stop());
+				setIsTranscribing(true);
+
+				try {
+					const reader = new FileReader();
+					reader.onloadend = async () => {
+						const base64Audio = reader.result;
+						const res = await window.electron.transcribeAudio({
+							audioBase64: base64Audio,
+							mimeType: audioBlob.type || 'audio/webm'
+						});
+
+						if (res && res.success && res.text) {
+							setMessage(prev => (prev ? `${prev.trim()} ${res.text.trim()}` : res.text.trim()));
+						} else if (res && res.error) {
+							alert(t('chat.transcriptionError', { error: res.error }));
+						}
+						setIsTranscribing(false);
+					};
+					reader.readAsDataURL(audioBlob);
+				} catch (err) {
+					console.error('Error reading audio blob:', err);
+					setIsTranscribing(false);
+				}
+			};
+
+			mediaRecorder.start(250);
+			setIsRecording(true);
+		} catch (err) {
+			console.error('Microphone access denied or error:', err);
+			alert(t('chat.micError'));
+		}
+	};
+
+	// Stop voice recording
+	const stopRecording = () => {
+		if (mediaRecorderRef.current && isRecording) {
+			mediaRecorderRef.current.stop();
+			setIsRecording(false);
+		}
+	};
 
 	// Helper function to get display name for a model
 	const getModelDisplayName = (modelId) => {
@@ -62,15 +127,13 @@ function ChatInput({
 		// Check if any images are being uploaded with a non-vision model
 		const hasImages = selectedFiles.some(file => file.type.startsWith("image/"));
 		if (hasImages && !visionSupported) {
-			alert("The selected model does not support image inputs. Please select a vision-capable model or upload text files only.");
+			alert(t('chat.nonVisionAlert'));
 			if (fileInputRef.current) fileInputRef.current.value = "";
 			return;
 		}
 
 		if (selectedFiles.length > remainingSlots) {
-			alert(
-				`You can only add ${remainingSlots > 0 ? remainingSlots : "no more"} files (max 5).`,
-			);
+			alert(t('chat.maxFilesAlert', { count: remainingSlots > 0 ? remainingSlots : 0 }));
 		}
 
 		const filePromises = selectedFiles.slice(0, remainingSlots).map((file) => {
@@ -91,14 +154,27 @@ function ChatInput({
 					reader.onerror = reject;
 					reader.readAsDataURL(file);
 				} else {
-					// For other files, just store file info without base64
-					resolve({
-						name: file.name,
-						type: file.type,
-						size: file.size,
-						fileType: 'document',
-						file: file, // Store the actual file for later processing
-					});
+					// For documents and code files, read text content directly
+					const textReader = new FileReader();
+					textReader.onloadend = () => {
+						resolve({
+							name: file.name,
+							type: file.type || 'text/plain',
+							size: file.size,
+							fileType: 'document',
+							textContent: textReader.result,
+						});
+					};
+					textReader.onerror = () => {
+						resolve({
+							name: file.name,
+							type: file.type || 'application/octet-stream',
+							size: file.size,
+							fileType: 'document',
+							textContent: `[${file.name}]`,
+						});
+					};
+					textReader.readAsText(file);
 				}
 			});
 		});
@@ -112,7 +188,7 @@ function ChatInput({
 			})
 			.catch((error) => {
 				console.error("Error reading files:", error);
-				alert("Error processing files.");
+				alert(t('chat.errorReadingFiles'));
 				if (fileInputRef.current) fileInputRef.current.value = "";
 			});
 	};
@@ -234,11 +310,16 @@ function ChatInput({
 							type: "image_url",
 							image_url: { url: file.base64 },
 						});
-					} else {
-						// For other files, send as text description (since most models can't process files directly)
+					} else if (file.textContent) {
+						// For documents/code files, include the extracted text content
 						contentParts.push({
 							type: "text",
-							text: `[File: ${file.name} (${file.type}, ${formatFileSize(file.size)})]`,
+							text: `\n\n${t('chat.fileAttachedDoc', { name: file.name })}\n\`\`\`\n${file.textContent}\n\`\`\`\n`,
+						});
+					} else {
+						contentParts.push({
+							type: "text",
+							text: `\n\n${t('chat.fileAttachedFallback', { name: file.name, size: formatFileSize(file.size) })}\n`,
 						});
 					}
 				});
@@ -324,7 +405,7 @@ function ChatInput({
 			{files.length > 0 && (
 				<div className="flex flex-col gap-3">
 					<p className="text-sm font-medium text-muted-foreground">
-						Attached Files ({files.length}):
+						{t('chat.attachedFiles', { count: files.length })}
 					</p>
 					<div className="flex flex-wrap gap-3 p-3 border border-border/30 rounded-xl bg-muted/20">
 						{files.map((file, index) => (
@@ -342,7 +423,7 @@ function ChatInput({
 											type="button"
 											onClick={() => removeFile(index)}
 											className="absolute -top-2 -right-2 bg-destructive text-destructive-foreground rounded-full w-6 h-6 flex items-center justify-center text-xs opacity-0 group-hover:opacity-100 transition-all duration-200 shadow-md hover:scale-110"
-											aria-label={`Remove file ${index + 1}`}
+											aria-label={t('chat.removeFile', { index: index + 1 })}
 										>
 											✕
 										</button>
@@ -361,7 +442,7 @@ function ChatInput({
 											type="button"
 											onClick={() => removeFile(index)}
 											className="text-muted-foreground hover:text-destructive transition-colors"
-											aria-label={`Remove file ${index + 1}`}
+											aria-label={t('chat.removeFile', { index: index + 1 })}
 										>
 											✕
 										</button>
@@ -384,7 +465,7 @@ function ChatInput({
 							onKeyDown={handleKeyDown}
 							onPaste={handlePaste}
 							onHeightChange={handleHeightChange}
-							placeholder={isDragOver ? "Drop files here..." : "Ask anything..."}
+							placeholder={isDragOver ? t('chat.dropFilesHere') : t('chat.askAnything')}
 							className={cn(
 								"w-full px-4 py-3 bg-transparent resize-none border-0 rounded-2xl text-foreground placeholder:text-muted-foreground focus:outline-none",
 								// Control overflow based on whether we're at max height
@@ -404,7 +485,7 @@ function ChatInput({
 							<div className="absolute inset-0 bg-primary/10 border-2 border-dashed border-primary rounded-2xl flex items-center justify-center pointer-events-none">
 								<div className="text-primary font-medium flex items-center gap-2">
 									<ImagePlus className="w-5 h-5" />
-									Drop files here
+									{t('chat.dropFilesHere')}
 								</div>
 							</div>
 						)}
@@ -440,11 +521,11 @@ function ChatInput({
 								size="sm"
 								onClick={() => fileInputRef.current?.click()}
 								className="text-muted-foreground hover:text-foreground hover:bg-white/40 hover:shadow-sm transition-all duration-200 rounded-xl px-3 py-1.5"
-								title={visionSupported ? "Upload file or image (max 5)" : "Upload files (images require vision-capable model)"}
+								title={visionSupported ? t('chat.uploadTooltipVision') : t('chat.uploadTooltipNoVision')}
 								disabled={loading}
 							>
 								<ImagePlus className="w-4 h-4 mr-2" />
-								Upload
+								{t('chat.upload')}
 							</Button>
 						)}
 						<input
@@ -457,6 +538,33 @@ function ChatInput({
 							disabled={loading || files.length >= 5}
 						/>
 
+						{/* Voice Dictation (Whisper) Button */}
+						<Button
+							type="button"
+							variant="ghost"
+							size="sm"
+							onClick={isRecording ? stopRecording : startRecording}
+							className={cn(
+								"transition-all duration-200 rounded-xl px-3 py-1.5",
+								isRecording
+									? "bg-red-500/20 text-red-500 animate-pulse border border-red-500/40"
+									: isTranscribing
+										? "text-primary animate-pulse"
+										: "text-muted-foreground hover:text-foreground hover:bg-muted/60 hover:shadow-sm"
+							)}
+							title={isRecording ? t('chat.voiceRecordingTooltip') : isTranscribing ? t('chat.voiceTranscribingTooltip') : t('chat.voiceTooltip')}
+							disabled={loading || isTranscribing}
+						>
+							{isTranscribing ? (
+								<Loader2 className="w-4 h-4 mr-1.5 animate-spin" />
+							) : isRecording ? (
+								<MicOff className="w-4 h-4 mr-1.5 text-red-500" />
+							) : (
+								<Mic className="w-4 h-4 mr-1.5" />
+							)}
+							<span>{isRecording ? t('chat.recording') : isTranscribing ? t('chat.transcribing') : t('chat.voice')}</span>
+						</Button>
+
 						{/* MCP Tools Button */}
 						{onOpenMcpTools && (
 							<Button
@@ -464,12 +572,12 @@ function ChatInput({
 								variant="ghost"
 								size="sm"
 								onClick={onOpenMcpTools}
-								className="text-muted-foreground hover:text-foreground hover:bg-white/40 hover:shadow-sm transition-all duration-200 rounded-xl px-3 py-1.5"
-								title="Open MCP tools panel"
+								className="text-muted-foreground hover:text-foreground hover:bg-muted/60 hover:shadow-sm transition-all duration-200 rounded-xl px-3 py-1.5"
+								title={t('chat.toolsTooltip')}
 								disabled={loading}
 							>
 								<Hammer className="w-4 h-4 mr-2" />
-								Tools
+								{t('chat.tools')}
 							</Button>
 						)}
 					</div>
@@ -479,7 +587,7 @@ function ChatInput({
 						{autocompleteEnabled && suggestion && !loading && (
 							<div className="text-xs text-muted-foreground flex items-center gap-1">
 								<kbd className="px-1.5 py-0.5 text-xs bg-muted border rounded">Tab</kbd>
-								to accept
+								{t('chat.toAccept')}
 							</div>
 						)}
 						
@@ -488,7 +596,7 @@ function ChatInput({
 							value={selectedModel}
 							onValueChange={onModelChange}
 							options={sortedModels}
-							placeholder="Select model"
+							placeholder={t('chat.selectModel')}
 							className="w-48"
 							disabled={loading}
 							getDisplayValue={(value) => getModelDisplayName(value)}
@@ -515,7 +623,7 @@ function ChatInput({
 				<button
 					onClick={() => setFullScreenImage(null)}
 					className="absolute top-4 right-4 bg-black bg-opacity-50 text-white rounded-full w-10 h-10 flex items-center justify-center hover:bg-opacity-70 transition-all"
-					aria-label="Close fullscreen image"
+					aria-label={t('message.fullscreenClose')}
 				>
 					✕
 				</button>

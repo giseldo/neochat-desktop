@@ -3,6 +3,7 @@ import { ImagePlus, Hammer, X, FileText, Send, NotebookPen, ChevronDown, Check }
 import { Button } from '../components/ui/button';
 import { Badge } from '../components/ui/badge';
 import { Textarea } from '../components/ui/textarea';
+import { useLanguage } from '../context/LanguageContext';
 import { cn } from '../lib/utils';
 import MessageList from '../components/MessageList';
 import { SearchableSelect } from '../components/ui/SearchableSelect';
@@ -96,7 +97,7 @@ const filterModels = (modelList, filterText, excludeText, configs) => {
   return filteredModels;
 };
 
-const CustomModelSelector = ({ selectedModel, models, onModelChange, isCompact = false, modelConfigs = {} }) => {
+const CustomModelSelector = ({ selectedModel, models, onModelChange, isCompact = false, modelConfigs = {}, placeholder = "Select model" }) => {
   const getDisplayName = (model) => {
     const modelInfo = modelConfigs[model];
     let displayName = model;
@@ -132,7 +133,7 @@ const CustomModelSelector = ({ selectedModel, models, onModelChange, isCompact =
         value={selectedModel}
         onValueChange={onModelChange}
         options={sortedModels}
-        placeholder="Select model"
+        placeholder={placeholder}
         className="w-full"
         getDisplayValue={(value) => getDisplayName(value)}
         getOptionLabel={(model) => getDisplayName(model)}
@@ -143,6 +144,7 @@ const CustomModelSelector = ({ selectedModel, models, onModelChange, isCompact =
 };
 
 const PopupPage = () => {
+  const { t } = useLanguage();
   const [context, setContext] = useState(null);
   const [messages, setMessages] = useState([]);
   const [inputValue, setInputValue] = useState('');
@@ -622,7 +624,7 @@ const PopupPage = () => {
             size="icon"
             className="h-6 w-6 text-muted-foreground hover:text-foreground hover:bg-accent/50 rounded-lg transition-all duration-200" 
             onClick={closePopup}
-            title="Close"
+            title={t('common.close')}
           >
             <X size={14} />
           </Button>
@@ -645,12 +647,14 @@ const PopupPage = () => {
                   models={models}
                   onModelChange={handleModelChange}
                   modelConfigs={modelConfigs}
+                  placeholder={t('chat.selectModel')}
                 />
               </div>
             </div>
             <div className="flex items-center gap-2">
             <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-foreground" 
               style={{ WebkitAppRegion: 'no-drag' }}
+              title={t('header.newChat')}
               onClick={() => {
               setMessages([]);
               setIsExpanded(false);
@@ -661,6 +665,7 @@ const PopupPage = () => {
               variant="ghost"
               size="icon"
               onClick={closePopup} 
+              title={t('common.close')}
               className="h-6 w-6 text-muted-foreground hover:text-foreground"
               style={{ WebkitAppRegion: 'no-drag' }}
             >
@@ -701,6 +706,7 @@ const PopupPage = () => {
                   onModelChange={handleModelChange}
                   isCompact={true}
                   modelConfigs={modelConfigs}
+                  placeholder={t('chat.selectModel')}
                 />
               </div>
             )}
@@ -710,7 +716,7 @@ const PopupPage = () => {
           {context && showContext && (
             <div className="flex mb-2" style={{ WebkitAppRegion: 'no-drag' }}>
               <ContextPill 
-                title={context.title || 'Captured Context'} 
+                title={context.title || t('popup.capturedContext')} 
                 onRemove={() => setShowContext(false)}
               />
             </div>
@@ -734,7 +740,7 @@ const PopupPage = () => {
                         type="button"
                         onClick={() => removeFile(index)}
                         className="absolute -top-2 -right-2 bg-destructive text-destructive-foreground rounded-full w-5 h-5 flex items-center justify-center text-xs opacity-0 group-hover:opacity-100 transition-all duration-200 shadow-md hover:scale-110"
-                        aria-label={`Remove file ${index + 1}`}
+                        aria-label={t('chat.removeFile', { index: index + 1 })}
                       >
                         ✕
                       </button>
@@ -753,7 +759,7 @@ const PopupPage = () => {
                         type="button"
                         onClick={() => removeFile(index)}
                         className="absolute -top-2 -right-2 bg-destructive text-destructive-foreground rounded-full w-5 h-5 flex items-center justify-center text-xs opacity-0 group-hover:opacity-100 transition-all duration-200 shadow-md hover:scale-110"
-                        aria-label={`Remove file ${index + 1}`}
+                        aria-label={t('chat.removeFile', { index: index + 1 })}
                       >
                         ✕
                       </button>
@@ -778,7 +784,7 @@ const PopupPage = () => {
                     : "text-muted-foreground/50 cursor-not-allowed"
                 )}
                 style={{ WebkitAppRegion: 'no-drag' }}
-                title={visionSupported ? "Upload image (max 5)" : "Image upload not supported by this model"}
+                title={visionSupported ? t('chat.uploadTooltipVision') : t('chat.uploadTooltipNoVision')}
                 disabled={!visionSupported}
               >
                 <ImagePlus size={18} />
@@ -800,7 +806,7 @@ const PopupPage = () => {
                 value={inputValue}
                 onChange={(e) => setInputValue(e.target.value)}
                 onKeyDown={handleKeyPress}
-                placeholder="Ask anything..."
+                placeholder={t('chat.askAnything')}
                 className="min-h-[44px] max-h-[200px] resize-none border-border/50 bg-background/80 backdrop-blur-sm focus:none pt-[10px] pr-12 rounded-2xl transition-all duration-200 text-foreground placeholder:text-muted-foreground"
                 rows={1}
                 disabled={loading}
@@ -820,8 +826,29 @@ const PopupPage = () => {
                 )}
               </Button>
             </div>
-            
-    
+          </div>
+
+          {/* Quick Actions (Spotlight / Raycast style) */}
+          <div className="flex items-center gap-1.5 flex-wrap pt-1" style={{ WebkitAppRegion: 'no-drag' }}>
+            {[
+              { label: t('popup.quickExplain'), prompt: t('popup.quickExplainPrompt') },
+              { label: t('popup.quickSummarize'), prompt: t('popup.quickSummarizePrompt') },
+              { label: t('popup.quickFix'), prompt: t('popup.quickFixPrompt') },
+              { label: t('popup.quickTranslate'), prompt: t('popup.quickTranslatePrompt') },
+              { label: t('popup.quickRefactor'), prompt: t('popup.quickRefactorPrompt') },
+            ].map((action, idx) => (
+              <button
+                key={idx}
+                type="button"
+                onClick={() => {
+                  setInputValue(prev => prev ? `${action.prompt}${prev}` : action.prompt);
+                  textareaRef.current?.focus();
+                }}
+                className="px-2 py-0.5 rounded-full text-[11px] font-medium bg-muted/80 text-muted-foreground hover:bg-primary/10 hover:text-primary transition-colors border border-border/60"
+              >
+                {action.label}
+              </button>
+            ))}
           </div>
         </div>
       </div>
@@ -842,7 +869,7 @@ const PopupPage = () => {
           <button
             onClick={() => setFullScreenImage(null)}
             className="absolute top-4 right-4 bg-black bg-opacity-50 text-white rounded-full w-10 h-10 flex items-center justify-center hover:bg-opacity-70 transition-all"
-            aria-label="Close fullscreen image"
+            aria-label={t('message.fullscreenClose')}
           >
             ✕
           </button>

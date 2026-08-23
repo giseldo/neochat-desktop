@@ -1,8 +1,10 @@
 import React from 'react';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
+import { useLanguage } from '../context/LanguageContext';
 
 function ToolApprovalModal({ toolCall, onApprove }) {
+  const { t } = useLanguage();
   if (!toolCall) return null;
 
   // Handle both local tool calls and remote MCP approval requests
@@ -61,25 +63,25 @@ function ToolApprovalModal({ toolCall, onApprove }) {
             <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
-            {isMcpApprovalRequest ? 'Remote Tool Approval Required' : 'Tool Call Approval Required'}
+            {isMcpApprovalRequest ? t('toolApproval.titleRemote') : t('toolApproval.titleLocal')}
           </h2>
           {isMcpApprovalRequest && serverLabel && (
             <p className="text-sm text-gray-400 mt-1 ml-7">
-              Server: <span className="text-blue-400">{serverLabel}</span>
+              {t('toolApproval.server')}: <span className="text-blue-400">{serverLabel}</span>
             </p>
           )}
         </div>
 
         <div className="p-5 overflow-y-auto max-h-[60vh] space-y-4">
           <div>
-            <label className="block text-xs font-medium text-gray-400 mb-1 uppercase tracking-wider">Tool Name:</label>
+            <label className="block text-xs font-medium text-gray-400 mb-1 uppercase tracking-wider">{t('toolApproval.toolName')}:</label>
             <div className="bg-gray-900 p-3 rounded text-gray-200 font-mono text-sm border border-gray-700">
               {toolName}
             </div>
           </div>
 
           <div>
-            <label className="block text-xs font-medium text-gray-400 mb-1 uppercase tracking-wider">Arguments:</label>
+            <label className="block text-xs font-medium text-gray-400 mb-1 uppercase tracking-wider">{t('toolApproval.arguments')}:</label>
             <div className="rounded-md text-sm overflow-x-auto border border-gray-700">
               <SyntaxHighlighter
                 language="json"
@@ -105,26 +107,26 @@ function ToolApprovalModal({ toolCall, onApprove }) {
             onClick={() => handleChoice('once')}
             className={buttonClasses.once}
           >
-            Allow Once
+            {t('toolApproval.allowOnce')}
           </button>
           <button
             onClick={() => handleChoice('always')}
             className={buttonClasses.always}
           >
-            Always Allow This Tool
+            {t('toolApproval.alwaysAllowTool')}
           </button>
            <button
             onClick={() => handleChoice('yolo')}
-            title="Always Allow Any Tool (Warning: potential security risk from prompt injection)"
+            title={t('toolApproval.yoloTitle')}
             className={buttonClasses.yolo}
           >
-            YOLO Mode
+            {t('toolApproval.yoloMode')}
           </button>
           <button
             onClick={() => handleChoice('deny')}
             className={buttonClasses.deny}
           >
-            Deny
+            {t('toolApproval.deny')}
           </button>
         </div>
       </div>

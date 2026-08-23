@@ -5,10 +5,14 @@ import ChatInput from './components/ChatInput';
 import ToolsPanel from './components/ToolsPanel';
 import ToolApprovalModal from './components/ToolApprovalModal';
 import ChatHistorySidebar from './components/ChatHistorySidebar';
-import { useChat } from './context/ChatContext'; // Import useChat hook
-// Import shared model definitions - REMOVED
-// import { MODEL_CONTEXT_SIZES } from '../../shared/models';
-import { Settings, Zap, MessageSquare, PanelLeftClose, PanelLeft, Radio, MessagesSquare } from 'lucide-react';
+import ThemeToggle from './components/ThemeToggle';
+import PersonaSelector, { DEFAULT_PERSONAS } from './components/PersonaSelector';
+import ArtifactsPanel from './components/ArtifactsPanel';
+import McpCatalogModal from './components/McpCatalogModal';
+import ConversationStats from './components/ConversationStats';
+import { useChat } from './context/ChatContext';
+import { useLanguage } from './context/LanguageContext';
+import { Settings, Zap, MessageSquare, PanelLeftClose, PanelLeft, Radio, MessagesSquare, Sparkles, Store, Columns2 } from 'lucide-react';
 import { Button } from './components/ui/button';
 import { Badge } from './components/ui/badge';
 
@@ -78,6 +82,7 @@ function App() {
     toggleSidebar,
     needsTitleGeneration
   } = useChat(); // Use context state
+  const { t } = useLanguage();
   const [loading, setLoading] = useState(false);
   const [selectedModel, setSelectedModel] = useState('llama-3.3-70b-versatile');
   const [mcpTools, setMcpTools] = useState([]);
@@ -115,6 +120,12 @@ function App() {
   // --- Context Sharing State ---
   const [externalContext, setExternalContext] = useState(null);
   // --- End Context Sharing State ---
+
+  // --- Persona, Artifacts & Catalog State ---
+  const [activePersona, setActivePersona] = useState(() => DEFAULT_PERSONAS[0]);
+  const [activeArtifact, setActiveArtifact] = useState(null);
+  const [isMcpCatalogOpen, setIsMcpCatalogOpen] = useState(false);
+  // --- End Persona, Artifacts & Catalog State ---
 
   // --- Cancellation State ---
   const cancelledRef = useRef(false); // Track if current operation is cancelled
@@ -450,6 +461,19 @@ function App() {
         setModelFilter(settings.modelFilter || '');
         setModelFilterExclude(settings.modelFilterExclude || '');
         setUseResponsesApi(settings.useResponsesApi || false);
+
+        // Refresh model configs (e.g., after switching provider in Settings).
+        // The main process force-refetches models when the provider/key changed.
+        const configs = await window.electron.getModelConfigs();
+        setModelConfigs(configs);
+        const availableModels = Object.keys(configs).filter(key => key !== 'default');
+        setModels(availableModels);
+
+        // If the currently selected model no longer exists (provider switched),
+        // fall back to the first available model.
+        if (availableModels.length > 0 && selectedModel && !configs[selectedModel]) {
+          setSelectedModel(availableModels[0]);
+        }
       } catch (error) {
         console.error('Error reloading settings:', error);
       }
@@ -459,7 +483,7 @@ function App() {
     return () => {
       window.removeEventListener('focus', handleFocus);
     };
-  }, []);
+  }, [selectedModel]);
 
   // Save model selection to settings when it changes, ONLY after initial load
   useEffect(() => {
@@ -766,8 +790,14 @@ function App() {
         };
         setMessages(prev => [...prev, assistantPlaceholder]);
 
+        // Prepare messages to send, including active persona system prompt if defined
+        let messagesToSend = [...turnMessages];
+        if (activePersona?.systemPrompt && !messagesToSend.some(m => m.role === 'system')) {
+            messagesToSend = [{ role: 'system', content: activePersona.systemPrompt }, ...messagesToSend];
+        }
+
         // Start streaming chat
-        const streamHandler = window.electron.startChatStream(turnMessages, selectedModel);
+        const streamHandler = window.electron.startChatStream(messagesToSend, selectedModel);
 
             // Collect the final message data
         let finalAssistantData = {
@@ -1771,7 +1801,7 @@ function App() {
       {/* Main Content Area */}
       <div className="flex flex-col flex-1 min-w-0">
         {/* Modern Sticky Header */}
-        <header className="sticky top-0 z-50 border-b bg-background/95 backdrop-blur-sm supports-[backdrop-filter]:bg-background/80 shadow-sm">
+        <header className="sticky top-0 z-50 border-b border-border bg-background/95 backdrop-blur-sm shadow-xs">
           <div className="flex h-14 items-center justify-between px-4 max-w-full">
             <div className="flex items-center space-x-3">
               {/* Sidebar toggle for mobile/collapsed state */}
@@ -1781,7 +1811,7 @@ function App() {
                   size="icon"
                   onClick={toggleSidebar}
                   className="h-8 w-8 text-muted-foreground hover:text-foreground"
-                  title="Expand sidebar"
+                  title={t('header.expandSidebar')}
                 >
                   <PanelLeft className="h-4 w-4" />
                 </Button>
@@ -1794,50 +1824,56 @@ function App() {
                   className="h-7 w-auto"
                 />
               </div>
+
+              {/* Persona Selector */}
+              <PersonaSelector
+                activePersona={activePersona}
+                onSelectPersona={setActivePersona}
+              />
               
               {/* Status Badge */}
               {mcpTools.length > 0 && (
-                <Badge variant="secondary" className="bg-[#E9E9DF] hover:bg-[#E9E9DF]">
-                  <Zap className="w-3 h-3 mr-1" />
-                  {mcpTools.length} tools
+                <Badge variant="secondary" className="bg-muted text-foreground border border-border">
+                  <Zap className="w-3 h-3 mr-1 text-amber-500" />
+                  {t('header.statusTools', { count: mcpTools.length })}
                 </Badge>
               )}
-              
-              {/* API Mode Indicator */}
-              <span 
-                className="text-xs text-muted-foreground/60 flex items-center gap-1 cursor-default" 
-                title={useResponsesApi ? "Using Responses API (supports agentic features)" : "Using Chat Completions API"}
-              >
-                {useResponsesApi ? (
-                  <>
-                    <Radio className="w-3 h-3" />
-                    <span className="hidden sm:inline">Responses</span>
-                  </>
-                ) : (
-                  <>
-                    <MessagesSquare className="w-3 h-3" />
-                    <span className="hidden sm:inline">Completions</span>
-                  </>
-                )}
-              </span>
             </div>
 
             <div className="flex items-center space-x-2">
-              {/* New Chat Button - only show when there are messages */}
+              {/* Total Conversation Metrics & Token Summation */}
+              <ConversationStats messages={messages} />
+
+              {/* MCP Catalog Button */}
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setIsMcpCatalogOpen(true)}
+                className="text-xs text-foreground border-border hover:bg-muted"
+                title={t('mcpCatalog.title')}
+              >
+                <Store className="h-3.5 w-3.5 mr-1.5 text-primary" />
+                <span className="hidden md:inline">{t('header.mcpStore')}</span>
+              </Button>
+
+              {/* Theme Toggle Button */}
+              <ThemeToggle />
+
+              {/* New Chat Button */}
               {messages.length > 0 && (
                 <Button 
                   variant="outline" 
                   size="sm" 
                   onClick={handleNewChat}
-                  className="text-foreground hover:text-foreground"
+                  className="text-foreground border-border hover:bg-muted"
                 >
-                  <MessageSquare className="h-4 w-4 mr-2" />
-                  New Chat
+                  <MessageSquare className="h-4 w-4 mr-1.5" />
+                  <span className="hidden md:inline">{t('header.newChat')}</span>
                 </Button>
               )}
               
               <Link to="/settings">
-                <Button variant="ghost" size="icon" className="text-foreground hover:text-foreground">
+                <Button variant="ghost" size="icon" className="text-foreground hover:bg-muted" title={t('header.settings')}>
                   <Settings className="h-5 w-5" />
                 </Button>
               </Link>
@@ -1846,77 +1882,80 @@ function App() {
         </header>
 
       {/* Main Content */}
-      {/* TODO: Make the scroll area the entire width instead of the container while keeping the input at the bottom*/}
-      <div className="flex-1 flex flex-col overflow-hidden">
-        <div className="flex-1 overflow-y-auto">
-          <div className="max-w-[1600px] mx-auto py-8 px-8 h-full">
-            <div className="h-full">
-            {messages.length === 0 ? (
-              /* Welcome Screen */
-              <div className="flex flex-col items-center justify-center h-full space-y-8">
-                {/* <div className="text-center space-y-4">
-                  <h1 className="text-4xl font-bold text-primary">
-                    Build Fast
-                  </h1>
-                  <p className="text-xl text-muted-foreground max-w-2xl">
-                    Try the speed of Groq…
-                  </p>
-                </div> */}
-
-                {/* Chat Input */}
-                <div className="w-full max-w-2xl">
-                  <ChatInput
-                    onSendMessage={handleSendMessage}
-                    onStopGeneration={handleStopGeneration}
-                    loading={loading}
-                    visionSupported={visionSupported}
-                    models={sortedModels}
-                    selectedModel={selectedModel}
-                    onModelChange={setSelectedModel}
-                    onOpenMcpTools={() => setIsToolsPanelOpen(true)}
-                    modelConfigs={modelConfigs}
-                    focusSignal={chatFocusSignal}
-                  />
+      <div className="flex-1 flex overflow-hidden">
+        <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
+          <div className="flex-1 overflow-y-auto">
+            <div className="max-w-[1600px] mx-auto py-8 px-8 h-full">
+              <div className="h-full">
+              {messages.length === 0 ? (
+                /* Welcome Screen */
+                <div className="flex flex-col items-center justify-center h-full space-y-8">
+                  {/* Chat Input */}
+                  <div className="w-full max-w-2xl">
+                    <ChatInput
+                      onSendMessage={handleSendMessage}
+                      onStopGeneration={handleStopGeneration}
+                      loading={loading}
+                      visionSupported={visionSupported}
+                      models={sortedModels}
+                      selectedModel={selectedModel}
+                      onModelChange={setSelectedModel}
+                      onOpenMcpTools={() => setIsToolsPanelOpen(true)}
+                      modelConfigs={modelConfigs}
+                      focusSignal={chatFocusSignal}
+                    />
+                  </div>
                 </div>
+              ) : (
+                /* Chat View */
+                <div className="flex flex-col h-full min-h-0">
+                  <div 
+                    ref={messagesContainerRef} 
+                    className="flex-1 overflow-y-auto mb-6 min-h-0"
+                    style={{ willChange: 'scroll-position' }}
+                  >
+                    <MessageList 
+                      messages={messages} 
+                      onToolCallExecute={executeToolCall} 
+                      onRemoveLastMessage={handleRemoveLastMessage}
+                      onReloadFromMessage={handleReloadFromMessage}
+                      loading={loading}
+                      onActionsVisible={scrollToBottom}
+                      onPreviewArtifact={(art) => setActiveArtifact(art)}
+                    />
+                    <div ref={messagesEndRef} />
+                  </div>
+                  
+                  <div className="flex-shrink-0 bg-background/95 backdrop-blur pt-6">
+                    <ChatInput
+                      onSendMessage={handleSendMessage}
+                      onStopGeneration={handleStopGeneration}
+                      loading={loading}
+                      visionSupported={visionSupported}
+                      models={sortedModels}
+                      selectedModel={selectedModel}
+                      onModelChange={setSelectedModel}
+                      onOpenMcpTools={() => setIsToolsPanelOpen(true)}
+                      modelConfigs={modelConfigs}
+                      focusSignal={chatFocusSignal}
+                    />
+                  </div>
+                </div>
+              )}
               </div>
-            ) : (
-              /* Chat View */
-              <div className="flex flex-col h-full min-h-0">
-                <div 
-                  ref={messagesContainerRef} 
-                  className="flex-1 overflow-y-auto mb-6 min-h-0"
-                  style={{ willChange: 'scroll-position' }}
-                >
-                  <MessageList 
-                    messages={messages} 
-                    onToolCallExecute={executeToolCall} 
-                    onRemoveLastMessage={handleRemoveLastMessage}
-                    onReloadFromMessage={handleReloadFromMessage}
-                    loading={loading}
-                    onActionsVisible={scrollToBottom}
-                  />
-                  <div ref={messagesEndRef} />
-                </div>
-                
-                <div className="flex-shrink-0 bg-background/95 backdrop-blur pt-6">
-                  <ChatInput
-                    onSendMessage={handleSendMessage}
-                    onStopGeneration={handleStopGeneration}
-                    loading={loading}
-                    visionSupported={visionSupported}
-                    models={sortedModels}
-                    selectedModel={selectedModel}
-                    onModelChange={setSelectedModel}
-                    onOpenMcpTools={() => setIsToolsPanelOpen(true)}
-                    modelConfigs={modelConfigs}
-                    focusSignal={chatFocusSignal}
-                  />
-                </div>
-              </div>
-            )}
             </div>
           </div>
         </div>
+
+        {/* Side-by-side Artifacts Panel */}
+        {activeArtifact && (
+          <div className="w-full md:w-[480px] lg:w-[580px] flex-shrink-0 h-full border-l border-border">
+            <ArtifactsPanel
+              artifact={activeArtifact}
+              onClose={() => setActiveArtifact(null)}
+            />
+          </div>
+        )}
       </div>
 
       {/* Modals */}
@@ -1924,7 +1963,7 @@ function App() {
         <ToolsPanel
           tools={mcpTools}
           onClose={() => setIsToolsPanelOpen(false)}
-                    onDisconnectServer={disconnectMcpServer}
+          onDisconnectServer={disconnectMcpServer}
           onReconnectServer={reconnectMcpServer}
         />
       )}
@@ -1932,7 +1971,17 @@ function App() {
       {pendingApprovalCall && (
         <ToolApprovalModal
           toolCall={pendingApprovalCall}
-                    onApprove={handleToolApproval}
+          onApprove={handleToolApproval}
+        />
+      )}
+
+      {isMcpCatalogOpen && (
+        <McpCatalogModal
+          isOpen={isMcpCatalogOpen}
+          onClose={() => setIsMcpCatalogOpen(false)}
+          onServerInstalled={() => {
+            window.electron.getMcpTools().then(tools => setMcpTools(tools || []));
+          }}
         />
       )}
       </div>

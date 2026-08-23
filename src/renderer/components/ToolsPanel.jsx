@@ -4,9 +4,11 @@ import { Button } from './ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
 import { Badge } from './ui/badge';
 import Switch from './ui/Switch';
+import { useLanguage } from '../context/LanguageContext';
 import { cn } from '../lib/utils';
 
 function ToolsPanel({ tools = [], onClose, onDisconnectServer, onReconnectServer }) {
+  const { t } = useLanguage();
   const [expandedTools, setExpandedTools] = useState({});
   const [configuredServers, setConfiguredServers] = useState([]);
   const [serverStatuses, setServerStatuses] = useState({});
@@ -234,9 +236,9 @@ function ToolsPanel({ tools = [], onClose, onDisconnectServer, onReconnectServer
       <Card className="w-full max-w-2xl max-h-[85vh] overflow-hidden flex flex-col">
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 px-4 pt-4">
           <div className="space-y-0.5">
-            <CardTitle className="text-xl">Available Tools</CardTitle>
+            <CardTitle className="text-xl">{t('toolsPanel.title')}</CardTitle>
             <CardDescription className="text-xs">
-              {tools.length} tools available across {Object.keys(toolsByServer).length} connected servers
+              {t('toolsPanel.description', { toolsCount: tools.length, serversCount: Object.keys(toolsByServer).length })}
             </CardDescription>
           </div>
           <Button 
@@ -255,7 +257,7 @@ function ToolsPanel({ tools = [], onClose, onDisconnectServer, onReconnectServer
           {/* Show configured servers section */}
           {configuredServers.length > 0 && (
             <div className="mb-4">
-              <h3 className="text-base font-semibold mb-2">Configured MCP Servers</h3>
+              <h3 className="text-base font-semibold mb-2">{t('toolsPanel.configuredServers')}</h3>
               <Card className="mb-3">
                 <CardContent className="p-0">
                   {configuredServers.map((server, index) => (
@@ -267,10 +269,10 @@ function ToolsPanel({ tools = [], onClose, onDisconnectServer, onReconnectServer
                         <div className="flex items-center gap-2 flex-wrap">
                           <span className="font-medium text-sm">{server.id}</span>
                           <Badge variant={serverStatuses[server.id] === 'connected' ? 'default' : 'secondary'} className="text-xs">
-                            {serverStatuses[server.id] === 'connected' ? 'Connected' : 'Disconnected'}
+                            {serverStatuses[server.id] === 'connected' ? t('toolsPanel.connected') : t('toolsPanel.disconnected')}
                           </Badge>
                           <div className="flex items-center gap-1.5 text-xs">
-                            <span className="text-muted-foreground">Auto-start:</span>
+                            <span className="text-muted-foreground">{t('toolsPanel.autoStart')}</span>
                             <Switch
                               checked={!disabledServers.includes(server.id)}
                               onChange={() => handleToggleAutoStart(server.id, disabledServers.includes(server.id))}
@@ -282,20 +284,20 @@ function ToolsPanel({ tools = [], onClose, onDisconnectServer, onReconnectServer
                         <div className="space-y-0.5 text-xs text-muted-foreground">
                           {server.transport === 'sse' ? (
                             <>
-                              <div><span className="font-mono">Type: SSE</span></div>
+                              <div><span className="font-mono">{t('toolsPanel.type')}: SSE</span></div>
                               <div><span className="font-mono break-all">URL: {server.url || 'N/A'}</span></div>
                             </>
                           ) : server.transport === 'streamableHttp' ? (
                             <>
-                              <div><span className="font-mono">Type: Streamable HTTP</span></div>
+                              <div><span className="font-mono">{t('toolsPanel.type')}: Streamable HTTP</span></div>
                               <div><span className="font-mono break-all">URL: {server.url || 'N/A'}</span></div>
                             </>
                           ) : (
                             <>
-                              <div><span className="font-mono">Type: Stdio</span></div>
-                              <div><span className="font-mono">Command: {server.command || 'N/A'}</span></div>
+                              <div><span className="font-mono">{t('toolsPanel.type')}: Stdio</span></div>
+                              <div><span className="font-mono">{t('toolsPanel.command')}: {server.command || 'N/A'}</span></div>
                               {server.args && server.args.length > 0 && (
-                                <div><span className="font-mono break-all">Args: {server.args.join(' ')}</span></div>
+                                <div><span className="font-mono break-all">{t('toolsPanel.args')}: {server.args.join(' ')}</span></div>
                               )}
                             </>
                           )}
@@ -310,7 +312,7 @@ function ToolsPanel({ tools = [], onClose, onDisconnectServer, onReconnectServer
                             disabled={actionInProgress === server.id}
                             className="h-7 px-2 text-xs"
                           >
-                            Logs
+                            {t('toolsPanel.logs')}
                           </Button>
                         )}
                         {serverStatuses[server.id] === 'connected' ? (
@@ -321,7 +323,7 @@ function ToolsPanel({ tools = [], onClose, onDisconnectServer, onReconnectServer
                             disabled={actionInProgress === server.id}
                             className="h-7 px-2 text-xs"
                           >
-                            {actionInProgress === server.id ? 'Disconnecting...' : 'Disconnect'}
+                            {actionInProgress === server.id ? t('toolsPanel.disconnecting') : t('toolsPanel.disconnect')}
                           </Button>
                         ) : (
                           authRequiredServers[server.id] ? (
@@ -332,7 +334,7 @@ function ToolsPanel({ tools = [], onClose, onDisconnectServer, onReconnectServer
                               disabled={actionInProgress === server.id}
                               className="h-7 px-2 text-xs border-yellow-300 text-yellow-700 hover:bg-yellow-50"
                             >
-                              {actionInProgress === server.id ? 'Authorizing...' : 'Authorize'}
+                              {actionInProgress === server.id ? t('toolsPanel.authorizing') : t('toolsPanel.authorize')}
                             </Button>
                           ) : (
                             <Button
@@ -342,7 +344,7 @@ function ToolsPanel({ tools = [], onClose, onDisconnectServer, onReconnectServer
                               disabled={actionInProgress === server.id}
                               className="h-7 px-2 text-xs"
                             >
-                              {actionInProgress === server.id ? 'Connecting...' : 'Reconnect'}
+                              {actionInProgress === server.id ? t('toolsPanel.connecting') : t('toolsPanel.reconnect')}
                             </Button>
                           )
                         )}
@@ -352,19 +354,18 @@ function ToolsPanel({ tools = [], onClose, onDisconnectServer, onReconnectServer
                 </CardContent>
               </Card>
               <p className="text-xs text-muted-foreground mt-2">
-                Toggle auto-start to control which servers connect automatically when the application launches.
-                You can also manage server configurations in settings.
+                {t('toolsPanel.toggleInfo')}
               </p>
             </div>
           )}
         
           {/* Available tools section */}
           <div className="space-y-2">
-            <h3 className="text-base font-semibold">Available Tools by Server</h3>
+            <h3 className="text-base font-semibold">{t('toolsPanel.availableTools')}</h3>
             {Object.keys(toolsByServer).length === 0 ? (
               <Card>
                 <CardContent className="text-center py-4 px-3">
-                  <p className="text-sm text-muted-foreground">No tools available. All configured servers are disconnected.</p>
+                  <p className="text-sm text-muted-foreground">{t('toolsPanel.noTools')}</p>
                 </CardContent>
               </Card>
             ) : (
@@ -373,9 +374,9 @@ function ToolsPanel({ tools = [], onClose, onDisconnectServer, onReconnectServer
                   <Card key={serverId}>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 px-3 pt-3">
                       <CardTitle className="text-sm font-semibold">
-                        Server: {serverId}
+                        {t('toolsPanel.server')}: {serverId}
                         <Badge variant="outline" className="ml-2 text-xs">
-                          {serverTools.length} tools
+                          {t('toolsPanel.toolsCount', { count: serverTools.length })}
                         </Badge>
                       </CardTitle>
                       {serverId !== 'unknown' && serverStatuses[serverId] === 'connected' && (
@@ -385,7 +386,7 @@ function ToolsPanel({ tools = [], onClose, onDisconnectServer, onReconnectServer
                           onClick={() => handleDisconnect(serverId)}
                           disabled={actionInProgress === serverId}
                         >
-                          {actionInProgress === serverId ? 'Disconnecting...' : 'Disconnect'}
+                          {actionInProgress === serverId ? t('toolsPanel.disconnecting') : t('toolsPanel.disconnect')}
                         </Button>
                       )}
                     </CardHeader>
@@ -414,12 +415,12 @@ function ToolsPanel({ tools = [], onClose, onDisconnectServer, onReconnectServer
                           {expandedTools[tool.name] && (
                             <div className="border-t p-2.5 space-y-2 bg-muted/50">
                               <div>
-                                <h5 className="font-medium text-xs mb-1">Full Description:</h5>
+                                <h5 className="font-medium text-xs mb-1">{t('toolsPanel.fullDescription')}</h5>
                                 <p className="text-xs text-muted-foreground whitespace-pre-wrap">{tool.description}</p>
                               </div>
                               
                               <div>
-                                <h5 className="font-medium text-xs mb-1">Input Schema:</h5>
+                                <h5 className="font-medium text-xs mb-1">{t('toolsPanel.inputSchema')}</h5>
                                 <pre className="bg-background p-2 rounded-md overflow-x-auto text-xs border">
                                   {JSON.stringify(tool.input_schema, null, 2)}
                                 </pre>
@@ -438,7 +439,7 @@ function ToolsPanel({ tools = [], onClose, onDisconnectServer, onReconnectServer
         
         <div className="flex items-center justify-end gap-2 px-4 pb-3 pt-2">
           <Button onClick={onClose} className="w-full" size="sm">
-            Close
+            {t('common.close')}
           </Button>
         </div>
 

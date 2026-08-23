@@ -5,9 +5,9 @@ const DEFAULT_MODEL_CONFIG = {
   builtin_tools_supported: false,
 };
 
-// Cache for fetched models
-let cachedModels = null;
-let lastFetchTime = null;
+// Cache for fetched models, keyed by `${modelsUrl}|${apiKey}` so each
+// provider/account combination gets its own cache entry.
+const modelCache = new Map();
 const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
 
 /**
@@ -33,17 +33,22 @@ function applyModelHeuristics(modelId, apiModelData) {
 }
 
 /**
- * Fetch models from Groq API
+ * Fetch models from an OpenAI-compatible provider's API
+ * @param {string} apiKey - The API key for the provider
+ * @param {string} modelsUrl - Full URL to the provider's /models endpoint
  */
-async function fetchModelsFromAPI(apiKey) {
+async function fetchModelsFromAPI(apiKey, modelsUrl) {
   if (!apiKey || apiKey === "<replace me>") {
     console.warn('No valid API key provided for fetching models');
     return null;
   }
 
   try {
+    const http = require('http');
     const https = require('https');
-    const url = 'https://api.groq.com/openai/v1/models';
+    const url = modelsUrl || 'https://api.groq.com/openai/v1/models';
+    const isHttps = url.startsWith('https://');
+    const client = isHttps ? https : http;
     
     return new Promise((resolve, reject) => {
       const options = {
@@ -53,7 +58,7 @@ async function fetchModelsFromAPI(apiKey) {
         }
       };
 
-      https.get(url, options, (res) => {
+      client.get(url, options, (res) => {
         let data = '';
 
         res.on('data', (chunk) => {
@@ -96,13 +101,14 @@ function convertAPIModelsToContextSizes(apiResponse) {
     return modelContextSizes;
   }
   
-  // Filter out non-chat models (like Whisper models)
+  // Filter out non-chat models (audio, embeddings, guard models, etc.)
+  // Note: not all providers send an `active` field, so only exclude when
+  // explicitly false.
+  const NON_CHAT_MARKERS = ['whisper', 'guard', 'embedding', 'tts', 'dall-e', 'moderation', 'audio'];
   const chatModels = apiResponse.data.filter(model => {
     const modelName = model.id.toLowerCase();
-    // Exclude audio/whisper models and guard models
-    return !modelName.includes('whisper') && 
-           !modelName.includes('guard') &&
-           model.active === true;
+    return model.active !== false &&
+           !NON_CHAT_MARKERS.some(marker => modelName.includes(marker));
   });
   
   chatModels.forEach(model => {
@@ -117,36 +123,46 @@ function convertAPIModelsToContextSizes(apiResponse) {
 }
 
 /**
- * Get models with caching
+ * Get models with caching (per provider/API-key)
  */
-async function getModelsFromAPIWithCache(apiKey, forceRefresh = false) {
+async function getModelsFromAPIWithCache(apiKey, modelsUrl, forceRefresh = false) {
+  const cacheKey = `${modelsUrl || 'default'}|${apiKey || ''}`;
   const now = Date.now();
-  
+
   // Return cached models if they're still fresh
-  if (!forceRefresh && cachedModels && lastFetchTime && (now - lastFetchTime) < CACHE_DURATION) {
+  const cached = modelCache.get(cacheKey);
+  if (!forceRefresh && cached && (now - cached.lastFetchTime) < CACHE_DURATION) {
     console.log('Using cached models');
-    return cachedModels;
+    return cached.models;
   }
-  
+
   // Fetch fresh models
   console.log('Fetching fresh models from API');
-  const apiResponse = await fetchModelsFromAPI(apiKey);
-  
+  const apiResponse = await fetchModelsFromAPI(apiKey, modelsUrl);
+
   if (apiResponse) {
-    cachedModels = convertAPIModelsToContextSizes(apiResponse);
-    lastFetchTime = now;
-    return cachedModels;
+    const models = convertAPIModelsToContextSizes(apiResponse);
+    modelCache.set(cacheKey, { models, lastFetchTime: now });
+    return models;
   }
-  
+
   // If fetch failed and we have cached models, return them
-  if (cachedModels) {
+  if (cached) {
     console.warn('API fetch failed, using stale cached models');
-    return cachedModels;
+    return cached.models;
   }
-  
+
   // If no cache and fetch failed, return default only
   console.warn('No models available, using default configuration only');
   return { default: DEFAULT_MODEL_CONFIG };
+}
+
+/**
+ * Clear the in-memory model cache (used when the active provider/key changes)
+ */
+function invalidateModelsCache() {
+  modelCache.clear();
+  console.log('Model cache invalidated');
 }
 
 const BASE_MODEL_CONTEXT_SIZES = {
@@ -186,6 +202,7 @@ module.exports = {
   getModelContextSizes,
   supportsBuiltInTools,
   getModelsFromAPIWithCache,
+  invalidateModelsCache,
   fetchModelsFromAPI,
   convertAPIModelsToContextSizes,
   applyModelHeuristics

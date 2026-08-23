@@ -110,6 +110,8 @@ contextBridge.exposeInMainWorld('electron', {
   getMcpTools: () => ipcRenderer.invoke('get-mcp-tools'),
   // Function to get model configurations
   getModelConfigs: () => ipcRenderer.invoke('get-model-configs'),
+  // List of supported providers (for the settings UI)
+  getProviders: () => ipcRenderer.invoke('get-providers'),
   
   // Add event listener for MCP server status changes
   onMcpServerStatusChanged: (callback) => {
@@ -207,6 +209,12 @@ contextBridge.exposeInMainWorld('electron', {
     delete: (chatId) => ipcRenderer.invoke('chat-history-delete', chatId),
     generateTitle: (userMessage) => ipcRenderer.invoke('chat-history-generate-title', userMessage),
   },
+
+  // Audio Transcription (Whisper)
+  transcribeAudio: (data) => ipcRenderer.invoke('transcribe-audio', data),
+
+  // Chat Export
+  exportChatFile: (data) => ipcRenderer.invoke('export-chat-file', data),
 
   // Generic IPC renderer access (kept for backward compatibility)
   ipcRenderer: {

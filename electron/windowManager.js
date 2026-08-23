@@ -19,10 +19,10 @@ function createWindow(screen, BrowserWindow) {
 
   mainWindow.loadURL(startUrl);
 
-  // Open DevTools during development
-  if (process.env.NODE_ENV === 'development') {
-    mainWindow.webContents.openDevTools();
-  }
+  // Open DevTools during development (uncomment if needed or press Ctrl+Shift+I)
+  // if (process.env.NODE_ENV === 'development') {
+  //   mainWindow.webContents.openDevTools();
+  // }
 
   mainWindow.on('closed', () => {
     mainWindow = null;

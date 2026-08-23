@@ -2,7 +2,7 @@
 
 # Cross-platform testing script
 
-echo "=== Groq Desktop Cross-Platform Testing ==="
+echo "=== NeoChat Desktop Cross-Platform Testing ==="
 echo
 
 echo "🔍 Testing platform detection..."

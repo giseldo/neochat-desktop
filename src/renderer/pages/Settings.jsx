@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Eye, EyeOff, Plus, Trash2, Edit3, Save, X, RefreshCw, Key, Settings as SettingsIcon, Zap, Cpu, Server, AlertCircle, CheckCircle } from 'lucide-react';
+import { ArrowLeft, Eye, EyeOff, Plus, Trash2, Edit3, Save, X, RefreshCw, Key, Settings as SettingsIcon, Zap, Cpu, Server, AlertCircle, CheckCircle, Sun, Moon, Laptop, Languages, Check } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
@@ -9,9 +9,14 @@ import { Textarea } from '../components/ui/textarea';
 import { Badge } from '../components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
 import Switch from '../components/ui/Switch';
+import { useTheme } from '../context/ThemeContext';
+import { useLanguage } from '../context/LanguageContext';
 
 function Settings() {
+  const { theme, setTheme } = useTheme();
+  const { language, setLanguage, t } = useLanguage();
   const [settings, setSettings] = useState({
+    language: 'pt',
     GROQ_API_KEY: '',
     temperature: 0.7,
     top_p: 0.95,
@@ -61,6 +66,8 @@ function Settings() {
   const [jsonInput, setJsonInput] = useState('');
   const [jsonError, setJsonError] = useState(null);
   const [settingsPath, setSettingsPath] = useState('');
+  const [providers, setProviders] = useState([]);
+  const [activeProvider, setActiveProvider] = useState(null);
   const [newEnvVar, setNewEnvVar] = useState({ key: '', value: '' });
   const [newHeader, setNewHeader] = useState({ key: '', value: '' });
   const [editingServerId, setEditingServerId] = useState(null);
@@ -102,8 +109,20 @@ function Settings() {
   }, [navigate]);
 
   useEffect(() => {
+    const loadProviders = async () => {
+      try {
+        const list = await window.electron.getProviders();
+        setProviders(list || []);
+        return list || [];
+      } catch (error) {
+        console.error('Error fetching providers:', error);
+        return [];
+      }
+    };
+
     const loadSettings = async () => {
       try {
+        const providerList = await loadProviders();
         const settingsData = await window.electron.getSettings();
         if (!settingsData.disabledMcpServers) {
             settingsData.disabledMcpServers = [];
@@ -147,7 +166,19 @@ function Settings() {
         if (!settingsData.remoteMcpServers) {
             settingsData.remoteMcpServers = {};
         }
+        if (!settingsData.apiKeys) {
+            settingsData.apiKeys = {};
+        }
+        if (!settingsData.provider) {
+            settingsData.provider = 'groq';
+        }
+        // Migrate legacy GROQ_API_KEY into apiKeys.groq
+        if (settingsData.GROQ_API_KEY && !settingsData.apiKeys.groq) {
+            settingsData.apiKeys.groq = settingsData.GROQ_API_KEY;
+        }
         setSettings(settingsData);
+        const provider = (providerList || []).find(p => p.id === settingsData.provider);
+        setActiveProvider(provider || null);
         
         // Fetch Google OAuth status
         try {
@@ -228,7 +259,7 @@ function Settings() {
         };
         const result = await window.electron.saveSettings(settingsToSave);
         if (result.success) {
-          setSaveStatus({ type: 'success', message: 'Settings saved' });
+          setSaveStatus({ type: 'success', message: t('settings.savedSuccess') });
           
           if (statusTimeoutRef.current) {
             clearTimeout(statusTimeoutRef.current);
@@ -237,11 +268,11 @@ function Settings() {
             setSaveStatus(null);
           }, 2000);
         } else {
-          setSaveStatus({ type: 'error', message: `Failed to save: ${result.error}` });
+          setSaveStatus({ type: 'error', message: t('settings.failedSave', { error: result.error }) });
         }
       } catch (error) {
         console.error('Error saving settings:', error);
-        setSaveStatus({ type: 'error', message: `Error: ${error.message}` });
+        setSaveStatus({ type: 'error', message: t('settings.errorSaving', { error: error.message }) });
       } finally {
         setIsSaving(false);
       }
@@ -257,6 +288,40 @@ function Settings() {
 
   const handleSelectChange = (name, value) => {
     const updatedSettings = { ...settings, [name]: value };
+    setSettings(updatedSettings);
+    saveSettings(updatedSettings);
+  };
+
+  const handleProviderChange = (value) => {
+    const updatedSettings = { ...settings, provider: value };
+    setSettings(updatedSettings);
+    saveSettings(updatedSettings);
+    const provider = providers.find(p => p.id === value);
+    setActiveProvider(provider || null);
+  };
+
+  const getActiveApiKeyValue = () => {
+    const providerId = settings.provider || 'groq';
+    const key = settings.apiKeys?.[providerId];
+    if (key) return key;
+    if (providerId === 'groq') return settings.GROQ_API_KEY || '';
+    return '';
+  };
+
+  const handleApiKeyChange = (e) => {
+    const value = e.target.value;
+    const providerId = settings.provider || 'groq';
+    const updatedSettings = {
+      ...settings,
+      apiKeys: {
+        ...(settings.apiKeys || {}),
+        [providerId]: value
+      }
+    };
+    // Keep legacy GROQ_API_KEY in sync for the Groq provider
+    if (providerId === 'groq') {
+      updatedSettings.GROQ_API_KEY = value;
+    }
     setSettings(updatedSettings);
     saveSettings(updatedSettings);
   };
@@ -1032,14 +1097,21 @@ function Settings() {
     });
   };
 
+  const handleLanguageChange = (newLang) => {
+    setLanguage(newLang);
+    const updatedSettings = { ...settings, language: newLang };
+    setSettings(updatedSettings);
+    saveSettings(updatedSettings);
+  };
+
   const getStatusMessage = () => {
-    if (isSaving) return 'Saving...';
+    if (isSaving) return t('settings.saving');
     return saveStatus?.message || '';
   };
 
   const reloadSettingsFromDisk = async () => {
     setIsSaving(true);
-    setSaveStatus({ type: 'info', message: 'Reloading settings...' });
+    setSaveStatus({ type: 'info', message: t('settings.reloading') });
 
     try {
       const settingsData = await window.electron.getSettings();
@@ -1047,10 +1119,10 @@ function Settings() {
           settingsData.disabledMcpServers = [];
       }
       setSettings(settingsData);
-      setSaveStatus({ type: 'success', message: 'Settings reloaded from disk' });
+      setSaveStatus({ type: 'success', message: t('settings.reloaded') });
     } catch (error) {
       console.error('Error reloading settings:', error);
-      setSaveStatus({ type: 'error', message: `Error reloading: ${error.message}` });
+      setSaveStatus({ type: 'error', message: t('settings.errorReloading', { error: error.message }) });
     } finally {
       setIsSaving(false);
       if (statusTimeoutRef.current) {
@@ -1065,7 +1137,7 @@ function Settings() {
   // Function to reset tool call approvals in localStorage
   const handleResetToolApprovals = () => {
     setIsSaving(true);
-    setSaveStatus({ type: 'info', message: 'Resetting approvals...' });
+    setSaveStatus({ type: 'info', message: t('settings.resettingApprovals') });
 
     try {
       const keysToRemove = [];
@@ -1081,10 +1153,10 @@ function Settings() {
         console.log(`Removed tool approval key: ${key}`);
       });
 
-      setSaveStatus({ type: 'success', message: 'Tool call approvals reset' });
+      setSaveStatus({ type: 'success', message: t('settings.approvalsReset') });
     } catch (error) {
       console.error('Error resetting tool approvals:', error);
-      setSaveStatus({ type: 'error', message: `Error resetting: ${error.message}` });
+      setSaveStatus({ type: 'error', message: t('settings.errorResetting', { error: error.message }) });
     } finally {
       setIsSaving(false);
       if (statusTimeoutRef.current) {
@@ -1103,13 +1175,13 @@ function Settings() {
         <div className="container flex h-16 items-center justify-between px-6">
           <div className="flex items-center space-x-4">
             <Link to="/">
-              <Button variant="ghost" size="icon" className="text-foreground hover:text-foreground">
+              <Button variant="ghost" size="icon" className="text-foreground hover:text-foreground" title={t('settings.backToChat')}>
                 <ArrowLeft className="h-5 w-5" />
               </Button>
             </Link>
             <div className="flex items-center space-x-2">
               <SettingsIcon className="h-6 w-6 text-primary" />
-              <h1 className="text-2xl font-bold text-foreground">Settings</h1>
+              <h1 className="text-2xl font-bold text-foreground">{t('settings.title')}</h1>
             </div>
           </div>
 
@@ -1121,7 +1193,7 @@ function Settings() {
               disabled={isSaving}
             >
               <RefreshCw className={`h-4 w-4 mr-2 ${isSaving ? 'animate-spin' : ''}`} />
-              Reload
+              {t('settings.reloadBtn')}
             </Button>
           </div>
         </div>
@@ -1162,34 +1234,140 @@ function Settings() {
                 <CardContent className="p-4">
                   <div className="flex items-center space-x-2 text-sm text-muted-foreground">
                     <Key className="h-4 w-4" />
-                    <span>Settings file: <code className="text-xs bg-muted px-1 py-0.5 rounded">{settingsPath}</code></span>
+                    <span>{t('settings.settingsFile')} <code className="text-xs bg-muted px-1 py-0.5 rounded">{settingsPath}</code></span>
                   </div>
                 </CardContent>
               </Card>
             )}
+
+            {/* Interface Language Settings */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center space-x-2">
+                  <Languages className="h-5 w-5 text-primary" />
+                  <span>{t('settings.langTitle')}</span>
+                </CardTitle>
+                <CardDescription>
+                  {t('settings.langDesc')}
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {[
+                    { id: 'pt', label: t('settings.langPt'), flag: '🇧🇷', desc: t('settings.langPtDesc') },
+                    { id: 'en', label: t('settings.langEn'), flag: '🇺🇸', desc: t('settings.langEnDesc') },
+                  ].map(({ id, label, flag, desc }) => (
+                    <button
+                      key={id}
+                      type="button"
+                      onClick={() => handleLanguageChange(id)}
+                      className={`flex flex-col items-start p-3.5 rounded-xl border text-left transition-all ${
+                        language === id
+                          ? 'border-primary bg-primary/10 text-primary shadow-xs'
+                          : 'border-border bg-background hover:bg-muted text-foreground'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between w-full mb-1.5">
+                        <div className="flex items-center gap-2 font-semibold text-xs">
+                          <span className="text-base leading-none">{flag}</span>
+                          <span>{label}</span>
+                        </div>
+                        {language === id && <Check className="w-4 h-4 text-primary" />}
+                      </div>
+                      <p className="text-[11px] text-muted-foreground">{desc}</p>
+                    </button>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Theme & Appearance Settings */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center space-x-2">
+                  <Sun className="h-5 w-5 text-primary" />
+                  <span>{t('settings.appearanceTitle')}</span>
+                </CardTitle>
+                <CardDescription>
+                  {t('settings.appearanceDesc')}
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-3 gap-3">
+                  {[
+                    { id: 'light', label: t('theme.light'), icon: Sun, desc: t('theme.lightDesc') },
+                    { id: 'dark', label: t('theme.dark'), icon: Moon, desc: t('theme.darkDesc') },
+                    { id: 'system', label: t('theme.system'), icon: Laptop, desc: t('theme.systemDesc') },
+                  ].map(({ id, label, icon: Icon, desc }) => (
+                    <button
+                      key={id}
+                      type="button"
+                      onClick={() => setTheme(id)}
+                      className={`flex flex-col items-start p-3.5 rounded-xl border text-left transition-all ${
+                        theme === id
+                          ? 'border-primary bg-primary/10 text-primary shadow-xs'
+                          : 'border-border bg-background hover:bg-muted text-foreground'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2 mb-1.5 font-semibold text-xs">
+                        <Icon className="h-4 w-4 text-primary" />
+                        <span>{label}</span>
+                      </div>
+                      <p className="text-[11px] text-muted-foreground">{desc}</p>
+                    </button>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
 
             {/* API Settings */}
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center space-x-2">
                   <Key className="h-5 w-5 text-primary" />
-                  <span>API Configuration</span>
+                  <span>{t('settings.apiTitle')}</span>
                 </CardTitle>
                 <CardDescription>
-                  Configure your API credentials and endpoint settings
+                  {t('settings.apiDesc')}
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="api-key">API Key</Label>
+                  <Label htmlFor="provider">{t('settings.providerLabel')}</Label>
+                  <Select value={settings.provider || 'groq'} onValueChange={handleProviderChange}>
+                    <SelectTrigger>
+                      <SelectValue placeholder={t('settings.providerPlaceholder')} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {providers.map(provider => (
+                        <SelectItem key={provider.id} value={provider.id}>
+                          {provider.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {activeProvider && (
+                    <p className="text-xs text-muted-foreground">
+                      {activeProvider.description}.{' '}
+                      {activeProvider.baseUrl
+                        ? <>{t('settings.providerEndpoint')} <code className="text-xs bg-muted px-1 py-0.5 rounded">{activeProvider.baseUrl}</code></>
+                        : t('settings.providerCustomDesc')}
+                    </p>
+                  )}
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="api-key">
+                    {t('settings.apiKeyLabel')} {activeProvider ? `(${activeProvider.name})` : ''}
+                  </Label>
                   <div className="relative">
                     <Input
                       type={showApiKey ? "text" : "password"}
                       id="api-key"
-                      name="GROQ_API_KEY"
-                      value={settings.GROQ_API_KEY || ''}
-                      onChange={handleChange}
-                      placeholder="Enter your API key"
+                      name="apiKey"
+                      value={getActiveApiKeyValue()}
+                      onChange={handleApiKeyChange}
+                      placeholder={t('settings.apiKeyPlaceholder', { provider: activeProvider?.name || 'provider' })}
                       className="pr-10"
                     />
                     <Button
@@ -1202,21 +1380,28 @@ function Settings() {
                       {showApiKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                     </Button>
                   </div>
+                  <p className="text-xs text-muted-foreground">
+                    {t('settings.apiKeyHelp')}
+                  </p>
                 </div>
                 
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
-                    <Label htmlFor="custom-api-base-url">Custom API Base URL (Optional)</Label>
-                    <div className="flex items-center space-x-2">
-                      <Label htmlFor="custom-api-base-url-enabled" className="text-sm font-normal text-muted-foreground">
-                        {settings.customApiBaseUrlEnabled ? 'Enabled' : 'Disabled'}
-                      </Label>
-                      <Switch
-                        id="custom-api-base-url-enabled"
-                        checked={settings.customApiBaseUrlEnabled || false}
-                        onChange={(e) => handleToggleChange('customApiBaseUrlEnabled', e.target.checked)}
-                      />
-                    </div>
+                    <Label htmlFor="custom-api-base-url">
+                      {settings.provider === 'custom' ? t('settings.customBaseUrlLabel') : t('settings.customBaseUrlOptional')}
+                    </Label>
+                    {settings.provider !== 'custom' && (
+                      <div className="flex items-center space-x-2">
+                        <Label htmlFor="custom-api-base-url-enabled" className="text-sm font-normal text-muted-foreground">
+                          {settings.customApiBaseUrlEnabled ? t('common.enabled') : t('common.disabled')}
+                        </Label>
+                        <Switch
+                          id="custom-api-base-url-enabled"
+                          checked={settings.customApiBaseUrlEnabled || false}
+                          onChange={(e) => handleToggleChange('customApiBaseUrlEnabled', e.target.checked)}
+                        />
+                      </div>
+                    )}
                   </div>
                   <Input
                     type="text"
@@ -1224,16 +1409,19 @@ function Settings() {
                     name="customApiBaseUrl"
                     value={settings.customApiBaseUrl || ''}
                     onChange={handleChange}
-                    placeholder="e.g., https://api.groq.com/openai/v1/ or http://127.0.0.1:8000/v1/"
-                    disabled={!settings.customApiBaseUrlEnabled}
-                    className={!settings.customApiBaseUrlEnabled ? 'opacity-50' : ''}
+                    placeholder={t('settings.customBaseUrlPlaceholder')}
+                    disabled={settings.provider === 'custom' ? false : !settings.customApiBaseUrlEnabled}
+                    className={settings.provider === 'custom' || settings.customApiBaseUrlEnabled ? '' : 'opacity-50'}
                   />
-                  <p className="text-xs text-muted-foreground">
-                    <strong>Important:</strong> URL must end with <code className="text-xs bg-muted px-1 py-0.5 rounded">/v1/</code> (with trailing slash).
-                    For Groq-compatible endpoints: <code className="text-xs bg-muted px-1 py-0.5 rounded">https://api.groq.com/openai/v1/</code>.
-                    For custom OpenAI-compatible endpoints: <code className="text-xs bg-muted px-1 py-0.5 rounded">http://your-server/v1/</code>.
-                    {settings.customApiBaseUrlEnabled ? ' Toggle off to use the default Groq API.' : ' Toggle on to enable custom API base URL.'}
-                  </p>
+                  {settings.provider === 'custom' ? (
+                    <p className="text-xs text-muted-foreground">
+                      {t('settings.customBaseUrlHelpCustom')}
+                    </p>
+                  ) : (
+                    <p className="text-xs text-muted-foreground">
+                      {t('settings.customBaseUrlHelpOptional')}
+                    </p>
+                  )}
                 </div>
               </CardContent>
             </Card>
@@ -1243,20 +1431,20 @@ function Settings() {
               <CardHeader>
                 <CardTitle className="flex items-center space-x-2">
                   <Zap className="h-5 w-5 text-primary" />
-                  <span>Responses API & Connectors</span>
+                  <span>{t('settings.responsesTitle')}</span>
                 </CardTitle>
                 <CardDescription>
-                  Enable the Groq Responses API and Google connectors for extended capabilities.
+                  {t('settings.responsesDesc')}
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
                 <div className="flex items-center justify-between">
                   <div className="space-y-1">
                     <Label htmlFor="use-responses-api" className="font-medium">
-                      Use Responses API
+                      {t('settings.useResponsesApiLabel')}
                     </Label>
                     <p className="text-xs text-muted-foreground">
-                      Switch from standard Chat Completions to the Responses API (Required for Connectors)
+                      {t('settings.useResponsesApiHelp')}
                     </p>
                   </div>
                   <Switch
@@ -1271,14 +1459,14 @@ function Settings() {
                     {/* Google OAuth Credentials Section */}
                     <div className="space-y-4">
                       <div className="flex items-center justify-between">
-                        <Label className="text-sm font-medium">Google OAuth Credentials</Label>
+                        <Label className="text-sm font-medium">{t('settings.googleAuthCredentialsTitle')}</Label>
                         {googleOAuthStatus?.hasRefreshCapability && (
                           <div className="flex items-center gap-2">
                             {googleOAuthStatus?.expiresInMinutes !== null && (
                               <span className={`text-xs ${googleOAuthStatus.isExpired ? 'text-red-500' : googleOAuthStatus.expiresInMinutes < 10 ? 'text-yellow-500' : 'text-green-500'}`}>
                                 {googleOAuthStatus.isExpired 
-                                  ? 'Token expired' 
-                                  : `Expires in ${googleOAuthStatus.expiresInMinutes} min`}
+                                  ? t('settings.googleTokenExpired') 
+                                  : t('settings.googleExpiresIn', { minutes: googleOAuthStatus.expiresInMinutes })}
                               </span>
                             )}
                             <Button
@@ -1288,7 +1476,7 @@ function Settings() {
                               disabled={isRefreshingToken}
                               className="h-7 text-xs"
                             >
-                              {isRefreshingToken ? 'Refreshing...' : 'Refresh Token'}
+                              {isRefreshingToken ? t('settings.btnRefreshing') : t('settings.btnRefreshToken')}
                             </Button>
                           </div>
                         )}
@@ -1297,7 +1485,7 @@ function Settings() {
                       {/* Refresh Token */}
                       <div className="space-y-2">
                         <Label htmlFor="google-refresh-token" className="text-xs text-muted-foreground">
-                          Refresh Token (permanent - enables auto-refresh)
+                          {t('settings.googleRefreshTokenLabel')}
                         </Label>
                         <Input
                           type="password"
@@ -1305,7 +1493,7 @@ function Settings() {
                           name="googleRefreshToken"
                           value={settings.googleRefreshToken || ''}
                           onChange={handleChange}
-                          placeholder="1//0xxxxx... (from OAuth flow)"
+                          placeholder={t('settings.googleRefreshTokenPlaceholder')}
                           className="font-mono text-sm"
                         />
                       </div>
@@ -1314,7 +1502,7 @@ function Settings() {
                       <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-2">
                           <Label htmlFor="google-client-id" className="text-xs text-muted-foreground">
-                            Client ID
+                            {t('settings.googleClientIdLabel')}
                           </Label>
                           <Input
                             type="password"
@@ -1328,7 +1516,7 @@ function Settings() {
                         </div>
                         <div className="space-y-2">
                           <Label htmlFor="google-client-secret" className="text-xs text-muted-foreground">
-                            Client Secret
+                            {t('settings.googleClientSecretLabel')}
                           </Label>
                           <Input
                             type="password"
@@ -1344,34 +1532,33 @@ function Settings() {
 
                       {/* Help Link */}
                       <p className="text-xs text-muted-foreground">
-                        📖 Need help?{' '}
+                        📖 {t('settings.googleHelpPrefix')}{' '}
                         <a 
                           href="https://console.cloud.google.com/apis/credentials" 
                           target="_blank" 
                           rel="noopener noreferrer"
                           className="text-primary hover:underline"
                         >
-                          Create OAuth credentials
+                          {t('settings.googleHelpLink')}
                         </a>
-                        {' '}→ Create Credentials → OAuth client ID → Desktop app
+                        {' '}{t('settings.googleHelpSuffix')}
                       </p>
 
                       {/* Status Message */}
                       {settings.googleRefreshToken && settings.googleClientId && settings.googleClientSecret ? (
                         <p className="text-xs text-green-600 dark:text-green-400">
-                          ✓ Auto-refresh enabled - tokens will be refreshed automatically when they expire
+                          {t('settings.googleAutoRefreshActive')}
                         </p>
                       ) : (
                         <p className="text-xs text-muted-foreground">
-                          Enter refresh token + client credentials to enable automatic token refresh.
-                          Or enter just an access token below (will expire in ~1 hour).
+                          {t('settings.googleAutoRefreshHelp')}
                         </p>
                       )}
 
                       {/* Manual Access Token (fallback) */}
                       <details className="pt-2">
                         <summary className="text-xs text-muted-foreground cursor-pointer hover:text-foreground">
-                          Manual Access Token (advanced)
+                          {t('settings.googleManualTokenSummary')}
                         </summary>
                         <div className="space-y-2 pt-2">
                           <Input
@@ -1384,10 +1571,10 @@ function Settings() {
                             className="font-mono text-sm"
                           />
                           <p className="text-xs text-muted-foreground">
-                            This is auto-populated when using refresh token. Manual entry only needed if not using auto-refresh.
+                            {t('settings.googleManualTokenHelp')}
                           </p>
                           <p className="text-xs text-muted-foreground">
-                            💡 Generate a temporary token at{' '}
+                            💡 {t('settings.googleManualTokenPlayground')}{' '}
                             <a 
                               href="https://developers.google.com/oauthplayground/" 
                               target="_blank" 
@@ -1402,7 +1589,7 @@ function Settings() {
                     </div>
 
                     <div className="space-y-4 pt-2">
-                      <Label className="text-sm font-medium text-muted-foreground">Connectors</Label>
+                      <Label className="text-sm font-medium text-muted-foreground">{t('settings.googleConnectorsTitle')}</Label>
                       
                       <div className="space-y-3">
                         <div className="flex items-center justify-between">
@@ -1412,19 +1599,19 @@ function Settings() {
                               checked={settings.googleConnectors?.gmail || false}
                               onChange={(e) => handleGoogleConnectorToggle('gmail', e.target.checked)}
                             />
-                            <Label htmlFor="connector-gmail" className="font-normal">Gmail</Label>
+                            <Label htmlFor="connector-gmail" className="font-normal">{t('settings.gmailLabel')}</Label>
                           </div>
                           {settings.googleConnectors?.gmail && (
                             <Select
                               value={settings.googleConnectorsApproval?.gmail || 'never'}
                               onValueChange={(value) => handleGoogleConnectorApprovalChange('gmail', value)}
                             >
-                              <SelectTrigger className="w-32 h-8">
+                              <SelectTrigger className="w-36 h-8">
                                 <SelectValue />
                               </SelectTrigger>
                               <SelectContent>
-                                <SelectItem value="never">Auto-approve</SelectItem>
-                                <SelectItem value="always">Always ask</SelectItem>
+                                <SelectItem value="never">{t('settings.approvalNever')}</SelectItem>
+                                <SelectItem value="always">{t('settings.approvalAlways')}</SelectItem>
                               </SelectContent>
                             </Select>
                           )}
@@ -1437,19 +1624,19 @@ function Settings() {
                               checked={settings.googleConnectors?.calendar || false}
                               onChange={(e) => handleGoogleConnectorToggle('calendar', e.target.checked)}
                             />
-                            <Label htmlFor="connector-calendar" className="font-normal">Google Calendar</Label>
+                            <Label htmlFor="connector-calendar" className="font-normal">{t('settings.calendarLabel')}</Label>
                           </div>
                           {settings.googleConnectors?.calendar && (
                             <Select
                               value={settings.googleConnectorsApproval?.calendar || 'never'}
                               onValueChange={(value) => handleGoogleConnectorApprovalChange('calendar', value)}
                             >
-                              <SelectTrigger className="w-32 h-8">
+                              <SelectTrigger className="w-36 h-8">
                                 <SelectValue />
                               </SelectTrigger>
                               <SelectContent>
-                                <SelectItem value="never">Auto-approve</SelectItem>
-                                <SelectItem value="always">Always ask</SelectItem>
+                                <SelectItem value="never">{t('settings.approvalNever')}</SelectItem>
+                                <SelectItem value="always">{t('settings.approvalAlways')}</SelectItem>
                               </SelectContent>
                             </Select>
                           )}
@@ -1462,19 +1649,19 @@ function Settings() {
                               checked={settings.googleConnectors?.drive || false}
                               onChange={(e) => handleGoogleConnectorToggle('drive', e.target.checked)}
                             />
-                            <Label htmlFor="connector-drive" className="font-normal">Google Drive</Label>
+                            <Label htmlFor="connector-drive" className="font-normal">{t('settings.driveLabel')}</Label>
                           </div>
                           {settings.googleConnectors?.drive && (
                             <Select
                               value={settings.googleConnectorsApproval?.drive || 'never'}
                               onValueChange={(value) => handleGoogleConnectorApprovalChange('drive', value)}
                             >
-                              <SelectTrigger className="w-32 h-8">
+                              <SelectTrigger className="w-36 h-8">
                                 <SelectValue />
                               </SelectTrigger>
                               <SelectContent>
-                                <SelectItem value="never">Auto-approve</SelectItem>
-                                <SelectItem value="always">Always ask</SelectItem>
+                                <SelectItem value="never">{t('settings.approvalNever')}</SelectItem>
+                                <SelectItem value="always">{t('settings.approvalAlways')}</SelectItem>
                               </SelectContent>
                             </Select>
                           )}
@@ -1485,9 +1672,9 @@ function Settings() {
                     {/* Remote MCP Servers Section */}
                     <div className="space-y-4 pt-4 border-t border-muted">
                       <div className="space-y-1">
-                        <Label className="text-sm font-medium">Remote MCP Servers</Label>
+                        <Label className="text-sm font-medium">{t('settings.remoteMcpTitle')}</Label>
                         <p className="text-xs text-muted-foreground">
-                          Connect to remote MCP servers. Groq handles tool discovery and execution server-side.
+                          {t('settings.remoteMcpDesc')}
                         </p>
                       </div>
 
@@ -1511,12 +1698,12 @@ function Settings() {
                                           <Badge variant="secondary" className="text-xs">{config.serverLabel || id}</Badge>
                                           {config.requireApproval === 'always' && (
                                             <Badge variant="outline" className="text-xs bg-yellow-50 text-yellow-700">
-                                              Approval required
+                                              {t('settings.approvalRequiredBadge')}
                                             </Badge>
                                           )}
                                           {!isEnabled && (
                                             <Badge variant="outline" className="text-xs bg-gray-100 text-gray-500">
-                                              Disabled
+                                              {t('common.disabled')}
                                             </Badge>
                                           )}
                                         </div>
@@ -1533,13 +1720,13 @@ function Settings() {
                                         
                                         {config.headers && Object.keys(config.headers).length > 0 && (
                                           <div className="text-xs text-muted-foreground">
-                                            <span>{Object.keys(config.headers).length} custom header(s)</span>
+                                            <span>{t('settings.customHeadersCount', { count: Object.keys(config.headers).length })}</span>
                                           </div>
                                         )}
                                         
                                         {config.allowedTools && config.allowedTools.length > 0 && (
                                           <div className="text-xs text-muted-foreground">
-                                            <span>Allowed tools: {config.allowedTools.join(', ')}</span>
+                                            <span>{t('settings.allowedToolsPrefix', { tools: config.allowedTools.join(', ') })}</span>
                                           </div>
                                         )}
                                       </div>
@@ -1575,17 +1762,17 @@ function Settings() {
                       <div className="space-y-3 pt-2">
                         <h5 className="text-xs font-medium flex items-center space-x-1">
                           <Plus className="h-3 w-3" />
-                          <span>{editingRemoteMcpServerId ? 'Edit Remote MCP Server' : 'Add Remote MCP Server'}</span>
+                          <span>{editingRemoteMcpServerId ? t('settings.editRemoteMcpTitle', { id: editingRemoteMcpServerId }) : t('settings.addRemoteMcpTitle')}</span>
                         </h5>
                         
                         <div className="grid grid-cols-2 gap-3">
                           <div className="space-y-1">
-                            <Label htmlFor="remote-mcp-id" className="text-xs">Server ID</Label>
+                            <Label htmlFor="remote-mcp-id" className="text-xs">{t('settings.serverIdLabel')}</Label>
                             <Input
                               id="remote-mcp-id"
                               name="id"
                               value={newRemoteMcpServer.id}
-                              onChange={handleNewRemoteMcpServerChange}
+                              onChange={handleRemoteMcpServerChange}
                               placeholder="e.g., huggingface"
                               className="h-8 text-sm"
                               disabled={editingRemoteMcpServerId !== null}
@@ -1593,7 +1780,7 @@ function Settings() {
                           </div>
                           
                           <div className="space-y-1">
-                            <Label htmlFor="remote-mcp-label" className="text-xs">Display Label</Label>
+                            <Label htmlFor="remote-mcp-label" className="text-xs">{t('settings.remoteLabelLabel')}</Label>
                             <Input
                               id="remote-mcp-label"
                               name="serverLabel"
@@ -1606,7 +1793,7 @@ function Settings() {
                         </div>
 
                         <div className="space-y-1">
-                          <Label htmlFor="remote-mcp-url" className="text-xs">Server URL</Label>
+                          <Label htmlFor="remote-mcp-url" className="text-xs">{t('settings.remoteUrlLabel')}</Label>
                           <Input
                             id="remote-mcp-url"
                             name="serverUrl"
@@ -1618,7 +1805,7 @@ function Settings() {
                         </div>
 
                         <div className="space-y-1">
-                          <Label htmlFor="remote-mcp-description" className="text-xs">Description (helps model understand when to use)</Label>
+                          <Label htmlFor="remote-mcp-description" className="text-xs">{t('settings.remoteDescLabel')}</Label>
                           <Textarea
                             id="remote-mcp-description"
                             name="serverDescription"
@@ -1631,7 +1818,7 @@ function Settings() {
                         </div>
 
                         <div className="space-y-1">
-                          <Label htmlFor="remote-mcp-require-approval" className="text-xs">Require Approval</Label>
+                          <Label htmlFor="remote-mcp-require-approval" className="text-xs">{t('settings.requireApprovalLabel')}</Label>
                           <Select
                             value={newRemoteMcpServer.requireApproval || 'never'}
                             onValueChange={(value) => setNewRemoteMcpServer(prev => ({ ...prev, requireApproval: value }))}
@@ -1640,17 +1827,14 @@ function Settings() {
                               <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
-                              <SelectItem value="never">Auto-approve (never ask)</SelectItem>
-                              <SelectItem value="always">Always ask for approval</SelectItem>
+                              <SelectItem value="never">{t('settings.approvalNever')}</SelectItem>
+                              <SelectItem value="always">{t('settings.approvalAlways')}</SelectItem>
                             </SelectContent>
                           </Select>
-                          <p className="text-xs text-muted-foreground">
-                            When set to "Always ask", you'll be prompted before each tool execution.
-                          </p>
                         </div>
 
                         <div className="space-y-1">
-                          <Label htmlFor="remote-mcp-allowed-tools" className="text-xs">Allowed Tools (optional)</Label>
+                          <Label htmlFor="remote-mcp-allowed-tools" className="text-xs">{t('settings.allowedToolsLabel')}</Label>
                           <Input
                             id="remote-mcp-allowed-tools"
                             name="allowedTools"
@@ -1659,16 +1843,13 @@ function Settings() {
                             placeholder="e.g., model_search, paper_search"
                             className="h-8 text-sm"
                           />
-                          <p className="text-xs text-muted-foreground">
-                            Comma-separated list of tool names to allow. Leave empty for all tools.
-                          </p>
                         </div>
 
                         {/* Headers Section */}
                         <div className="space-y-2">
-                          <Label className="text-xs">Authentication Headers</Label>
+                          <Label className="text-xs">{t('settings.headersTitle')}</Label>
                           <p className="text-xs text-muted-foreground">
-                            Add headers for authentication (e.g., Authorization, X-API-Key)
+                            {t('settings.remoteHeadersDesc')}
                           </p>
                           
                           {Object.entries(newRemoteMcpServer.headers || {}).length > 0 && (
@@ -1709,14 +1890,14 @@ function Settings() {
                               name="key"
                               value={newRemoteMcpHeader.key}
                               onChange={handleRemoteMcpHeaderChange}
-                              placeholder="Header name"
+                              placeholder={t('settings.headerKeyPlaceholder')}
                               className="flex-1 h-7 text-xs"
                             />
                             <Input
                               name="value"
                               value={newRemoteMcpHeader.value}
                               onChange={handleRemoteMcpHeaderChange}
-                              placeholder="Header value"
+                              placeholder={t('settings.headerValPlaceholder')}
                               className="flex-1 h-7 text-xs"
                             />
                             <Button
@@ -1740,7 +1921,7 @@ function Settings() {
                               onClick={cancelRemoteMcpEditing}
                             >
                               <X className="h-3 w-3 mr-1" />
-                              Cancel
+                              {t('common.cancel')}
                             </Button>
                           )}
                           <Button
@@ -1760,7 +1941,7 @@ function Settings() {
                             }}
                           >
                             <X className="h-3 w-3 mr-1" />
-                            Clear
+                            {t('common.clear')}
                           </Button>
                           <Button
                             size="sm"
@@ -1768,7 +1949,7 @@ function Settings() {
                             disabled={!newRemoteMcpServer.id || !newRemoteMcpServer.serverUrl}
                           >
                             <Save className="h-3 w-3 mr-1" />
-                            {editingRemoteMcpServerId ? 'Update' : 'Add'}
+                            {editingRemoteMcpServerId ? t('common.edit') : t('common.save')}
                           </Button>
                         </div>
                       </div>
@@ -1783,17 +1964,17 @@ function Settings() {
               <CardHeader>
                 <CardTitle className="flex items-center space-x-2">
                   <Cpu className="h-5 w-5 text-primary" />
-                  <span>Generation Parameters</span>
+                  <span>{t('settings.generationParamsTitle')}</span>
                 </CardTitle>
                 <CardDescription>
-                  Fine-tune model behavior and response characteristics
+                  {t('settings.generationParamsDesc')}
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-3">
                     <Label htmlFor="temperature">
-                      Temperature: <Badge variant="outline">{settings.temperature}</Badge>
+                      {t('settings.temperatureLabel')} <Badge variant="outline">{settings.temperature}</Badge>
                     </Label>
                     <input
                       type="range"
@@ -1807,13 +1988,13 @@ function Settings() {
                       className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
                     />
                     <p className="text-xs text-muted-foreground">
-                      Lower values make responses more deterministic, higher values more creative
+                      {t('settings.temperatureHelp')}
                     </p>
                   </div>
                   
                   <div className="space-y-3">
                     <Label htmlFor="top_p">
-                      Top P: <Badge variant="outline">{settings.top_p}</Badge>
+                      {t('settings.topPLabel')} <Badge variant="outline">{settings.top_p}</Badge>
                     </Label>
                     <input
                       type="range"
@@ -1827,7 +2008,7 @@ function Settings() {
                       className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
                     />
                     <p className="text-xs text-muted-foreground">
-                      Controls diversity by limiting tokens to the most likely ones
+                      {t('settings.topPHelp')}
                     </p>
                   </div>
                 </div>
@@ -1835,23 +2016,23 @@ function Settings() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-3">
                     <Label htmlFor="reasoning_effort">
-                      Reasoning Effort: <Badge variant="outline">{settings.reasoning_effort}</Badge>
+                      {t('settings.reasoningEffortLabel')} <Badge variant="outline">{settings.reasoning_effort}</Badge>
                     </Label>
                     <Select
                       value={settings.reasoning_effort}
                       onValueChange={(value) => handleSelectChange('reasoning_effort', value)}
                     >
                       <SelectTrigger>
-                        <SelectValue placeholder="Select reasoning effort" />
+                        <SelectValue placeholder={t('settings.reasoningEffortPlaceholder')} />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="low">Low</SelectItem>
-                        <SelectItem value="medium">Medium</SelectItem>
-                        <SelectItem value="high">High</SelectItem>
+                        <SelectItem value="low">{t('settings.reasoningLow')}</SelectItem>
+                        <SelectItem value="medium">{t('settings.reasoningMedium')}</SelectItem>
+                        <SelectItem value="high">{t('settings.reasoningHigh')}</SelectItem>
                       </SelectContent>
                     </Select>
                     <p className="text-xs text-muted-foreground">
-                      Controls reasoning depth for gpt-oss models (low: fast, high: more thorough)
+                      {t('settings.reasoningEffortHelp')}
                     </p>
                   </div>
                 </div>
@@ -1861,15 +2042,15 @@ function Settings() {
             {/* Popup Window Settings */}
             <Card>
               <CardHeader>
-                <CardTitle>Popup Window</CardTitle>
+                <CardTitle>{t('settings.popupWindowTitle')}</CardTitle>
                 <CardDescription>
-                  Enable or disable the global hotkey (Cmd+G or Ctrl+G) to open the popup window for quick context capture.
+                  {t('settings.popupWindowDesc')}
                 </CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="flex items-center justify-between">
                   <Label htmlFor="popup-enabled" className="font-medium">
-                    Enable Popup Window
+                    {t('settings.popupWindowLabel')}
                   </Label>
                   <Switch
                     id="popup-enabled"
@@ -1883,15 +2064,15 @@ function Settings() {
             {/* Thinking Summaries Settings */}
             <Card>
               <CardHeader>
-                <CardTitle>Thinking Summaries</CardTitle>
+                <CardTitle>{t('settings.thinkingSummariesTitle')}</CardTitle>
                 <CardDescription>
-                  Control whether thinking/reasoning summaries are generated during model reasoning. When disabled, only the raw reasoning text will be shown.
+                  {t('settings.thinkingSummariesDesc')}
                 </CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="flex items-center justify-between">
                   <Label htmlFor="disable-thinking-summaries" className="font-medium">
-                    Disable Thinking Summaries
+                    {t('settings.disableThinkingLabel')}
                   </Label>
                   <Switch
                     id="disable-thinking-summaries"
@@ -1900,7 +2081,7 @@ function Settings() {
                   />
                 </div>
                 <p className="text-xs text-muted-foreground mt-2">
-                  When enabled, thinking summaries will not be generated. Only the raw reasoning text will be displayed.
+                  {t('settings.disableThinkingHelp')}
                 </p>
               </CardContent>
             </Card>
@@ -1908,15 +2089,15 @@ function Settings() {
             {/* API Request Logging */}
             <Card>
               <CardHeader>
-                <CardTitle>API Request Logging</CardTitle>
+                <CardTitle>{t('settings.apiLoggingTitle')}</CardTitle>
                 <CardDescription>
-                  Log API request payloads and responses to /tmp for debugging
+                  {t('settings.apiLoggingDesc')}
                 </CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="flex items-center justify-between">
                   <Label htmlFor="log-api-requests" className="font-medium">
-                    Log API Requests
+                    {t('settings.apiLoggingLabel')}
                   </Label>
                   <Switch
                     id="log-api-requests"
@@ -1925,7 +2106,7 @@ function Settings() {
                   />
                 </div>
                 <p className="text-xs text-muted-foreground mt-2">
-                  When enabled, request payloads and response chunks will be written to /tmp with timestamps. File paths are logged to the console.
+                  {t('settings.apiLoggingHelp')}
                 </p>
               </CardContent>
             </Card>
@@ -1935,11 +2116,10 @@ function Settings() {
               <CardHeader>
                 <CardTitle className="flex items-center space-x-2">
                   <Zap className="h-5 w-5 text-primary" />
-                  <span>Built-in Tools</span>
+                  <span>{t('settings.builtinToolsTitle')}</span>
                 </CardTitle>
                 <CardDescription>
-                  Enable built-in tools for supported models (OpenAI and Emberfow models only).
-                  These tools don't require MCP servers and work directly with the model.
+                  {t('settings.builtinToolsDesc')}
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -1947,10 +2127,10 @@ function Settings() {
                   <div className="flex items-center justify-between">
                     <div className="space-y-1">
                       <Label htmlFor="code-interpreter" className="font-medium">
-                        Code Interpreter
+                        {t('settings.codeInterpreterLabel')}
                       </Label>
                       <p className="text-xs text-muted-foreground">
-                        Run Python code for calculations, data analysis, and more
+                        {t('settings.codeInterpreterHelp')}
                       </p>
                     </div>
                     <Switch
@@ -1963,10 +2143,10 @@ function Settings() {
                   <div className="flex items-center justify-between">
                     <div className="space-y-1">
                       <Label htmlFor="browser-search" className="font-medium">
-                        Browser Search
+                        {t('settings.browserSearchLabel')}
                       </Label>
                       <p className="text-xs text-muted-foreground">
-                        Search the web for real-time information and current events
+                        {t('settings.browserSearchHelp')}
                       </p>
                     </div>
                     <Switch
@@ -1982,9 +2162,9 @@ function Settings() {
             {/* Custom System Prompt */}
             <Card>
               <CardHeader>
-                <CardTitle>Custom System Prompt</CardTitle>
+                <CardTitle>{t('settings.systemPromptTitle')}</CardTitle>
                 <CardDescription>
-                  Add custom instructions that will be appended to the default system prompt
+                  {t('settings.systemPromptDesc')}
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -1995,7 +2175,7 @@ function Settings() {
                     value={settings.customSystemPrompt || ''}
                     onChange={handleChange}
                     rows={4}
-                    placeholder="Optional: Enter your custom system prompt..."
+                    placeholder={t('settings.systemPromptPlaceholder')}
                     className="min-h-[100px]"
                   />
                 </div>
@@ -2007,17 +2187,17 @@ function Settings() {
               <CardHeader>
                 <CardTitle className="flex items-center space-x-2">
                   <Server className="h-5 w-5 text-primary" />
-                  <span>MCP Servers</span>
+                  <span>{t('settings.mcpServersTitle')}</span>
                 </CardTitle>
                 <CardDescription>
-                  Configure Model Context Protocol servers for extended AI capabilities
+                  {t('settings.mcpServersDesc')}
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 {/* Configured Servers List */}
                 {Object.keys(settings.mcpServers || {}).length > 0 ? (
                   <div className="space-y-4">
-                    <h4 className="font-medium text-sm">Configured Servers</h4>
+                    <h4 className="font-medium text-sm">{t('settings.configuredServersListTitle', { count: Object.keys(settings.mcpServers || {}).length })}</h4>
                     <div className="space-y-3">
                       {Object.entries(settings.mcpServers || {}).map(([id, config]) => (
                         <Card key={id} className="border-border/50">
@@ -2042,13 +2222,13 @@ function Settings() {
                                 
                                 {config.env && Object.keys(config.env).length > 0 && (
                                   <div className="text-xs text-muted-foreground">
-                                    <span>Environment variables: {Object.keys(config.env).length} configured</span>
+                                    <span>{t('settings.envVarsConfigured', { count: Object.keys(config.env).length })}</span>
                                   </div>
                                 )}
                                 
                                 {config.headers && Object.keys(config.headers).length > 0 && (
                                   <div className="text-xs text-muted-foreground">
-                                    <span>Custom headers: {Object.keys(config.headers).length} configured</span>
+                                    <span>{t('settings.customHeadersConfigured', { count: Object.keys(config.headers).length })}</span>
                                   </div>
                                 )}
                               </div>
@@ -2078,8 +2258,8 @@ function Settings() {
                 ) : (
                   <div className="text-center py-8 text-muted-foreground">
                     <Server className="h-12 w-12 mx-auto mb-3 opacity-50" />
-                    <p>No MCP servers configured</p>
-                    <p className="text-sm">Add a server below to get started</p>
+                    <p>{t('settings.noServersConfigured')}</p>
+                    <p className="text-sm">{t('settings.addServerGetStarted')}</p>
                   </div>
                 )}
 
@@ -2087,29 +2267,29 @@ function Settings() {
                 <div className="border-t pt-6 space-y-4">
                   <h4 className="font-medium text-sm flex items-center space-x-2">
                     <Plus className="h-4 w-4" />
-                    <span>Add New MCP Server</span>
+                    <span>{editingServerId ? t('settings.editMcpServerTitle', { id: editingServerId }) : t('settings.addMcpServerTitle')}</span>
                   </h4>
                   
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <Label htmlFor="server-id">Server ID</Label>
+                      <Label htmlFor="server-id">{t('settings.serverIdLabel')}</Label>
                       <Input
                         id="server-id"
                         name="id"
                         value={newMcpServer.id}
                         onChange={handleNewMcpServerChange}
-                        placeholder="e.g., filesystem, postgres"
+                        placeholder={t('settings.serverIdPlaceholder')}
                       />
                     </div>
                     
                     <div className="space-y-2">
-                      <Label htmlFor="transport">Transport Type</Label>
+                      <Label htmlFor="transport">{t('settings.transportLabel')}</Label>
                       <Select
                         value={newMcpServer.transport}
                         onValueChange={handleTransportChange}
                       >
                         <SelectTrigger>
-                          <SelectValue placeholder="Select transport type" />
+                          <SelectValue placeholder={t('settings.selectTransportPlaceholder')} />
                         </SelectTrigger>
                         <SelectContent>
                           <SelectItem value="stdio">Stdio</SelectItem>
@@ -2123,36 +2303,36 @@ function Settings() {
                   {newMcpServer.transport === 'stdio' ? (
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div className="space-y-2">
-                        <Label htmlFor="command">Command</Label>
+                        <Label htmlFor="command">{t('settings.commandLabel')}</Label>
                         <Input
                           id="command"
                           name="command"
                           value={newMcpServer.command}
                           onChange={handleNewMcpServerChange}
-                          placeholder="e.g., node, python, /path/to/executable"
+                          placeholder={t('settings.commandPlaceholder')}
                         />
                       </div>
                       
                       <div className="space-y-2">
-                        <Label htmlFor="args">Arguments</Label>
+                        <Label htmlFor="args">{t('settings.argsLabel')}</Label>
                         <Input
                           id="args"
                           name="args"
                           value={newMcpServer.args}
                           onChange={handleNewMcpServerChange}
-                          placeholder="e.g., server.js --port 3000"
+                          placeholder={t('settings.argsPlaceholder')}
                         />
                       </div>
                     </div>
                   ) : (
                     <div className="space-y-2">
-                      <Label htmlFor="url">URL</Label>
+                      <Label htmlFor="url">{t('settings.urlLabel')}</Label>
                       <Input
                         id="url"
                         name="url"
                         value={newMcpServer.url}
                         onChange={handleNewMcpServerChange}
-                        placeholder="e.g., http://localhost:3000/sse"
+                        placeholder={t('settings.urlPlaceholder')}
                       />
                     </div>
                   )}
@@ -2161,9 +2341,9 @@ function Settings() {
                   {(newMcpServer.transport === 'sse' || newMcpServer.transport === 'streamableHttp') && (
                     <div className="space-y-4">
                       <div>
-                        <Label>Custom Headers</Label>
+                        <Label>{t('settings.headersTitle')}</Label>
                         <p className="text-xs text-muted-foreground mb-2">
-                          Add custom HTTP headers for authentication or other purposes (e.g., Authorization, X-API-Key)
+                          {t('settings.headersDesc')}
                         </p>
                         <div className="mt-2 space-y-2">
                           {Object.entries(newMcpServer.headers || {}).map(([key, value]) => (
@@ -2199,14 +2379,14 @@ function Settings() {
                               name="key"
                               value={newHeader.key}
                               onChange={handleHeaderChange}
-                              placeholder="Header name (e.g., Authorization)"
+                              placeholder={t('settings.headerKeyPlaceholder')}
                               className="flex-1"
                             />
                             <Input
                               name="value"
                               value={newHeader.value}
                               onChange={handleHeaderChange}
-                              placeholder="Header value (e.g., Bearer token123)"
+                              placeholder={t('settings.headerValPlaceholder')}
                               className="flex-1"
                             />
                             <Button
@@ -2228,7 +2408,7 @@ function Settings() {
                   {newMcpServer.transport === 'stdio' && (
                     <div className="space-y-4">
                       <div>
-                        <Label>Environment Variables</Label>
+                        <Label>{t('settings.envVarsTitle')}</Label>
                         <div className="mt-2 space-y-2">
                           {Object.entries(newMcpServer.env || {}).map(([key, value]) => (
                             <div key={key} className="flex items-center space-x-2">
@@ -2262,14 +2442,14 @@ function Settings() {
                               name="key"
                               value={newEnvVar.key}
                               onChange={handleEnvVarChange}
-                              placeholder="Variable name"
+                              placeholder={t('settings.envKeyPlaceholder')}
                               className="flex-1"
                             />
                             <Input
                               name="value"
                               value={newEnvVar.value}
                               onChange={handleEnvVarChange}
-                              placeholder="Variable value"
+                              placeholder={t('settings.envValPlaceholder')}
                               className="flex-1"
                             />
                             <Button
@@ -2299,14 +2479,14 @@ function Settings() {
                       }}
                     >
                       <X className="h-4 w-4 mr-2" />
-                      Clear
+                      {t('common.clear')}
                     </Button>
                     <Button
                       onClick={handleSaveMcpServer}
                       disabled={!newMcpServer.id || (newMcpServer.transport === 'stdio' && !newMcpServer.command) || ((newMcpServer.transport === 'sse' || newMcpServer.transport === 'streamableHttp') && !newMcpServer.url)}
                     >
                       <Save className="h-4 w-4 mr-2" />
-                      {editingServerId ? 'Update Server' : 'Add Server'}
+                      {editingServerId ? t('settings.updateServerBtn') : t('settings.addServerBtn')}
                     </Button>
                   </div>
                 </div>
@@ -2318,10 +2498,10 @@ function Settings() {
               <CardHeader>
                 <CardTitle className="flex items-center space-x-2">
                   <Zap className="h-5 w-5 text-primary" />
-                  <span>Tool Approvals</span>
+                  <span>{t('settings.toolApprovalsTitle')}</span>
                 </CardTitle>
                 <CardDescription>
-                  Reset tool call approval settings stored in browser
+                  {t('settings.toolApprovalsDesc')}
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -2331,10 +2511,10 @@ function Settings() {
                   disabled={isSaving}
                 >
                   <Trash2 className="h-4 w-4 mr-2" />
-                  Reset Tool Approvals
+                  {t('settings.resetToolApprovalsBtn')}
                 </Button>
                 <p className="text-xs text-muted-foreground mt-2">
-                  This will remove all saved tool approval preferences and prompt you again for each tool
+                  {t('settings.resetToolApprovalsHelp')}
                 </p>
               </CardContent>
             </Card>
@@ -2344,17 +2524,17 @@ function Settings() {
               <CardHeader>
                 <CardTitle className="flex items-center space-x-2">
                   <Cpu className="h-5 w-5 text-primary" />
-                  <span>Custom Models</span>
+                  <span>{t('settings.customModelsTitle')}</span>
                 </CardTitle>
                 <CardDescription>
-                  Define custom AI models with their context sizes and capabilities
+                  {t('settings.customModelsDesc')}
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 {/* Configured Custom Models List */}
                 {Object.keys(settings.customModels || {}).length > 0 ? (
                   <div className="space-y-4">
-                    <h4 className="font-medium text-sm">Configured Custom Models</h4>
+                    <h4 className="font-medium text-sm">{t('settings.configuredCustomModelsTitle', { count: Object.keys(settings.customModels || {}).length })}</h4>
                     <div className="space-y-3">
                       {Object.entries(settings.customModels || {}).map(([id, config]) => (
                         <Card key={id} className="border-border/50">
@@ -2364,22 +2544,22 @@ function Settings() {
                                 <div className="flex items-center space-x-2">
                                   <Badge variant="secondary">{config.displayName || id}</Badge>
                                   <Badge variant="outline" className="text-xs">
-                                    {config.context?.toLocaleString() || '8,192'} tokens
+                                    {t('settings.tokensCount', { count: config.context?.toLocaleString() || '8,192' })}
                                   </Badge>
                                   {config.vision_supported && (
                                     <Badge variant="outline" className="text-xs bg-blue-50 text-blue-700">
-                                      Vision
+                                      {t('settings.visionBadge')}
                                     </Badge>
                                   )}
                                   {config.builtin_tools_supported && (
                                     <Badge variant="outline" className="text-xs bg-green-50 text-green-700">
-                                      Built-in Tools
+                                      {t('settings.builtinToolsBadge')}
                                     </Badge>
                                   )}
                                 </div>
                                 
                                 <div className="text-sm text-muted-foreground font-mono">
-                                  Model ID: {id}
+                                  {t('settings.modelIdPrefix', { id })}
                                 </div>
                               </div>
                               
@@ -2408,8 +2588,8 @@ function Settings() {
                 ) : (
                   <div className="text-center py-8 text-muted-foreground">
                     <Cpu className="h-12 w-12 mx-auto mb-3 opacity-50" />
-                    <p>No custom models configured</p>
-                    <p className="text-sm">Add a custom model below to get started</p>
+                    <p>{t('settings.noCustomModels')}</p>
+                    <p className="text-sm">{t('settings.addCustomModelGetStarted')}</p>
                   </div>
                 )}
 
@@ -2417,43 +2597,43 @@ function Settings() {
                 <div className="border-t pt-6 space-y-4">
                   <h4 className="font-medium text-sm flex items-center space-x-2">
                     <Plus className="h-4 w-4" />
-                    <span>{editingModelId ? 'Edit Custom Model' : 'Add New Custom Model'}</span>
+                    <span>{editingModelId ? t('settings.editCustomModelTitle') : t('settings.addNewCustomModelTitle')}</span>
                   </h4>
                   
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <Label htmlFor="model-id">Model ID</Label>
+                      <Label htmlFor="model-id">{t('settings.modelIdLabel')}</Label>
                       <Input
                         id="model-id"
                         name="id"
                         value={newCustomModel.id}
                         onChange={handleNewCustomModelChange}
-                        placeholder="e.g., my-custom-model, local/llama-7b"
+                        placeholder={t('settings.modelIdPlaceholder')}
                         disabled={editingModelId !== null}
                       />
                       <p className="text-xs text-muted-foreground">
-                        Unique identifier for the model (cannot be changed after creation)
+                        {t('settings.modelIdHelp')}
                       </p>
                     </div>
                     
                     <div className="space-y-2">
-                      <Label htmlFor="model-display-name">Display Name</Label>
+                      <Label htmlFor="model-display-name">{t('settings.displayNameLabel')}</Label>
                       <Input
                         id="model-display-name"
                         name="displayName"
                         value={newCustomModel.displayName}
                         onChange={handleNewCustomModelChange}
-                        placeholder="e.g., My Custom Model, Local Llama 7B"
+                        placeholder={t('settings.displayNamePlaceholder')}
                       />
                       <p className="text-xs text-muted-foreground">
-                        Friendly name shown in the model selector
+                        {t('settings.displayNameHelp')}
                       </p>
                     </div>
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <Label htmlFor="model-context">Context Size (tokens)</Label>
+                      <Label htmlFor="model-context">{t('settings.contextSizeLabel')}</Label>
                       <Input
                         id="model-context"
                         name="context"
@@ -2465,12 +2645,12 @@ function Settings() {
                         max="1000000"
                       />
                       <p className="text-xs text-muted-foreground">
-                        Maximum number of tokens the model can process
+                        {t('settings.contextSizeHelp')}
                       </p>
                     </div>
                     
                     <div className="space-y-2">
-                      <Label htmlFor="model-vision">Capabilities</Label>
+                      <Label htmlFor="model-vision">{t('settings.capabilitiesLabel')}</Label>
                       <div className="space-y-3 pt-2">
                         <div className="flex items-center space-x-2">
                           <input
@@ -2482,7 +2662,7 @@ function Settings() {
                             className="rounded border-gray-300"
                           />
                           <Label htmlFor="model-vision" className="text-sm font-normal">
-                            Supports vision/image inputs
+                            {t('settings.visionSupportLabel')}
                           </Label>
                         </div>
                         <div className="flex items-center space-x-2">
@@ -2495,12 +2675,12 @@ function Settings() {
                             className="rounded border-gray-300"
                           />
                           <Label htmlFor="model-builtin-tools" className="text-sm font-normal">
-                            Supports built-in tools (code interpreter, browser search)
+                            {t('settings.toolsSupportLabel')}
                           </Label>
                         </div>
                       </div>
                       <p className="text-xs text-muted-foreground">
-                        Enable capabilities based on what the model supports
+                        {t('settings.capabilitiesHelp')}
                       </p>
                     </div>
                   </div>
@@ -2512,7 +2692,7 @@ function Settings() {
                         onClick={cancelModelEditing}
                       >
                         <X className="h-4 w-4 mr-2" />
-                        Cancel
+                        {t('common.cancel')}
                       </Button>
                     )}
                     <Button
@@ -2525,24 +2705,24 @@ function Settings() {
                       }}
                     >
                       <X className="h-4 w-4 mr-2" />
-                      Clear
+                      {t('common.clear')}
                     </Button>
                     <Button
                       onClick={handleSaveCustomModel}
                       disabled={!newCustomModel.id || !newCustomModel.displayName}
                     >
                       <Save className="h-4 w-4 mr-2" />
-                      {editingModelId ? 'Update Model' : 'Add Model'}
+                      {editingModelId ? t('settings.updateModelBtn') : t('settings.addModelBtn')}
                     </Button>
                   </div>
                 </div>
 
                 {/* Model Filter */}
                 <div className="border-t pt-6 space-y-4">
-                  <h4 className="font-medium text-sm">Model Filter</h4>
+                  <h4 className="font-medium text-sm">{t('settings.modelFilterInclusionTitle')}</h4>
                   <div className="space-y-2">
                     <p className="text-sm text-muted-foreground">
-                      Filter models shown in the model selector. Enter one filter term per line (case-insensitive). Only models matching any filter term will be displayed.
+                      {t('settings.modelFilterInclusionHelp')}
                     </p>
                     <Textarea
                       id="model-filter"
@@ -2550,21 +2730,21 @@ function Settings() {
                       value={settings.modelFilter || ''}
                       onChange={handleChange}
                       rows={6}
-                      placeholder="Enter one filter term per line (e.g., gpt, kimi, llama)"
+                      placeholder={t('settings.modelFilterInclusionPlaceholder')}
                       className="min-h-[120px] font-mono text-sm"
                     />
                     <p className="text-xs text-muted-foreground">
-                      Example: Enter "gpt" on one line and "kimi" on another to show only models containing "gpt" or "kimi" (case-insensitive).
+                      {t('settings.modelFilterInclusionExample')}
                     </p>
                   </div>
                 </div>
 
                 {/* Model Filter Exclude */}
                 <div className="border-t pt-6 space-y-4">
-                  <h4 className="font-medium text-sm">Filter Out Models</h4>
+                  <h4 className="font-medium text-sm">{t('settings.modelFilterExcludeTitle')}</h4>
                   <div className="space-y-2">
                     <p className="text-sm text-muted-foreground">
-                      Models containing these words will be filtered out regardless of inclusion filters. Enter one filter term per line (case-insensitive).
+                      {t('settings.modelFilterExcludeHelp')}
                     </p>
                     <Textarea
                       id="model-filter-exclude"
@@ -2572,11 +2752,11 @@ function Settings() {
                       value={settings.modelFilterExclude || ''}
                       onChange={handleChange}
                       rows={6}
-                      placeholder="Enter one filter term per line (e.g., deprecated, legacy, test)"
+                      placeholder={t('settings.modelFilterExcludePlaceholder')}
                       className="min-h-[120px] font-mono text-sm"
                     />
                     <p className="text-xs text-muted-foreground">
-                      Example: Enter "deprecated" on one line to hide all models containing "deprecated" in their name, even if they match inclusion filters.
+                      {t('settings.modelFilterExcludeExample')}
                     </p>
                   </div>
                 </div>

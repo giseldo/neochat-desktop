@@ -6,6 +6,7 @@ const { StdioClientTransport } = require('@modelcontextprotocol/sdk/client/stdio
 const { SSEClientTransport } = require('@modelcontextprotocol/sdk/client/sse.js');
 const { StreamableHTTPClientTransport } = require('@modelcontextprotocol/sdk/client/streamableHttp.js');
 const { getTokensForServer, getClientInfoForServer } = require('./authManager');
+const { getActiveApiKey } = require('../shared/providers');
 
 // Custom Error for Auth Requirement
 class AuthorizationRequiredError extends Error {
@@ -406,7 +407,7 @@ async function connectConfiguredMcpServers() {
     const settings = loadSettingsFunc();
     
     console.log('[MCP AUTO-CONNECT] Settings loaded:', {
-        hasApiKey: !!(settings.GROQ_API_KEY && settings.GROQ_API_KEY !== "<replace me>"),
+        hasApiKey: !!(getActiveApiKey(settings) && getActiveApiKey(settings) !== "<replace me>"),
         mcpServersCount: Object.keys(settings.mcpServers || {}).length,
         disabledCount: (settings.disabledMcpServers || []).length
     });
