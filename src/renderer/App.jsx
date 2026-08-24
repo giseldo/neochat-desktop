@@ -2080,8 +2080,8 @@ function App() {
         <McpCatalogModal
           isOpen={isMcpCatalogOpen}
           onClose={() => setIsMcpCatalogOpen(false)}
-          onServerInstalled={() => {
-            window.electron.getMcpTools().then(tools => setMcpTools(tools || []));
+          onServerInstalled={async () => {
+            await refreshMcpTools();
           }}
         />
       )}

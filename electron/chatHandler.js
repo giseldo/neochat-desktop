@@ -74,31 +74,20 @@ function prepareTools(discoveredTools, isResponsesApi = false) {
         }
 
         // Sanitize schema: Reconstruction Strategy
-        // Instead of copying, we rebuild the schema from scratch with only known-safe fields.
+        // Build a standard JSON schema for OpenAI / Groq tool calling without enforcing strict mode
         let safeSchema = {
             type: "object",
             properties: {}
-            // Removed 'required' init here to add it only if needed
-            // Removed 'additionalProperties' to be less strict/prone to validation errors
         };
 
-        if (tool.input_schema) {
+        const schema = tool.input_schema || tool.inputSchema;
+        if (schema && typeof schema === 'object') {
              try {
-                 const schema = tool.input_schema;
-                 
-
-                 // Rebuild properties
+                 // Rebuild properties, preserving property definitions
                  if (schema.properties && typeof schema.properties === 'object' && schema.properties !== null) {
                      for (const [key, value] of Object.entries(schema.properties)) {
                          if (value && typeof value === 'object') {
-                             // Only copy specific allowed fields for property definition
-                             safeSchema.properties[key] = {};
-                             if (value.type) safeSchema.properties[key].type = value.type;
-                             if (value.description) safeSchema.properties[key].description = value.description;
-                             if (value.enum) safeSchema.properties[key].enum = value.enum;
-                             // Helper for integer/number constraints
-                             if (value.minimum !== undefined) safeSchema.properties[key].minimum = value.minimum;
-                             if (value.maximum !== undefined) safeSchema.properties[key].maximum = value.maximum;
+                             safeSchema.properties[key] = { ...value };
                          }
                      }
                  }
@@ -120,7 +109,6 @@ function prepareTools(discoveredTools, isResponsesApi = false) {
                 type: "function",
                 name: tool.name || "unknown_tool",
                 description: tool.description || "",
-                strict: true,
                 parameters: safeSchema
             };
         } else {
@@ -130,7 +118,6 @@ function prepareTools(discoveredTools, isResponsesApi = false) {
                 function: {
                     name: tool.name || "unknown_tool",
                     description: tool.description || "",
-                    strict: true,
                     parameters: safeSchema
                 }
             };
@@ -349,7 +336,7 @@ function processStreamChunk(chunk, event, accumulatedData, groq, streamId, setti
                     const last300Words = getLastNWords(accumulatedData.reasoning, 300);
                     
                     // Trigger summarization asynchronously (non-blocking)
-                    summarizeReasoningChunk(groq, last300Words, event, streamId, accumulatedData.summaryCount, chatCompletionParams.model)
+                    summarizeReasoningChunk(groq, last300Words, event, streamId, accumulatedData.summaryCount, accumulatedData.model)
                         .catch(err => console.error('[Backend] Error in background summarization:', err));
                 }
             }, 2000);
@@ -598,7 +585,8 @@ async function executeStreamWithRetry(groq, chatCompletionParams, event, streamI
             summaryInterval: null,
             usage: null,
             startTime: Date.now(),
-            ttft: null
+            ttft: null,
+            model: chatCompletionParams.model
         };
         
         try {

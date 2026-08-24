@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { X, Search, Globe, FolderTree, Database, Brain, Terminal, Github, Check, Download, AlertCircle, Sparkles } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
 import { cn } from '../lib/utils';
@@ -157,8 +157,26 @@ export function McpCatalogModal({ isOpen, onClose, onServerInstalled, existingSe
   const { t } = useLanguage();
   const [search, setSearch] = useState('');
   const [installingId, setInstallingId] = useState(null);
+  const [installedIds, setInstalledIds] = useState(new Set());
 
   const catalog = useMemo(() => getMcpCatalog(t), [t]);
+
+  // Load existing servers from settings when modal opens
+  useEffect(() => {
+    if (isOpen) {
+      window.electron.getSettings().then(settings => {
+        const servers = settings?.mcpServers || {};
+        const ids = new Set([
+          ...Object.keys(servers),
+          ...Object.keys(existingServers || {})
+        ]);
+        setInstalledIds(ids);
+      }).catch(err => {
+        console.error('Failed to load settings in McpCatalogModal:', err);
+        setInstalledIds(new Set(Object.keys(existingServers || {})));
+      });
+    }
+  }, [isOpen, existingServers]);
 
   if (!isOpen) return null;
 
@@ -172,7 +190,7 @@ export function McpCatalogModal({ isOpen, onClose, onServerInstalled, existingSe
     setInstallingId(server.id);
     try {
       const settings = await window.electron.getSettings();
-      const currentServers = settings.mcpServers || {};
+      const currentServers = settings?.mcpServers || {};
 
       const newServerConfig = {
         command: server.command,
@@ -191,11 +209,18 @@ export function McpCatalogModal({ isOpen, onClose, onServerInstalled, existingSe
         mcpServers: updatedServers,
       });
 
+      // Update local installed state immediately
+      setInstalledIds(prev => new Set([...prev, server.id]));
+
       // Attempt to connect the new MCP server
-      await window.electron.connectMcpServer({
+      const connectResult = await window.electron.connectMcpServer({
         id: server.id,
         ...newServerConfig,
       });
+
+      if (connectResult && connectResult.success === false) {
+        console.warn(`[McpCatalog] Server ${server.id} saved but connection failed:`, connectResult.error);
+      }
 
       if (onServerInstalled) {
         onServerInstalled(server.id);
@@ -244,7 +269,7 @@ export function McpCatalogModal({ isOpen, onClose, onServerInstalled, existingSe
         {/* List */}
         <div className="flex-1 overflow-y-auto p-6 space-y-3">
           {filtered.map(server => {
-            const isInstalled = !!existingServers[server.id];
+            const isInstalled = installedIds.has(server.id) || !!existingServers[server.id];
             const isInstalling = installingId === server.id;
             const Icon = server.icon;
 
