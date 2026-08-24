@@ -211,6 +211,7 @@ contextBridge.exposeInMainWorld('electron', {
     deleteAll: () => ipcRenderer.invoke('chat-history-delete-all'),
     clearMessages: (chatId) => ipcRenderer.invoke('chat-history-clear-messages', chatId),
     generateTitle: (userMessage) => ipcRenderer.invoke('chat-history-generate-title', userMessage),
+    searchContent: (query) => ipcRenderer.invoke('chat-history-search-content', query),
   },
 
   // --- Projects Functions ---
@@ -227,6 +228,12 @@ contextBridge.exposeInMainWorld('electron', {
 
   // Chat Export
   exportChatFile: (data) => ipcRenderer.invoke('export-chat-file', data),
+
+  // Code Runner
+  codeRunner: {
+    checkRuntimes: () => ipcRenderer.invoke('code-runner-check-runtimes'),
+    executeCode: (params) => ipcRenderer.invoke('code-runner-execute', params),
+  },
 
   // Generic IPC renderer access (kept for backward compatibility)
   ipcRenderer: {

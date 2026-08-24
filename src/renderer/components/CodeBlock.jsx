@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { oneDark, oneLight } from 'react-syntax-highlighter/dist/esm/styles/prism';
-import { Check, Copy, Code2, Eye } from 'lucide-react';
+import { Check, Copy, Code2, Eye, Play, Terminal } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
+import { useLanguage } from '../context/LanguageContext';
 import { cn } from '../lib/utils';
 
 // Helper to format language name for display
@@ -71,6 +72,7 @@ const customOneLight = cleanTheme(oneLight);
 
 export function CodeBlock({ language, code, onPreviewArtifact, className }) {
   const { isDark } = useTheme();
+  const { t } = useLanguage();
   const [copied, setCopied] = useState(false);
 
   const cleanCode = String(code || '').replace(/\n$/, '');
@@ -87,6 +89,7 @@ export function CodeBlock({ language, code, onPreviewArtifact, className }) {
   };
 
   const isVisualLanguage = ['html', 'svg', 'mermaid'].includes(lang);
+  const isExecutable = ['js', 'javascript', 'ts', 'typescript', 'py', 'python'].includes(lang);
 
   return (
     <div className={cn("my-3 rounded-lg overflow-hidden border border-border bg-card shadow-xs group/code", className)}>
@@ -98,6 +101,20 @@ export function CodeBlock({ language, code, onPreviewArtifact, className }) {
         </div>
 
         <div className="flex items-center gap-1.5">
+          {/* Run button for executable languages (Python / JS / TS) */}
+          {isExecutable && onPreviewArtifact && (
+            <button
+              type="button"
+              onClick={() => onPreviewArtifact({ type: lang, code: cleanCode })}
+              className="flex items-center gap-1 px-2 py-0.5 rounded text-xs text-primary font-medium hover:bg-primary/10 transition-colors"
+              title={t('artifacts.runInArtifact')}
+            >
+              <Play className="w-3 h-3 fill-current text-primary" />
+              <span>{t('artifacts.runCode')}</span>
+            </button>
+          )}
+
+          {/* Preview button for visual languages (HTML / SVG / Mermaid) */}
           {isVisualLanguage && onPreviewArtifact && (
             <button
               type="button"
@@ -106,7 +123,7 @@ export function CodeBlock({ language, code, onPreviewArtifact, className }) {
               title="Visualizar artefato"
             >
               <Eye className="w-3 h-3 text-primary" />
-              <span>Visualizar</span>
+              <span>{t('artifacts.tabPreview')}</span>
             </button>
           )}
 

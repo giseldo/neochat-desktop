@@ -48,6 +48,9 @@ const chatHistoryManager = require('./chatHistoryManager');
 // Import project manager
 const projectManager = require('./projectManager');
 
+// Import code runner
+const codeRunner = require('./codeRunner');
+
 // Global variable to hold the main window instance
 let mainWindow;
 
@@ -323,6 +326,11 @@ app.whenReady().then(async () => {
   // Initialize Google OAuth Manager
   console.log("[Main Init] Initializing Google OAuth Manager...");
   googleOAuthManager.initialize(app, saveSettings);
+
+  // Initialize Code Runner
+  console.log("[Main Init] Initializing Code Runner...");
+  codeRunner.initialize(app);
+  codeRunner.initializeCodeRunnerHandlers(ipcMain);
 
   // --- Google OAuth IPC Handlers --- //
   ipcMain.handle('google-oauth-refresh', async () => {

@@ -416,6 +416,144 @@ function initializeChatHistoryHandlers(ipcMain) {
     ipcMain.handle('chat-history-generate-title', async (event, userMessage) => {
         return generateChatTitle(userMessage);
     });
+
+    // Deep search in chat messages content
+    ipcMain.handle('chat-history-search-content', async (event, query) => {
+        return searchChatsContent(query);
+    });
+}
+
+/**
+ * Helper to extract plain text from a message content field
+ * @param {string|Array|Object} content
+ * @returns {string}
+ */
+function extractTextMessage(content) {
+    if (!content) return '';
+    if (typeof content === 'string') return content;
+    if (Array.isArray(content)) {
+        return content
+            .map(part => {
+                if (typeof part === 'string') return part;
+                if (part && part.text) return part.text;
+                return '';
+            })
+            .filter(Boolean)
+            .join(' ');
+    }
+    if (typeof content === 'object') {
+        return content.text || JSON.stringify(content);
+    }
+    return String(content);
+}
+
+/**
+ * Extract snippet around matched query index
+ * @param {string} text 
+ * @param {number} index 
+ * @param {number} matchLength 
+ * @param {number} contextRadius 
+ * @returns {string}
+ */
+function createSnippet(text, index, matchLength, contextRadius = 50) {
+    const start = Math.max(0, index - contextRadius);
+    const end = Math.min(text.length, index + matchLength + contextRadius);
+    let snippet = text.substring(start, end).replace(/[\r\n\t]+/g, ' ');
+    if (start > 0) snippet = '...' + snippet;
+    if (end < text.length) snippet = snippet + '...';
+    return snippet;
+}
+
+/**
+ * Deep search across all chat titles and message contents
+ * @param {string} query - The search query
+ * @returns {Array} List of matching chat metadata with snippet matches
+ */
+function searchChatsContent(query) {
+    if (!query || typeof query !== 'string' || !query.trim()) {
+        return [];
+    }
+
+    const trimmedQuery = query.trim();
+    const lowerQuery = trimmedQuery.toLowerCase();
+    const queryLength = trimmedQuery.length;
+    const chatDir = getChatHistoryDir();
+    const results = [];
+
+    try {
+        const files = fs.readdirSync(chatDir);
+
+        for (const file of files) {
+            if (!file.endsWith('.json')) continue;
+
+            const filePath = path.join(chatDir, file);
+            try {
+                const data = fs.readFileSync(filePath, 'utf8');
+                const chat = JSON.parse(data);
+
+                const title = chat.title || '';
+                const titleMatch = title.toLowerCase().includes(lowerQuery);
+                const messageMatches = [];
+                let totalMatches = titleMatch ? 1 : 0;
+
+                const messages = Array.isArray(chat.messages) ? chat.messages : [];
+                for (let msgIdx = 0; msgIdx < messages.length; msgIdx++) {
+                    const msg = messages[msgIdx];
+                    const text = extractTextMessage(msg.content);
+                    const lowerText = text.toLowerCase();
+                    let searchPos = 0;
+                    let msgMatchCount = 0;
+
+                    while ((searchPos = lowerText.indexOf(lowerQuery, searchPos)) !== -1) {
+                        totalMatches++;
+                        msgMatchCount++;
+
+                        // Only capture up to 2 snippets per message to keep payload compact
+                        if (msgMatchCount <= 2 && messageMatches.length < 5) {
+                            messageMatches.push({
+                                messageIndex: msgIdx,
+                                role: msg.role || 'user',
+                                snippet: createSnippet(text, searchPos, queryLength, 55),
+                                matchIndex: searchPos
+                            });
+                        }
+
+                        searchPos += queryLength;
+                    }
+                }
+
+                if (titleMatch || messageMatches.length > 0) {
+                    results.push({
+                        id: chat.id,
+                        title: chat.title,
+                        createdAt: chat.createdAt,
+                        updatedAt: chat.updatedAt,
+                        model: chat.model,
+                        projectId: chat.projectId || null,
+                        messageCount: messages.length,
+                        matchCount: totalMatches,
+                        titleMatch: titleMatch,
+                        matches: messageMatches
+                    });
+                }
+            } catch (err) {
+                console.error(`Error searching chat file ${file}:`, err);
+            }
+        }
+
+        // Sort by match count descending, then by updatedAt descending
+        results.sort((a, b) => {
+            if (b.matchCount !== a.matchCount) {
+                return b.matchCount - a.matchCount;
+            }
+            return new Date(b.updatedAt) - new Date(a.updatedAt);
+        });
+
+    } catch (error) {
+        console.error('Error during deep search across chats:', error);
+    }
+
+    return results;
 }
 
 /**
@@ -476,6 +614,8 @@ module.exports = {
     updateChatTitle,
     updateChatProject,
     unassignProjectFromChats,
-    generateChatTitle
+    generateChatTitle,
+    searchChatsContent
 };
+
 

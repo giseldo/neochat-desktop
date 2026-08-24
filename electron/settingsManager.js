@@ -34,7 +34,8 @@ function loadSettings() {
             googleRefreshToken: "",
             googleClientId: "",
             googleClientSecret: "",
-            googleTokenExpiresAt: null
+            googleTokenExpiresAt: null,
+            customPromptTemplates: []
         };
     }
     const userDataPath = appInstance.getPath('userData');
@@ -65,7 +66,8 @@ function loadSettings() {
         googleRefreshToken: "",
         googleClientId: "",
         googleClientSecret: "",
-        googleTokenExpiresAt: null
+        googleTokenExpiresAt: null,
+        customPromptTemplates: []
     };
 
     try {
@@ -120,6 +122,7 @@ function loadSettings() {
             settings.googleClientId = settings.googleClientId || defaultSettings.googleClientId;
             settings.googleClientSecret = settings.googleClientSecret || defaultSettings.googleClientSecret;
             settings.googleTokenExpiresAt = settings.googleTokenExpiresAt ?? defaultSettings.googleTokenExpiresAt;
+            settings.customPromptTemplates = Array.isArray(settings.customPromptTemplates) ? settings.customPromptTemplates : defaultSettings.customPromptTemplates;
 
             // Optional: Persist the potentially updated settings back to file if defaults were applied
             // fs.writeFileSync(settingsPath, JSON.stringify(settings, null, 2));

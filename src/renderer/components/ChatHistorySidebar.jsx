@@ -51,6 +51,38 @@ function formatRelativeTime(dateString, t, language) {
   return date.toLocaleDateString(language === 'pt' ? 'pt-BR' : 'en-US', { month: 'short', day: 'numeric' });
 }
 
+// Highlight occurrences of query in text
+function highlightMatch(text, query) {
+  if (!query || !text) return text;
+  const trimmed = query.trim();
+  if (!trimmed) return text;
+
+  const parts = [];
+  const lowerText = text.toLowerCase();
+  const lowerQuery = trimmed.toLowerCase();
+  let lastIndex = 0;
+  let index = lowerText.indexOf(lowerQuery);
+
+  while (index !== -1) {
+    if (index > lastIndex) {
+      parts.push(text.substring(lastIndex, index));
+    }
+    parts.push(
+      <mark key={index} className="bg-primary/25 text-foreground font-semibold px-0.5 rounded">
+        {text.substring(index, index + trimmed.length)}
+      </mark>
+    );
+    lastIndex = index + trimmed.length;
+    index = lowerText.indexOf(lowerQuery, lastIndex);
+  }
+
+  if (lastIndex < text.length) {
+    parts.push(text.substring(lastIndex));
+  }
+
+  return parts;
+}
+
 // Group chats by time period
 function groupChatsByDate(chats) {
   const groups = {
@@ -163,6 +195,8 @@ function ChatHistorySidebar({ onNewChat, onChatLoaded, loading }) {
   
   const [activeTab, setActiveTab] = useState('all'); // 'all' | 'projects'
   const [searchQuery, setSearchQuery] = useState('');
+  const [deepSearchResults, setDeepSearchResults] = useState([]);
+  const [isSearchingDeep, setIsSearchingDeep] = useState(false);
   const [hoveredChatId, setHoveredChatId] = useState(null);
   const [menuOpenChatId, setMenuOpenChatId] = useState(null);
   const [deletingChatId, setDeletingChatId] = useState(null);
@@ -171,6 +205,32 @@ function ChatHistorySidebar({ onNewChat, onChatLoaded, loading }) {
   const [isDeletingAll, setIsDeletingAll] = useState(false);
   const [menuPosition, setMenuPosition] = useState({ top: 0, left: 0 });
   const menuButtonRefs = useRef({});
+
+  // Deep Search effect with debounce
+  useEffect(() => {
+    const trimmed = searchQuery.trim();
+    if (!trimmed) {
+      setDeepSearchResults([]);
+      setIsSearchingDeep(false);
+      return;
+    }
+
+    setIsSearchingDeep(true);
+    const timer = setTimeout(async () => {
+      try {
+        if (window.electron?.chatHistory?.searchContent) {
+          const results = await window.electron.chatHistory.searchContent(trimmed);
+          setDeepSearchResults(Array.isArray(results) ? results : []);
+        }
+      } catch (err) {
+        console.error('Error during deep search in sidebar:', err);
+      } finally {
+        setIsSearchingDeep(false);
+      }
+    }, 200);
+
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
 
   // Resize state
   const [sidebarWidth, setSidebarWidth] = useState(() => {
@@ -187,7 +247,17 @@ function ChatHistorySidebar({ onNewChat, onChatLoaded, loading }) {
     return map;
   }, [projects]);
 
-  // Filter chats by project and search query
+  // Effective deep search results (filtered by active project if set)
+  const effectiveDeepResults = useMemo(() => {
+    if (!searchQuery.trim()) return [];
+    let list = deepSearchResults;
+    if (activeProjectId) {
+      list = list.filter(c => c.projectId === activeProjectId);
+    }
+    return list;
+  }, [deepSearchResults, activeProjectId, searchQuery]);
+
+  // Filter chats by project and search query (fallback)
   const filteredChats = useMemo(() => {
     let list = chatList;
     
@@ -506,6 +576,111 @@ function ChatHistorySidebar({ onNewChat, onChatLoaded, loading }) {
     );
   };
 
+  const renderDeepSearchResults = () => {
+    if (isSearchingDeep && effectiveDeepResults.length === 0) {
+      return (
+        <div className="py-8 px-4 text-center text-xs text-muted-foreground">
+          <div className="w-5 h-5 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-2" />
+          <p>{t('sidebar.deepSearching')}</p>
+        </div>
+      );
+    }
+
+    if (effectiveDeepResults.length === 0) {
+      return (
+        <div className="px-4 py-8 text-center text-xs text-muted-foreground">
+          <MessageSquare className="h-7 w-7 mx-auto mb-2 opacity-40 text-primary" />
+          <p className="font-medium">{t('sidebar.emptySearch')}</p>
+        </div>
+      );
+    }
+
+    return (
+      <div className="space-y-2 px-2 py-1">
+        <div className="flex items-center justify-between px-2 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
+          <span>{t('sidebar.matchesCount', { count: effectiveDeepResults.length })}</span>
+          {isSearchingDeep && (
+            <div className="w-3 h-3 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+          )}
+        </div>
+
+        {effectiveDeepResults.map((chat) => {
+          const project = chat.projectId ? projectMap.get(chat.projectId) : null;
+          const hasMessageMatches = Array.isArray(chat.matches) && chat.matches.length > 0;
+
+          return (
+            <div
+              key={chat.id}
+              className={cn(
+                "rounded-xl border border-border/70 bg-card hover:bg-muted/40 transition-colors p-2 space-y-1.5 shadow-2xs",
+                currentChatId === chat.id && "border-primary/50 bg-primary/5"
+              )}
+            >
+              {/* Chat Header Row */}
+              <div
+                onClick={() => handleChatClick(chat.id)}
+                className="flex items-start justify-between cursor-pointer gap-2 group"
+              >
+                <div className="flex items-center gap-2 min-w-0">
+                  <MessageSquare className="h-3.5 w-3.5 text-primary shrink-0 mt-0.5" />
+                  <div className="min-w-0">
+                    <div className="text-xs font-semibold text-foreground truncate group-hover:text-primary transition-colors">
+                      {highlightMatch(chat.title || t('sidebar.conversationDefault'), searchQuery)}
+                    </div>
+                    <div className="flex items-center gap-2 text-[10px] text-muted-foreground mt-0.5">
+                      <div className="flex items-center gap-1">
+                        <Clock className="h-2.5 w-2.5" />
+                        <span>{formatRelativeTime(chat.updatedAt, t, language)}</span>
+                      </div>
+                      {project && (
+                        <span
+                          className="inline-flex items-center gap-0.5 px-1.5 py-0.2 rounded-full text-[9px] font-medium truncate max-w-[100px]"
+                          style={{
+                            backgroundColor: `${project.color || '#f55036'}18`,
+                            color: project.color || '#f55036'
+                          }}
+                        >
+                          <span>{project.icon || '📁'}</span>
+                          <span className="truncate">{project.name}</span>
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {chat.matchCount > 0 && (
+                  <span className="shrink-0 text-[10px] px-1.5 py-0.5 rounded-full bg-primary/10 text-primary font-semibold font-mono">
+                    {chat.matchCount} {chat.matchCount === 1 ? 'match' : 'matches'}
+                  </span>
+                )}
+              </div>
+
+              {/* Message match snippets */}
+              {hasMessageMatches && (
+                <div className="space-y-1 pt-1 border-t border-border/30">
+                  {chat.matches.slice(0, 3).map((m, idx) => (
+                    <div
+                      key={idx}
+                      onClick={() => handleChatClick(chat.id)}
+                      className="p-1.5 rounded-lg bg-background/80 hover:bg-muted cursor-pointer transition-colors text-[11px] border border-border/40 font-mono text-muted-foreground hover:text-foreground leading-relaxed"
+                    >
+                      <div className="flex items-center gap-1 text-[9px] font-sans font-semibold text-primary mb-0.5">
+                        <span>{m.role === 'user' ? t('sidebar.userLabel') : t('sidebar.assistantLabel')}</span>
+                      </div>
+                      <p className="line-clamp-2">
+                        {highlightMatch(m.snippet, searchQuery)}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    );
+  };
+
   if (isSidebarCollapsed) {
     return null;
   }
@@ -780,6 +955,8 @@ function ChatHistorySidebar({ onNewChat, onChatLoaded, loading }) {
             <div className="flex items-center justify-center py-8">
               <div className="loading-spinner" />
             </div>
+          ) : searchQuery.trim() ? (
+            renderDeepSearchResults()
           ) : filteredChats.length === 0 ? (
             <div className="px-4 py-8 text-center text-sm text-muted-foreground">
               {isSidebarCollapsed ? (
@@ -787,7 +964,7 @@ function ChatHistorySidebar({ onNewChat, onChatLoaded, loading }) {
               ) : (
                 <>
                   <MessageSquare className="h-7 w-7 mx-auto mb-2 opacity-40 text-primary" />
-                  <p className="text-xs font-medium">{searchQuery ? t('sidebar.emptySearch') : t('sidebar.emptyTitle')}</p>
+                  <p className="text-xs font-medium">{t('sidebar.emptyTitle')}</p>
                   <p className="text-[11px] mt-1 text-muted-foreground/80">
                     {activeProject ? `Nenhuma conversa neste projeto. Clique em '+' para iniciar.` : t('sidebar.emptySubtitle')}
                   </p>

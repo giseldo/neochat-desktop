@@ -1,4 +1,4 @@
-import { ArrowUp, Loader2, ImagePlus, Hammer, Upload, Zap, ZapOff, Square, Mic, MicOff } from "lucide-react";
+import { ArrowUp, Loader2, ImagePlus, Hammer, Upload, Zap, ZapOff, Square, Mic, MicOff, Terminal } from "lucide-react";
 import React, { useContext, useEffect, useRef, useState, useMemo } from "react";
 import TextAreaAutosize from "react-textarea-autosize";
 import { SearchableSelect } from "./ui/SearchableSelect";
@@ -6,6 +6,9 @@ import { Button } from "./ui/button";
 import { cn } from "../lib/utils";
 import { ChatContext } from "../context/ChatContext";
 import { useLanguage } from "../context/LanguageContext";
+import SlashCommandsPopover from "./SlashCommandsPopover";
+import PromptTemplatesModal from "./PromptTemplatesModal";
+import { getAllPromptCommands, PROMPT_TEMPLATES_STORAGE_KEY } from "../lib/defaultPromptCommands";
 
 function ChatInput({
 	onSendMessage,
@@ -19,12 +22,19 @@ function ChatInput({
 	modelConfigs = {},
 	focusSignal = 0,
 }) {
-	const { t } = useLanguage();
+	const { t, language } = useLanguage();
 	const [message, setMessage] = useState("");
 	const [suggestion, setSuggestion] = useState("");
 	const [autocompleteEnabled, setAutocompleteEnabled] = useState(true);
 	const suggestionTimeout = useRef(null);
 	const { messages, activeContext } = useContext(ChatContext);
+
+	// Slash Commands & Prompt Templates state
+	const [customTemplates, setCustomTemplates] = useState([]);
+	const [isSlashMenuOpen, setIsSlashMenuOpen] = useState(false);
+	const [selectedSlashIndex, setSelectedSlashIndex] = useState(0);
+	const [slashFilterQuery, setSlashFilterQuery] = useState("");
+	const [isPromptTemplatesModalOpen, setIsPromptTemplatesModalOpen] = useState(false);
 
 	const [files, setFiles] = useState([]); // Changed from images to files to handle all file types
 	const [textareaHeight, setTextareaHeight] = useState(null);
@@ -33,6 +43,125 @@ function ChatInput({
 	const [isTranscribing, setIsTranscribing] = useState(false);
 	const mediaRecorderRef = useRef(null);
 	const audioChunksRef = useRef([]);
+
+	// Load custom prompt templates on mount
+	useEffect(() => {
+		const loadCustomTemplates = async () => {
+			try {
+				if (window.electron?.getSettings) {
+					const settings = await window.electron.getSettings();
+					if (Array.isArray(settings?.customPromptTemplates)) {
+						setCustomTemplates(settings.customPromptTemplates);
+						return;
+					}
+				}
+				const saved = localStorage.getItem(PROMPT_TEMPLATES_STORAGE_KEY);
+				if (saved) {
+					setCustomTemplates(JSON.parse(saved));
+				}
+			} catch (err) {
+				console.error("Error loading custom prompt templates in ChatInput:", err);
+			}
+		};
+		loadCustomTemplates();
+	}, []);
+
+	// All available prompt commands
+	const allPromptCommands = useMemo(() => {
+		return getAllPromptCommands(customTemplates, t, language);
+	}, [customTemplates, t, language]);
+
+	// Filtered slash commands based on typed query
+	const filteredSlashCommands = useMemo(() => {
+		if (!slashFilterQuery) return allPromptCommands;
+		const q = slashFilterQuery.toLowerCase();
+		return allPromptCommands.filter(
+			(c) =>
+				c.command.toLowerCase().includes(q) ||
+				(c.aliases || []).some((a) => a.toLowerCase().includes(q)) ||
+				(c.title || "").toLowerCase().includes(q) ||
+				(c.description || "").toLowerCase().includes(q)
+		);
+	}, [allPromptCommands, slashFilterQuery]);
+
+	// Handle input change and slash detection
+	const handleMessageChange = (e) => {
+		const val = e.target.value;
+		setMessage(val);
+
+		if (val.startsWith("/")) {
+			const query = val.slice(1);
+			if (!query.includes(" ") && !query.includes("\n")) {
+				setIsSlashMenuOpen(true);
+				setSlashFilterQuery(query);
+				setSelectedSlashIndex(0);
+			} else {
+				setIsSlashMenuOpen(false);
+			}
+		} else {
+			if (isSlashMenuOpen) {
+				setIsSlashMenuOpen(false);
+			}
+		}
+	};
+
+	// Apply a selected slash command
+	const applySlashCommand = (cmd) => {
+		if (!cmd) return;
+		const template = cmd.template || "";
+
+		// If the user typed "/cmd some text" or selected a command with existing text
+		let trailingText = "";
+		if (message.startsWith("/")) {
+			const firstSpaceIndex = message.indexOf(" ");
+			if (firstSpaceIndex !== -1) {
+				trailingText = message.slice(firstSpaceIndex + 1).trim();
+			}
+		} else if (message.trim()) {
+			trailingText = message.trim();
+		}
+
+		if (template.includes("{{input}}")) {
+			if (trailingText) {
+				const newText = template.replace("{{input}}", trailingText);
+				setMessage(newText);
+				setIsSlashMenuOpen(false);
+				setSlashFilterQuery("");
+
+				setTimeout(() => {
+					if (textareaRef.current) {
+						textareaRef.current.focus();
+						const endPos = newText.length;
+						textareaRef.current.setSelectionRange(endPos, endPos);
+					}
+				}, 50);
+			} else {
+				const inputPos = template.indexOf("{{input}}");
+				const newText = template.replace("{{input}}", "");
+				setMessage(newText);
+				setIsSlashMenuOpen(false);
+				setSlashFilterQuery("");
+
+				setTimeout(() => {
+					if (textareaRef.current) {
+						textareaRef.current.focus();
+						textareaRef.current.setSelectionRange(inputPos, inputPos);
+					}
+				}, 50);
+			}
+		} else {
+			const finalMsg = trailingText ? `${template}\n\n${trailingText}` : (template ? `${template}\n\n` : "");
+			setMessage(finalMsg);
+			setIsSlashMenuOpen(false);
+			setSlashFilterQuery("");
+
+			setTimeout(() => {
+				if (textareaRef.current) {
+					textareaRef.current.focus();
+				}
+			}, 50);
+		}
+	};
 
 	// Start voice recording for Whisper STT
 	const startRecording = async () => {
@@ -338,8 +467,38 @@ function ChatInput({
 	};
 
 	const handleKeyDown = (e) => {
-		// Accept suggestion on Tab (only if autocomplete is enabled)
-		if (e.key === "Tab" && autocompleteEnabled && suggestion) {
+		// Slash menu keyboard navigation
+		if (isSlashMenuOpen && filteredSlashCommands.length > 0) {
+			if (e.key === "ArrowDown") {
+				e.preventDefault();
+				setSelectedSlashIndex((prev) => (prev + 1) % filteredSlashCommands.length);
+				return;
+			}
+			if (e.key === "ArrowUp") {
+				e.preventDefault();
+				setSelectedSlashIndex((prev) => (prev - 1 + filteredSlashCommands.length) % filteredSlashCommands.length);
+				return;
+			}
+			if (e.key === "Enter" || e.key === "Tab") {
+				e.preventDefault();
+				applySlashCommand(filteredSlashCommands[selectedSlashIndex]);
+				return;
+			}
+			if (e.key === "Escape") {
+				e.preventDefault();
+				setIsSlashMenuOpen(false);
+				return;
+			}
+		}
+
+		if (e.key === "Escape" && isSlashMenuOpen) {
+			e.preventDefault();
+			setIsSlashMenuOpen(false);
+			return;
+		}
+
+		// Accept suggestion on Tab (only if autocomplete is enabled and slash menu is not active)
+		if (e.key === "Tab" && autocompleteEnabled && suggestion && !isSlashMenuOpen) {
 			e.preventDefault();
 			setMessage(message + suggestion);
 			setSuggestion("");
@@ -391,7 +550,7 @@ function ChatInput({
 	return (
     <div 
 			className={cn(
-				"flex flex-col gap-4 border border-[#CBCDC2] rounded-2xl w-full p-3 bg-[#E9E9DF] backdrop-blur-sm",
+				"flex flex-col gap-4 border border-[#CBCDC2] rounded-2xl w-full p-3 bg-[#E9E9DF] backdrop-blur-sm relative",
 				isDragOver 
 					? "border-primary border-2 bg-primary/5 transition-all duration-200" 
 					: ""
@@ -458,10 +617,25 @@ function ChatInput({
 				{/* Input Area with Submit Button */}
 				<div className="flex items-center gap-3">
 					<div className="flex-1 relative">
+						{/* Slash Commands Popover */}
+						{isSlashMenuOpen && (
+							<SlashCommandsPopover
+								commands={filteredSlashCommands}
+								selectedIndex={selectedSlashIndex}
+								onSelectCommand={applySlashCommand}
+								onOpenManageModal={() => {
+									setIsSlashMenuOpen(false);
+									setIsPromptTemplatesModalOpen(true);
+								}}
+								onClose={() => setIsSlashMenuOpen(false)}
+								filterQuery={slashFilterQuery}
+							/>
+						)}
+
 						<TextAreaAutosize
 							ref={textareaRef}
 							value={message}
-							onChange={(e) => setMessage(e.target.value)}
+							onChange={handleMessageChange}
 							onKeyDown={handleKeyDown}
 							onPaste={handlePaste}
 							onHeightChange={handleHeightChange}
@@ -538,6 +712,30 @@ function ChatInput({
 							disabled={loading || files.length >= 5}
 						/>
 
+						{/* Slash Commands (/) Button */}
+						<Button
+							type="button"
+							variant="ghost"
+							size="sm"
+							onClick={() => {
+								if (!message) {
+									setMessage("/");
+									setIsSlashMenuOpen(true);
+									setSlashFilterQuery("");
+									setSelectedSlashIndex(0);
+									textareaRef.current?.focus();
+								} else {
+									setIsPromptTemplatesModalOpen(true);
+								}
+							}}
+							className="text-muted-foreground hover:text-foreground hover:bg-muted/60 hover:shadow-sm transition-all duration-200 rounded-xl px-2.5 py-1.5 font-mono text-xs"
+							title={t('slashCommands.buttonTooltip')}
+							disabled={loading}
+						>
+							<Terminal className="w-4 h-4 mr-1 text-primary" />
+							<span>/</span>
+						</Button>
+
 						{/* Voice Dictation (Whisper) Button */}
 						<Button
 							type="button"
@@ -584,7 +782,7 @@ function ChatInput({
 
 					<div className="flex items-center gap-3">
 						{/* Autocomplete hint */}
-						{autocompleteEnabled && suggestion && !loading && (
+						{autocompleteEnabled && suggestion && !loading && !isSlashMenuOpen && (
 							<div className="text-xs text-muted-foreground flex items-center gap-1">
 								<kbd className="px-1.5 py-0.5 text-xs bg-muted border rounded">Tab</kbd>
 								{t('chat.toAccept')}
@@ -629,6 +827,13 @@ function ChatInput({
 				</button>
 			</div>
 		)}
+
+		{/* Prompt Templates Management Modal */}
+		<PromptTemplatesModal
+			isOpen={isPromptTemplatesModalOpen}
+			onClose={() => setIsPromptTemplatesModalOpen(false)}
+			onTemplatesUpdated={(updated) => setCustomTemplates(updated)}
+		/>
     </div>
 	);
 }

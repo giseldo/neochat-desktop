@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { Link, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Eye, EyeOff, Plus, Trash2, Edit3, Save, X, RefreshCw, Key, Settings as SettingsIcon, Zap, Cpu, Server, AlertCircle, CheckCircle, Sun, Moon, Laptop, Languages, Check } from 'lucide-react';
+import { ArrowLeft, Eye, EyeOff, Plus, Trash2, Edit3, Save, X, RefreshCw, Key, Settings as SettingsIcon, Zap, Cpu, Server, AlertCircle, CheckCircle, Sun, Moon, Laptop, Languages, Check, Terminal } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
@@ -12,10 +12,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import Switch from '../components/ui/Switch';
 import { useTheme } from '../context/ThemeContext';
 import { useLanguage } from '../context/LanguageContext';
+import PromptTemplatesModal from '../components/PromptTemplatesModal';
 
 function Settings() {
   const { theme, setTheme } = useTheme();
   const { language, setLanguage, t } = useLanguage();
+  const [isPromptTemplatesModalOpen, setIsPromptTemplatesModalOpen] = useState(false);
   const [settings, setSettings] = useState({
     language: 'pt',
     GROQ_API_KEY: '',
@@ -2214,6 +2216,41 @@ function Settings() {
               </CardContent>
             </Card>
 
+            {/* Prompt Templates Library & Slash Shortcuts */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center space-x-2">
+                  <Terminal className="h-5 w-5 text-primary" />
+                  <span>{t('promptTemplates.modalTitle')}</span>
+                </CardTitle>
+                <CardDescription>
+                  {t('promptTemplates.modalSubtitle')}
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="flex items-center justify-between p-3 rounded-xl bg-muted/40 border border-border/50">
+                  <div className="space-y-0.5">
+                    <p className="text-xs font-semibold text-foreground">
+                      {t('slashCommands.title')}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {t('slashCommands.pressToSelect')}
+                    </p>
+                  </div>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setIsPromptTemplatesModalOpen(true)}
+                    className="flex items-center gap-1.5 text-xs rounded-xl shadow-xs"
+                  >
+                    <Terminal className="w-3.5 h-3.5 text-primary" />
+                    <span>{t('slashCommands.manageTemplates')}</span>
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+
             {/* MCP Servers */}
             <Card>
               <CardHeader>
@@ -2885,6 +2922,12 @@ function Settings() {
         </div>,
         document.body
       )}
+
+      {/* Prompt Templates Modal */}
+      <PromptTemplatesModal
+        isOpen={isPromptTemplatesModalOpen}
+        onClose={() => setIsPromptTemplatesModalOpen(false)}
+      />
     </div>
   );
 }
