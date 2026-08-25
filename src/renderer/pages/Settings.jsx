@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { Link, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Eye, EyeOff, Plus, Trash2, Edit3, Save, X, RefreshCw, Key, Settings as SettingsIcon, Zap, Cpu, Server, AlertCircle, CheckCircle, Sun, Moon, Laptop, Languages, Check, Terminal, Globe, Palette, Type, Sparkles, Sliders, ExternalLink, Route, User, Wrench } from 'lucide-react';
+import { ArrowLeft, Eye, EyeOff, Plus, Trash2, Edit3, Save, X, RefreshCw, Key, Settings as SettingsIcon, Zap, Cpu, Server, AlertCircle, CheckCircle, Sun, Moon, Laptop, Languages, Check, Terminal, Globe, Palette, Type, Sparkles, Sliders, ExternalLink, Route, User, Wrench, Download, UploadCloud } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
@@ -1301,6 +1301,20 @@ function Settings() {
       statusTimeoutRef.current = setTimeout(() => {
         setSaveStatus(null);
       }, 3000);
+    }
+  };
+
+  const handleExportBackup = async () => {
+    const result = await window.electron.backup.export();
+    if (result?.success) setSaveStatus({ type: 'success', message: t('settings.backupExported') });
+  };
+
+  const handleImportBackup = async () => {
+    if (!window.confirm(t('settings.backupImportConfirm'))) return;
+    const result = await window.electron.backup.import();
+    if (result?.success) {
+      setSaveStatus({ type: 'success', message: t('settings.backupImported', { count: result.importedChats }) });
+      setTimeout(() => window.location.reload(), 800);
     }
   };
 
@@ -3289,7 +3303,19 @@ function Settings() {
                   {t('settings.dataHistoryDesc')}
                 </CardDescription>
               </CardHeader>
-              <CardContent>
+              <CardContent className="space-y-5">
+                <div className="flex flex-wrap gap-2">
+                  <Button variant="outline" onClick={handleExportBackup}>
+                    <Download className="h-4 w-4 mr-2" />
+                    {t('settings.exportBackup')}
+                  </Button>
+                  <Button variant="outline" onClick={handleImportBackup}>
+                    <UploadCloud className="h-4 w-4 mr-2" />
+                    {t('settings.importBackup')}
+                  </Button>
+                </div>
+                <p className="text-xs text-muted-foreground">{t('settings.backupSecurityHelp')}</p>
+                <div className="border-t border-border pt-5">
                 <Button
                   variant="destructive"
                   onClick={() => setIsDeletingAllModalOpen(true)}
@@ -3301,6 +3327,7 @@ function Settings() {
                 <p className="text-xs text-muted-foreground mt-2">
                   {t('settings.deleteAllChatsHelp')}
                 </p>
+                </div>
               </CardContent>
             </Card>
 

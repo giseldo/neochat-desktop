@@ -28,6 +28,10 @@ contextBridge.exposeInMainWorld('electron', {
   saveSettings: (settings) => ipcRenderer.invoke('save-settings', settings),
   getSettingsPath: () => ipcRenderer.invoke('get-settings-path'),
   reloadSettings: () => ipcRenderer.invoke('reload-settings'),
+  backup: {
+    export: () => ipcRenderer.invoke('backup-export'),
+    import: () => ipcRenderer.invoke('backup-import')
+  },
   toolPermissions: {
     get: () => ipcRenderer.invoke('tool-permissions-get'),
     resolve: (toolName, serverLabel) => ipcRenderer.invoke('tool-permissions-resolve', toolName, serverLabel),

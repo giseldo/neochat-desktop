@@ -20,7 +20,7 @@ const logStream = fs.createWriteStream(logFile, { flags: 'a' });
 console.log('NeoChat Desktop started, logging to', logFile);
 
 // Import necessary Electron modules
-const { BrowserWindow, ipcMain, screen, shell } = require('electron');
+const { BrowserWindow, ipcMain, screen, shell, dialog } = require('electron');
 
 // Import shared models
 const { MODEL_CONTEXT_SIZES, getModelContextSizes, getModelsFromAPIWithCache } = require('../shared/models.js');
@@ -38,6 +38,7 @@ const { initializeWindowManager } = require('./windowManager');
 const authManager = require('./authManager');
 const googleOAuthManager = require('./googleOAuthManager');
 const { initializeToolPermissionHandlers } = require('./toolPermissionManager');
+const { initializeBackupHandlers } = require('./backupManager');
 
 // Import context capture system
 const ContextCapture = require('./contextCapture');
@@ -306,6 +307,7 @@ app.whenReady().then(async () => {
   // Initialize settings handlers (needs app)
   initializeSettingsHandlers(ipcMain, app, safeStorage);
   initializeToolPermissionHandlers(ipcMain, loadSettings, saveSettings);
+  initializeBackupHandlers(ipcMain, app, dialog, () => mainWindow, loadSettings, saveSettings);
 
   // Initialize chat history manager
   chatHistoryManager.initialize(app, loadSettings);
