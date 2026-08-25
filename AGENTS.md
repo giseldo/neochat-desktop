@@ -1,6 +1,6 @@
 # AGENTS.md
 
-Electron + React 19 desktop chat app for Groq (chat, image input, local MCP servers). Main process in `electron/`, renderer in `src/renderer/`, shared model config in `shared/models.js`. All CommonJS outside the renderer; only `src/renderer/` uses ESM/JSX.
+Electron + React 19 desktop AI workspace & chat app with universal multi-provider support (Groq, OpenAI, Anthropic, DeepSeek, local Ollama/LM Studio), local RAG, image input, and local/remote MCP servers. Main process in `electron/`, renderer in `src/renderer/`, shared model config in `shared/models.js`. All CommonJS outside the renderer; only `src/renderer/` uses ESM/JSX.
 
 ## Commands
 

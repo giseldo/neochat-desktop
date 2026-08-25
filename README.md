@@ -1,6 +1,6 @@
 # NeoChat Desktop
 
-NeoChat Desktop features MCP server support for all function calling capable models hosted on Groq. Now available for Windows, macOS, and Linux!
+NeoChat Desktop is an independent, universal desktop AI workspace and chat client. Connect local models (**Ollama, LM Studio, vLLM**) for 100% privacy and zero cost, or plug in your own API keys for remote providers (**Groq, OpenAI, Anthropic, DeepSeek, OpenRouter**) with support for any OpenAI-compatible endpoint. Available for Windows, macOS, and Linux!
 
 > **Note for macOS Users**: After installing on macOS, you may need to run this command to open the app:
 > ```sh
@@ -20,18 +20,19 @@ xattr -c /Applications/Groq\ Desktop.app
 
 ## Features
 
-- Chat multimodal with image input, conversation branching, projects, personas, and reusable prompt templates
-- Clean **User mode** for everyday chat and a configurable **Power user mode** for models, providers, MCP, diagnostics, automation, and developer tools
-- Local and remote MCP servers with global, server, and per-tool permission policies
-- OS-native encrypted credential vault for API keys and OAuth secrets
-- Ordered provider/model fallback for OpenAI-compatible endpoints
-- Incremental local knowledge base (RAG) with PDF and Office document extraction
-- Reusable multi-step workflows with recurring schedules
-- Versioned backup and restore that excludes credentials
-- Configurable text-to-speech, including optional automatic playback
-- Safe in-app update checks with stable and beta channels
-- Local usage/cost observability, monthly budgets, and JSON/CSV export
-- Guarded Git status, diff, commit, and push actions for power users
+- **Universal & Multi-Provider**: Connect local models (Ollama, LM Studio, LocalAI) or remote APIs (Groq, OpenAI, Claude, DeepSeek, OpenRouter, Together AI) and custom OpenAI-compatible endpoints.
+- **Intelligent Provider Fallback**: Automatic ordered failover between providers if your primary API is down or rate-limited.
+- **Multimodal & Vision**: Full image support, optical recognition, screenshot snip tool, and visual analysis.
+- **Local Knowledge Base (RAG)**: Private incremental file indexing (PDF, Word DOCX, Excel XLSX, Markdown, code) with local semantic search.
+- **MCP Ecosystem (Model Context Protocol)**: Local stdio runners (Node, Deno, Docker, NPX, UVX) and remote HTTP servers with fine-grained per-tool permissions.
+- **Google Workspace Connectors**: Native OAuth for Gmail, Google Calendar, and Google Drive with guarded human approval.
+- **Voice Dictation & Push-to-Talk**: Hold `Ctrl+Alt` anywhere to speak and release to instantly transcribe, plus configurable Text-to-Speech (TTS).
+- **Dual Interface Modes**: Clean **User mode** for distraction-free everyday chat and a configurable **Power user mode** for model parameters, fallbacks, MCP permissions, diagnostics, and developer tools.
+- **OS-Native Encrypted Secret Store**: Hardware-backed credential encryption (SafeStorage / DPAPI / Keychain / Secret Service).
+- **Guarded Git Integration**: Inspect diffs, view status, create commits, and push changes safely from the app.
+- **Workflows & Schedules**: Reusable multi-step automated workflows with cron recurrence.
+- **Observability & Budget Tracking**: Monitor token consumption and estimated costs with monthly budget limits and JSON/CSV export.
+- **Global Popup & Hotkeys**: Instant access via `Ctrl+G` / `Cmd+G` and `groq://` URI scheme.
 
 ## User and Power User modes
 
@@ -57,6 +58,18 @@ Sensitive credentials are not written as plain text to exported backups. When su
    ```
    pnpm dev
    ```
+
+## Configuration & Providers
+
+NeoChat Desktop supports multiple provider configurations:
+
+1. **Local Models (Ollama / LM Studio)**:
+   - Ensure Ollama or LM Studio is running locally (e.g., `http://localhost:11434/v1` or `http://localhost:1234/v1`).
+   - Models are automatically detected or can be configured in Settings.
+
+2. **Cloud & Remote Providers**:
+   - Add your API keys in Settings for **Groq**, **OpenAI**, **Anthropic**, **DeepSeek**, or any custom OpenAI-compatible endpoint.
+   - You can also configure environment variables such as `GROQ_API_KEY`, `OPENAI_API_KEY`, etc.
 
 ## Troubleshooting
 
@@ -113,11 +126,9 @@ pnpm dist:linux
 
 ### Testing Cross-Platform Support
 
-This app now supports Windows, macOS, and Linux. Here's how to test cross-platform functionality:
+This app supports Windows, macOS, and Linux. Here's how to test cross-platform functionality:
 
 #### Running Cross-Platform Tests
-
-We've added several test scripts to verify platform support:
 
 ```bash
 # Run all platform tests (including Docker test for Linux)
@@ -130,18 +141,12 @@ pnpm test:paths
 .\test-windows.ps1
 ```
 
-The testing scripts will check:
-- Platform detection
-- Script file resolution
-- Environment variable handling
-- Path separators
-- Command resolution
-
 ### Feature tests
 
 The repository uses focused Node.js tests. Available scripts include:
 
 ```bash
+pnpm test:all-features
 pnpm test:interface-mode
 pnpm test:secret-store
 pnpm test:tool-permissions
@@ -156,15 +161,3 @@ pnpm test:update-manager
 pnpm test:observability
 pnpm test:git-manager
 ```
-
-## Configuration
-
-In the settings page, add your Groq API key:
-
-```json
-{
-  "GROQ_API_KEY": "your-api-key"
-}
-```
-
-You can obtain a Groq API key by signing up at [https://console.groq.com](https://console.groq.com). 

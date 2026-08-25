@@ -19,7 +19,7 @@ import WorkflowsModal from './components/WorkflowsModal';
 import { useChat } from './context/ChatContext';
 import { useProjects } from './context/ProjectContext';
 import { useLanguage } from './context/LanguageContext';
-import { Settings, PanelLeftClose, PanelLeft, Radio, MessagesSquare, Sparkles, Store, Columns2, X, FolderKanban, BookOpen, Scale, Bot, Workflow } from 'lucide-react';
+import { Settings, PanelLeftClose, PanelLeft, Radio, MessagesSquare, Sparkles, Store, Columns2, X, FolderKanban, BookOpen, Scale, Bot, Workflow, ChevronDown } from 'lucide-react';
 import { Button } from './components/ui/button';
 import { cn } from './lib/utils';
 import { groupModels } from './lib/modelGrouping';
@@ -126,6 +126,8 @@ function App() {
   const messagesContainerRef = useRef(null);
   const [isUserScrolling, setIsUserScrolling] = useState(false);
   const userScrollingRef = useRef(false); // Immediate ref for preventing race conditions
+  const lastScrollTopRef = useRef(0); // Tracks previous scrollTop to detect scroll direction
+  const isProgrammaticScrollRef = useRef(false); // Flags programmatic scrolls vs user scroll
   const scrollThrottleRef = useRef(null); // For throttling scroll during streaming
   const rafRef = useRef(null); // For requestAnimationFrame during streaming
   // Store the list of models from capabilities keys
@@ -660,57 +662,102 @@ function App() {
     }
   }, []);
 
-  // Check if user is at the bottom of the scroll area (within 100px threshold)
-  const isAtBottom = () => {
-    if (!messagesContainerRef.current) return true;
-    const { scrollTop, scrollHeight, clientHeight } = messagesContainerRef.current;
-    const threshold = 100;
-    return scrollHeight - scrollTop - clientHeight < threshold;
-  };
+  const scrollToBottom = useCallback((instant = false) => {
+    if (userScrollingRef.current) return;
+    const container = messagesContainerRef.current;
+    if (!container) return;
 
-  const scrollToBottom = (instant = false) => {
-    // Double-check before scrolling to prevent race conditions
-    if (!userScrollingRef.current) {
-      // Use instant scroll during streaming to avoid bouncy behavior
-      // Use smooth scroll for stable content (like when user sends a message)
-      messagesEndRef.current?.scrollIntoView({ behavior: instant ? 'instant' : 'smooth' });
+    isProgrammaticScrollRef.current = true;
+
+    if (instant) {
+      container.scrollTop = container.scrollHeight;
+      lastScrollTopRef.current = container.scrollTop;
+      requestAnimationFrame(() => {
+        if (container) {
+          lastScrollTopRef.current = container.scrollTop;
+        }
+        isProgrammaticScrollRef.current = false;
+      });
+    } else {
+      container.scrollTo({ top: container.scrollHeight, behavior: 'smooth' });
+      setTimeout(() => {
+        if (container) {
+          lastScrollTopRef.current = container.scrollTop;
+        }
+        isProgrammaticScrollRef.current = false;
+      }, 350);
     }
-  };
+  }, []);
 
-  // Handle scroll events to detect when user manually scrolls
+  // Handle scroll and wheel events to detect when user manually scrolls
   useEffect(() => {
     const container = messagesContainerRef.current;
     if (!container) return;
 
-    const handleScroll = () => {
-      const atBottom = isAtBottom();
-      if (atBottom) {
-        // User is at bottom, resume auto-scroll
-        userScrollingRef.current = false;
-        setIsUserScrolling(false);
-      } else if (!atBottom) {
-        // User scrolled up, disable auto-scroll
-        userScrollingRef.current = true;
-        setIsUserScrolling(true);
+    const cancelPendingAutoScroll = () => {
+      if (scrollThrottleRef.current) {
+        clearTimeout(scrollThrottleRef.current);
+        scrollThrottleRef.current = null;
+      }
+      if (rafRef.current) {
+        cancelAnimationFrame(rafRef.current);
+        rafRef.current = null;
       }
     };
 
-    // Detect scroll wheel/touch intent immediately (before scroll position changes)
+    const handleScroll = () => {
+      const currentScrollTop = container.scrollTop;
+      const { scrollHeight, clientHeight } = container;
+      const distanceFromBottom = scrollHeight - currentScrollTop - clientHeight;
+      const prevScrollTop = lastScrollTopRef.current;
+      lastScrollTopRef.current = currentScrollTop;
+
+      if (isProgrammaticScrollRef.current) {
+        return;
+      }
+
+      // If user scrolled up (scrollTop decreased by more than 1px)
+      if (currentScrollTop < prevScrollTop - 1) {
+        userScrollingRef.current = true;
+        setIsUserScrolling(true);
+        cancelPendingAutoScroll();
+      }
+      // If user scrolled down and is at/near the bottom (within 30px)
+      else if (distanceFromBottom <= 30) {
+        userScrollingRef.current = false;
+        setIsUserScrolling(false);
+      }
+    };
+
+    // Detect scroll wheel intent immediately (before scroll position changes)
     const handleWheel = (e) => {
-      // ANY wheel event immediately cancels auto-scrolling to prevent fighting
-      userScrollingRef.current = true;
-      setIsUserScrolling(true);
+      if (e.deltaY < 0) {
+        // Any wheel UP immediately disables auto-scroll
+        userScrollingRef.current = true;
+        setIsUserScrolling(true);
+        cancelPendingAutoScroll();
+      } else if (e.deltaY > 0) {
+        // Wheel DOWN: check if near bottom to resume auto-scroll
+        const { scrollTop, scrollHeight, clientHeight } = container;
+        const distanceFromBottom = scrollHeight - scrollTop - clientHeight;
+        if (distanceFromBottom <= 30) {
+          userScrollingRef.current = false;
+          setIsUserScrolling(false);
+        }
+      }
     };
 
     const handleTouchStart = () => {
-      // When user touches to scroll, check if they're at bottom
-      if (!isAtBottom()) {
+      const { scrollTop, scrollHeight, clientHeight } = container;
+      const distanceFromBottom = scrollHeight - scrollTop - clientHeight;
+      if (distanceFromBottom > 30) {
         userScrollingRef.current = true;
         setIsUserScrolling(true);
+        cancelPendingAutoScroll();
       }
     };
 
-    container.addEventListener('scroll', handleScroll);
+    container.addEventListener('scroll', handleScroll, { passive: true });
     container.addEventListener('wheel', handleWheel, { passive: true });
     container.addEventListener('touchstart', handleTouchStart, { passive: true });
     
@@ -720,6 +767,16 @@ function App() {
       container.removeEventListener('touchstart', handleTouchStart);
     };
   }, []);
+
+  // When switching chats, reset user scrolling and scroll to bottom
+  useEffect(() => {
+    userScrollingRef.current = false;
+    setIsUserScrolling(false);
+    const timer = setTimeout(() => {
+      scrollToBottom(true);
+    }, 50);
+    return () => clearTimeout(timer);
+  }, [currentChatId, scrollToBottom]);
 
   // Auto-scroll to bottom when messages change, but only if user hasn't scrolled up
   useEffect(() => {
@@ -769,7 +826,7 @@ function App() {
         cancelAnimationFrame(rafRef.current);
       }
     };
-  }, [messages, isUserScrolling]);
+  }, [messages, isUserScrolling, scrollToBottom]);
 
   const executeToolCall = async (toolCall) => {
     const startTime = Date.now();
@@ -2343,7 +2400,7 @@ function App() {
                 </div>
               ) : (
                 /* Chat View */
-                <div className="flex flex-col h-full min-h-0">
+                <div className="flex flex-col h-full min-h-0 relative">
                   <div 
                     ref={messagesContainerRef} 
                     className="flex-1 overflow-y-auto mb-6 min-h-0"
@@ -2361,6 +2418,22 @@ function App() {
                     />
                     <div ref={messagesEndRef} />
                   </div>
+
+                  {/* Floating Scroll to Bottom button */}
+                  {isUserScrolling && messages.length > 0 && (
+                    <button
+                      onClick={() => {
+                        userScrollingRef.current = false;
+                        setIsUserScrolling(false);
+                        scrollToBottom(false);
+                      }}
+                      className="absolute bottom-28 right-6 z-20 flex items-center justify-center p-2.5 rounded-full bg-card/95 hover:bg-accent text-foreground shadow-lg border border-border/80 backdrop-blur transition-all duration-200 hover:scale-105"
+                      aria-label="Scroll to bottom"
+                      title={t('chat.scrollToBottom') || "Rolar para o final"}
+                    >
+                      <ChevronDown className="w-4 h-4 text-muted-foreground hover:text-foreground" />
+                    </button>
+                  )}
                   
                   <div className="flex-shrink-0 bg-background/95 backdrop-blur pt-6">
                     <ChatInput
