@@ -269,6 +269,7 @@ function getWebSearchToolDefinition() {
 
 module.exports = {
   executeWebSearch,
+  searchWeb: executeWebSearch,
   getWebSearchToolDefinition,
   searchLocalDirect,
   searchTavily,
