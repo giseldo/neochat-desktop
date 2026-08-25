@@ -4,7 +4,7 @@ const fs = require('fs');
 const path = require('path');
 const { pruneMessageHistory, sanitizeMessageHistory, extractThinking } = require('./messageUtils');
 const { supportsBuiltInTools } = require('../shared/models');
-const { getActiveApiKey, getProviderBaseUrl } = require('../shared/providers');
+const { getActiveApiKey, getProviderBaseUrl, getProviderCandidates, getDefaultModel } = require('../shared/providers');
 const googleOAuthManager = require('./googleOAuthManager');
 const { getWebSearchToolDefinition } = require('./webSearchService');
 const { getRagToolDefinitions } = require('./ragService');
@@ -652,7 +652,7 @@ async function executeStreamWithRetry(groq, chatCompletionParams, event, streamI
             if (!streamInfo || streamInfo.cancelled) {
                 event.sender.send('chat-stream-cancelled', { streamId });
                 cleanupStream(streamId);
-                return;
+                return { cancelled: true };
             }
 
             // Write request payload to /tmp if logging is enabled
@@ -696,7 +696,7 @@ async function executeStreamWithRetry(groq, chatCompletionParams, event, streamI
                     }
                     event.sender.send('chat-stream-cancelled', { streamId });
                     cleanupStream(streamId);
-                    return;
+                    return { cancelled: true };
                 }
 
                 // Accumulate response chunks if logging is enabled
@@ -719,7 +719,7 @@ async function executeStreamWithRetry(groq, chatCompletionParams, event, streamI
             if (recordedFinishReason || accumulatedData.content || accumulatedData.toolCalls.length > 0 || accumulatedData.reasoning) {
                 handleStreamCompletion(event, accumulatedData, recordedFinishReason || "stop", streamId, chatCompletionParams);
                 cleanupStream(streamId);
-                return;
+                return { success: true };
             }
 
             // Clear summary interval before exiting
@@ -738,6 +738,9 @@ async function executeStreamWithRetry(groq, chatCompletionParams, event, streamI
                 console.log(`[ChatHandler] Response chunks written to: ${responseFilePath}`);
             }
             
+            if (settings.deferProviderErrors && !accumulatedData.content && !accumulatedData.reasoning && accumulatedData.toolCalls.length === 0) {
+                return { success: false, error: 'Stream ended unexpectedly' };
+            }
             cleanupStream(streamId);
             event.sender.send('chat-stream-error', { error: "Stream ended unexpectedly." });
             return;
@@ -756,7 +759,7 @@ async function executeStreamWithRetry(groq, chatCompletionParams, event, streamI
                 }
                 event.sender.send('chat-stream-cancelled', { streamId });
                 cleanupStream(streamId);
-                return;
+                return { cancelled: true };
             }
 
             const errorMessage = error instanceof Error ? error.message : String(error);
@@ -818,6 +821,9 @@ async function executeStreamWithRetry(groq, chatCompletionParams, event, streamI
                 }
             }
             
+            if (settings.deferProviderErrors && !accumulatedData.content && !accumulatedData.reasoning && accumulatedData.toolCalls.length === 0) {
+                return { success: false, error: errorMessage };
+            }
             cleanupStream(streamId);
             event.sender.send('chat-stream-error', {
                 error: `Failed to get chat completion: ${errorMessage}`,
@@ -1660,7 +1666,6 @@ async function handleChatStream(event, messages, model, settings, modelContextSi
             summaryInterval: null
         });
 
-        validateApiKey(settings);
         const { modelToUse, modelInfo } = determineModel(model, settings, modelContextSizes);
         const visionCheckPassed = checkVisionSupport(messages, modelInfo, modelToUse, event);
         
@@ -1670,14 +1675,28 @@ async function handleChatStream(event, messages, model, settings, modelContextSi
             return;
         }
 
-        const groq = createGroqClient(settings);
-        
         const tools = prepareTools(discoveredTools, false, settings);
         const cleanedMessages = cleanMessages(messages);
-        const prunedMessages = pruneMessageHistory(cleanedMessages, modelToUse, modelContextSizes);
-        const chatCompletionParams = buildApiParams(prunedMessages, modelToUse, settings, tools, modelContextSizes);
-
-        await executeStreamWithRetry(groq, chatCompletionParams, event, streamId, settings);
+        const candidates = getProviderCandidates(settings);
+        let lastError = null;
+        for (const [candidateIndex, candidate] of candidates.entries()) {
+            const candidateModel = candidateIndex === 0 ? modelToUse : (candidate.model || getDefaultModel(candidate));
+            try {
+                validateApiKey(candidate);
+            } catch (error) {
+                lastError = error.message;
+                continue;
+            }
+            const prunedMessages = pruneMessageHistory(cleanedMessages, candidateModel, modelContextSizes);
+            const chatCompletionParams = buildApiParams(prunedMessages, candidateModel, candidate, tools, modelContextSizes);
+            const result = await executeStreamWithRetry(createGroqClient(candidate), chatCompletionParams, event, streamId, { ...candidate, deferProviderErrors: true });
+            if (result?.success) return;
+            if (result?.cancelled) return;
+            lastError = result?.error || 'Provider failed';
+            event.sender.send('chat-stream-retry', { providerFallback: true, failedProvider: candidate.provider, nextProvider: candidates[candidateIndex + 1]?.provider, error: lastError });
+        }
+        cleanupStream(streamId);
+        event.sender.send('chat-stream-error', { error: `All configured providers failed: ${lastError || 'unknown error'}` });
     } catch (outerError) {
         cleanupStream(streamId);
         event.sender.send('chat-stream-error', { error: outerError.message || `Setup error: ${outerError}` });

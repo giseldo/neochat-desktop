@@ -65,6 +65,8 @@ function loadSettings() {
         showTrajectoryTab: true,
         provider: 'groq',
         apiKeys: {},
+        fallbackProviders: [],
+        fallbackModels: {},
         GROQ_API_KEY: process.env.GROQ_API_KEY || "<replace me>",
         model: process.env.GROQ_DEFAULT_MODEL || "llama-3.3-70b-versatile",
         temperature: 0.7,
@@ -136,6 +138,8 @@ function loadSettings() {
             settings.reasoning_effort = settings.reasoning_effort || defaultSettings.reasoning_effort;
             settings.provider = settings.provider || defaultSettings.provider;
             settings.apiKeys = settings.apiKeys || {};
+            settings.fallbackProviders = Array.isArray(settings.fallbackProviders) ? settings.fallbackProviders : [];
+            settings.fallbackModels = settings.fallbackModels || {};
 
             // Migrate legacy GROQ_API_KEY into apiKeys.groq (and keep in sync)
             if (settings.GROQ_API_KEY && settings.GROQ_API_KEY !== "<replace me>" && !settings.apiKeys.groq) {

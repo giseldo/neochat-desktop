@@ -72,7 +72,9 @@ function Settings() {
     googleClientId: '',
     googleClientSecret: '',
     googleTokenExpiresAt: null,
-    remoteMcpServers: {}
+    remoteMcpServers: {},
+    fallbackProviders: [],
+    fallbackModels: {}
   });
   const [googleOAuthStatus, setGoogleOAuthStatus] = useState(null);
   const [isRefreshingToken, setIsRefreshingToken] = useState(false);
@@ -1304,6 +1306,14 @@ function Settings() {
     }
   };
 
+  const toggleFallbackProvider = (providerId) => {
+    const current = settings.fallbackProviders || [];
+    const fallbackProviders = current.includes(providerId) ? current.filter(id => id !== providerId) : [...current, providerId];
+    const updatedSettings = { ...settings, fallbackProviders };
+    setSettings(updatedSettings);
+    saveSettings(updatedSettings);
+  };
+
   const handleExportBackup = async () => {
     const result = await window.electron.backup.export();
     if (result?.success) setSaveStatus({ type: 'success', message: t('settings.backupExported') });
@@ -1864,6 +1874,22 @@ function Settings() {
                         : t('settings.providerCustomDesc')}
                     </p>
                   )}
+                </div>
+
+                <div className="space-y-2 pt-3 border-t border-border">
+                  <Label>{t('settings.fallbackProviders')}</Label>
+                  <p className="text-xs text-muted-foreground">{t('settings.fallbackProvidersHelp')}</p>
+                  <div className="grid sm:grid-cols-2 gap-2">
+                    {providers.filter(provider => provider.id !== settings.provider).map(provider => {
+                      const selected = (settings.fallbackProviders || []).includes(provider.id);
+                      return (
+                        <button key={provider.id} type="button" onClick={() => toggleFallbackProvider(provider.id)} className={`flex items-center justify-between rounded-lg border px-3 py-2 text-xs ${selected ? 'border-primary bg-primary/10' : 'border-border hover:bg-muted'}`}>
+                          <span>{provider.name}</span>
+                          {selected && <Check className="w-3.5 h-3.5 text-primary" />}
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
 
                 <div className="space-y-2">

@@ -222,6 +222,19 @@ function getModelsUrl(settings) {
   return baseUrl ? `${baseUrl.replace(/\/+$/, '')}/models` : null;
 }
 
+function getProviderCandidates(settings = {}) {
+  const ids = [settings.provider || 'groq', ...(Array.isArray(settings.fallbackProviders) ? settings.fallbackProviders : [])];
+  return [...new Set(ids)].map((providerId, index) => {
+    const provider = getProviderById(providerId);
+    return {
+      ...settings,
+      provider: provider.id,
+      model: index === 0 ? settings.model : (settings.fallbackModels?.[provider.id] || provider.defaultModel),
+      customApiBaseUrlEnabled: index === 0 ? settings.customApiBaseUrlEnabled : provider.id === 'custom'
+    };
+  });
+}
+
 module.exports = {
   PROVIDERS,
   PROVIDER_LIST,
@@ -231,4 +244,5 @@ module.exports = {
   getProviderBaseUrl,
   getDefaultModel,
   getModelsUrl,
+  getProviderCandidates,
 };
