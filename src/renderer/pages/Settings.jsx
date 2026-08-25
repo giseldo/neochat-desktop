@@ -13,6 +13,7 @@ import Switch from '../components/ui/Switch';
 import { useTheme, COLOR_THEMES, BG_THEMES, FONT_THEMES, FONT_SIZES } from '../context/ThemeContext';
 import { useLanguage } from '../context/LanguageContext';
 import PromptTemplatesModal from '../components/PromptTemplatesModal';
+import { cn } from '../lib/utils';
 
 function Settings() {
   const {
