@@ -15,6 +15,7 @@
     "dist:mac": "pnpm build && electron-builder --mac",
     "dist:win": "pnpm build && electron-builder --win",
     "dist:linux": "pnpm build && electron-builder --linux",
+    "release:win": "pnpm build && electron-builder --win --publish always",
     "test:platforms": "./test-cross-platform.sh",
     "test:paths": "node test-paths.js",
     "test:interface-mode": "node test-interface-mode.js",
@@ -107,6 +108,14 @@
       "buildResources": "public",
       "output": "release"
     },
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "giseldo",
+        "repo": "neochat-releases",
+        "releaseType": "release"
+      }
+    ],
     "mac": {
       "category": "public.app-category.productivity"
     },
