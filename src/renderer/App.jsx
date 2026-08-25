@@ -20,6 +20,7 @@ import { useProjects } from './context/ProjectContext';
 import { useLanguage } from './context/LanguageContext';
 import { Settings, PanelLeftClose, PanelLeft, Radio, MessagesSquare, Sparkles, Store, Columns2, X, FolderKanban, BookOpen, Scale, Bot } from 'lucide-react';
 import { Button } from './components/ui/button';
+import { cn } from './lib/utils';
 import { extractThinking } from './lib/messageUtils';
 
 // LocalStorage keys

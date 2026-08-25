@@ -1013,7 +1013,7 @@ function ChatHistorySidebar({ onNewChat, onChatLoaded, loading }) {
                   {t('sidebar.deleteChatConfirmTitle')}
                 </h3>
                 <p className="text-xs text-muted-foreground truncate mt-0.5" title={chatToDelete.title || t('sidebar.conversationDefault')}>
-                  "{chatToDelete.title || t('sidebar.conversationDefault')}"
+                  &ldquo;{chatToDelete.title || t('sidebar.conversationDefault')}&rdquo;
                 </p>
               </div>
             </div>

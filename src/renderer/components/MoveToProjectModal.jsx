@@ -51,7 +51,7 @@ export function MoveToProjectModal() {
               <span>{t('projects.moveToProject')}</span>
             </h3>
             <p className="text-[11px] text-muted-foreground truncate mt-0.5">
-              "{chatToMove.title || t('sidebar.conversationDefault')}"
+              &ldquo;{chatToMove.title || t('sidebar.conversationDefault')}&rdquo;
             </p>
           </div>
           <button
