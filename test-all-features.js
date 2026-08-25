@@ -37,12 +37,17 @@ async function runTestSuite() {
     }
   }
 
-  // 1. Module Loading Tests
   test('Carregamento do módulo chatHandler', () => {
     const chatHandler = require('./electron/chatHandler');
     assert(typeof chatHandler.handleChatStream === 'function', 'handleChatStream deve ser uma função');
     assert(typeof chatHandler.handleCompareChatStream === 'function', 'handleCompareChatStream deve ser uma função');
     assert(typeof chatHandler.stopChatStream === 'function', 'stopChatStream deve ser uma função');
+    assert(typeof chatHandler.createGroqClient === 'function', 'createGroqClient deve ser uma função');
+
+    // Test client creation and buildURL fix against 404
+    const client = chatHandler.createGroqClient({ provider: 'groq', GROQ_API_KEY: 'test-key' });
+    const resolvedUrl = client.buildURL('/openai/v1/chat/completions');
+    assert.strictEqual(resolvedUrl, 'https://api.groq.com/openai/v1/chat/completions', 'URL não deve duplicar o prefixo /openai/v1/');
   });
 
   test('Carregamento do módulo localAiService', () => {

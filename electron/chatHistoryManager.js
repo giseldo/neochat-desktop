@@ -3,6 +3,7 @@ const path = require('path');
 const crypto = require('crypto');
 const Groq = require('groq-sdk');
 const { getActiveApiKey, getProviderBaseUrl, getDefaultModel } = require('../shared/providers');
+const { createGroqClient } = require('./chatHandler');
 
 let appInstance = null;
 let settingsLoader = null;
@@ -288,21 +289,7 @@ async function generateChatTitle(userMessage) {
     }
 
     try {
-        const groq = new Groq({ apiKey });
-
-        const baseUrl = getProviderBaseUrl(settings);
-        if (baseUrl) {
-            groq.baseURL = baseUrl;
-            // The groq-sdk paths include an /openai/v1/ prefix; strip it since
-            // our baseURL already ends in /v1/ (see chatHandler for details).
-            const originalBuildURL = groq.buildURL.bind(groq);
-            groq.buildURL = function(path, query) {
-                if (path.startsWith('/openai/v1/')) {
-                    path = path.replace(/^\/openai\/v1/, '');
-                }
-                return originalBuildURL(path, query);
-            };
-        }
+        const groq = createGroqClient(settings);
         
         // Extract text content if structured message
         let textContent = userMessage;

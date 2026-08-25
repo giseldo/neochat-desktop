@@ -1581,6 +1581,39 @@ async function handleResponsesApiStream(event, messages, model, settings, modelC
 }
 
 /**
+ * Create and configure a Groq SDK client instance according to active provider settings,
+ * including baseUrl stripping if the provider baseUrl ends in /v1/.
+ */
+function createGroqClient(settings) {
+    const providerApiKey = getActiveApiKey(settings);
+    const providerBaseUrl = getProviderBaseUrl(settings);
+    const groqConfig = { apiKey: providerApiKey };
+
+    if (providerBaseUrl) {
+        groqConfig.baseURL = providerBaseUrl;
+    }
+
+    const groq = new Groq(groqConfig);
+
+    // The groq-sdk resource paths include an /openai/v1/ prefix. When a
+    // baseURL that already ends in /v1/ is used, strip that prefix so the
+    // requests land on the right endpoint (works for every OpenAI-compatible
+    // provider: Groq, OpenAI, Mistral, xAI, DeepSeek, OpenRouter, custom...).
+    if (providerBaseUrl) {
+        const originalBuildURL = groq.buildURL.bind(groq);
+
+        groq.buildURL = function(path, query) {
+            if (path.startsWith('/openai/v1/')) {
+                path = path.replace(/^\/openai\/v1/, '');
+            }
+            return originalBuildURL(path, query);
+        };
+    }
+
+    return groq;
+}
+
+/**
  * Handles streaming chat completions with support for compound-beta model features.
  * Supports progressive reasoning display, executed tools streaming, and MCP tool calls.
  * 
@@ -1637,31 +1670,7 @@ async function handleChatStream(event, messages, model, settings, modelContextSi
             return;
         }
 
-        const providerApiKey = getActiveApiKey(settings);
-        const providerBaseUrl = getProviderBaseUrl(settings);
-        const groqConfig = { apiKey: providerApiKey };
-
-        // Use the active provider's base URL (OpenAI-compatible /v1/ endpoint)
-        if (providerBaseUrl) {
-            groqConfig.baseURL = providerBaseUrl;
-        }
-
-        const groq = new Groq(groqConfig);
-
-        // The groq-sdk resource paths include an /openai/v1/ prefix. When a
-        // baseURL that already ends in /v1/ is used, strip that prefix so the
-        // requests land on the right endpoint (works for every OpenAI-compatible
-        // provider: Groq, OpenAI, Mistral, xAI, DeepSeek, OpenRouter, custom...).
-        if (providerBaseUrl) {
-            const originalBuildURL = groq.buildURL.bind(groq);
-
-            groq.buildURL = function(path, query) {
-                if (path.startsWith('/openai/v1/')) {
-                    path = path.replace(/^\/openai\/v1/, '');
-                }
-                return originalBuildURL(path, query);
-            };
-        }
+        const groq = createGroqClient(settings);
         
         const tools = prepareTools(discoveredTools, false, settings);
         const cleanedMessages = cleanMessages(messages);
@@ -1714,16 +1723,32 @@ async function runSingleStreamForCompare(event, messages, model, settings, model
     try {
         validateApiKey(settings);
         const { modelToUse, modelInfo } = determineModel(model, settings, modelContextSizes);
-        const providerApiKey = getActiveApiKey(settings);
-        const providerBaseUrl = getProviderBaseUrl(settings);
-        const groqConfig = { apiKey: providerApiKey };
-        if (providerBaseUrl) {
-            groqConfig.baseURL = providerBaseUrl;
+        const visionCheckPassed = checkVisionSupport(messages, modelInfo, modelToUse, event);
+        if (!visionCheckPassed) {
+            cleanupStream(streamId);
+            return;
         }
-        const groq = new Groq(groqConfig);
 
-        const prunedMessages = pruneMessageHistory(messages, modelInfo.context);
-        const sanitizedMessages = sanitizeMessageHistory(prunedMessages);
+        const groq = createGroqClient(settings);
+
+        const cleanedMessages = cleanMessages(messages);
+        const prunedMessages = pruneMessageHistory(cleanedMessages, modelToUse, modelContextSizes);
+
+        // Include system prompt if available
+        const customSystemMessages = prunedMessages.filter(m => m.role === 'system');
+        const nonSystemMessages = prunedMessages.filter(m => m.role !== 'system');
+        let systemPrompt = 'You are a helpful assistant. Format responses using Markdown.';
+        if (settings.customSystemPrompt && settings.customSystemPrompt.trim()) {
+            systemPrompt = settings.customSystemPrompt.trim();
+        }
+        if (customSystemMessages.length > 0) {
+            const customPromptText = customSystemMessages
+                .map(m => (typeof m.content === 'string' ? m.content : JSON.stringify(m.content)))
+                .join('\n\n');
+            systemPrompt += `\n\n${customPromptText}`;
+        }
+
+        const apiMessages = [{ role: 'system', content: systemPrompt }, ...nonSystemMessages];
 
         const startTime = Date.now();
         let accumulatedContent = '';
@@ -1731,13 +1756,23 @@ async function runSingleStreamForCompare(event, messages, model, settings, model
         let isFirstChunk = true;
         let ttft = 0;
 
-        const stream = await groq.chat.completions.create({
-            messages: sanitizedMessages,
+        const apiParams = {
+            messages: apiMessages,
             model: modelToUse,
             stream: true,
             temperature: settings.temperature ?? 0.7,
-            max_tokens: settings.maxTokens ?? 4096
-        });
+            top_p: settings.top_p ?? 0.95,
+        };
+
+        if (settings.maxTokens) {
+            apiParams.max_tokens = settings.maxTokens;
+        }
+
+        if (modelToUse.includes('gpt-oss') && settings.reasoning_effort) {
+            apiParams.reasoning_effort = settings.reasoning_effort;
+        }
+
+        const stream = await groq.chat.completions.create(apiParams);
 
         const streamInfo = activeStreams.get(streamId);
         if (streamInfo) streamInfo.stream = stream;
@@ -1795,5 +1830,5 @@ async function handleCompareChatStream(event, messages, modelA, modelB, settings
     ]);
 }
 
-module.exports = { handleChatStream, handleCompareChatStream, stopChatStream };
+module.exports = { handleChatStream, handleCompareChatStream, stopChatStream, createGroqClient };
 

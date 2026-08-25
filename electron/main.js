@@ -557,8 +557,7 @@ app.whenReady().then(async () => {
       const buffer = Buffer.from(base64Data, 'base64');
       fs.writeFileSync(tempFile, buffer);
 
-      const Groq = require('groq-sdk');
-      const groq = new Groq({ apiKey });
+      const groq = chatHandler.createGroqClient(currentSettings);
 
       const transcription = await groq.audio.transcriptions.create({
         file: fs.createReadStream(tempFile),
