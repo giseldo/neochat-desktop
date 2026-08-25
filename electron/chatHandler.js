@@ -2,7 +2,7 @@ const Groq = require('groq-sdk');
 const fetch = require('node-fetch');
 const fs = require('fs');
 const path = require('path');
-const { pruneMessageHistory, extractThinking } = require('./messageUtils');
+const { pruneMessageHistory, sanitizeMessageHistory, extractThinking } = require('./messageUtils');
 const { supportsBuiltInTools } = require('../shared/models');
 const { getActiveApiKey, getProviderBaseUrl } = require('../shared/providers');
 const googleOAuthManager = require('./googleOAuthManager');
@@ -174,59 +174,7 @@ function prepareTools(discoveredTools, isResponsesApi = false, settings = {}) {
 }
 
 function cleanMessages(messages) {
-    // Clean and prepare messages for the API
-    // 1. Remove internal fields like 'reasoning', 'isStreaming', 'reasoningDuration', etc.
-    // 2. Ensure correct content format (user: array, assistant: string, tool: string)
-    return messages.map(msg => {
-        // Create a clean copy, then delete unwanted properties
-        const cleanMsg = { ...msg };
-        delete cleanMsg.reasoning;
-        delete cleanMsg.isStreaming;
-        delete cleanMsg.reasoningDuration;
-        delete cleanMsg.reasoningSummaries;
-        delete cleanMsg.liveReasoning;
-        delete cleanMsg.liveExecutedTools;
-        delete cleanMsg.executed_tools;
-        delete cleanMsg.reasoningStartTime;
-        delete cleanMsg.usage;
-        delete cleanMsg.finish_reason;
-
-        // Ensure user content is array format for vision support
-        if (cleanMsg.role === 'user') {
-            if (typeof cleanMsg.content === 'string') {
-                cleanMsg.content = [{ type: 'text', text: cleanMsg.content }];
-            } else if (!Array.isArray(cleanMsg.content)) {
-                cleanMsg.content = [{ type: 'text', text: '' }];
-            }
-            cleanMsg.content = cleanMsg.content.map(part => ({ type: part.type || 'text', ...part }));
-        }
-
-        // Ensure assistant content is string format and clean think tags
-        if (cleanMsg.role === 'assistant') {
-            if (typeof cleanMsg.content !== 'string') {
-                if (Array.isArray(cleanMsg.content)) {
-                    cleanMsg.content = cleanMsg.content.filter(p => p.type === 'text').map(p => p.text).join('');
-                } else {
-                    try {
-                        cleanMsg.content = JSON.stringify(cleanMsg.content);
-                    } catch { cleanMsg.content = '[Non-string content]'; }
-                }
-            }
-            if (typeof cleanMsg.content === 'string') {
-                cleanMsg.content = extractThinking(cleanMsg.content).cleanContent;
-            }
-        }
-
-        // Ensure tool content is stringified
-        if (cleanMsg.role === 'tool' && typeof cleanMsg.content !== 'string') {
-            try {
-                cleanMsg.content = JSON.stringify(cleanMsg.content);
-            } catch {
-                cleanMsg.content = "[Error stringifying tool content]";
-            }
-        }
-        return cleanMsg;
-    });
+    return sanitizeMessageHistory(messages);
 }
 
 function buildApiParams(prunedMessages, modelToUse, settings, tools, modelContextSizes) {

@@ -1,36 +1,260 @@
 /**
+ * Groups a message array into atomic conversational blocks.
+ * An atomic block cannot be split across pruning boundaries.
+ * Examples of atomic blocks:
+ * - A system message
+ * - A user message
+ * - A standard assistant message (no tool calls)
+ * - An assistant message with tool_calls + ALL its consecutive matching tool messages
+ *
+ * @param {Array} messages - Cleaned message array
+ * @returns {Array<Array<Object>>} - Array of atomic message blocks
+ */
+function groupMessagesIntoAtomicBlocks(messages) {
+  if (!messages || !Array.isArray(messages) || messages.length === 0) {
+    return [];
+  }
+
+  const blocks = [];
+  let i = 0;
+
+  while (i < messages.length) {
+    const msg = messages[i];
+
+    if (msg.role === 'assistant' && Array.isArray(msg.tool_calls) && msg.tool_calls.length > 0) {
+      // Collect assistant message and all consecutive matching tool messages
+      const block = [msg];
+      const validCallIds = new Set(msg.tool_calls.map(tc => tc.id).filter(Boolean));
+      
+      let j = i + 1;
+      while (j < messages.length && messages[j].role === 'tool') {
+        const toolMsg = messages[j];
+        if (validCallIds.has(toolMsg.tool_call_id)) {
+          block.push(toolMsg);
+        } else {
+          break;
+        }
+        j++;
+      }
+
+      blocks.push(block);
+      i = j;
+    } else {
+      // Single message block (system, user, assistant without tools, or standalone)
+      blocks.push([msg]);
+      i++;
+    }
+  }
+
+  return blocks;
+}
+
+/**
+ * Sanitizes and repairs message history for OpenAI / Groq / DeepSeek compatible APIs.
+ * Ensures:
+ * 1. Strips internal runtime fields (reasoning, liveStreaming, etc.)
+ * 2. Formats user/assistant/tool messages correctly
+ * 3. Enforces that EVERY 'tool' message is preceded by an assistant message containing a matching tool_call_id
+ * 4. Drops orphan tool messages that would cause HTTP 400 invalid_request_error
+ * 5. Cleans up broken assistant tool_calls that have no corresponding tool responses in the middle of history
+ *
+ * @param {Array} messages - Raw messages array
+ * @returns {Array} - Sanitized messages array safe for API submission
+ */
+function sanitizeMessageHistory(messages) {
+  if (!messages || !Array.isArray(messages) || messages.length === 0) {
+    return [];
+  }
+
+  // Step 1: Clean and normalize individual messages
+  const cleaned = messages.map(msg => {
+    if (!msg || typeof msg !== 'object') return null;
+
+    const cleanMsg = { ...msg };
+
+    // Strip internal runtime fields
+    delete cleanMsg.reasoning;
+    delete cleanMsg.isStreaming;
+    delete cleanMsg.reasoningDuration;
+    delete cleanMsg.reasoningSummaries;
+    delete cleanMsg.liveReasoning;
+    delete cleanMsg.liveExecutedTools;
+    delete cleanMsg.executed_tools;
+    delete cleanMsg.reasoningStartTime;
+    delete cleanMsg.usage;
+    delete cleanMsg.finish_reason;
+    delete cleanMsg.timestamp;
+    delete cleanMsg.createdAt;
+    delete cleanMsg.durationMs;
+    delete cleanMsg.pre_calculated_tool_responses;
+    delete cleanMsg.mcp_approval_requests;
+    delete cleanMsg.status;
+    delete cleanMsg.error;
+
+    // Normalize user content
+    if (cleanMsg.role === 'user') {
+      if (typeof cleanMsg.content === 'string') {
+        cleanMsg.content = [{ type: 'text', text: cleanMsg.content }];
+      } else if (!Array.isArray(cleanMsg.content)) {
+        cleanMsg.content = [{ type: 'text', text: '' }];
+      }
+      cleanMsg.content = cleanMsg.content.map(part => ({ type: part.type || 'text', ...part }));
+    }
+
+    // Normalize assistant content
+    if (cleanMsg.role === 'assistant') {
+      if (typeof cleanMsg.content !== 'string') {
+        if (Array.isArray(cleanMsg.content)) {
+          cleanMsg.content = cleanMsg.content.filter(p => p.type === 'text').map(p => p.text).join('');
+        } else if (cleanMsg.content === null || cleanMsg.content === undefined) {
+          cleanMsg.content = '';
+        } else {
+          try {
+            cleanMsg.content = JSON.stringify(cleanMsg.content);
+          } catch {
+            cleanMsg.content = '';
+          }
+        }
+      }
+      if (typeof cleanMsg.content === 'string') {
+        cleanMsg.content = extractThinking(cleanMsg.content).cleanContent;
+      }
+
+      // Normalize tool_calls
+      if (Array.isArray(cleanMsg.tool_calls) && cleanMsg.tool_calls.length > 0) {
+        cleanMsg.tool_calls = cleanMsg.tool_calls.map((tc, idx) => ({
+          id: tc.id || `call_${Date.now()}_${idx}`,
+          type: tc.type || 'function',
+          function: {
+            name: tc.function?.name || 'unknown_tool',
+            arguments: typeof tc.function?.arguments === 'string'
+              ? tc.function.arguments
+              : JSON.stringify(tc.function?.arguments || {})
+          }
+        }));
+      } else {
+        delete cleanMsg.tool_calls;
+      }
+    }
+
+    // Normalize tool content
+    if (cleanMsg.role === 'tool') {
+      cleanMsg.tool_call_id = String(cleanMsg.tool_call_id || '');
+      if (typeof cleanMsg.content !== 'string') {
+        try {
+          cleanMsg.content = JSON.stringify(cleanMsg.content ?? '');
+        } catch {
+          cleanMsg.content = '[Error stringifying tool content]';
+        }
+      }
+    }
+
+    return cleanMsg;
+  }).filter(Boolean);
+
+  // Step 2: Enforce structural invariants (tool call / tool response pairings)
+  const sanitized = [];
+  let i = 0;
+
+  while (i < cleaned.length) {
+    const msg = cleaned[i];
+
+    if (msg.role === 'assistant' && Array.isArray(msg.tool_calls) && msg.tool_calls.length > 0) {
+      const validCallIds = new Set(msg.tool_calls.map(tc => tc.id));
+      
+      // Look ahead for consecutive tool messages
+      const toolResponses = [];
+      let j = i + 1;
+      while (j < cleaned.length && cleaned[j].role === 'tool') {
+        const candidate = cleaned[j];
+        if (validCallIds.has(candidate.tool_call_id)) {
+          toolResponses.push(candidate);
+        } else {
+          console.warn(`[MessageUtils] Ignoring unmatched tool response with ID: ${candidate.tool_call_id}`);
+        }
+        j++;
+      }
+
+      if (toolResponses.length > 0) {
+        // We have matching tool responses. Keep the assistant and tool responses.
+        sanitized.push(msg);
+        for (const tr of toolResponses) {
+          sanitized.push(tr);
+        }
+        i = j;
+      } else {
+        // No tool responses follow this assistant message
+        if (i === cleaned.length - 1) {
+          // It's the last message (e.g. streaming or waiting for execution)
+          sanitized.push(msg);
+        } else {
+          // In the middle of conversation without tool responses:
+          // If it has text content, convert to a pure assistant message without tool_calls
+          if (msg.content && msg.content.trim()) {
+            const strippedMsg = { ...msg };
+            delete strippedMsg.tool_calls;
+            sanitized.push(strippedMsg);
+          } else {
+            // No text and no tool responses -> drop empty broken assistant message
+            console.warn('[MessageUtils] Dropping empty assistant message with unfulfilled tool_calls in history');
+          }
+        }
+        i++;
+      }
+    } else if (msg.role === 'tool') {
+      // Orphan tool message encountered outside of an assistant tool_calls block!
+      console.warn(`[MessageUtils] Dropping orphan tool message with tool_call_id: ${msg.tool_call_id}`);
+      i++;
+    } else {
+      // System, user, or regular assistant message
+      sanitized.push(msg);
+      i++;
+    }
+  }
+
+  // Step 3: Ensure conversation doesn't start with an orphan tool message
+  while (sanitized.length > 0 && sanitized[0].role === 'tool') {
+    sanitized.shift();
+  }
+
+  return sanitized;
+}
+
+/**
  * Prunes message history to stay under 50% of model's context window
- * Always keeps the first two messages (if available) and the last message
+ * Preserves the first message (system/initial user) and the last turn.
+ * Prunes in atomic blocks so tool calls and tool responses are never separated.
  * Handles image filtering based on specified rules.
- * @param {Array} messages - Complete message history (should be cleaned format)
+ *
+ * @param {Array} messages - Complete message history
  * @param {String} model - Selected model name
  * @param {object} modelContextSizes - Object containing context window sizes for models.
  * @returns {Array} - Pruned message history array
  */
 function pruneMessageHistory(messages, model, modelContextSizes) {
-  // Handle edge cases: empty array, single message, or just two messages
+  // Handle edge cases
   if (!messages || !Array.isArray(messages) || messages.length <= 2) {
-    return messages ? [...messages] : [];
+    return sanitizeMessageHistory(messages);
   }
 
-  // Get context window size for the selected model, default if unknown
-  const modelInfo = modelContextSizes[model] || modelContextSizes['default'] || { context: 8192 }; // Ensure default
-  const contextWindow = modelInfo.context;
+  // Get context window size for the selected model
+  const modelInfo = modelContextSizes[model] || modelContextSizes['default'] || { context: 8192 };
+  const contextWindow = modelInfo.context || 8192;
   const targetTokenCount = Math.floor(contextWindow * 0.5); // Use 50% of context window
 
-  // Create a copy to avoid modifying the original array
-  let prunedMessages = [...messages];
+  // First sanitize to ensure structural validity before pruning
+  let sanitizedMessages = sanitizeMessageHistory(messages);
 
-  // --- Image Pruning Logic --- (Assumes cleaned message format)
+  // --- Image Pruning Logic ---
   let totalImageCount = 0;
   let lastUserMessageWithImagesIndex = -1;
 
-  prunedMessages.forEach((msg, index) => {
+  sanitizedMessages.forEach((msg, index) => {
     if (msg.role === 'user' && Array.isArray(msg.content)) {
       const imageParts = msg.content.filter(part => part.type === 'image_url');
       if (imageParts.length > 0) {
         totalImageCount += imageParts.length;
-        lastUserMessageWithImagesIndex = index; // Keep track of the latest one
+        lastUserMessageWithImagesIndex = index;
       }
     }
   });
@@ -38,65 +262,50 @@ function pruneMessageHistory(messages, model, modelContextSizes) {
   // If total images exceed 5, keep only images from the last user message that had them
   if (totalImageCount > 5 && lastUserMessageWithImagesIndex !== -1) {
     console.log(`Total image count (${totalImageCount}) exceeds 5. Keeping images only from the last user message (index ${lastUserMessageWithImagesIndex}).`);
-    prunedMessages = prunedMessages.map((msg, index) => {
+    sanitizedMessages = sanitizedMessages.map((msg, index) => {
       if (msg.role === 'user' && Array.isArray(msg.content) && index !== lastUserMessageWithImagesIndex) {
-        // Filter out image_url parts from older user messages
         const textParts = msg.content.filter(part => part.type === 'text');
-
-        // If only text parts remain, keep the message with only text parts
         if (textParts.length > 0) {
-            // If there was only one text part originally, simplify back to string content? No, keep array structure.
-            // console.log(`Removing images from message ${index}, keeping text parts.`);
-             return { ...msg, content: textParts };
+          return { ...msg, content: textParts };
         } else {
-            // If the message becomes empty after removing images, filter it out later?
-            // For now, let's keep it but mark content as empty text array
-            // console.log(`Message ${index} becomes empty after image removal.`);
-            return { ...msg, content: [{ type: 'text', text: '' }] }; // Represent as empty text
+          return { ...msg, content: [{ type: 'text', text: '' }] };
         }
       }
       return msg;
     });
-    // Optional: Filter out messages that became effectively empty?
-    // prunedMessages = prunedMessages.filter(msg => !(msg.role === 'user' && Array.isArray(msg.content) && msg.content.length === 1 && msg.content[0].type === 'text' && msg.content[0].text === ''));
   }
   // --- End Image Pruning Logic ---
 
-  // Recalculate tokens after potential image pruning
-  let currentTotalTokens = prunedMessages.reduce((sum, msg) => sum + estimateTokenCount(msg), 0);
+  // Recalculate tokens after image pruning
+  let currentTotalTokens = sanitizedMessages.reduce((sum, msg) => sum + estimateTokenCount(msg), 0);
 
-  // If we're already under the target, no text-based pruning needed
   if (currentTotalTokens <= targetTokenCount) {
-    console.log(`Token count (${currentTotalTokens}) is within target (${targetTokenCount}) after image pruning. No text pruning needed.`);
-    return prunedMessages;
+    return sanitizedMessages;
   }
 
-  console.log(`Token count (${currentTotalTokens}) exceeds target (${targetTokenCount}). Starting text pruning...`);
+  console.log(`Token count (${currentTotalTokens}) exceeds target (${targetTokenCount}). Starting atomic text pruning...`);
 
-  // Keep track of text-based pruned messages
+  // Group messages into atomic blocks so assistant tool_calls + tool responses are never split
+  let blocks = groupMessagesIntoAtomicBlocks(sanitizedMessages);
+
   let messagesPrunedCount = 0;
 
-  // Start pruning from index 1 (second message, as index 0 is system/first user) and continue until we're under the target
-  // Preserve index 0 (system/first user) and the last message
-  while (prunedMessages.length > 2 && currentTotalTokens > targetTokenCount) {
-    // Index 1 is the candidate for removal (oldest non-system/first message)
-    const messageToRemove = prunedMessages[1];
+  // Prune atomic blocks from index 1 (preserve index 0 and the latest block)
+  while (blocks.length > 2 && currentTotalTokens > targetTokenCount) {
+    const blockToRemove = blocks[1];
+    const blockTokens = blockToRemove.reduce((sum, msg) => sum + estimateTokenCount(msg), 0);
 
-    // Don't remove the very last message
-    if (prunedMessages.length <= 2) break; // Should be caught by loop condition, but safety first
-
-    const tokensForMessage = estimateTokenCount(messageToRemove);
-    prunedMessages.splice(1, 1);
-    currentTotalTokens -= tokensForMessage;
-    messagesPrunedCount++;
-    // console.log(`Pruned message at index 1 (was role ${messageToRemove.role}). New count: ${prunedMessages.length}, Tokens: ${currentTotalTokens}`);
+    blocks.splice(1, 1);
+    currentTotalTokens -= blockTokens;
+    messagesPrunedCount += blockToRemove.length;
   }
 
   if (messagesPrunedCount > 0) {
-    console.log(`Pruned ${messagesPrunedCount} messages based on token count. Final tokens: ${currentTotalTokens} (target: ${targetTokenCount})`);
+    console.log(`Pruned ${messagesPrunedCount} messages in atomic blocks. Final tokens: ${currentTotalTokens} (target: ${targetTokenCount})`);
   }
 
-  return prunedMessages;
+  const flattened = blocks.flat();
+  return sanitizeMessageHistory(flattened);
 }
 
 /**
@@ -236,6 +445,8 @@ function extractThinking(rawContent) {
 }
 
 module.exports = {
+    groupMessagesIntoAtomicBlocks,
+    sanitizeMessageHistory,
     pruneMessageHistory,
     estimateTokenCount,
     extractThinking

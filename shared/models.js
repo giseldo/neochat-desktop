@@ -16,8 +16,33 @@ const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
 function applyModelHeuristics(modelId, apiModelData) {
   const modelName = modelId.toLowerCase();
   
-  // Use context_window from API if available
-  const context = apiModelData?.context_window || DEFAULT_MODEL_CONFIG.context;
+  // Use context_window / max_context_length / context_length from API if available
+  let context = apiModelData?.context_window ||
+                apiModelData?.max_context_length ||
+                apiModelData?.context_length ||
+                apiModelData?.max_tokens;
+
+  if (!context || typeof context !== 'number') {
+    if (modelName.includes('deepseek')) {
+      context = 64000;
+    } else if (modelName.includes('llama-3.3') || modelName.includes('llama-3.1') || modelName.includes('llama-3.2')) {
+      context = 128000;
+    } else if (modelName.includes('llama-3')) {
+      context = 8192;
+    } else if (modelName.includes('qwen')) {
+      context = 32768;
+    } else if (modelName.includes('gpt-4') || modelName.includes('o1') || modelName.includes('o3') || modelName.includes('o4')) {
+      context = 128000;
+    } else if (modelName.includes('claude')) {
+      context = 200000;
+    } else if (modelName.includes('gemini')) {
+      context = 1000000;
+    } else if (modelName.includes('mistral') || modelName.includes('mixtral')) {
+      context = 32768;
+    } else {
+      context = DEFAULT_MODEL_CONFIG.context;
+    }
+  }
   
   // Heuristic: 'gpt-oss' in name = supports builtin tools
   const builtin_tools_supported = modelName.includes('gpt-oss');
