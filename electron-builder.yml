@@ -72,7 +72,7 @@ linux:
 publish:
   provider: github
   owner: giseldo
-  repo: neochat-desktop
+  repo: neochat-releases
 
 # Make sure scripts are executable
 fileAssociations:
