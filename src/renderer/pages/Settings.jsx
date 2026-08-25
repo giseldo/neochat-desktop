@@ -78,7 +78,7 @@ function Settings() {
     fallbackProviders: [],
     fallbackModels: {},
     tts: { enabled: true, autoSpeak: false, voiceURI: '', rate: 1.05, pitch: 1 },
-    voiceInput: { enabled: true },
+    voiceInput: { enabled: true, apiKey: '' },
     autoUpdate: { checkOnStartup: true, channel: 'stable' },
     observability: { monthlyBudgetUsd: 0, defaultRate: { input: 0, output: 0 }, modelRates: {} },
     gitIntegration: { repositoryPath: '' }
@@ -88,6 +88,7 @@ function Settings() {
   const [saveStatus, setSaveStatus] = useState(null);
   const [isSaving, setIsSaving] = useState(false);
   const [showApiKey, setShowApiKey] = useState(false);
+  const [showVoiceApiKey, setShowVoiceApiKey] = useState(false);
   const [isDeletingAllModalOpen, setIsDeletingAllModalOpen] = useState(false);
   const [isDeletingAll, setIsDeletingAll] = useState(false);
   const [newMcpServer, setNewMcpServer] = useState({
@@ -2038,6 +2039,59 @@ function Settings() {
                   />
                 </div>
 
+                {/* Dedicated Groq API Key for Voice */}
+                <div className="space-y-1.5 pt-1">
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="voice-api-key" className="text-xs font-medium flex items-center gap-1.5">
+                      <Key className="w-3.5 h-3.5 text-primary" />
+                      <span>{t('settings.voiceInputApiKeyLabel')}</span>
+                    </Label>
+                    <a
+                      href="https://console.groq.com/keys"
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-[11px] text-primary hover:underline inline-flex items-center gap-1 font-medium"
+                    >
+                      console.groq.com/keys <ExternalLink className="w-3 h-3" />
+                    </a>
+                  </div>
+                  <div className="relative flex items-center">
+                    <Input
+                      id="voice-api-key"
+                      type={showVoiceApiKey ? "text" : "password"}
+                      value={settings.voiceInput?.apiKey || ''}
+                      onChange={(e) => updateVoiceInput({ apiKey: e.target.value })}
+                      placeholder={t('settings.voiceInputApiKeyPlaceholder')}
+                      className="pr-10"
+                    />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="absolute right-0 h-full px-3 py-2 hover:bg-transparent text-muted-foreground hover:text-foreground"
+                      onClick={() => setShowVoiceApiKey(!showVoiceApiKey)}
+                      tabIndex={-1}
+                      title={showVoiceApiKey ? "Ocultar chave" : "Exibir chave"}
+                    >
+                      {showVoiceApiKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </Button>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] text-muted-foreground">
+                    <span>{t('settings.voiceInputApiKeyHelp')}</span>
+                    <span className="text-muted-foreground/60">•</span>
+                    <span className="font-medium text-foreground/80">{t('settings.voiceInputGetApiKey')}</span>
+                    <a
+                      href="https://console.groq.com/keys"
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-primary hover:underline inline-flex items-center gap-0.5 font-medium"
+                    >
+                      console.groq.com/keys <ExternalLink className="w-2.5 h-2.5" />
+                    </a>
+                  </div>
+                </div>
+
+                {/* Explanatory Info Box */}
                 <div className="rounded-xl border border-border/70 bg-muted/20 p-3.5 space-y-2 text-xs">
                   <div className="flex items-start gap-2.5">
                     <Info className="w-4 h-4 text-primary shrink-0 mt-0.5" />
@@ -2047,6 +2101,9 @@ function Settings() {
                       </p>
                       <p className="text-muted-foreground leading-relaxed">
                         {t('settings.voiceInputInfoModel')}
+                      </p>
+                      <p className="text-muted-foreground leading-relaxed">
+                        {t('settings.voiceInputInfoDedicatedKey')}
                       </p>
                       <p className="text-muted-foreground leading-relaxed">
                         {t('settings.voiceInputInfoUniversal')}

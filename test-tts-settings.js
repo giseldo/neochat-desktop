@@ -5,9 +5,11 @@ assert.deepStrictEqual(normalizeTts(), { enabled: true, autoSpeak: false, voiceU
 assert.deepStrictEqual(normalizeTts({ enabled: false, autoSpeak: true, voiceURI: 'voice-a', rate: 9, pitch: 0 }), { enabled: false, autoSpeak: true, voiceURI: 'voice-a', rate: 2, pitch: 0.5 });
 assert.strictEqual(normalizeTts({ rate: '1.25' }).rate, 1.25);
 
-assert.deepStrictEqual(normalizeVoiceInput(), { enabled: true });
-assert.deepStrictEqual(normalizeVoiceInput({ enabled: true }), { enabled: true });
-assert.deepStrictEqual(normalizeVoiceInput({ enabled: false }), { enabled: false });
+assert.deepStrictEqual(normalizeVoiceInput(), { enabled: true, apiKey: '' });
+assert.deepStrictEqual(normalizeVoiceInput({ enabled: true, apiKey: 'gsk-voice' }), { enabled: true, apiKey: 'gsk-voice' });
+assert.deepStrictEqual(normalizeVoiceInput({ enabled: false }), { enabled: false, apiKey: '' });
+assert.deepStrictEqual(normalizeVoiceInput({ apiKey: 123 }), { enabled: true, apiKey: '' });
 
 console.log('Voice and TTS settings tests passed.');
+
 

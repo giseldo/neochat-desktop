@@ -21,7 +21,8 @@ function normalizeTts(value = {}) {
 
 function normalizeVoiceInput(value = {}) {
     return {
-        enabled: value.enabled !== false
+        enabled: value.enabled !== false,
+        apiKey: typeof value.apiKey === 'string' ? value.apiKey : ''
     };
 }
 
@@ -67,7 +68,7 @@ function loadSettings() {
             googleClientSecret: "",
             googleTokenExpiresAt: null,
             customPromptTemplates: [],
-            voiceInput: { enabled: true },
+            voiceInput: { enabled: true, apiKey: '' },
             webSearch: {
                 enabled: true,
                 provider: 'local',
@@ -87,7 +88,7 @@ function loadSettings() {
         fallbackProviders: [],
         fallbackModels: {},
         tts: { enabled: true, autoSpeak: false, voiceURI: '', rate: 1.05, pitch: 1 },
-        voiceInput: { enabled: true },
+        voiceInput: { enabled: true, apiKey: '' },
         autoUpdate: { checkOnStartup: true, channel: 'stable' },
         observability: { monthlyBudgetUsd: 0, defaultRate: { input: 0, output: 0 }, modelRates: {} },
         gitIntegration: { repositoryPath: '' },
@@ -135,7 +136,8 @@ function loadSettings() {
                 parsedSettings.googleOAuthToken ||
                 parsedSettings.googleRefreshToken ||
                 parsedSettings.googleClientSecret ||
-                parsedSettings.webSearch?.apiKey
+                parsedSettings.webSearch?.apiKey ||
+                parsedSettings.voiceInput?.apiKey
             );
             if (hasPlaintextSecrets && secretStore?.isAvailable()) {
                 persistSettings(parsedSettings, settingsPath);

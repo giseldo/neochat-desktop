@@ -25,6 +25,10 @@ function createSecretStore({ userDataPath, safeStorage }) {
             secrets.webSearchApiKey = publicSettings.webSearch.apiKey;
             delete publicSettings.webSearch.apiKey;
         }
+        if (publicSettings.voiceInput?.apiKey !== undefined) {
+            secrets.voiceInputApiKey = publicSettings.voiceInput.apiKey;
+            delete publicSettings.voiceInput.apiKey;
+        }
         return { publicSettings, secrets };
     }
 
@@ -49,6 +53,9 @@ function createSecretStore({ userDataPath, safeStorage }) {
             }
             if (secrets.webSearchApiKey !== undefined) {
                 hydrated.webSearch = { ...(hydrated.webSearch || {}), apiKey: secrets.webSearchApiKey };
+            }
+            if (secrets.voiceInputApiKey !== undefined) {
+                hydrated.voiceInput = { ...(hydrated.voiceInput || {}), apiKey: secrets.voiceInputApiKey };
             }
             return hydrated;
         } catch (error) {

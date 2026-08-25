@@ -22,7 +22,8 @@ async function run() {
             GROQ_API_KEY: 'gsk-secret',
             apiKeys: { groq: 'gsk-secret', openai: 'sk-secret' },
             googleRefreshToken: 'refresh-secret',
-            webSearch: { enabled: true, apiKey: 'search-secret' }
+            webSearch: { enabled: true, apiKey: 'search-secret' },
+            voiceInput: { enabled: true, apiKey: 'voice-secret' }
         }));
 
         initializeSettingsHandlers(ipcMain, { getPath: () => tempDir }, safeStorage);
@@ -30,15 +31,18 @@ async function run() {
         assert.strictEqual(loaded.apiKeys.groq, 'gsk-secret');
         assert.strictEqual(loaded.googleRefreshToken, 'refresh-secret');
         assert.strictEqual(loaded.webSearch.apiKey, 'search-secret');
+        assert.strictEqual(loaded.voiceInput.apiKey, 'voice-secret');
 
         const plaintext = fs.readFileSync(settingsPath, 'utf8');
         assert.ok(!plaintext.includes('gsk-secret'), 'API keys must leave settings.json');
         assert.ok(!plaintext.includes('refresh-secret'), 'OAuth secrets must leave settings.json');
         assert.ok(!plaintext.includes('search-secret'), 'search keys must leave settings.json');
+        assert.ok(!plaintext.includes('voice-secret'), 'voice keys must leave settings.json');
         assert.ok(fs.existsSync(path.join(tempDir, 'secrets.vault')), 'encrypted vault must be created');
 
         const reloaded = loadSettings();
         assert.strictEqual(reloaded.apiKeys.openai, 'sk-secret', 'vault secrets must hydrate on reload');
+        assert.strictEqual(reloaded.voiceInput.apiKey, 'voice-secret', 'voice secret must hydrate on reload');
         console.log('Credential vault tests passed.');
     } finally {
         fs.rmSync(tempDir, { recursive: true, force: true });

@@ -145,17 +145,17 @@
   /* ----- GitHub Stars Counter ----- */
   var starCount = document.getElementById('starCount');
   if (starCount) {
-    fetch('https://api.github.com/repos/giseldo/neochat-desktop')
+    fetch('https://api.github.com/repos/giseldo/neochat-releases')
       .then(function (r) { return r.ok ? r.json() : Promise.reject(); })
       .then(function (data) {
         if (data && typeof data.stargazers_count === 'number' && data.stargazers_count > 0) {
           starCount.textContent = '★ ' + data.stargazers_count;
         } else {
-          starCount.textContent = '★ GitHub';
+          starCount.textContent = 'Releases';
         }
       })
       .catch(function () {
-        starCount.textContent = '★ GitHub';
+        starCount.textContent = 'Releases';
       });
   }
 
@@ -166,7 +166,7 @@
     'dl-linux': ['.appimage', '.deb', '.rpm']
   };
 
-  fetch('https://api.github.com/repos/giseldo/neochat-desktop/releases/latest')
+  fetch('https://api.github.com/repos/giseldo/neochat-releases/releases/latest')
     .then(function (r) { return r.ok ? r.json() : Promise.reject(); })
     .then(function (release) {
       if (!release || !release.assets || !release.assets.length) return;
@@ -194,3 +194,4 @@
     });
 
 })();
+

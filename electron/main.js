@@ -572,9 +572,11 @@ app.whenReady().then(async () => {
     if (currentSettings.voiceInput && currentSettings.voiceInput.enabled === false) {
       return { success: false, error: 'O recurso de voz está desativado nas configurações.' };
     }
-    const apiKey = currentSettings.GROQ_API_KEY || (currentSettings.apiKeys && currentSettings.apiKeys.groq) || process.env.GROQ_API_KEY;
+    const voiceApiKey = currentSettings.voiceInput?.apiKey?.trim();
+    const fallbackApiKey = currentSettings.GROQ_API_KEY || (currentSettings.apiKeys && currentSettings.apiKeys.groq) || process.env.GROQ_API_KEY;
+    const apiKey = (voiceApiKey && voiceApiKey !== '<replace me>') ? voiceApiKey : fallbackApiKey;
     if (!apiKey || apiKey === '<replace me>') {
-      return { success: false, error: 'Chave Groq API Key não configurada nas configurações.' };
+      return { success: false, error: 'Chave Groq API Key não configurada para a voz. Insira sua chave nas configurações de Voz.' };
     }
 
     const ext = mimeType.includes('wav') ? 'wav' : (mimeType.includes('mp4') ? 'm4a' : 'webm');
@@ -586,7 +588,8 @@ app.whenReady().then(async () => {
       const buffer = Buffer.from(base64Data, 'base64');
       fs.writeFileSync(tempFile, buffer);
 
-      const groq = chatHandler.createGroqClient(currentSettings);
+      const Groq = require('groq-sdk');
+      const groq = new Groq({ apiKey });
 
       const transcription = await groq.audio.transcriptions.create({
         file: fs.createReadStream(tempFile),
