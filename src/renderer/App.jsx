@@ -557,6 +557,22 @@ function App() {
     // Depend on initialLoadComplete as well to trigger after load finishes
   }, [selectedModel, initialLoadComplete, models]);
 
+  // Callback when model parameters / context size are updated via ModelParametersModal
+  const handleModelConfigUpdated = useCallback(async (modelId, newConfig) => {
+    try {
+      const updatedConfigs = await window.electron.getModelConfigs();
+      setModelConfigs(updatedConfigs);
+    } catch (error) {
+      console.error('Error refreshing model configs after update:', error);
+      if (modelId && newConfig) {
+        setModelConfigs(prev => ({
+          ...prev,
+          [modelId]: { ...prev[modelId], ...newConfig }
+        }));
+      }
+    }
+  }, []);
+
   // Check if user is at the bottom of the scroll area (within 100px threshold)
   const isAtBottom = () => {
     if (!messagesContainerRef.current) return true;
@@ -2044,6 +2060,7 @@ function App() {
                       toolsCount={mcpTools.length}
                       modelConfigs={modelConfigs}
                       focusSignal={chatFocusSignal}
+                      onModelConfigUpdated={handleModelConfigUpdated}
                     />
                   </div>
                 </div>
@@ -2076,6 +2093,7 @@ function App() {
                       toolsCount={mcpTools.length}
                       modelConfigs={modelConfigs}
                       focusSignal={chatFocusSignal}
+                      onModelConfigUpdated={handleModelConfigUpdated}
                     />
                   </div>
                 </div>
@@ -2112,6 +2130,7 @@ function App() {
                       toolsCount={mcpTools.length}
                       modelConfigs={modelConfigs}
                       focusSignal={chatFocusSignal}
+                      onModelConfigUpdated={handleModelConfigUpdated}
                     />
                   </div>
                 </div>

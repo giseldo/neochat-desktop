@@ -1,4 +1,4 @@
-import { ArrowUp, Loader2, ImagePlus, Hammer, Upload, Zap, ZapOff, Square, Mic, MicOff, Terminal, Globe, BookOpen } from "lucide-react";
+import { ArrowUp, Loader2, ImagePlus, Hammer, Upload, Zap, ZapOff, Square, Mic, MicOff, Terminal, Globe, BookOpen, SlidersHorizontal } from "lucide-react";
 import React, { useContext, useEffect, useRef, useState, useMemo } from "react";
 import TextAreaAutosize from "react-textarea-autosize";
 import { SearchableSelect } from "./ui/SearchableSelect";
@@ -9,6 +9,7 @@ import { useLanguage } from "../context/LanguageContext";
 import { useProjects } from "../context/ProjectContext";
 import SlashCommandsPopover from "./SlashCommandsPopover";
 import PromptTemplatesModal from "./PromptTemplatesModal";
+import ModelParametersModal from "./ModelParametersModal";
 import { getAllPromptCommands, PROMPT_TEMPLATES_STORAGE_KEY } from "../lib/defaultPromptCommands";
 
 function ChatInput({
@@ -24,6 +25,7 @@ function ChatInput({
 	mcpTools = [],
 	modelConfigs = {},
 	focusSignal = 0,
+	onModelConfigUpdated,
 }) {
 	const effectiveToolsCount = typeof toolsCount === 'number' && toolsCount > 0
 		? toolsCount
@@ -43,6 +45,7 @@ function ChatInput({
 	const [selectedSlashIndex, setSelectedSlashIndex] = useState(0);
 	const [slashFilterQuery, setSlashFilterQuery] = useState("");
 	const [isPromptTemplatesModalOpen, setIsPromptTemplatesModalOpen] = useState(false);
+	const [isModelParamsModalOpen, setIsModelParamsModalOpen] = useState(false);
 
 	const [files, setFiles] = useState([]); // Changed from images to files to handle all file types
 	const [textareaHeight, setTextareaHeight] = useState(null);
@@ -896,18 +899,31 @@ function ChatInput({
 							</div>
 						)}
 						
-						{/* Model Selector */}
-						<SearchableSelect
-							value={selectedModel}
-							onValueChange={onModelChange}
-							options={sortedModels}
-							placeholder={t('chat.selectModel')}
-							className="w-40 sm:w-48 max-w-[200px] min-w-[120px]"
-							disabled={loading}
-							getDisplayValue={(value) => getModelDisplayName(value)}
-							getOptionLabel={(model) => getModelDisplayName(model)}
-							getOptionValue={(model) => model}
-						/>
+						{/* Model Selector & Parameters */}
+						<div className="flex items-center gap-1">
+							<SearchableSelect
+								value={selectedModel}
+								onValueChange={onModelChange}
+								options={sortedModels}
+								placeholder={t('chat.selectModel')}
+								className="w-36 sm:w-44 max-w-[180px] min-w-[110px]"
+								disabled={loading}
+								getDisplayValue={(value) => getModelDisplayName(value)}
+								getOptionLabel={(model) => getModelDisplayName(model)}
+								getOptionValue={(model) => model}
+							/>
+							<Button
+								type="button"
+								variant="ghost"
+								size="icon"
+								onClick={() => setIsModelParamsModalOpen(true)}
+								title={t('chat.modelParameters') || 'Parâmetros do Modelo'}
+								className="h-8 w-8 text-muted-foreground hover:text-foreground hover:bg-muted/80 rounded-md transition-colors flex-shrink-0"
+								disabled={loading || !selectedModel}
+							>
+								<SlidersHorizontal className="w-3.5 h-3.5" />
+							</Button>
+						</div>
 					</div>
 				</div>
 			</div>
@@ -940,6 +956,15 @@ function ChatInput({
 			isOpen={isPromptTemplatesModalOpen}
 			onClose={() => setIsPromptTemplatesModalOpen(false)}
 			onTemplatesUpdated={(updated) => setCustomTemplates(updated)}
+		/>
+
+		{/* Model Parameters Modal */}
+		<ModelParametersModal
+			isOpen={isModelParamsModalOpen}
+			onClose={() => setIsModelParamsModalOpen(false)}
+			selectedModel={selectedModel}
+			modelConfigs={modelConfigs}
+			onModelConfigUpdated={onModelConfigUpdated}
 		/>
     </div>
 	);
