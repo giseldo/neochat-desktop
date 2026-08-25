@@ -249,7 +249,8 @@ function buildApiParams(prunedMessages, modelToUse, settings, tools, modelContex
         temperature: settings.temperature ?? 0.7,
         top_p: settings.top_p ?? 0.95,
         ...(shouldIncludeTools && { tools: allTools, tool_choice: "auto" }),
-        stream: true
+        stream: true,
+        stream_options: { include_usage: true }
     };
 
     // Add reasoning_effort parameter for gpt-oss models
@@ -262,14 +263,29 @@ function buildApiParams(prunedMessages, modelToUse, settings, tools, modelContex
 
 // Processes individual stream chunks for compound-beta and regular models
 function processStreamChunk(chunk, event, accumulatedData, groq, streamId, settings) {
-    if (!chunk.choices?.[0]) return;
+    // Capture usage data if present (standard chunk.usage or Groq chunk.x_groq.usage)
+    const rawUsage = chunk.usage || chunk.x_groq?.usage;
+    if (rawUsage) {
+        const promptTokens = rawUsage.prompt_tokens ?? rawUsage.input_tokens ?? accumulatedData.usage?.prompt_tokens ?? 0;
+        const completionTokens = rawUsage.completion_tokens ?? rawUsage.output_tokens ?? accumulatedData.usage?.completion_tokens ?? 0;
+        const totalTokens = rawUsage.total_tokens ?? (promptTokens + completionTokens);
+
+        accumulatedData.usage = {
+            ...(accumulatedData.usage || {}),
+            ...rawUsage,
+            prompt_tokens: promptTokens,
+            completion_tokens: completionTokens,
+            total_tokens: totalTokens,
+            prompt_time: rawUsage.prompt_time || accumulatedData.usage?.prompt_time,
+            completion_time: rawUsage.completion_time || accumulatedData.usage?.completion_time,
+            total_time: rawUsage.total_time || accumulatedData.usage?.total_time,
+            queue_time: rawUsage.queue_time || accumulatedData.usage?.queue_time,
+        };
+    }
+
+    if (!chunk.choices?.[0]) return null;
 
     const { delta } = chunk.choices[0];
-    
-    // Capture usage data if present (usually in the final chunk)
-    if (chunk.x_groq?.usage) {
-        accumulatedData.usage = chunk.x_groq.usage;
-    }
 
     if (accumulatedData.isFirstChunk) {
         accumulatedData.ttft = Date.now() - (accumulatedData.startTime || Date.now());
@@ -442,7 +458,7 @@ function processStreamChunk(chunk, event, accumulatedData, groq, streamId, setti
     return chunk.choices[0].finish_reason;
 }
 
-function handleStreamCompletion(event, accumulatedData, finishReason, streamId) {
+function handleStreamCompletion(event, accumulatedData, finishReason, streamId, chatCompletionParams) {
     // Clear the summary interval if it exists
     if (accumulatedData.summaryInterval) {
         clearInterval(accumulatedData.summaryInterval);
@@ -455,16 +471,51 @@ function handleStreamCompletion(event, accumulatedData, finishReason, streamId) 
 
     const elapsedSeconds = Math.max(0.001, (Date.now() - (accumulatedData.startTime || Date.now())) / 1000);
 
+    // Calculate prompt estimation if not provided by the API
+    let estimatedPromptTokens = 0;
+    if (chatCompletionParams?.messages) {
+        let totalPromptChars = 0;
+        for (const msg of chatCompletionParams.messages) {
+            if (typeof msg.content === 'string') {
+                totalPromptChars += msg.content.length;
+            } else if (Array.isArray(msg.content)) {
+                for (const part of msg.content) {
+                    if (part.type === 'text' && part.text) totalPromptChars += part.text.length;
+                }
+            }
+        }
+        if (chatCompletionParams.tools?.length > 0) {
+            totalPromptChars += JSON.stringify(chatCompletionParams.tools).length;
+        }
+        estimatedPromptTokens = Math.max(1, Math.round(totalPromptChars / 4));
+    }
+
+    const estimatedCompletionTokens = Math.max(1, Math.round(
+        ((accumulatedData.content || '').length + 
+         (accumulatedData.reasoning || '').length + 
+         (accumulatedData.toolCalls?.length ? JSON.stringify(accumulatedData.toolCalls).length : 0)) / 4
+    ));
+
     if (accumulatedData.usage) {
         accumulatedData.usage.ttft = accumulatedData.ttft || 0;
+        if (!accumulatedData.usage.prompt_tokens && estimatedPromptTokens > 0) {
+            accumulatedData.usage.prompt_tokens = estimatedPromptTokens;
+        }
+        if (!accumulatedData.usage.completion_tokens && estimatedCompletionTokens > 0) {
+            accumulatedData.usage.completion_tokens = estimatedCompletionTokens;
+        }
+        accumulatedData.usage.total_tokens = accumulatedData.usage.total_tokens || 
+            ((accumulatedData.usage.prompt_tokens || 0) + (accumulatedData.usage.completion_tokens || 0));
+
         if (!accumulatedData.usage.total_time && accumulatedData.usage.completion_time) {
             accumulatedData.usage.total_time = accumulatedData.usage.completion_time;
         }
         accumulatedData.usage.client_duration = elapsedSeconds;
     } else {
-        const estimatedCompletionTokens = Math.max(1, Math.round((accumulatedData.content || '').length / 4));
         accumulatedData.usage = {
+            prompt_tokens: estimatedPromptTokens,
             completion_tokens: estimatedCompletionTokens,
+            total_tokens: estimatedPromptTokens + estimatedCompletionTokens,
             completion_time: elapsedSeconds,
             total_time: elapsedSeconds,
             ttft: accumulatedData.ttft || 0,
@@ -621,6 +672,7 @@ async function executeStreamWithRetry(groq, chatCompletionParams, event, streamI
                 streamInfo.stream = stream;
             }
 
+            let recordedFinishReason = null;
             for await (const chunk of stream) {
                 // Check if stream was cancelled during iteration
                 const currentStreamInfo = activeStreams.get(streamId);
@@ -649,17 +701,21 @@ async function executeStreamWithRetry(groq, chatCompletionParams, event, streamI
                 }
 
                 const finishReason = processStreamChunk(chunk, event, accumulatedData, groq, streamId, settings);
-
                 if (finishReason) {
-                    // Write final response chunks if logging is enabled
-                    if (settings.logApiRequests && responseFilePath && responseChunks.length > 0) {
-                        fs.writeFileSync(responseFilePath, JSON.stringify(responseChunks, null, 2));
-                        console.log(`[ChatHandler] Response chunks written to: ${responseFilePath}`);
-                    }
-                    handleStreamCompletion(event, accumulatedData, finishReason, streamId);
-                    cleanupStream(streamId);
-                    return;
+                    recordedFinishReason = finishReason;
                 }
+            }
+
+            // Write final response chunks if logging is enabled
+            if (settings.logApiRequests && responseFilePath && responseChunks.length > 0) {
+                fs.writeFileSync(responseFilePath, JSON.stringify(responseChunks, null, 2));
+                console.log(`[ChatHandler] Response chunks written to: ${responseFilePath}`);
+            }
+
+            if (recordedFinishReason || accumulatedData.content || accumulatedData.toolCalls.length > 0 || accumulatedData.reasoning) {
+                handleStreamCompletion(event, accumulatedData, recordedFinishReason || "stop", streamId, chatCompletionParams);
+                cleanupStream(streamId);
+                return;
             }
 
             // Clear summary interval before exiting
@@ -1298,10 +1354,13 @@ async function handleResponsesApiStream(event, messages, model, settings, modelC
                                     const completionTime = metrics?.completion_time 
                                         ? parseFloat(metrics.completion_time) 
                                         : null;
+                                    const promptTokens = usage.input_tokens ?? usage.prompt_tokens ?? 0;
+                                    const completionTokens = usage.output_tokens ?? usage.completion_tokens ?? 0;
+                                    const totalTokens = usage.total_tokens ?? (promptTokens + completionTokens);
                                     accumulatedData.usage = {
-                                        total_tokens: usage.total_tokens,
-                                        prompt_tokens: usage.input_tokens,
-                                        completion_tokens: usage.output_tokens,
+                                        total_tokens: totalTokens,
+                                        prompt_tokens: promptTokens,
+                                        completion_tokens: completionTokens,
                                         completion_time: completionTime
                                     };
                                 }

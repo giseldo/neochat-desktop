@@ -15,21 +15,44 @@ export function ConversationStats({ messages = [], className }) {
     let userTurnCount = 0;
     let latestContextSize = 0;
 
+    let cumulativeHistoryChars = 0;
+
     messages.forEach((msg) => {
+      const msgContent = typeof msg.content === 'string'
+        ? msg.content
+        : Array.isArray(msg.content)
+          ? msg.content.map(p => (p.type === 'text' ? p.text : '')).join(' ')
+          : '';
+      const charCount = msgContent.length + (msg.reasoning ? msg.reasoning.length : 0);
+
       if (msg.role === 'user') {
         userTurnCount++;
+        cumulativeHistoryChars += charCount;
+      } else if (msg.role === 'tool') {
+        cumulativeHistoryChars += charCount;
       } else if (msg.role === 'assistant') {
         assistantTurnCount++;
-        if (msg.usage) {
-          const prompt = msg.usage.prompt_tokens || 0;
-          const comp = msg.usage.completion_tokens || 0;
-          const time = msg.usage.completion_time || msg.usage.total_time || msg.usage.client_duration || 0;
 
-          totalPromptTokens += prompt;
-          totalCompletionTokens += comp;
-          totalTimeSec += time;
-          latestContextSize = prompt + comp;
+        let prompt = msg.usage?.prompt_tokens ?? msg.usage?.input_tokens ?? 0;
+        let comp = msg.usage?.completion_tokens ?? msg.usage?.output_tokens ?? 0;
+        const time = msg.usage?.completion_time || msg.usage?.total_time || msg.usage?.client_duration || 0;
+
+        // If prompt_tokens is 0 but we have historical text, estimate prompt tokens
+        if (prompt === 0 && cumulativeHistoryChars > 0) {
+          prompt = Math.max(1, Math.round(cumulativeHistoryChars / 4));
         }
+
+        // If completion_tokens is 0 but we have content, estimate completion tokens
+        if (comp === 0 && charCount > 0) {
+          comp = Math.max(1, Math.round(charCount / 4));
+        }
+
+        totalPromptTokens += prompt;
+        totalCompletionTokens += comp;
+        totalTimeSec += time;
+        latestContextSize = prompt + comp;
+
+        cumulativeHistoryChars += charCount;
       }
     });
 

@@ -323,8 +323,8 @@ function Message({
   };
 
   // Calculate speed & tokens
-  const completionTokens = usage?.completion_tokens || 0;
-  const promptTokens = usage?.prompt_tokens || 0;
+  const completionTokens = usage?.completion_tokens ?? usage?.output_tokens ?? 0;
+  const promptTokens = usage?.prompt_tokens ?? usage?.input_tokens ?? 0;
   const totalTokens = usage?.total_tokens || (completionTokens + promptTokens);
   const durationSec = usage?.completion_time || usage?.total_time || usage?.client_duration || 0;
   const tokensPerSec = durationSec > 0 && completionTokens > 0 
