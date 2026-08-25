@@ -1,10 +1,20 @@
 const fs = require('fs');
 const path = require('path');
+const { createSecretStore } = require('./secretStore');
 
 // Load environment variables from .env file
 require('dotenv').config();
 
 let appInstance; // To store app instance for userData path
+let secretStore;
+
+function persistSettings(settings, settingsPath) {
+    const result = secretStore ? secretStore.save(settings) : { protected: false, publicSettings: settings };
+    const temporaryPath = `${settingsPath}.tmp`;
+    fs.writeFileSync(temporaryPath, JSON.stringify(result.publicSettings, null, 2));
+    fs.renameSync(temporaryPath, settingsPath);
+    return result.protected;
+}
 
 // Helper function to load settings with defaults and validation
 function loadSettings() {
@@ -89,7 +99,19 @@ function loadSettings() {
     try {
         if (fs.existsSync(settingsPath)) {
             const data = fs.readFileSync(settingsPath, 'utf8');
-            const loadedSettings = JSON.parse(data);
+            const parsedSettings = JSON.parse(data);
+            const hasPlaintextSecrets = Boolean(
+                parsedSettings.GROQ_API_KEY ||
+                Object.keys(parsedSettings.apiKeys || {}).length ||
+                parsedSettings.googleOAuthToken ||
+                parsedSettings.googleRefreshToken ||
+                parsedSettings.googleClientSecret ||
+                parsedSettings.webSearch?.apiKey
+            );
+            if (hasPlaintextSecrets && secretStore?.isAvailable()) {
+                persistSettings(parsedSettings, settingsPath);
+            }
+            const loadedSettings = secretStore ? secretStore.hydrate(parsedSettings) : parsedSettings;
 
             // Merge defaults and ensure required fields exist, applying defaults if necessary
             const settings = { ...defaultSettings, ...loadedSettings };
@@ -169,12 +191,13 @@ function loadSettings() {
     }
 }
 
-function initializeSettingsHandlers(ipcMain, app) {
+function initializeSettingsHandlers(ipcMain, app, safeStorage) {
     appInstance = app; // Store app instance
 
     // Log settings path on initialization
     const userDataPath = appInstance.getPath('userData');
     const settingsPath = path.join(userDataPath, 'settings.json');
+    secretStore = createSecretStore({ userDataPath, safeStorage });
     console.log('SettingsManager Initialized. Settings file location:', settingsPath);
     console.log('Settings file exists:', fs.existsSync(settingsPath));
 
@@ -221,8 +244,8 @@ function initializeSettingsHandlers(ipcMain, app) {
                 settings.apiKeys.groq = settings.GROQ_API_KEY;
             }
             // Optionally add more validation here
-            fs.writeFileSync(settingsPath, JSON.stringify(settings, null, 2));
-            return { success: true };
+            const protectedStorage = persistSettings(settings, settingsPath);
+            return { success: true, protectedStorage };
         } catch (error) {
             console.error('Error saving settings:', error);
             return { success: false, error: error.message };
@@ -255,8 +278,8 @@ async function saveSettings(settings) {
         } else if (settings.GROQ_API_KEY) {
             settings.apiKeys.groq = settings.GROQ_API_KEY;
         }
-        fs.writeFileSync(settingsPath, JSON.stringify(settings, null, 2));
-        return { success: true };
+        const protectedStorage = persistSettings(settings, settingsPath);
+        return { success: true, protectedStorage };
     } catch (error) {
         console.error('Error saving settings:', error);
         return { success: false, error: error.message };

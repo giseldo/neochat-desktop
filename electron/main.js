@@ -1,4 +1,4 @@
-const { app } = require('electron');
+const { app, safeStorage } = require('electron');
 const fs   = require('fs');
 const path = require('path');
 const { globalShortcut } = require('electron');
@@ -303,7 +303,7 @@ app.whenReady().then(async () => {
   }
 
   // Initialize settings handlers (needs app)
-  initializeSettingsHandlers(ipcMain, app);
+  initializeSettingsHandlers(ipcMain, app, safeStorage);
 
   // Initialize chat history manager
   chatHistoryManager.initialize(app, loadSettings);
