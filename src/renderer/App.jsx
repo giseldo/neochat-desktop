@@ -102,6 +102,8 @@ function App() {
   const { t } = useLanguage();
   const [activeTab, setActiveTab] = useState('chat'); // 'chat' | 'trajectory'
   const [showTrajectoryTab, setShowTrajectoryTab] = useState(true);
+  const [interfaceMode, setInterfaceMode] = useState('user');
+  const isPowerUser = interfaceMode === 'power';
   const [loading, setLoading] = useState(false);
   const [selectedModel, setSelectedModel] = useState('llama-3.3-70b-versatile');
   const [mcpTools, setMcpTools] = useState([]);
@@ -167,6 +169,15 @@ function App() {
   // --- Autonomous Agent Mode State ---
   const [agentStep, setAgentStep] = useState(0);
   // --- End Autonomous Agent Mode State ---
+
+  useEffect(() => {
+    if (!isPowerUser) {
+      setActiveTab('chat');
+      setIsCompareMode(false);
+      setIsToolsPanelOpen(false);
+      setIsMcpCatalogOpen(false);
+    }
+  }, [isPowerUser]);
 
   const currentChatTitle = useMemo(() => {
     if (!currentChatId || !chatList) return '';
@@ -469,6 +480,7 @@ function App() {
 
         // THEN Load settings
         const settings = await window.electron.getSettings(); // Await settings
+        setInterfaceMode(settings.interfaceMode === 'power' ? 'power' : 'user');
         setShowTrajectoryTab(settings.showTrajectoryTab !== false);
         // Load model filter settings
         setModelFilter(settings.modelFilter || '');
@@ -541,6 +553,7 @@ function App() {
     const handleFocus = async () => {
       try {
         const settings = await window.electron.getSettings();
+        setInterfaceMode(settings.interfaceMode === 'power' ? 'power' : 'user');
         const trajectoryEnabled = settings.showTrajectoryTab !== false;
         setShowTrajectoryTab(trajectoryEnabled);
         if (!trajectoryEnabled) {
@@ -2015,7 +2028,7 @@ function App() {
               )}
 
               {/* Chat / Trajectory Tab Switcher */}
-              {showTrajectoryTab && (
+              {isPowerUser && showTrajectoryTab && (
                 <div className="flex items-center gap-1 bg-muted/60 p-1 rounded-xl border border-border/70 shadow-2xs">
                   <button
                     type="button"
@@ -2046,13 +2059,15 @@ function App() {
               )}
               
               {/* Persona Selector */}
-              <PersonaSelector
-                activePersona={activePersona}
-                onSelectPersona={setActivePersona}
-              />
+              {isPowerUser && (
+                <PersonaSelector
+                  activePersona={activePersona}
+                  onSelectPersona={setActivePersona}
+                />
+              )}
 
               {/* Active Project Badge */}
-              {activeProject && (
+              {isPowerUser && activeProject && (
                 <div 
                   className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-xs font-medium cursor-pointer transition-colors shadow-2xs hover:opacity-90"
                   style={{ 
@@ -2080,7 +2095,7 @@ function App() {
               )}
 
               {/* Project Knowledge Base (RAG) Button */}
-              {activeProject && (
+              {isPowerUser && activeProject && (
                 <Button
                   type="button"
                   variant="ghost"
@@ -2099,12 +2114,12 @@ function App() {
               )}
 
               {/* Total Conversation Metrics & Token Summation */}
-              <ConversationStats messages={messages} />
+              {isPowerUser && <ConversationStats messages={messages} />}
             </div>
 
             <div className="flex items-center space-x-2">
               {/* MCP Catalog Button */}
-              <Button
+              {isPowerUser && <Button
                 variant="outline"
                 size="sm"
                 onClick={() => setIsMcpCatalogOpen(true)}
@@ -2113,10 +2128,10 @@ function App() {
               >
                 <Store className="h-3.5 w-3.5 mr-1.5 text-primary" />
                 <span className="hidden md:inline">{t('header.mcpStore')}</span>
-              </Button>
+              </Button>}
 
               {/* Compare Mode Toggle Button */}
-              <Button
+              {isPowerUser && <Button
                 variant={isCompareMode ? "default" : "outline"}
                 size="sm"
                 onClick={() => setIsCompareMode(!isCompareMode)}
@@ -2130,7 +2145,7 @@ function App() {
               >
                 <Scale className="h-3.5 w-3.5 mr-1.5 text-purple-400" />
                 <span className="hidden md:inline">{t('header.compareModels')}</span>
-              </Button>
+              </Button>}
 
               {/* Theme Toggle Button */}
               <ThemeToggle />
@@ -2198,6 +2213,7 @@ function App() {
                       modelConfigs={modelConfigs}
                       focusSignal={chatFocusSignal}
                       onModelConfigUpdated={handleModelConfigUpdated}
+                      powerUserMode={isPowerUser}
                     />
                   </div>
                 </div>
@@ -2219,6 +2235,7 @@ function App() {
                       modelConfigs={modelConfigs}
                       focusSignal={chatFocusSignal}
                       onModelConfigUpdated={handleModelConfigUpdated}
+                      powerUserMode={isPowerUser}
                     />
                   </div>
                 </div>
@@ -2252,6 +2269,7 @@ function App() {
                       modelConfigs={modelConfigs}
                       focusSignal={chatFocusSignal}
                       onModelConfigUpdated={handleModelConfigUpdated}
+                      powerUserMode={isPowerUser}
                     />
                   </div>
                 </div>
@@ -2289,6 +2307,7 @@ function App() {
                       modelConfigs={modelConfigs}
                       focusSignal={chatFocusSignal}
                       onModelConfigUpdated={handleModelConfigUpdated}
+                      powerUserMode={isPowerUser}
                     />
                   </div>
                 </div>
@@ -2352,4 +2371,4 @@ function App() {
   );
 }
 
-export default App; 
+export default App;

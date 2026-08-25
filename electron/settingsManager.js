@@ -13,6 +13,7 @@ function loadSettings() {
         // Return minimal defaults to avoid crashing downstream logic
         return {
             language: 'pt',
+            interfaceMode: 'user',
             showTrajectoryTab: true,
             GROQ_API_KEY: process.env.GROQ_API_KEY || "<replace me>",
             model: process.env.GROQ_DEFAULT_MODEL || "llama-3.3-70b-versatile",
@@ -49,6 +50,7 @@ function loadSettings() {
     const settingsPath = path.join(userDataPath, 'settings.json');
     const defaultSettings = {
         language: 'pt',
+        interfaceMode: 'user',
         showTrajectoryTab: true,
         provider: 'groq',
         apiKeys: {},
@@ -102,6 +104,7 @@ function loadSettings() {
             }
 
             settings.language = settings.language || defaultSettings.language;
+            settings.interfaceMode = settings.interfaceMode === 'power' ? 'power' : 'user';
             settings.showTrajectoryTab = settings.showTrajectoryTab ?? defaultSettings.showTrajectoryTab;
             settings.model = settings.model || defaultSettings.model;
             settings.temperature = settings.temperature ?? defaultSettings.temperature; // Use nullish coalescing
@@ -264,4 +267,4 @@ module.exports = {
     loadSettings,
     saveSettings,
     initializeSettingsHandlers
-}; 
+};

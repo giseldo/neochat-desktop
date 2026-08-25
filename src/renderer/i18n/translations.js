@@ -506,6 +506,12 @@ export const translations = {
       
       // Appearance Card
       appearanceTitle: 'Aparência e Tema',
+      interfaceModeTitle: 'Experiência da interface',
+      interfaceModeDesc: 'Escolha uma interface simples para uso cotidiano ou revele todos os controles técnicos.',
+      userMode: 'Modo Usuário',
+      userModeDesc: 'Interface limpa com conversa, anexos, captura de tela, voz e pesquisa na web.',
+      powerMode: 'Modo Power User',
+      powerModeDesc: 'Exibe modelos, parâmetros, agentes, MCP, RAG, métricas, provedores e opções avançadas.',
       appearanceDesc: 'Personalize o esquema de cores do aplicativo entre modo claro, escuro ou automático do sistema.',
       
       // API Configuration Card
@@ -1391,6 +1397,12 @@ export const translations = {
       
       // Appearance Card
       appearanceTitle: 'Appearance & Theme',
+      interfaceModeTitle: 'Interface experience',
+      interfaceModeDesc: 'Choose a clean everyday interface or reveal every technical control.',
+      userMode: 'User Mode',
+      userModeDesc: 'Clean interface with chat, attachments, screen capture, voice, and web search.',
+      powerMode: 'Power User Mode',
+      powerModeDesc: 'Shows models, parameters, agents, MCP, RAG, metrics, providers, and advanced options.',
       appearanceDesc: 'Customize the application color scheme between light, dark, or system default.',
       
       // API Configuration Card

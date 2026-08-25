@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { Link, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Eye, EyeOff, Plus, Trash2, Edit3, Save, X, RefreshCw, Key, Settings as SettingsIcon, Zap, Cpu, Server, AlertCircle, CheckCircle, Sun, Moon, Laptop, Languages, Check, Terminal, Globe, Palette, Type, Sparkles, Sliders, ExternalLink, Route } from 'lucide-react';
+import { ArrowLeft, Eye, EyeOff, Plus, Trash2, Edit3, Save, X, RefreshCw, Key, Settings as SettingsIcon, Zap, Cpu, Server, AlertCircle, CheckCircle, Sun, Moon, Laptop, Languages, Check, Terminal, Globe, Palette, Type, Sparkles, Sliders, ExternalLink, Route, User, Wrench } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
@@ -35,6 +35,7 @@ function Settings() {
   const [webSearchTestResult, setWebSearchTestResult] = useState(null);
   const [settings, setSettings] = useState({
     language: 'pt',
+    interfaceMode: 'user',
     showTrajectoryTab: true,
     GROQ_API_KEY: '',
     temperature: 0.7,
@@ -179,6 +180,7 @@ function Settings() {
         if (!settingsData.disabledMcpServers) {
             settingsData.disabledMcpServers = [];
         }
+        settingsData.interfaceMode = settingsData.interfaceMode === 'power' ? 'power' : 'user';
         if (!settingsData.builtInTools) {
             settingsData.builtInTools = {
                 codeInterpreter: false,
@@ -1360,9 +1362,48 @@ function Settings() {
       <main>
         <div className="container px-6 py-8">
           <div className="max-w-4xl mx-auto space-y-8">
+
+            {/* Interface experience */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center space-x-2">
+                  <User className="h-5 w-5 text-primary" />
+                  <span>{t('settings.interfaceModeTitle')}</span>
+                </CardTitle>
+                <CardDescription>{t('settings.interfaceModeDesc')}</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {[
+                    { id: 'user', icon: User, title: t('settings.userMode'), description: t('settings.userModeDesc') },
+                    { id: 'power', icon: Wrench, title: t('settings.powerMode'), description: t('settings.powerModeDesc') }
+                  ].map(({ id, icon: Icon, title, description }) => {
+                    const selected = settings.interfaceMode === id;
+                    return (
+                      <button
+                        key={id}
+                        type="button"
+                        onClick={() => handleSelectChange('interfaceMode', id)}
+                        className={`flex items-start gap-3 rounded-xl border p-4 text-left transition-all ${selected ? 'border-primary bg-primary/10 ring-1 ring-primary/30' : 'border-border hover:bg-muted'}`}
+                        aria-pressed={selected}
+                      >
+                        <Icon className={`h-5 w-5 mt-0.5 ${selected ? 'text-primary' : 'text-muted-foreground'}`} />
+                        <span className="flex-1">
+                          <span className="flex items-center justify-between font-semibold text-sm">
+                            {title}
+                            {selected && <Check className="h-4 w-4 text-primary" />}
+                          </span>
+                          <span className="block mt-1 text-xs text-muted-foreground leading-relaxed">{description}</span>
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </CardContent>
+            </Card>
             
             {/* Settings Path Info */}
-            {settingsPath && (
+            {settings.interfaceMode === 'power' && settingsPath && (
               <Card>
                 <CardContent className="p-4">
                   <div className="flex items-center space-x-2 text-sm text-muted-foreground">
@@ -1692,6 +1733,7 @@ function Settings() {
               </CardContent>
             </Card>
 
+            {settings.interfaceMode === 'power' && <>
             {/* API Settings */}
             <Card>
               <CardHeader>
@@ -3486,6 +3528,7 @@ function Settings() {
                 </div>
               </CardContent>
             </Card>
+            </>}
           </div>
         </div>
       </main>
@@ -3561,4 +3604,4 @@ function Settings() {
   );
 }
 
-export default Settings; 
+export default Settings;

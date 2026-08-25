@@ -16,7 +16,8 @@
     "dist:win": "pnpm build && electron-builder --win",
     "dist:linux": "pnpm build && electron-builder --linux",
     "test:platforms": "./test-cross-platform.sh",
-    "test:paths": "node test-paths.js"
+    "test:paths": "node test-paths.js",
+    "test:interface-mode": "node test-interface-mode.js"
   },
   "keywords": [
     "electron",

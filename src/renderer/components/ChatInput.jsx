@@ -27,6 +27,7 @@ function ChatInput({
 	modelConfigs = {},
 	focusSignal = 0,
 	onModelConfigUpdated,
+	powerUserMode = false,
 }) {
 	const effectiveToolsCount = typeof toolsCount === 'number' && toolsCount > 0
 		? toolsCount
@@ -798,7 +799,7 @@ function ChatInput({
 						/>
 
 						{/* Slash Commands (/) Button */}
-						<Button
+						{powerUserMode && <Button
 							type="button"
 							variant="ghost"
 							size="sm"
@@ -819,7 +820,7 @@ function ChatInput({
 						>
 							<Terminal className="w-4 h-4 mr-1 text-primary flex-shrink-0" />
 							<span>/</span>
-						</Button>
+						</Button>}
 
 						{/* Voice Dictation (Whisper) Button */}
 						<Button
@@ -849,7 +850,7 @@ function ChatInput({
 						</Button>
 
 						{/* MCP Tools Button */}
-						{onOpenMcpTools && (
+						{powerUserMode && onOpenMcpTools && (
 							<Button
 								type="button"
 								variant="ghost"
@@ -890,7 +891,7 @@ function ChatInput({
 						</Button>
 
 						{/* Knowledge Base (RAG) Button */}
-						{activeProject && openKnowledgeBaseModal && (
+						{powerUserMode && activeProject && openKnowledgeBaseModal && (
 							<Button
 								type="button"
 								variant="ghost"
@@ -915,7 +916,7 @@ function ChatInput({
 						)}
 
 						{/* Agent Mode (Autonomous Loop) Toggle Button */}
-						<Button
+						{powerUserMode && <Button
 							type="button"
 							variant="ghost"
 							size="sm"
@@ -940,7 +941,7 @@ function ChatInput({
 							{agentModeActive && (
 								<span className="w-1.5 h-1.5 rounded-full bg-amber-500 flex-shrink-0 animate-pulse"></span>
 							)}
-						</Button>
+						</Button>}
 					</div>
 
 					<div className="flex items-center gap-2 flex-shrink-0 ml-auto min-w-0">
@@ -953,7 +954,7 @@ function ChatInput({
 						)}
 						
 						{/* Model Selector & Parameters */}
-						<div className="flex items-center gap-1">
+						{powerUserMode && <div className="flex items-center gap-1">
 							<SearchableSelect
 								value={selectedModel}
 								onValueChange={onModelChange}
@@ -976,7 +977,7 @@ function ChatInput({
 							>
 								<SlidersHorizontal className="w-3.5 h-3.5" />
 							</Button>
-						</div>
+						</div>}
 					</div>
 				</div>
 			</div>
