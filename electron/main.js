@@ -465,6 +465,15 @@ app.whenReady().then(async () => {
     return await detectLocalAiProviders();
   });
 
+  // --- Screen Capture IPC Handlers (Snip & Ask) ---
+  const screenCaptureService = require('./screenCaptureService');
+  ipcMain.handle('screen-capture-get-sources', async () => {
+    return await screenCaptureService.getScreenSources();
+  });
+  ipcMain.handle('screen-capture-fullscreen', async () => {
+    return await screenCaptureService.capturePrimaryScreen();
+  });
+
   // Model configs handler already registered above during early initialization
   console.log("[Main Init] Continuing with remaining handlers...");
 

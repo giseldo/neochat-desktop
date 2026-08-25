@@ -1,4 +1,4 @@
-import { ArrowUp, Loader2, ImagePlus, Hammer, Upload, Zap, ZapOff, Square, Mic, MicOff, Terminal, Globe, BookOpen, SlidersHorizontal } from "lucide-react";
+import { ArrowUp, Loader2, ImagePlus, Hammer, Upload, Zap, ZapOff, Square, Mic, MicOff, Terminal, Globe, BookOpen, SlidersHorizontal, Camera } from "lucide-react";
 import React, { useContext, useEffect, useRef, useState, useMemo } from "react";
 import TextAreaAutosize from "react-textarea-autosize";
 import { SearchableSelect } from "./ui/SearchableSelect";
@@ -10,6 +10,7 @@ import { useProjects } from "../context/ProjectContext";
 import SlashCommandsPopover from "./SlashCommandsPopover";
 import PromptTemplatesModal from "./PromptTemplatesModal";
 import ModelParametersModal from "./ModelParametersModal";
+import SnipModal from "./SnipModal";
 import { getAllPromptCommands, PROMPT_TEMPLATES_STORAGE_KEY } from "../lib/defaultPromptCommands";
 
 function ChatInput({
@@ -52,6 +53,7 @@ function ChatInput({
 	const [rowHeight, setRowHeight] = useState(null);
 	const [isRecording, setIsRecording] = useState(false);
 	const [isTranscribing, setIsTranscribing] = useState(false);
+	const [isSnipModalOpen, setIsSnipModalOpen] = useState(false);
 	const mediaRecorderRef = useRef(null);
 	const audioChunksRef = useRef([]);
 
@@ -762,6 +764,22 @@ function ChatInput({
 								<span>{t('chat.upload')}</span>
 							</Button>
 						)}
+
+						{/* Snip & Ask (Screen Capture) Button */}
+						{files.length < 5 && (
+							<Button
+								type="button"
+								variant="ghost"
+								size="sm"
+								onClick={() => setIsSnipModalOpen(true)}
+								className="text-muted-foreground hover:text-foreground hover:bg-white/40 hover:shadow-sm transition-all duration-200 rounded-xl px-2.5 py-1.5 text-xs font-medium"
+								title="Snip & Ask (Recortar / Capturar Tela com Visão)"
+								disabled={loading}
+							>
+								<Camera className="w-4 h-4 mr-1.5 flex-shrink-0 text-cyan-500" />
+								<span>Snip & Ask</span>
+							</Button>
+						)}
 						<input
 							type="file"
 							ref={fileInputRef}
@@ -965,6 +983,13 @@ function ChatInput({
 			selectedModel={selectedModel}
 			modelConfigs={modelConfigs}
 			onModelConfigUpdated={onModelConfigUpdated}
+		/>
+
+		{/* Snip & Ask Screen Capture Modal */}
+		<SnipModal
+			isOpen={isSnipModalOpen}
+			onClose={() => setIsSnipModalOpen(false)}
+			onCaptureComplete={(capturedFile) => setFiles(prev => [...prev, capturedFile])}
 		/>
     </div>
 	);

@@ -282,6 +282,12 @@ contextBridge.exposeInMainWorld('electron', {
     detect: () => ipcRenderer.invoke('local-ai-detect'),
   },
 
+  // --- Screen Capture (Snip & Ask) ---
+  screenCapture: {
+    getSources: () => ipcRenderer.invoke('screen-capture-get-sources'),
+    captureFullscreen: () => ipcRenderer.invoke('screen-capture-fullscreen'),
+  },
+
   // Generic IPC renderer access (kept for backward compatibility)
   ipcRenderer: {
     invoke: (channel, data) => ipcRenderer.invoke(channel, data),
