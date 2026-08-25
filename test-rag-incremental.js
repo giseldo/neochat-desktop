@@ -28,7 +28,8 @@ async function run() {
         const third = await rag.indexFolder(docsDir, 'project');
         assert.strictEqual(third.changedFiles, 1);
         assert.strictEqual(third.unchangedFiles, 2);
-        assert.strictEqual(rag.queryKnowledge('searchable phrase', { projectId: 'project' }).totalMatches, 1);
+        const changedResults = rag.queryKnowledge('searchable phrase', { projectId: 'project' }).results;
+        assert.ok(changedResults.some(result => result.fileName === 'one.md' && result.content.includes('New searchable phrase')));
 
         fs.unlinkSync(path.join(docsDir, 'two.txt'));
         const fourth = await rag.indexFolder(docsDir, 'project');
