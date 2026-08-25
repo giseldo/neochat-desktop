@@ -207,8 +207,19 @@ function App() {
     let currentApiMessages = messagesToKeep;
     let conversationStatus = 'processing';
 
+    let toolIterationsCount = 0;
+    const MAX_TOOL_ITERATIONS = 12;
+
     try {
         while (conversationStatus === 'processing' || conversationStatus === 'completed_with_tools') {
+            if (conversationStatus === 'completed_with_tools') {
+                toolIterationsCount++;
+                if (toolIterationsCount >= MAX_TOOL_ITERATIONS) {
+                    console.warn(`[Frontend] Maximum tool iterations (${MAX_TOOL_ITERATIONS}) reached in reload. Stopping.`);
+                    break;
+                }
+            }
+
             const { status, assistantMessage, toolResponseMessages } = await executeChatTurn(currentApiMessages);
 
             conversationStatus = status;
@@ -1281,17 +1292,14 @@ function App() {
         console.log('Chat turn was cancelled');
         currentTurnStatus = 'cancelled';
       } else {
-        // Ensure placeholder is replaced or an error message is added
+        // Ensure placeholder is replaced (without duplicating if streamHandler.onError already handled it)
         setMessages(prev => {
             const newMessages = [...prev];
             const idx = newMessages.findIndex(msg => msg.role === 'assistant' && msg.isStreaming);
-            const errorMsg = { role: 'assistant', content: `Error: ${error.message}`, isStreaming: false };
-              if (idx !== -1) {
-                  newMessages[idx] = errorMsg;
-              } else {
-                  // If streaming never started, add the error message
-                  newMessages.push(errorMsg);
-              }
+            if (idx !== -1) {
+                const errorMsg = { role: 'assistant', content: `Error: ${error.message}`, isStreaming: false };
+                newMessages[idx] = errorMsg;
+            }
             return newMessages;
         });
         currentTurnStatus = 'error';
@@ -1343,9 +1351,19 @@ function App() {
     let conversationStatus = 'processing'; // Start the conversation flow
     let emptyResponseRetries = 0; // Track retries for empty responses
     const MAX_EMPTY_RETRIES = 3; // Maximum retries for empty responses
+    let toolIterationsCount = 0;
+    const MAX_TOOL_ITERATIONS = 12; // Prevent infinite tool execution loops
 
     try {
         while (conversationStatus === 'processing' || conversationStatus === 'completed_with_tools') {
+            if (conversationStatus === 'completed_with_tools') {
+                toolIterationsCount++;
+                if (toolIterationsCount >= MAX_TOOL_ITERATIONS) {
+                    console.warn(`[Frontend] Maximum tool iterations (${MAX_TOOL_ITERATIONS}) reached. Stopping tool loop.`);
+                    break;
+                }
+            }
+
             const { status, assistantMessage, toolResponseMessages } = await executeChatTurn(currentApiMessages);
 
             conversationStatus = status; // Update status for loop condition

@@ -176,10 +176,25 @@ function sanitizeMessageHistory(messages) {
       }
 
       if (toolResponses.length > 0) {
-        // We have matching tool responses. Keep the assistant and tool responses.
-        sanitized.push(msg);
-        for (const tr of toolResponses) {
-          sanitized.push(tr);
+        // Enforce strict pairing: filter msg.tool_calls to ONLY include tool_calls that actually have matching responses!
+        // This prevents 400 invalid_request_error when an assistant requested multiple tools but only some were executed.
+        const foundCallIds = new Set(toolResponses.map(r => r.tool_call_id));
+        const matchedToolCalls = msg.tool_calls.filter(tc => foundCallIds.has(tc.id));
+
+        if (matchedToolCalls.length > 0) {
+          const assistantWithMatchedTools = {
+            ...msg,
+            tool_calls: matchedToolCalls
+          };
+          sanitized.push(assistantWithMatchedTools);
+          for (const tr of toolResponses) {
+            sanitized.push(tr);
+          }
+        } else if (msg.content && msg.content.trim()) {
+          // If no tool_calls matched but message has text, strip tool_calls
+          const strippedMsg = { ...msg };
+          delete strippedMsg.tool_calls;
+          sanitized.push(strippedMsg);
         }
         i = j;
       } else {
@@ -212,9 +227,15 @@ function sanitizeMessageHistory(messages) {
     }
   }
 
-  // Step 3: Ensure conversation doesn't start with an orphan tool message
-  while (sanitized.length > 0 && sanitized[0].role === 'tool') {
-    sanitized.shift();
+  // Step 3: Ensure non-system conversation starts with a user message
+  const firstNonSystemIdx = sanitized.findIndex(m => m.role !== 'system');
+  if (firstNonSystemIdx !== -1 && sanitized[firstNonSystemIdx].role !== 'user') {
+    // If the first non-system message is an assistant or tool, ensure a valid user prompt placeholder
+    // precedes it so OpenAI / Groq / DeepSeek APIs do not throw 400 invalid_request_error.
+    sanitized.splice(firstNonSystemIdx, 0, {
+      role: 'user',
+      content: [{ type: 'text', text: 'Continue' }]
+    });
   }
 
   return sanitized;
@@ -222,7 +243,10 @@ function sanitizeMessageHistory(messages) {
 
 /**
  * Prunes message history to stay under 50% of model's context window
- * Preserves the first message (system/initial user) and the last turn.
+ * Prioritizes preserving:
+ * 1. Initial system prompt / context
+ * 2. The active turn's user prompt (last user message)
+ * 3. The latest assistant message and its tool calls / responses
  * Prunes in atomic blocks so tool calls and tool responses are never separated.
  * Handles image filtering based on specified rules.
  *
@@ -283,19 +307,42 @@ function pruneMessageHistory(messages, model, modelContextSizes) {
     return sanitizedMessages;
   }
 
-  console.log(`Token count (${currentTotalTokens}) exceeds target (${targetTokenCount}). Starting atomic text pruning...`);
+  console.log(`Token count (${currentTotalTokens}) exceeds target (${targetTokenCount}). Starting turn-prioritized atomic pruning...`);
 
   // Group messages into atomic blocks so assistant tool_calls + tool responses are never split
   let blocks = groupMessagesIntoAtomicBlocks(sanitizedMessages);
-
   let messagesPrunedCount = 0;
 
-  // Prune atomic blocks from index 1 (preserve index 0 and the latest block)
-  while (blocks.length > 2 && currentTotalTokens > targetTokenCount) {
+  // Find the block containing the LAST user message (the active prompt for the current turn)
+  let lastUserBlockIdx = -1;
+  for (let bIdx = blocks.length - 1; bIdx >= 0; bIdx--) {
+    if (blocks[bIdx].some(m => m.role === 'user')) {
+      lastUserBlockIdx = bIdx;
+      break;
+    }
+  }
+
+  // Phase 1: Prune historical turns BEFORE the active user turn (from block 1 to lastUserBlockIdx - 1)
+  while (lastUserBlockIdx > 1 && currentTotalTokens > targetTokenCount) {
     const blockToRemove = blocks[1];
     const blockTokens = blockToRemove.reduce((sum, msg) => sum + estimateTokenCount(msg), 0);
 
     blocks.splice(1, 1);
+    lastUserBlockIdx--;
+    currentTotalTokens -= blockTokens;
+    messagesPrunedCount += blockToRemove.length;
+  }
+
+  // Phase 2: If tokens STILL exceed target (e.g. current turn has many tool calls/results),
+  // prune intermediate tool blocks inside the current turn from oldest to newest.
+  // We MUST keep:
+  // - blocks[lastUserBlockIdx] (the active user prompt)
+  // - blocks[blocks.length - 1] (the latest tool call / assistant response block)
+  while (blocks.length > lastUserBlockIdx + 2 && currentTotalTokens > targetTokenCount) {
+    const blockToRemove = blocks[lastUserBlockIdx + 1];
+    const blockTokens = blockToRemove.reduce((sum, msg) => sum + estimateTokenCount(msg), 0);
+
+    blocks.splice(lastUserBlockIdx + 1, 1);
     currentTotalTokens -= blockTokens;
     messagesPrunedCount += blockToRemove.length;
   }

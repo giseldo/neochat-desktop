@@ -141,16 +141,71 @@ const dirtyMessage = {
 };
 
 const cleaned = sanitizeMessageHistory([dirtyMessage]);
-assert.strictEqual(cleaned[0].reasoning, undefined);
-assert.strictEqual(cleaned[0].isStreaming, undefined);
-assert.strictEqual(cleaned[0].reasoningDuration, undefined);
-assert.strictEqual(cleaned[0].liveReasoning, undefined);
-assert.strictEqual(cleaned[0].liveExecutedTools, undefined);
-assert.strictEqual(cleaned[0].executed_tools, undefined);
-assert.strictEqual(cleaned[0].usage, undefined);
-assert.strictEqual(cleaned[0].timestamp, undefined);
-assert.strictEqual(cleaned[0].createdAt, undefined);
-assert.strictEqual(cleaned[0].content, 'Hello');
+const cleanedAsst = cleaned.find(m => m.role === 'assistant');
+assert(cleanedAsst, 'Cleaned array must contain assistant message');
+assert.strictEqual(cleanedAsst.reasoning, undefined);
+assert.strictEqual(cleanedAsst.isStreaming, undefined);
+assert.strictEqual(cleanedAsst.reasoningDuration, undefined);
+assert.strictEqual(cleanedAsst.liveReasoning, undefined);
+assert.strictEqual(cleanedAsst.liveExecutedTools, undefined);
+assert.strictEqual(cleanedAsst.executed_tools, undefined);
+assert.strictEqual(cleanedAsst.usage, undefined);
+assert.strictEqual(cleanedAsst.timestamp, undefined);
+assert.strictEqual(cleanedAsst.createdAt, undefined);
+assert.strictEqual(cleanedAsst.content, 'Hello');
 console.log('✅ Test 4 passed: Internal fields properly stripped.');
+
+// Test 5: Strict pairing with partial tool responses
+console.log('\n[Test 5] Testing strict pairing with partial tool responses...');
+const partialToolMessages = [
+  { role: 'user', content: [{ type: 'text', text: 'Run tools' }] },
+  {
+    role: 'assistant',
+    content: '',
+    tool_calls: [
+      { id: 'call_success', type: 'function', function: { name: 'web_search', arguments: '{"q":"a"}' } },
+      { id: 'call_failed_unfulfilled', type: 'function', function: { name: 'web_search', arguments: '{"q":"b"}' } }
+    ]
+  },
+  { role: 'tool', tool_call_id: 'call_success', content: 'Success result' }
+  // Notice call_failed_unfulfilled is missing in tool responses
+];
+
+const sanitized5 = sanitizeMessageHistory(partialToolMessages);
+assert.strictEqual(sanitized5.length, 3, 'Should keep user, assistant with matched tools, and matching tool response');
+assert.strictEqual(sanitized5[1].tool_calls.length, 1, 'Assistant should only have 1 matched tool call');
+assert.strictEqual(sanitized5[1].tool_calls[0].id, 'call_success', 'Should keep the call_success ID');
+console.log('✅ Test 5 passed: Partial tool calls properly filtered to only fulfilled calls.');
+
+// Test 6: Preserving the active user turn during heavy multi-search pruning
+console.log('\n[Test 6] Testing active turn user prompt preservation during heavy search pruning...');
+const multiSearchMessages = [
+  { role: 'user', content: [{ type: 'text', text: 'piada inicial' }] },
+  { role: 'assistant', content: 'Resposta da piada...' },
+  { role: 'user', content: [{ type: 'text', text: 'quais as principais noticias de hoje?' }] }
+];
+
+for (let iter = 1; iter <= 10; iter++) {
+  const c1 = `c_${iter}_1`;
+  const c2 = `c_${iter}_2`;
+  multiSearchMessages.push({
+    role: 'assistant',
+    content: iter === 1 ? 'Buscando notícias...' : '',
+    tool_calls: [
+      { id: c1, type: 'function', function: { name: 'web_search', arguments: '{}' } },
+      { id: c2, type: 'function', function: { name: 'web_search', arguments: '{}' } }
+    ]
+  });
+  multiSearchMessages.push({ role: 'tool', tool_call_id: c1, content: 'Notícia '.repeat(100) });
+  multiSearchMessages.push({ role: 'tool', tool_call_id: c2, content: 'Notícia '.repeat(100) });
+}
+
+const pruned6 = pruneMessageHistory(multiSearchMessages, 'deepseek-test', { 'deepseek-test': { context: 1500 } });
+const userPromptsInPruned = pruned6.filter(m => m.role === 'user');
+assert(userPromptsInPruned.length >= 1, 'Pruned history must have at least 1 user prompt');
+const lastUserPrompt = userPromptsInPruned[userPromptsInPruned.length - 1];
+const lastUserText = Array.isArray(lastUserPrompt.content) ? lastUserPrompt.content[0].text : lastUserPrompt.content;
+assert.strictEqual(lastUserText, 'quais as principais noticias de hoje?', 'Active turn user prompt must be preserved');
+console.log('✅ Test 6 passed: Active user prompt preserved during heavy tool pruning.');
 
 console.log('\n🎉 ALL MESSAGE PRUNING & SANITIZATION TESTS PASSED SUCCESSFULLY! 🎉\n');
