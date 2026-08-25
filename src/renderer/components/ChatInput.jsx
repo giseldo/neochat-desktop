@@ -1,4 +1,4 @@
-import { ArrowLeft, Loader2, ImagePlus, Hammer, Upload, Zap, ZapOff, Square, Mic, MicOff, Terminal, Globe, BookOpen, SlidersHorizontal, Camera, Bot } from "lucide-react";
+import { ArrowRight, Loader2, ImagePlus, Hammer, Upload, Zap, ZapOff, Square, Mic, MicOff, Terminal, Globe, BookOpen, SlidersHorizontal, Camera, Bot } from "lucide-react";
 import React, { useContext, useEffect, useRef, useState, useMemo } from "react";
 import TextAreaAutosize from "react-textarea-autosize";
 import { SearchableSelect } from "./ui/SearchableSelect";
@@ -870,7 +870,7 @@ function ChatInput({
 							{loading ? (
 								<Square className="w-5 h-5" aria-hidden="true" />
 							) : (
-								<ArrowLeft className="w-5 h-5" aria-hidden="true" />
+								<ArrowRight className="w-5 h-5" aria-hidden="true" />
 							)}
 						</Button>
 					</div>
