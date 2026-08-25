@@ -391,6 +391,7 @@ export const translations = {
       allowOnce: 'Permitir uma vez',
       alwaysAllow: 'Sempre permitir esta ferramenta',
       alwaysAllowTool: 'Sempre permitir esta ferramenta',
+      alwaysDenyTool: 'Sempre bloquear esta ferramenta',
       yoloMode: 'Modo YOLO',
       yoloTitle: 'Sempre permitir qualquer ferramenta (Aviso: risco potencial de segurança)',
       yoloTooltip: 'Sempre permitir qualquer ferramenta (Aviso: risco potencial de segurança)',
@@ -705,6 +706,10 @@ export const translations = {
       // Tool Approvals Card
       toolApprovalsTitle: 'Aprovações de Ferramentas',
       toolApprovalsDesc: 'Redefinir configurações de aprovação de chamadas de ferramentas salvas no navegador.',
+      defaultToolPolicy: 'Política padrão para ferramentas',
+      policyPrompt: 'Perguntar antes de executar',
+      policyAllow: 'Permitir automaticamente',
+      policyDeny: 'Bloquear automaticamente',
       resetToolApprovalsBtn: 'Redefinir Aprovações de Ferramentas',
       resetToolApprovalsHelp: 'Isso removerá todas as preferências salvas de aprovação de ferramentas e solicitará permissão novamente para cada ferramenta.',
 
@@ -1282,6 +1287,7 @@ export const translations = {
       allowOnce: 'Allow Once',
       alwaysAllow: 'Always Allow This Tool',
       alwaysAllowTool: 'Always Allow This Tool',
+      alwaysDenyTool: 'Always Block This Tool',
       yoloMode: 'YOLO Mode',
       yoloTitle: 'Always Allow Any Tool (Warning: potential security risk from prompt injection)',
       yoloTooltip: 'Always Allow Any Tool (Warning: potential security risk from prompt injection)',
@@ -1596,6 +1602,10 @@ export const translations = {
       // Tool Approvals Card
       toolApprovalsTitle: 'Tool Approvals',
       toolApprovalsDesc: 'Reset tool call approval settings stored in browser.',
+      defaultToolPolicy: 'Default tool policy',
+      policyPrompt: 'Ask before running',
+      policyAllow: 'Allow automatically',
+      policyDeny: 'Block automatically',
       resetToolApprovalsBtn: 'Reset Tool Approvals',
       resetToolApprovalsHelp: 'This will remove all saved tool approval preferences and prompt you again for each tool.',
 

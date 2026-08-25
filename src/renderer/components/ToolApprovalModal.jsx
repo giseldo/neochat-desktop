@@ -53,6 +53,7 @@ function ToolApprovalModal({ toolCall, onApprove }) {
     always: `bg-green-700 hover:bg-green-800 focus:ring-green-600 ${baseButtonClass}`,
     yolo:   `bg-yellow-700 hover:bg-yellow-800 focus:ring-yellow-600 ${baseButtonClass}`,
     deny:   `bg-red-700 hover:bg-red-800 focus:ring-red-600 ${baseButtonClass}`,
+    never:  `bg-red-900 hover:bg-red-950 focus:ring-red-700 ${baseButtonClass}`,
   };
 
   return (
@@ -127,6 +128,12 @@ function ToolApprovalModal({ toolCall, onApprove }) {
             className={buttonClasses.deny}
           >
             {t('toolApproval.deny')}
+          </button>
+          <button
+            onClick={() => handleChoice('never')}
+            className={buttonClasses.never}
+          >
+            {t('toolApproval.alwaysDenyTool')}
           </button>
         </div>
       </div>

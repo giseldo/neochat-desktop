@@ -31,6 +31,7 @@ function loadSettings() {
             top_p: 0.95,
             mcpServers: {},
             disabledMcpServers: [],
+            toolPermissions: { defaultPolicy: 'prompt', tools: {}, allowAll: false },
             customSystemPrompt: '',
             popupEnabled: true,
             customCompletionUrl: '',
@@ -71,6 +72,7 @@ function loadSettings() {
         reasoning_effort: 'medium',
         mcpServers: {},
         disabledMcpServers: [],
+        toolPermissions: { defaultPolicy: 'prompt', tools: {}, allowAll: false },
         customSystemPrompt: '',
         popupEnabled: true,
         customCompletionUrl: '',
@@ -141,6 +143,7 @@ function loadSettings() {
             }
             settings.mcpServers = settings.mcpServers || defaultSettings.mcpServers;
             settings.disabledMcpServers = settings.disabledMcpServers || defaultSettings.disabledMcpServers;
+            settings.toolPermissions = settings.toolPermissions || defaultSettings.toolPermissions;
             settings.customSystemPrompt = settings.customSystemPrompt || defaultSettings.customSystemPrompt;
             settings.popupEnabled = settings.popupEnabled ?? defaultSettings.popupEnabled;
 

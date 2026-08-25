@@ -1245,11 +1245,12 @@ function Settings() {
   };
 
   // Function to reset tool call approvals in localStorage
-  const handleResetToolApprovals = () => {
+  const handleResetToolApprovals = async () => {
     setIsSaving(true);
     setSaveStatus({ type: 'info', message: t('settings.resettingApprovals') });
 
     try {
+      await window.electron?.toolPermissions?.reset?.();
       const keysToRemove = [];
       for (let i = 0; i < localStorage.length; i++) {
         const key = localStorage.key(i);
@@ -3244,7 +3245,25 @@ function Settings() {
                   {t('settings.toolApprovalsDesc')}
                 </CardDescription>
               </CardHeader>
-              <CardContent>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <Label>{t('settings.defaultToolPolicy')}</Label>
+                  <Select
+                    value={settings.toolPermissions?.defaultPolicy || 'prompt'}
+                    onValueChange={async (value) => {
+                      const toolPermissions = { ...(settings.toolPermissions || {}), defaultPolicy: value, allowAll: false };
+                      setSettings(prev => ({ ...prev, toolPermissions }));
+                      await window.electron?.toolPermissions?.setGlobal?.(toolPermissions);
+                    }}
+                  >
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="prompt">{t('settings.policyPrompt')}</SelectItem>
+                      <SelectItem value="allow">{t('settings.policyAllow')}</SelectItem>
+                      <SelectItem value="deny">{t('settings.policyDeny')}</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
                 <Button
                   variant="destructive"
                   onClick={handleResetToolApprovals}

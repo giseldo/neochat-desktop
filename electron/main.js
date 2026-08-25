@@ -37,6 +37,7 @@ const mcpManager = require('./mcpManager');
 const { initializeWindowManager } = require('./windowManager');
 const authManager = require('./authManager');
 const googleOAuthManager = require('./googleOAuthManager');
+const { initializeToolPermissionHandlers } = require('./toolPermissionManager');
 
 // Import context capture system
 const ContextCapture = require('./contextCapture');
@@ -304,6 +305,7 @@ app.whenReady().then(async () => {
 
   // Initialize settings handlers (needs app)
   initializeSettingsHandlers(ipcMain, app, safeStorage);
+  initializeToolPermissionHandlers(ipcMain, loadSettings, saveSettings);
 
   // Initialize chat history manager
   chatHistoryManager.initialize(app, loadSettings);

@@ -28,6 +28,13 @@ contextBridge.exposeInMainWorld('electron', {
   saveSettings: (settings) => ipcRenderer.invoke('save-settings', settings),
   getSettingsPath: () => ipcRenderer.invoke('get-settings-path'),
   reloadSettings: () => ipcRenderer.invoke('reload-settings'),
+  toolPermissions: {
+    get: () => ipcRenderer.invoke('tool-permissions-get'),
+    resolve: (toolName, serverLabel) => ipcRenderer.invoke('tool-permissions-resolve', toolName, serverLabel),
+    set: (toolName, policy, serverLabel) => ipcRenderer.invoke('tool-permissions-set', { toolName, policy, serverLabel }),
+    setGlobal: (updates) => ipcRenderer.invoke('tool-permissions-set-global', updates),
+    reset: () => ipcRenderer.invoke('tool-permissions-reset')
+  },
   // Chat API - streaming only
   executeToolCall: (toolCall) => ipcRenderer.invoke('execute-tool-call', toolCall),
   testWebSearch: (query, options) => ipcRenderer.invoke('test-web-search', query, options),

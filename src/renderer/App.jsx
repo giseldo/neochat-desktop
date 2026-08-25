@@ -28,7 +28,10 @@ const TOOL_APPROVAL_PREFIX = 'tool_approval_';
 const YOLO_MODE_KEY = 'tool_approval_yolo_mode';
 
 // --- LocalStorage Helper Functions ---
-const getToolApprovalStatus = (toolName) => {
+const getToolApprovalStatus = async (toolName, serverLabel) => {
+  if (window.electron?.toolPermissions?.resolve) {
+    return window.electron.toolPermissions.resolve(toolName, serverLabel);
+  }
   try {
     const yoloMode = localStorage.getItem(YOLO_MODE_KEY);
     if (yoloMode === 'true') {
@@ -46,7 +49,13 @@ const getToolApprovalStatus = (toolName) => {
   }
 };
 
-const setToolApprovalStatus = (toolName, status) => {
+const setToolApprovalStatus = async (toolName, status, serverLabel) => {
+  if (window.electron?.toolPermissions) {
+    if (status === 'always') return window.electron.toolPermissions.set(toolName, 'allow', serverLabel);
+    if (status === 'never') return window.electron.toolPermissions.set(toolName, 'deny', serverLabel);
+    if (status === 'yolo') return window.electron.toolPermissions.setGlobal({ allowAll: true });
+    return;
+  }
   try {
     if (status === 'yolo') {
       localStorage.setItem(YOLO_MODE_KEY, 'true');
@@ -804,9 +813,9 @@ function App() {
         continue;
       }
 
-      const approvalStatus = getToolApprovalStatus(toolName);
+      const approvalStatus = await getToolApprovalStatus(toolName, toolCall.server_label);
 
-      if (approvalStatus === 'always' || approvalStatus === 'yolo') {
+      if (approvalStatus === 'allow' || approvalStatus === 'always' || approvalStatus === 'yolo') {
         console.log(`Tool '${toolName}' automatically approved (${approvalStatus}). Executing...`);
         try {
           // Check again before executing (in case cancelled during previous tool execution)
@@ -836,6 +845,10 @@ function App() {
             toolResponseMessages.push(errorMsg);
            setMessages(prev => [...prev, errorMsg]); // Show error in UI
         }
+      } else if (approvalStatus === 'deny') {
+        const deniedMsg = { role: 'tool', content: JSON.stringify({ error: `Tool '${toolName}' blocked by permission policy.` }), tool_call_id: toolCall.id };
+        toolResponseMessages.push(deniedMsg);
+        setMessages(prev => [...prev, deniedMsg]);
       } else { // status === 'prompt'
         console.log(`Tool '${toolName}' requires user approval.`);
         setPendingApprovalCall(toolCall);
@@ -1604,9 +1617,9 @@ function App() {
         }
 
         const toolName = nextToolCall.function.name;
-        const approvalStatus = getToolApprovalStatus(toolName);
+        const approvalStatus = await getToolApprovalStatus(toolName, nextToolCall.server_label);
 
-        if (approvalStatus === 'always' || approvalStatus === 'yolo') {
+        if (approvalStatus === 'allow' || approvalStatus === 'always' || approvalStatus === 'yolo') {
             console.log(`Resuming: Tool '${toolName}' automatically approved (${approvalStatus}). Executing...`);
             try {
                 // Check before executing
@@ -1633,6 +1646,10 @@ function App() {
                 allResponsesForTurn.push(errorMsg);
                 setMessages(prev => [...prev, errorMsg]);
             }
+        } else if (approvalStatus === 'deny') {
+            const deniedMsg = { role: 'tool', content: JSON.stringify({ error: `Tool '${toolName}' blocked by permission policy.` }), tool_call_id: nextToolCall.id };
+            allResponsesForTurn.push(deniedMsg);
+            setMessages(prev => [...prev, deniedMsg]);
         } else { // Needs prompt again
             console.log(`Resuming: Tool '${toolName}' requires user approval.`);
             setPendingApprovalCall(nextToolCall);
@@ -1708,7 +1725,7 @@ function App() {
       setPendingApprovalCall(null);
 
       // Update localStorage based on choice
-      setToolApprovalStatus(toolName, choice);
+      await setToolApprovalStatus(toolName, choice, toolCall.server_label);
 
       if (isMcpApprovalRequest) {
           // Handle MCP approval request - need to send approval/denial back to the API
@@ -1717,7 +1734,7 @@ function App() {
           // Handle local tool call
           let handledToolResponse;
 
-          if (choice === 'deny') {
+          if (choice === 'deny' || choice === 'never') {
               handledToolResponse = {
                   role: 'tool',
                   content: JSON.stringify({ error: 'Tool execution denied by user.' }),
@@ -1763,7 +1780,7 @@ function App() {
       const { currentMessages, finalAssistantMessage, accumulatedResponses, pendingMcpApprovals, mcpApprovalRequestItems } = pausedChatState;
       
       // Determine approval decision
-      const approved = choice !== 'deny';
+      const approved = choice !== 'deny' && choice !== 'never';
       
 
       // Create the approval response item for the API
