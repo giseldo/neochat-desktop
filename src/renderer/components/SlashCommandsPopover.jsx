@@ -16,7 +16,9 @@ import {
   Settings2,
   Terminal,
   Layers,
-  HelpCircle
+  HelpCircle,
+  Globe,
+  Hammer
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { useLanguage } from '../context/LanguageContext';
@@ -36,7 +38,9 @@ const ICON_MAP = {
   Zap,
   Bot,
   Terminal,
-  Layers
+  Layers,
+  Globe,
+  Hammer
 };
 
 export default function SlashCommandsPopover({

@@ -106,7 +106,21 @@ export const getDefaultPersonas = (t) => [
   },
 ];
 
-const PERSONAS_STORAGE_KEY = 'neochat_custom_personas';
+export const PERSONAS_STORAGE_KEY = 'neochat_custom_personas';
+export const PERSONAS_OVERRIDES_STORAGE_KEY = 'neochat_persona_overrides';
+export const ACTIVE_PERSONA_STORAGE_KEY = 'neochat_active_persona_id';
+
+export function getStoredPersonaOverrides() {
+  try {
+    const saved = localStorage.getItem(PERSONAS_OVERRIDES_STORAGE_KEY);
+    if (saved) {
+      return JSON.parse(saved);
+    }
+  } catch (e) {
+    console.error('Error loading persona overrides:', e);
+  }
+  return {};
+}
 
 export function getStoredCustomPersonas() {
   try {
@@ -115,14 +129,41 @@ export function getStoredCustomPersonas() {
       return JSON.parse(saved);
     }
   } catch (e) {
-    console.error('Error loading personas:', e);
+    console.error('Error loading custom personas:', e);
   }
   return [];
 }
 
-export function getStoredPersonas() {
+export function getStoredPersonas(t) {
+  const baseDefaults = t ? getDefaultPersonas(t) : DEFAULT_PERSONAS;
+  const overrides = getStoredPersonaOverrides();
+  const customizedDefaults = baseDefaults.map((p) => {
+    if (overrides[p.id]) {
+      return {
+        ...p,
+        ...overrides[p.id],
+        isDefaultOverridden: true,
+      };
+    }
+    return p;
+  });
   const custom = getStoredCustomPersonas();
-  return [...DEFAULT_PERSONAS, ...custom];
+  return [...customizedDefaults, ...custom];
+}
+
+export function getStoredActivePersona(t) {
+  try {
+    const all = getStoredPersonas(t);
+    const activeId = localStorage.getItem(ACTIVE_PERSONA_STORAGE_KEY);
+    if (activeId) {
+      const found = all.find((p) => p.id === activeId);
+      if (found) return found;
+    }
+    return all[0];
+  } catch (e) {
+    console.error('Error getting stored active persona:', e);
+    return DEFAULT_PERSONAS[0];
+  }
 }
 
 export function PersonaSelector({ activePersona, onSelectPersona, className }) {
@@ -131,6 +172,7 @@ export function PersonaSelector({ activePersona, onSelectPersona, className }) {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingPersona, setEditingPersona] = useState(null);
   const [customPersonas, setCustomPersonas] = useState(getStoredCustomPersonas);
+  const [personaOverrides, setPersonaOverrides] = useState(getStoredPersonaOverrides);
   const [formData, setFormData] = useState({
     name: '',
     description: '',
@@ -139,7 +181,20 @@ export function PersonaSelector({ activePersona, onSelectPersona, className }) {
   });
   const dropdownRef = useRef(null);
 
-  const defaultPersonas = useMemo(() => getDefaultPersonas(t), [t]);
+  const defaultPersonas = useMemo(() => {
+    const base = getDefaultPersonas(t);
+    return base.map(p => {
+      if (personaOverrides[p.id]) {
+        return {
+          ...p,
+          ...personaOverrides[p.id],
+          isDefaultOverridden: true,
+        };
+      }
+      return p;
+    });
+  }, [t, personaOverrides]);
+
   const personas = useMemo(() => [...defaultPersonas, ...customPersonas], [defaultPersonas, customPersonas]);
 
   useEffect(() => {
@@ -179,6 +234,31 @@ export function PersonaSelector({ activePersona, onSelectPersona, className }) {
     setIsModalOpen(true);
   };
 
+  const handleResetDefault = () => {
+    if (!editingPersona || editingPersona.isCustom) return;
+    const updatedOverrides = { ...personaOverrides };
+    delete updatedOverrides[editingPersona.id];
+    setPersonaOverrides(updatedOverrides);
+    try {
+      localStorage.setItem(PERSONAS_OVERRIDES_STORAGE_KEY, JSON.stringify(updatedOverrides));
+    } catch (err) {
+      console.error('Failed to save persona overrides:', err);
+    }
+
+    const base = getDefaultPersonas(t).find(p => p.id === editingPersona.id) || DEFAULT_PERSONAS.find(p => p.id === editingPersona.id);
+    if (base) {
+      setFormData({
+        name: base.name,
+        description: base.description || '',
+        systemPrompt: base.systemPrompt || '',
+        temperature: base.temperature ?? 0.7,
+      });
+      if (activePersona?.id === base.id) {
+        onSelectPersona(base);
+      }
+    }
+  };
+
   const handleSavePersona = (e) => {
     e.preventDefault();
     if (!formData.name.trim()) return;
@@ -206,18 +286,50 @@ export function PersonaSelector({ activePersona, onSelectPersona, className }) {
       }
 
       const updated = updatedCustom.find((p) => p.id === editingPersona.id);
-      if (activePersona?.id === editingPersona.id && updated) {
+      if (updated) {
         onSelectPersona(updated);
+        try {
+          localStorage.setItem(ACTIVE_PERSONA_STORAGE_KEY, updated.id);
+        } catch (err) {}
       }
+    } else if (editingPersona && !editingPersona.isCustom) {
+      // Update / customize a default preset
+      const updatedOverrides = {
+        ...personaOverrides,
+        [editingPersona.id]: {
+          name: formData.name.trim(),
+          description: formData.description.trim() || editingPersona.description,
+          systemPrompt: formData.systemPrompt.trim(),
+          temperature: Number(formData.temperature) || 0.7,
+        },
+      };
+
+      setPersonaOverrides(updatedOverrides);
+      try {
+        localStorage.setItem(PERSONAS_OVERRIDES_STORAGE_KEY, JSON.stringify(updatedOverrides));
+      } catch (err) {
+        console.error('Failed to save persona overrides:', err);
+      }
+
+      const updated = {
+        ...editingPersona,
+        ...updatedOverrides[editingPersona.id],
+        isDefaultOverridden: true,
+      };
+
+      onSelectPersona(updated);
+      try {
+        localStorage.setItem(ACTIVE_PERSONA_STORAGE_KEY, updated.id);
+      } catch (err) {}
     } else {
-      // Create new custom persona (or customize a default preset)
+      // Create new custom persona
       const created = {
         id: `custom_${Date.now()}`,
         name: formData.name.trim(),
         description: formData.description.trim() || t('personas.defaultPersonaDesc'),
         systemPrompt: formData.systemPrompt.trim(),
         temperature: Number(formData.temperature) || 0.7,
-        icon: editingPersona?.icon || 'Bot',
+        icon: 'Bot',
         isCustom: true,
       };
 
@@ -231,6 +343,9 @@ export function PersonaSelector({ activePersona, onSelectPersona, className }) {
       }
 
       onSelectPersona(created);
+      try {
+        localStorage.setItem(ACTIVE_PERSONA_STORAGE_KEY, created.id);
+      } catch (err) {}
     }
 
     setIsModalOpen(false);
@@ -244,7 +359,11 @@ export function PersonaSelector({ activePersona, onSelectPersona, className }) {
       localStorage.setItem(PERSONAS_STORAGE_KEY, JSON.stringify(updatedCustom));
     } catch (err) {}
     if (activePersona?.id === id) {
-      onSelectPersona(defaultPersonas[0]);
+      const fallback = defaultPersonas[0];
+      onSelectPersona(fallback);
+      try {
+        localStorage.setItem(ACTIVE_PERSONA_STORAGE_KEY, fallback.id);
+      } catch (err) {}
     }
   };
 
@@ -293,6 +412,9 @@ export function PersonaSelector({ activePersona, onSelectPersona, className }) {
                   key={p.id}
                   onClick={() => {
                     onSelectPersona(p);
+                    try {
+                      localStorage.setItem(ACTIVE_PERSONA_STORAGE_KEY, p.id);
+                    } catch (err) {}
                     setIsOpen(false);
                   }}
                   className={cn(
@@ -431,20 +553,33 @@ export function PersonaSelector({ activePersona, onSelectPersona, className }) {
                 </div>
               </div>
 
-              <div className="flex items-center justify-end gap-2 pt-3 border-t border-border mt-4">
-                <button
-                  type="button"
-                  onClick={() => setIsModalOpen(false)}
-                  className="px-3.5 py-1.5 rounded-lg text-xs font-medium text-muted-foreground hover:bg-muted transition-colors"
-                >
-                  {t('personas.cancel')}
-                </button>
-                <button
-                  type="submit"
-                  className="px-4 py-1.5 rounded-lg text-xs font-semibold bg-primary text-primary-foreground hover:bg-primary/90 transition-colors shadow-xs"
-                >
-                  {editingPersona?.isCustom ? t('personas.saveChanges') : t('personas.save')}
-                </button>
+              <div className="flex items-center justify-between pt-3 border-t border-border mt-4">
+                <div>
+                  {editingPersona && !editingPersona.isCustom && personaOverrides[editingPersona.id] && (
+                    <button
+                      type="button"
+                      onClick={handleResetDefault}
+                      className="px-2.5 py-1.5 rounded-lg text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+                    >
+                      {t('personas.resetDefault')}
+                    </button>
+                  )}
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setIsModalOpen(false)}
+                    className="px-3.5 py-1.5 rounded-lg text-xs font-medium text-muted-foreground hover:bg-muted transition-colors"
+                  >
+                    {t('personas.cancel')}
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-4 py-1.5 rounded-lg text-xs font-semibold bg-primary text-primary-foreground hover:bg-primary/90 transition-colors shadow-xs"
+                  >
+                    {editingPersona?.isCustom ? t('personas.saveChanges') : t('personas.save')}
+                  </button>
+                </div>
               </div>
             </form>
           </div>

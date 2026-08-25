@@ -13,6 +13,7 @@ function loadSettings() {
         // Return minimal defaults to avoid crashing downstream logic
         return {
             language: 'pt',
+            showTrajectoryTab: true,
             GROQ_API_KEY: process.env.GROQ_API_KEY || "<replace me>",
             model: process.env.GROQ_DEFAULT_MODEL || "llama-3.3-70b-versatile",
             temperature: 0.7,
@@ -35,13 +36,20 @@ function loadSettings() {
             googleClientId: "",
             googleClientSecret: "",
             googleTokenExpiresAt: null,
-            customPromptTemplates: []
+            customPromptTemplates: [],
+            webSearch: {
+                enabled: true,
+                provider: 'local',
+                apiKey: '',
+                maxResults: 5
+            }
         };
     }
     const userDataPath = appInstance.getPath('userData');
     const settingsPath = path.join(userDataPath, 'settings.json');
     const defaultSettings = {
         language: 'pt',
+        showTrajectoryTab: true,
         provider: 'groq',
         apiKeys: {},
         GROQ_API_KEY: process.env.GROQ_API_KEY || "<replace me>",
@@ -67,7 +75,13 @@ function loadSettings() {
         googleClientId: "",
         googleClientSecret: "",
         googleTokenExpiresAt: null,
-        customPromptTemplates: []
+        customPromptTemplates: [],
+        webSearch: {
+            enabled: true,
+            provider: 'local',
+            apiKey: '',
+            maxResults: 5
+        }
     };
 
     try {
@@ -88,6 +102,7 @@ function loadSettings() {
             }
 
             settings.language = settings.language || defaultSettings.language;
+            settings.showTrajectoryTab = settings.showTrajectoryTab ?? defaultSettings.showTrajectoryTab;
             settings.model = settings.model || defaultSettings.model;
             settings.temperature = settings.temperature ?? defaultSettings.temperature; // Use nullish coalescing
             settings.top_p = settings.top_p ?? defaultSettings.top_p;
@@ -123,6 +138,10 @@ function loadSettings() {
             settings.googleClientSecret = settings.googleClientSecret || defaultSettings.googleClientSecret;
             settings.googleTokenExpiresAt = settings.googleTokenExpiresAt ?? defaultSettings.googleTokenExpiresAt;
             settings.customPromptTemplates = Array.isArray(settings.customPromptTemplates) ? settings.customPromptTemplates : defaultSettings.customPromptTemplates;
+            settings.webSearch = { ...defaultSettings.webSearch, ...(loadedSettings.webSearch || {}) };
+            if (settings.webSearch.provider === 'duckduckgo') {
+                settings.webSearch.provider = 'local';
+            }
 
             // Optional: Persist the potentially updated settings back to file if defaults were applied
             // fs.writeFileSync(settingsPath, JSON.stringify(settings, null, 2));

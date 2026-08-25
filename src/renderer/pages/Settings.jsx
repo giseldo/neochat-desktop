@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { Link, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Eye, EyeOff, Plus, Trash2, Edit3, Save, X, RefreshCw, Key, Settings as SettingsIcon, Zap, Cpu, Server, AlertCircle, CheckCircle, Sun, Moon, Laptop, Languages, Check, Terminal } from 'lucide-react';
+import { ArrowLeft, Eye, EyeOff, Plus, Trash2, Edit3, Save, X, RefreshCw, Key, Settings as SettingsIcon, Zap, Cpu, Server, AlertCircle, CheckCircle, Sun, Moon, Laptop, Languages, Check, Terminal, Globe, Palette, Type, Sparkles, Sliders, ExternalLink, Route } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
@@ -10,16 +10,32 @@ import { Textarea } from '../components/ui/textarea';
 import { Badge } from '../components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
 import Switch from '../components/ui/Switch';
-import { useTheme } from '../context/ThemeContext';
+import { useTheme, COLOR_THEMES, BG_THEMES, FONT_THEMES, FONT_SIZES } from '../context/ThemeContext';
 import { useLanguage } from '../context/LanguageContext';
 import PromptTemplatesModal from '../components/PromptTemplatesModal';
 
 function Settings() {
-  const { theme, setTheme } = useTheme();
+  const {
+    theme,
+    setTheme,
+    colorTheme,
+    setColorTheme,
+    bgTheme,
+    setBgTheme,
+    fontTheme,
+    setFontTheme,
+    fontSize,
+    setFontSize,
+    resolvedTheme,
+    isDark
+  } = useTheme();
   const { language, setLanguage, t } = useLanguage();
   const [isPromptTemplatesModalOpen, setIsPromptTemplatesModalOpen] = useState(false);
+  const [isTestingWebSearch, setIsTestingWebSearch] = useState(false);
+  const [webSearchTestResult, setWebSearchTestResult] = useState(null);
   const [settings, setSettings] = useState({
     language: 'pt',
+    showTrajectoryTab: true,
     GROQ_API_KEY: '',
     temperature: 0.7,
     top_p: 0.95,
@@ -36,6 +52,12 @@ function Settings() {
     builtInTools: {
       codeInterpreter: false,
       browserSearch: false
+    },
+    webSearch: {
+      enabled: true,
+      provider: 'local',
+      apiKey: '',
+      maxResults: 5
     },
     modelFilter: '',
     modelFilterExclude: '',
@@ -142,8 +164,22 @@ function Settings() {
                 browserSearch: false
             };
         }
+        if (!settingsData.webSearch) {
+            settingsData.webSearch = {
+                enabled: true,
+                provider: 'local',
+                apiKey: '',
+                maxResults: 5
+            };
+        }
+        if (settingsData.webSearch.provider === 'duckduckgo') {
+            settingsData.webSearch.provider = 'local';
+        }
         if (!settingsData.reasoning_effort) {
             settingsData.reasoning_effort = 'medium';
+        }
+        if (settingsData.showTrajectoryTab === undefined) {
+            settingsData.showTrajectoryTab = true;
         }
         if (settingsData.disableThinkingSummaries === undefined) {
             settingsData.disableThinkingSummaries = false;
@@ -217,6 +253,7 @@ function Settings() {
                 browserSearch: false
             },
             reasoning_effort: 'medium',
+            showTrajectoryTab: true,
             modelFilter: '',
             modelFilterExclude: '',
             disableThinkingSummaries: false,
@@ -351,6 +388,47 @@ function Settings() {
     };
     setSettings(updatedSettings);
     saveSettings(updatedSettings);
+  };
+
+  const handleWebSearchChange = (field, value) => {
+    const updatedWebSearch = {
+      ...(settings.webSearch || { enabled: true, provider: 'local', apiKey: '', maxResults: 5 }),
+      [field]: value
+    };
+    const updatedSettings = {
+      ...settings,
+      webSearch: updatedWebSearch
+    };
+    setSettings(updatedSettings);
+    saveSettings(updatedSettings);
+  };
+
+  const handleTestWebSearch = async () => {
+    setIsTestingWebSearch(true);
+    setWebSearchTestResult(null);
+    try {
+      const searchOpts = settings.webSearch || { provider: 'local', apiKey: '', maxResults: 5 };
+      const res = await window.electron.testWebSearch('latest technology news', searchOpts);
+      if (res && res.resultsCount > 0) {
+        setWebSearchTestResult({
+          success: true,
+          message: t('settings.webSearchTestSuccess', { count: res.resultsCount }),
+          data: res
+        });
+      } else {
+        setWebSearchTestResult({
+          success: false,
+          message: 'Nenhum resultado retornado.'
+        });
+      }
+    } catch (err) {
+      setWebSearchTestResult({
+        success: false,
+        message: t('settings.webSearchTestError', { error: err.message })
+      });
+    } finally {
+      setIsTestingWebSearch(false);
+    }
   };
 
   const handleGoogleConnectorToggle = (connectorName, checked) => {
@@ -1319,37 +1397,276 @@ function Settings() {
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center space-x-2">
-                  <Sun className="h-5 w-5 text-primary" />
+                  <Palette className="h-5 w-5 text-primary" />
                   <span>{t('settings.appearanceTitle')}</span>
                 </CardTitle>
                 <CardDescription>
                   {t('settings.appearanceDesc')}
                 </CardDescription>
               </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid grid-cols-3 gap-3">
-                  {[
-                    { id: 'light', label: t('theme.light'), icon: Sun, desc: t('theme.lightDesc') },
-                    { id: 'dark', label: t('theme.dark'), icon: Moon, desc: t('theme.darkDesc') },
-                    { id: 'system', label: t('theme.system'), icon: Laptop, desc: t('theme.systemDesc') },
-                  ].map(({ id, label, icon: Icon, desc }) => (
-                    <button
-                      key={id}
-                      type="button"
-                      onClick={() => setTheme(id)}
-                      className={`flex flex-col items-start p-3.5 rounded-xl border text-left transition-all ${
-                        theme === id
-                          ? 'border-primary bg-primary/10 text-primary shadow-xs'
-                          : 'border-border bg-background hover:bg-muted text-foreground'
-                      }`}
-                    >
-                      <div className="flex items-center gap-2 mb-1.5 font-semibold text-xs">
-                        <Icon className="h-4 w-4 text-primary" />
-                        <span>{label}</span>
+              <CardContent className="space-y-6">
+                {/* 1. Mode Selector */}
+                <div className="space-y-2.5">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-sm font-semibold">{t('theme.modeTitle')}</Label>
+                    <span className="text-xs text-muted-foreground">{resolvedTheme === 'dark' ? t('theme.dark') : t('theme.light')} ativo</span>
+                  </div>
+                  <div className="grid grid-cols-3 gap-3">
+                    {[
+                      { id: 'light', label: t('theme.light'), icon: Sun, desc: t('theme.lightDesc') },
+                      { id: 'dark', label: t('theme.dark'), icon: Moon, desc: t('theme.darkDesc') },
+                      { id: 'system', label: t('theme.system'), icon: Laptop, desc: t('theme.systemDesc') },
+                    ].map(({ id, label, icon: Icon, desc }) => (
+                      <button
+                        key={id}
+                        type="button"
+                        onClick={() => setTheme(id)}
+                        className={`flex flex-col items-start p-3.5 rounded-xl border text-left transition-all ${
+                          theme === id
+                            ? 'border-primary bg-primary/10 text-primary shadow-xs ring-1 ring-primary/30'
+                            : 'border-border bg-background hover:bg-muted text-foreground'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between w-full mb-1.5 font-semibold text-xs">
+                          <div className="flex items-center gap-2">
+                            <Icon className="h-4 w-4 text-primary" />
+                            <span>{label}</span>
+                          </div>
+                          {theme === id && <Check className="w-3.5 h-3.5 text-primary" />}
+                        </div>
+                        <p className="text-[11px] text-muted-foreground">{desc}</p>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* 2. Primary Accent Color Themes */}
+                <div className="space-y-2.5 pt-2 border-t border-border/60">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-sm font-semibold flex items-center gap-2">
+                      <Sparkles className="w-4 h-4 text-primary" />
+                      <span>{t('theme.colorThemeTitle')}</span>
+                    </Label>
+                    <Badge variant="outline" className="text-xs border-primary/40 text-primary bg-primary/5">
+                      {COLOR_THEMES.find(c => c.id === colorTheme)?.name || colorTheme}
+                    </Badge>
+                  </div>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+                    {COLOR_THEMES.map((c) => {
+                      const isSelected = colorTheme === c.id;
+                      return (
+                        <button
+                          key={c.id}
+                          type="button"
+                          onClick={() => setColorTheme(c.id)}
+                          className={`flex items-center gap-3 p-3 rounded-xl border text-left transition-all group ${
+                            isSelected
+                              ? 'border-primary bg-primary/10 shadow-xs ring-1 ring-primary/30'
+                              : 'border-border bg-background hover:bg-muted text-foreground'
+                          }`}
+                        >
+                          <div
+                            className="w-6 h-6 rounded-full shrink-0 flex items-center justify-center shadow-xs transition-transform group-hover:scale-110"
+                            style={{ backgroundColor: c.hex }}
+                          >
+                            {isSelected && <Check className="w-3.5 h-3.5 text-white drop-shadow-sm" />}
+                          </div>
+                          <div className="flex flex-col min-w-0">
+                            <span className={`text-xs font-semibold truncate ${isSelected ? 'text-primary' : 'text-foreground'}`}>
+                              {t(`theme.colors.${c.id}`, c.name)}
+                            </span>
+                            <span className="text-[10px] text-muted-foreground truncate">{c.desc}</span>
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* 3. Background Style */}
+                <div className="space-y-2.5 pt-2 border-t border-border/60">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-sm font-semibold">{t('theme.bgThemeTitle')}</Label>
+                    <span className="text-xs text-muted-foreground">{isDark ? 'Modo Escuro' : 'Modo Claro'}</span>
+                  </div>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+                    {(isDark
+                      ? [
+                          { id: 'slate', name: t('theme.backgrounds.slate', 'Dark Slate'), desc: t('theme.backgrounds.slateDesc', 'Azul escuro profundo') },
+                          { id: 'oled', name: t('theme.backgrounds.oled', 'Preto OLED'), desc: t('theme.backgrounds.oledDesc', 'Preto absoluto (#000)') },
+                          { id: 'zinc', name: t('theme.backgrounds.zinc', 'Cinza Neutro'), desc: t('theme.backgrounds.zincDesc', 'Carvão refinado') },
+                          { id: 'tinted', name: t('theme.backgrounds.tinted', 'Acentuado'), desc: t('theme.backgrounds.tintedDesc', 'Reflexo suave do tema') },
+                        ]
+                      : [
+                          { id: 'white', name: t('theme.backgrounds.white', 'Branco Puro'), desc: t('theme.backgrounds.whiteDesc', 'Alto contraste e nitidez') },
+                          { id: 'warm', name: t('theme.backgrounds.warm', 'Papel Quente'), desc: t('theme.backgrounds.warmDesc', 'Bege acolhedor original') },
+                          { id: 'slate', name: t('theme.backgrounds.slate', 'Cinza Frio'), desc: t('theme.backgrounds.slateDesc', 'Cinza neutro suave') },
+                          { id: 'tinted', name: t('theme.backgrounds.tinted', 'Acentuado'), desc: t('theme.backgrounds.tintedDesc', 'Reflexo suave do tema') },
+                        ]
+                    ).map((b) => {
+                      const isSelected = bgTheme === b.id;
+                      return (
+                        <button
+                          key={b.id}
+                          type="button"
+                          onClick={() => setBgTheme(b.id)}
+                          className={`flex flex-col items-start p-3 rounded-xl border text-left transition-all ${
+                            isSelected
+                              ? 'border-primary bg-primary/10 text-primary shadow-xs ring-1 ring-primary/30'
+                              : 'border-border bg-background hover:bg-muted text-foreground'
+                          }`}
+                        >
+                          <div className="flex items-center justify-between w-full mb-1">
+                            <span className={`text-xs font-semibold ${isSelected ? 'text-primary' : 'text-foreground'}`}>
+                              {b.name}
+                            </span>
+                            {isSelected && <Check className="w-3.5 h-3.5 text-primary shrink-0" />}
+                          </div>
+                          <p className="text-[10px] text-muted-foreground line-clamp-2">{b.desc}</p>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* 4. Font Typography Themes */}
+                <div className="space-y-2.5 pt-2 border-t border-border/60">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-sm font-semibold flex items-center gap-2">
+                      <Type className="w-4 h-4 text-primary" />
+                      <span>{t('theme.fontThemeTitle')}</span>
+                    </Label>
+                    <Badge variant="outline" className="text-xs">
+                      {FONT_THEMES.find(f => f.id === fontTheme)?.name || fontTheme}
+                    </Badge>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                    {FONT_THEMES.map((f) => {
+                      const isSelected = fontTheme === f.id;
+                      const sampleFontFamily =
+                        f.id === 'montserrat' ? 'Montserrat, sans-serif' :
+                        f.id === 'inter' ? 'Inter, sans-serif' :
+                        f.id === 'roboto' ? 'Roboto, sans-serif' :
+                        f.id === 'plus-jakarta' ? "'Plus Jakarta Sans', sans-serif" :
+                        f.id === 'source-sans' ? "'Source Sans 3', sans-serif" :
+                        f.id === 'jetbrains-mono' ? "'JetBrains Mono', monospace" :
+                        f.id === 'fira-code' ? "'Fira Code', monospace" :
+                        f.id === 'playfair' ? "'Playfair Display', serif" :
+                        'system-ui, sans-serif';
+
+                      return (
+                        <button
+                          key={f.id}
+                          type="button"
+                          onClick={() => setFontTheme(f.id)}
+                          className={`flex flex-col items-start p-3.5 rounded-xl border text-left transition-all ${
+                            isSelected
+                              ? 'border-primary bg-primary/10 shadow-xs ring-1 ring-primary/30'
+                              : 'border-border bg-background hover:bg-muted text-foreground'
+                          }`}
+                        >
+                          <div className="flex items-center justify-between w-full mb-1">
+                            <div className="flex items-center gap-1.5">
+                              <span className={`text-xs font-semibold ${isSelected ? 'text-primary' : 'text-foreground'}`}>
+                                {f.name}
+                              </span>
+                              <span className="text-[9px] px-1.5 py-0.2 rounded-md bg-muted text-muted-foreground">
+                                {f.category}
+                              </span>
+                            </div>
+                            {isSelected && <Check className="w-3.5 h-3.5 text-primary shrink-0" />}
+                          </div>
+                          <p className="text-[10px] text-muted-foreground mb-2">{f.desc}</p>
+                          <div
+                            className="w-full px-2.5 py-1.5 rounded-lg bg-background/80 border border-border/50 text-xs truncate"
+                            style={{ fontFamily: sampleFontFamily }}
+                          >
+                            Aa Bb 123 • Rápido lebre
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* 5. Font Size Selector */}
+                <div className="space-y-2.5 pt-2 border-t border-border/60">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-sm font-semibold flex items-center gap-2">
+                      <Sliders className="w-4 h-4 text-primary" />
+                      <span>{t('theme.fontSizeTitle')}</span>
+                    </Label>
+                    <span className="text-xs text-muted-foreground">
+                      {FONT_SIZES.find(s => s.id === fontSize)?.scale}
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+                    {FONT_SIZES.map((s) => {
+                      const isSelected = fontSize === s.id;
+                      return (
+                        <button
+                          key={s.id}
+                          type="button"
+                          onClick={() => setFontSize(s.id)}
+                          className={`flex items-center justify-between p-3 rounded-xl border text-left transition-all ${
+                            isSelected
+                              ? 'border-primary bg-primary/10 text-primary shadow-xs ring-1 ring-primary/30'
+                              : 'border-border bg-background hover:bg-muted text-foreground'
+                          }`}
+                        >
+                          <div className="flex flex-col">
+                            <span className={`text-xs font-semibold ${isSelected ? 'text-primary' : 'text-foreground'}`}>
+                              {s.name}
+                            </span>
+                            <span className="text-[10px] text-muted-foreground">{s.scale}</span>
+                          </div>
+                          {isSelected && <Check className="w-3.5 h-3.5 text-primary shrink-0" />}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* 6. Live Interactive Preview */}
+                <div className="space-y-2.5 pt-2 border-t border-border/60">
+                  <Label className="text-sm font-semibold flex items-center gap-2">
+                    <Eye className="w-4 h-4 text-primary" />
+                    <span>{t('theme.preview')}</span>
+                  </Label>
+                  <div className="p-4 rounded-2xl border border-border/80 bg-background/50 backdrop-blur-xs space-y-3.5 shadow-inner">
+                    {/* User bubble */}
+                    <div className="flex justify-end">
+                      <div className="max-w-md px-4 py-2.5 rounded-2xl bg-primary/10 border border-primary/20 text-foreground text-xs shadow-2xs">
+                        {t('theme.previewUserMessage')}
                       </div>
-                      <p className="text-[11px] text-muted-foreground">{desc}</p>
-                    </button>
-                  ))}
+                    </div>
+
+                    {/* Assistant bubble */}
+                    <div className="flex justify-start">
+                      <div className="max-w-lg space-y-2">
+                        <div className="flex items-center gap-2">
+                          <span className="w-5 h-5 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-[10px] font-bold">
+                            N
+                          </span>
+                          <span className="text-xs font-bold text-foreground">NeoChat AI</span>
+                          <Badge variant="outline" className="text-[9px] px-1.5 py-0 border-primary/30 text-primary">
+                            Online
+                          </Badge>
+                        </div>
+                        <div className="px-3.5 py-2.5 rounded-xl border border-border/60 bg-card text-card-foreground text-xs leading-relaxed space-y-2">
+                          <p>{t('theme.previewAssistantMessage')}</p>
+                          <div className="flex items-center gap-2 pt-1">
+                            <Button size="sm" className="h-7 text-xs bg-primary text-primary-foreground hover:bg-primary/90">
+                              {t('theme.previewButton')}
+                            </Button>
+                            <span className="text-[11px] text-muted-foreground font-mono">
+                              font: {fontTheme} ({fontSize})
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </CardContent>
             </Card>
@@ -2095,6 +2412,36 @@ function Settings() {
               </CardContent>
             </Card>
 
+            {/* Trajectory Tab Settings */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center space-x-2">
+                  <Route className="h-5 w-5 text-primary" />
+                  <span>{t('settings.trajectoryTabTitle')}</span>
+                </CardTitle>
+                <CardDescription>
+                  {t('settings.trajectoryTabDesc')}
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label htmlFor="trajectory-tab-toggle" className="font-medium">
+                      {t('settings.trajectoryTabLabel')}
+                    </Label>
+                    <p className="text-xs text-muted-foreground">
+                      {t('settings.trajectoryTabHelp')}
+                    </p>
+                  </div>
+                  <Switch
+                    id="trajectory-tab-toggle"
+                    checked={settings.showTrajectoryTab !== false}
+                    onChange={(e) => handleToggleChange('showTrajectoryTab', e.target.checked)}
+                  />
+                </div>
+              </CardContent>
+            </Card>
+
             {/* Thinking Summaries Settings */}
             <Card>
               <CardHeader>
@@ -2142,6 +2489,186 @@ function Settings() {
                 <p className="text-xs text-muted-foreground mt-2">
                   {t('settings.apiLoggingHelp')}
                 </p>
+              </CardContent>
+            </Card>
+
+            {/* Native Web Search Settings */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center space-x-2">
+                  <Globe className="h-5 w-5 text-primary" />
+                  <span>{t('settings.webSearchTitle')}</span>
+                </CardTitle>
+                <CardDescription>
+                  {t('settings.webSearchDesc')}
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {/* Enable Switch */}
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label htmlFor="web-search-toggle" className="font-medium">
+                      {t('settings.webSearchEnableLabel')}
+                    </Label>
+                    <p className="text-xs text-muted-foreground">
+                      {t('settings.webSearchEnableHelp')}
+                    </p>
+                  </div>
+                  <Switch
+                    id="web-search-toggle"
+                    checked={settings.webSearch?.enabled !== false}
+                    onChange={(e) => handleWebSearchChange('enabled', e.target.checked)}
+                  />
+                </div>
+
+                {settings.webSearch?.enabled !== false && (
+                  <div className="space-y-4 pt-3 border-t border-border/60">
+                    {/* Search Provider */}
+                    <div className="space-y-1.5">
+                      <Label className="text-xs font-medium">
+                        {t('settings.webSearchProviderLabel')}
+                      </Label>
+                      <Select
+                        value={settings.webSearch?.provider || 'local'}
+                        onValueChange={(val) => handleWebSearchChange('provider', val)}
+                      >
+                        <SelectTrigger className="w-full">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="local">{t('settings.webSearchProviderLocal')}</SelectItem>
+                          <SelectItem value="tavily">{t('settings.webSearchProviderTavily')}</SelectItem>
+                          <SelectItem value="brave">{t('settings.webSearchProviderBrave')}</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    {/* Local Search Info Box */}
+                    {(!settings.webSearch?.provider || settings.webSearch?.provider === 'local') && (
+                      <div className="p-3 rounded-lg text-xs bg-primary/10 border border-primary/20 text-foreground flex items-start gap-2.5">
+                        <Globe className="w-4 h-4 text-primary shrink-0 mt-0.5" />
+                        <div className="space-y-0.5">
+                          <div className="font-semibold text-primary">{t('settings.webSearchProviderLocal')}</div>
+                          <div className="text-[11px] text-muted-foreground">
+                            {t('settings.webSearchLocalInfo')}
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* API Key for Tavily / Brave */}
+                    {(settings.webSearch?.provider === 'tavily' || settings.webSearch?.provider === 'brave') && (
+                      <div className="space-y-1.5">
+                        <div className="flex items-center justify-between">
+                          <Label className="text-xs font-medium">
+                            {t('settings.webSearchApiKeyLabel')}
+                          </Label>
+                          {settings.webSearch?.provider === 'tavily' ? (
+                            <a
+                              href="https://tavily.com"
+                              target="_blank"
+                              rel="noreferrer"
+                              className="text-[11px] text-primary hover:underline inline-flex items-center gap-1 font-medium"
+                            >
+                              tavily.com <ExternalLink className="w-3 h-3" />
+                            </a>
+                          ) : (
+                            <a
+                              href="https://brave.com/search/api"
+                              target="_blank"
+                              rel="noreferrer"
+                              className="text-[11px] text-primary hover:underline inline-flex items-center gap-1 font-medium"
+                            >
+                              brave.com/search/api <ExternalLink className="w-3 h-3" />
+                            </a>
+                          )}
+                        </div>
+                        <Input
+                          type="password"
+                          value={settings.webSearch?.apiKey || ''}
+                          onChange={(e) => handleWebSearchChange('apiKey', e.target.value)}
+                          placeholder={t('settings.webSearchApiKeyPlaceholder')}
+                        />
+                        <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] text-muted-foreground">
+                          <span>{t('settings.webSearchApiKeyHelp')}</span>
+                          <span className="text-muted-foreground/60">•</span>
+                          <span className="font-medium text-foreground/80">{t('settings.webSearchGetApiKey')}</span>
+                          <a
+                            href="https://tavily.com"
+                            target="_blank"
+                            rel="noreferrer"
+                            className="text-primary hover:underline inline-flex items-center gap-0.5 font-medium"
+                          >
+                            tavily.com <ExternalLink className="w-2.5 h-2.5" />
+                          </a>
+                          <span className="text-muted-foreground/60">•</span>
+                          <a
+                            href="https://brave.com/search/api"
+                            target="_blank"
+                            rel="noreferrer"
+                            className="text-primary hover:underline inline-flex items-center gap-0.5 font-medium"
+                          >
+                            brave.com/search/api <ExternalLink className="w-2.5 h-2.5" />
+                          </a>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Max Results */}
+                    <div className="space-y-1.5">
+                      <div className="flex items-center justify-between text-xs">
+                        <Label className="font-medium">{t('settings.webSearchMaxResultsLabel')}</Label>
+                        <span className="font-semibold text-primary">{settings.webSearch?.maxResults || 5}</span>
+                      </div>
+                      <input
+                        type="range"
+                        min="1"
+                        max="10"
+                        step="1"
+                        value={settings.webSearch?.maxResults || 5}
+                        onChange={(e) => handleWebSearchChange('maxResults', parseInt(e.target.value, 10))}
+                        className="w-full accent-primary cursor-pointer"
+                      />
+                    </div>
+
+                    {/* Test Button & Result Box */}
+                    <div className="pt-2">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={handleTestWebSearch}
+                        disabled={isTestingWebSearch}
+                        className="flex items-center gap-2"
+                      >
+                        <Globe className="w-3.5 h-3.5" />
+                        {isTestingWebSearch ? t('settings.webSearchTesting') : t('settings.webSearchTestBtn')}
+                      </Button>
+
+                      {webSearchTestResult && (
+                        <div className={`mt-2.5 p-2.5 rounded-lg text-xs border flex items-start gap-2 ${
+                          webSearchTestResult.success
+                            ? 'bg-green-500/10 border-green-500/20 text-green-600 dark:text-green-400'
+                            : 'bg-red-500/10 border-red-500/20 text-red-600 dark:text-red-400'
+                        }`}>
+                          {webSearchTestResult.success ? (
+                            <CheckCircle className="w-4 h-4 shrink-0 mt-0.5" />
+                          ) : (
+                            <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+                          )}
+                          <div className="min-w-0">
+                            <div className="font-medium">{webSearchTestResult.message}</div>
+                            {webSearchTestResult.data?.results?.[0] && (
+                              <div className="mt-1 text-[11px] opacity-90 truncate">
+                                🔗 {webSearchTestResult.data.results[0].title} ({webSearchTestResult.data.results[0].domain})
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
               </CardContent>
             </Card>
 

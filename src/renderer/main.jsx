@@ -9,6 +9,7 @@ import { ChatProvider } from './context/ChatContext';
 import { ProjectProvider } from './context/ProjectContext';
 import { ThemeProvider } from './context/ThemeContext';
 import { LanguageProvider } from './context/LanguageContext';
+import { ErrorBoundary } from './components/ErrorBoundary';
 
 const router = createHashRouter([
   {
@@ -27,14 +28,16 @@ const router = createHashRouter([
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
-    <LanguageProvider>
-      <ThemeProvider>
-        <ProjectProvider>
-          <ChatProvider>
-            <RouterProvider router={router} />
-          </ChatProvider>
-        </ProjectProvider>
-      </ThemeProvider>
-    </LanguageProvider>
+    <ErrorBoundary>
+      <LanguageProvider>
+        <ThemeProvider>
+          <ProjectProvider>
+            <ChatProvider>
+              <RouterProvider router={router} />
+            </ChatProvider>
+          </ProjectProvider>
+        </ThemeProvider>
+      </LanguageProvider>
+    </ErrorBoundary>
   </React.StrictMode>
 );

@@ -1,4 +1,4 @@
-const { ipcRenderer, contextBridge } = require('electron');
+const { ipcRenderer, contextBridge, webFrame } = require('electron');
 
 // Chat stream channel names - centralized for consistency
 const CHAT_STREAM_CHANNELS = [
@@ -30,6 +30,7 @@ contextBridge.exposeInMainWorld('electron', {
   reloadSettings: () => ipcRenderer.invoke('reload-settings'),
   // Chat API - streaming only
   executeToolCall: (toolCall) => ipcRenderer.invoke('execute-tool-call', toolCall),
+  testWebSearch: (query, options) => ipcRenderer.invoke('test-web-search', query, options),
   
   // NOTE: sendMcpApprovalResponse removed - Groq does not yet support mcp_approval_response
   
@@ -235,8 +236,124 @@ contextBridge.exposeInMainWorld('electron', {
     executeCode: (params) => ipcRenderer.invoke('code-runner-execute', params),
   },
 
+  // --- Local RAG / Knowledge Base Functions ---
+  rag: {
+    selectFolder: () => ipcRenderer.invoke('rag-select-folder'),
+    indexFolder: (folderPath, projectId) => ipcRenderer.invoke('rag-index-folder', folderPath, projectId),
+    queryKnowledge: (query, options) => ipcRenderer.invoke('rag-query-knowledge', query, options),
+    getProjectStats: (projectId) => ipcRenderer.invoke('rag-get-project-stats', projectId),
+    removeFolder: (projectId, folderPath) => ipcRenderer.invoke('rag-remove-folder', projectId, folderPath),
+    readFile: (filePath, startLine, endLine) => ipcRenderer.invoke('rag-read-file', filePath, startLine, endLine),
+    openFolder: (folderPath) => ipcRenderer.invoke('rag-open-folder', folderPath),
+    onIndexingProgress: (callback) => {
+      const listener = (_, progress) => callback(progress);
+      ipcRenderer.on('rag-indexing-progress', listener);
+      return () => ipcRenderer.removeListener('rag-indexing-progress', listener);
+    }
+  },
+
   // Generic IPC renderer access (kept for backward compatibility)
   ipcRenderer: {
     invoke: (channel, data) => ipcRenderer.invoke(channel, data),
   },
+
+  // --- Zoom Controls ---
+  zoom: {
+    zoomIn: () => {
+      const current = webFrame.getZoomLevel();
+      const next = Math.min(5, Number((current + 0.5).toFixed(1)));
+      webFrame.setZoomLevel(next);
+      try {
+        localStorage.setItem('neochat_zoom_level', String(next));
+      } catch (_e) {
+        // Ignore localStorage error
+      }
+      return next;
+    },
+    zoomOut: () => {
+      const current = webFrame.getZoomLevel();
+      const next = Math.max(-5, Number((current - 0.5).toFixed(1)));
+      webFrame.setZoomLevel(next);
+      try {
+        localStorage.setItem('neochat_zoom_level', String(next));
+      } catch (_e) {
+        // Ignore localStorage error
+      }
+      return next;
+    },
+    resetZoom: () => {
+      webFrame.setZoomLevel(0);
+      try {
+        localStorage.setItem('neochat_zoom_level', '0');
+      } catch (_e) {
+        // Ignore localStorage error
+      }
+      return 0;
+    },
+    getZoomLevel: () => webFrame.getZoomLevel(),
+    setZoomLevel: (level) => {
+      webFrame.setZoomLevel(level);
+      try {
+        localStorage.setItem('neochat_zoom_level', String(level));
+      } catch (_e) {
+        // Ignore localStorage error
+      }
+    },
+    getZoomFactor: () => webFrame.getZoomFactor(),
+    setZoomFactor: (factor) => webFrame.setZoomFactor(factor),
+  },
+});
+
+// Restore saved zoom level on startup
+try {
+  const savedZoom = localStorage.getItem('neochat_zoom_level');
+  if (savedZoom !== null) {
+    const parsed = parseFloat(savedZoom);
+    if (!isNaN(parsed) && parsed >= -5 && parsed <= 5) {
+      webFrame.setZoomLevel(parsed);
+    }
+  }
+} catch (_e) {
+  // Ignore localStorage access errors during early init
+}
+
+// Global keyboard shortcuts for zoom in / zoom out / zoom reset
+// Fixes Ctrl/Cmd + Shift + - not zooming out across various keyboard layouts
+window.addEventListener('keydown', (e) => {
+  if ((e.ctrlKey || e.metaKey) && !e.altKey) {
+    // Zoom In: Ctrl/Cmd + '+' or '=' (with or without Shift) or NumpadAdd
+    if (e.key === '+' || e.key === '=' || e.code === 'Equal' || e.code === 'NumpadAdd') {
+      e.preventDefault();
+      const current = webFrame.getZoomLevel();
+      const next = Math.min(5, Number((current + 0.5).toFixed(1)));
+      webFrame.setZoomLevel(next);
+      try {
+        localStorage.setItem('neochat_zoom_level', String(next));
+      } catch (_err) {
+        // Ignore localStorage error
+      }
+    }
+    // Zoom Out: Ctrl/Cmd + '-' or '_' (with or without Shift) or NumpadSubtract
+    else if (e.key === '-' || e.key === '_' || e.code === 'Minus' || e.code === 'NumpadSubtract') {
+      e.preventDefault();
+      const current = webFrame.getZoomLevel();
+      const next = Math.max(-5, Number((current - 0.5).toFixed(1)));
+      webFrame.setZoomLevel(next);
+      try {
+        localStorage.setItem('neochat_zoom_level', String(next));
+      } catch (_err) {
+        // Ignore localStorage error
+      }
+    }
+    // Reset Zoom: Ctrl/Cmd + '0', Digit0, or Numpad0
+    else if (e.key === '0' || e.code === 'Digit0' || e.code === 'Numpad0') {
+      e.preventDefault();
+      webFrame.setZoomLevel(0);
+      try {
+        localStorage.setItem('neochat_zoom_level', '0');
+      } catch (_err) {
+        // Ignore localStorage error
+      }
+    }
+  }
 }); 

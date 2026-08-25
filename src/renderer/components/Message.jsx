@@ -1,5 +1,7 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import ToolCall from './ToolCall';
+import SourcesList from './SourcesList';
+import KnowledgeSourcesList from './KnowledgeSourcesList';
 import MarkdownRenderer from './MarkdownRenderer';
 import { TextShimmer } from './ui/text-shimmer';
 import { Badge } from './ui/badge';
@@ -131,6 +133,122 @@ function Message({
     );
     return toolMessage ? toolMessage.content : null;
   };
+
+  // Extract web search sources
+  const webSearchSources = useMemo(() => {
+    if (isUser) return [];
+
+    if (Array.isArray(message.sources) && message.sources.length > 0) {
+      return message.sources;
+    }
+
+    const sources = [];
+
+    // Check tool_calls + allMessages
+    if (tool_calls && tool_calls.length > 0 && allMessages) {
+      for (const tc of tool_calls) {
+        if (tc.function?.name === 'web_search') {
+          const res = findToolResult(tc.id);
+          if (res) {
+            try {
+              const parsed = typeof res === 'string' ? JSON.parse(res) : res;
+              if (Array.isArray(parsed.results)) {
+                sources.push(...parsed.results);
+              }
+            } catch (e) {
+              console.warn('Failed to parse web_search tool results:', e);
+            }
+          }
+        }
+      }
+    }
+
+    // Check executed_tools / liveExecutedTools
+    const tools = liveExecutedTools?.length > 0 ? liveExecutedTools : executed_tools;
+    if (tools && tools.length > 0) {
+      for (const t of tools) {
+        if (t.name === 'web_search' && t.output) {
+          try {
+            const parsed = typeof t.output === 'string' ? JSON.parse(t.output) : t.output;
+            if (Array.isArray(parsed.results)) {
+              for (const r of parsed.results) {
+                if (!sources.some(s => s.url === r.url)) {
+                  sources.push(r);
+                }
+              }
+            }
+          } catch (e) {
+            console.warn('Failed to parse executed_tools web_search:', e);
+          }
+        }
+      }
+    }
+
+    // Deduplicate by URL
+    const unique = [];
+    for (const s of sources) {
+      if (s && s.url && !unique.some(u => u.url === s.url)) {
+        unique.push(s);
+      }
+    }
+
+    return unique;
+  }, [isUser, message.sources, tool_calls, allMessages, executed_tools, liveExecutedTools]);
+
+  // Extract Local Knowledge Base / RAG sources
+  const knowledgeSources = useMemo(() => {
+    if (isUser) return [];
+
+    const sources = [];
+
+    // Check tool_calls + allMessages
+    if (tool_calls && tool_calls.length > 0 && allMessages) {
+      for (const tc of tool_calls) {
+        if (tc.function?.name === 'query_project_knowledge' || tc.function?.name === 'read_project_file') {
+          const res = findToolResult(tc.id);
+          if (res) {
+            try {
+              const parsed = typeof res === 'string' ? JSON.parse(res) : res;
+              if (Array.isArray(parsed.results)) {
+                sources.push(...parsed.results);
+              } else if (parsed.filePath && parsed.content) {
+                sources.push(parsed);
+              }
+            } catch (e) {
+              console.warn('Failed to parse RAG tool results:', e);
+            }
+          }
+        }
+      }
+    }
+
+    // Check executed_tools / liveExecutedTools
+    const tools = liveExecutedTools?.length > 0 ? liveExecutedTools : executed_tools;
+    if (tools && tools.length > 0) {
+      for (const t of tools) {
+        if ((t.name === 'query_project_knowledge' || t.name === 'read_project_file') && t.output) {
+          try {
+            const parsed = typeof t.output === 'string' ? JSON.parse(t.output) : t.output;
+            if (Array.isArray(parsed.results)) {
+              for (const r of parsed.results) {
+                if (!sources.some(s => s.id === r.id || (s.filePath === r.filePath && s.startLine === r.startLine))) {
+                  sources.push(r);
+                }
+              }
+            } else if (parsed.filePath && parsed.content) {
+              if (!sources.some(s => s.filePath === parsed.filePath && s.startLine === parsed.startLine)) {
+                sources.push(parsed);
+              }
+            }
+          } catch (e) {
+            console.warn('Failed to parse executed_tools RAG:', e);
+          }
+        }
+      }
+    }
+
+    return sources;
+  }, [isUser, tool_calls, allMessages, executed_tools, liveExecutedTools]);
 
   const messageClasses = `flex ${isUser ? 'justify-end' : 'justify-start'}`;
   const bubbleClasses = isUser
@@ -291,16 +409,15 @@ function Message({
               )}
               
               {hasExecutedTools && (
-                <Badge 
-                  variant="secondary" 
-                  className="bg-muted hover:bg-muted/80 text-foreground border border-border cursor-pointer transition-colors"
+                <button 
                   onClick={toggleExecutedTools}
+                  className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors px-2 py-1 rounded-md bg-muted/60 hover:bg-muted border border-border/50 cursor-pointer"
                 >
-                  <Zap className="w-3 h-3 mr-1 text-amber-500" />
+                  <Zap className="w-3 h-3 text-amber-500" />
                   <span>{t('message.executedTools', { count: currentTools?.length || 0 })}</span>
                   <svg 
                     xmlns="http://www.w3.org/2000/svg" 
-                    className={`h-3 w-3 ml-1 transition-transform duration-200 ${showExecutedTools ? 'rotate-90' : ''}`} 
+                    className={`h-3 w-3 ml-0.5 transition-transform duration-200 ${showExecutedTools ? 'rotate-90' : ''}`} 
                     fill="none" 
                     viewBox="0 0 24 24" 
                     stroke="currentColor"
@@ -308,7 +425,7 @@ function Message({
                   >
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                   </svg>
-                </Badge>
+                </button>
               )}
             </div>
             
@@ -334,7 +451,7 @@ function Message({
                   const isLive = liveExecutedTools?.length > 0;
                   const isExecuting = isLive && !tool.output;
                   return (
-                    <div key={`tool-${tool.index || index}`} className="p-3 rounded-lg text-xs border border-border bg-card">
+                    <div key={`tool-${tool.index || index}`} className="p-2.5 rounded-md text-xs border border-border/50 bg-muted/40">
                       <div className="flex items-center gap-2 mb-2">
                         <span className="font-semibold text-foreground">{tool.name || tool.type || 'tool'}</span>
                         {tool.server_label && (
@@ -350,7 +467,7 @@ function Message({
                       {tool.arguments && (
                         <div className="mb-2">
                           <div className="text-[11px] mb-1 text-muted-foreground font-medium">{t('message.arguments')}</div>
-                          <pre className="p-2 rounded overflow-x-auto text-[11px] bg-muted/60 border border-border text-foreground font-mono">
+                          <pre className="p-2 rounded overflow-x-auto text-[11px] bg-muted/60 border border-border/50 text-foreground font-mono">
                             {typeof tool.arguments === 'string' ? tool.arguments : JSON.stringify(tool.arguments, null, 2)}
                           </pre>
                         </div>
@@ -368,11 +485,11 @@ function Message({
                             </button>
                           </div>
                           {isOutputCollapsed(tool.index || index) ? (
-                            <div className="bg-muted/40 p-2 rounded text-[11px] border border-border text-muted-foreground italic">
+                            <div className="bg-muted/30 p-2 rounded text-[11px] border border-border/50 text-muted-foreground italic">
                               {t('message.hiddenOutput', { count: tool.output.length })}
                             </div>
                           ) : (
-                            <pre className="bg-muted/60 p-2 rounded overflow-x-auto text-[11px] border border-border text-foreground font-mono max-h-60 overflow-y-auto">
+                            <pre className="bg-muted/60 p-2 rounded overflow-x-auto text-[11px] border border-border/50 text-foreground font-mono max-h-60 overflow-y-auto">
                               {tool.output}
                             </pre>
                           )}
@@ -389,6 +506,16 @@ function Message({
         <div className={wrapperClasses}>
           {children}
         </div>
+
+        {/* Web Search Sources / Citations */}
+        {webSearchSources.length > 0 && (
+          <SourcesList sources={webSearchSources} />
+        )}
+
+        {/* Local Knowledge Base (RAG) Sources / Code Citations */}
+        {knowledgeSources.length > 0 && (
+          <KnowledgeSourcesList sources={knowledgeSources} />
+        )}
         
         {/* Client-side tool calls */}
         {tool_calls && tool_calls.length > 0 && (() => {

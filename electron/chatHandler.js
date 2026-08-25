@@ -6,6 +6,8 @@ const { pruneMessageHistory, extractThinking } = require('./messageUtils');
 const { supportsBuiltInTools } = require('../shared/models');
 const { getActiveApiKey, getProviderBaseUrl } = require('../shared/providers');
 const googleOAuthManager = require('./googleOAuthManager');
+const { getWebSearchToolDefinition } = require('./webSearchService');
+const { getRagToolDefinitions } = require('./ragService');
 
 // Track active streams to allow cancellation
 const activeStreams = new Map();
@@ -66,7 +68,7 @@ function checkVisionSupport(messages, modelInfo, modelToUse, event) {
     return true; // Return true to indicate vision check passed
 }
 
-function prepareTools(discoveredTools, isResponsesApi = false) {
+function prepareTools(discoveredTools, isResponsesApi = false, settings = {}) {
     // Prepare tools for the API call
     const tools = (discoveredTools || []).map(tool => {
         if (!tool.name) {
@@ -123,6 +125,51 @@ function prepareTools(discoveredTools, isResponsesApi = false) {
             };
         }
     });
+
+    // Add native web_search tool if enabled
+    const webSearchEnabled = settings.webSearch?.enabled !== false;
+    const hasWebSearchAlready = tools.some(t => (t.name === 'web_search' || t.function?.name === 'web_search'));
+
+    if (webSearchEnabled && !hasWebSearchAlready) {
+        if (isResponsesApi) {
+            tools.push({
+                type: "function",
+                name: "web_search",
+                description: "Search the live web for real-time information, news, current events, facts, weather, technical docs, and latest data. Returns search results with titles, URLs, and descriptive snippets.",
+                parameters: {
+                    type: "object",
+                    properties: {
+                        query: {
+                            type: "string",
+                            description: "The search query to look up on the web. Be specific and include key terms."
+                        }
+                    },
+                    required: ["query"]
+                }
+            });
+        } else {
+            tools.push(getWebSearchToolDefinition());
+        }
+    }
+
+    // Add native RAG / Knowledge base tools
+    const ragTools = getRagToolDefinitions();
+    for (const rt of ragTools) {
+        const hasAlready = tools.some(t => t.name === rt.function.name || t.function?.name === rt.function.name);
+        if (!hasAlready) {
+            if (isResponsesApi) {
+                tools.push({
+                    type: "function",
+                    name: rt.function.name,
+                    description: rt.function.description,
+                    parameters: rt.function.parameters
+                });
+            } else {
+                tools.push(rt);
+            }
+        }
+    }
+
     return tools;
 }
 
@@ -198,6 +245,13 @@ function buildApiParams(prunedMessages, modelToUse, settings, tools, modelContex
     });
     
     let systemPrompt = `You are a helpful assistant capable of using tools. Use tools only when necessary and relevant to the user's request. Format responses using Markdown.\n\nCurrent date and time: ${dateTimeString}`;
+    
+    if (settings.webSearch?.enabled !== false) {
+        systemPrompt += `\n\n- Web Search: You have access to the 'web_search' tool. When answering questions that require current information, recent facts, live news, documentation, or when the user asks to search the web, execute 'web_search'. Always cite consulted sources in your response using markdown links [Source Title](URL) or citation markers [1], [2].`;
+    }
+
+    systemPrompt += `\n\n- Project Knowledge Base (Local RAG): You have access to 'query_project_knowledge' and 'read_project_file'. When answering questions about local project files, code, architecture, or documentation, use 'query_project_knowledge' to search relevant snippets and 'read_project_file' to view detailed file content. Always cite relevant file paths and line ranges (e.g. \`path/file.ext:L10-L40\`) in your response.`;
+
     if (settings.customSystemPrompt && settings.customSystemPrompt.trim()) {
         systemPrompt += `\n\n${settings.customSystemPrompt.trim()}`;
     }
@@ -943,7 +997,10 @@ async function handleResponsesApiStream(event, messages, model, settings, modelC
 
         // Add discoveredTools (Client-side tools)
         if (discoveredTools && discoveredTools.length > 0) {
-            const clientTools = prepareTools(discoveredTools, true); // true = isResponsesApi
+            const clientTools = prepareTools(discoveredTools, true, settings); // true = isResponsesApi
+            tools.push(...clientTools);
+        } else if (settings.webSearch?.enabled !== false) {
+            const clientTools = prepareTools([], true, settings);
             tools.push(...clientTools);
         }
 
@@ -1595,7 +1652,7 @@ async function handleChatStream(event, messages, model, settings, modelContextSi
             };
         }
         
-        const tools = prepareTools(discoveredTools);
+        const tools = prepareTools(discoveredTools, false, settings);
         const cleanedMessages = cleanMessages(messages);
         const prunedMessages = pruneMessageHistory(cleanedMessages, modelToUse, modelContextSizes);
         const chatCompletionParams = buildApiParams(prunedMessages, modelToUse, settings, tools, modelContextSizes);

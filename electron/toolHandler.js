@@ -1,4 +1,6 @@
 const { limitContentLength } = require('./utils');
+const { executeWebSearch } = require('./webSearchService');
+const { queryKnowledge, readFileContent } = require('./ragService');
 
 /**
  * Handles the 'execute-tool-call' IPC event.
@@ -21,6 +23,106 @@ async function handleExecuteToolCall(event, toolCall, discoveredTools, mcpClient
 
   const toolName = toolCall.function.name;
   const toolCallId = toolCall.id;
+
+  // Helper to parse arguments
+  let args = {};
+  try {
+    if (typeof toolCall.function.arguments === 'string' && toolCall.function.arguments.trim() !== '') {
+      args = JSON.parse(toolCall.function.arguments);
+    } else if (typeof toolCall.function.arguments === 'object' && toolCall.function.arguments !== null) {
+      args = toolCall.function.arguments;
+    }
+  } catch (parseError) {
+    console.error(`Error parsing arguments for ${toolName}: ${parseError.message}`);
+    return {
+      error: `Failed to parse arguments for ${toolName}. Error: ${parseError.message}`,
+      tool_call_id: toolCallId
+    };
+  }
+
+  // Handle Native Built-in Web Search Tool
+  if (toolName === 'web_search') {
+    if (settings?.webSearch?.enabled === false) {
+      return {
+        error: 'Web search is currently disabled in settings.',
+        tool_call_id: toolCallId
+      };
+    }
+
+    const query = args.query || args.q || args.search_query;
+    if (!query) {
+      return {
+        error: 'Missing required argument "query" for web_search.',
+        tool_call_id: toolCallId
+      };
+    }
+
+    try {
+      const searchOptions = settings?.webSearch || { provider: 'local', apiKey: '', maxResults: 5 };
+      const searchResponse = await executeWebSearch(query, searchOptions);
+      return {
+        result: limitContentLength(JSON.stringify(searchResponse, null, 2), settings?.toolOutputLimit || 8000),
+        tool_call_id: toolCallId
+      };
+    } catch (searchError) {
+      console.error(`Error executing native web_search for "${query}":`, searchError);
+      return {
+        error: limitContentLength(`Web search error: ${searchError.message}`, settings?.toolOutputLimit || 8000),
+        tool_call_id: toolCallId
+      };
+    }
+  }
+
+  // Handle Native Built-in RAG / Knowledge Base Search Tool
+  if (toolName === 'query_project_knowledge') {
+    const query = args.query || args.q || args.search_query;
+    if (!query) {
+      return {
+        error: 'Missing required argument "query" for query_project_knowledge.',
+        tool_call_id: toolCallId
+      };
+    }
+
+    try {
+      const projectId = args.projectId || settings?.activeProjectId || 'global';
+      const searchResponse = queryKnowledge(query, { projectId, maxResults: 6 });
+      return {
+        result: limitContentLength(JSON.stringify(searchResponse, null, 2), settings?.toolOutputLimit || 8000),
+        tool_call_id: toolCallId
+      };
+    } catch (ragError) {
+      console.error(`Error querying project knowledge for "${query}":`, ragError);
+      return {
+        error: limitContentLength(`Knowledge search error: ${ragError.message}`, settings?.toolOutputLimit || 8000),
+        tool_call_id: toolCallId
+      };
+    }
+  }
+
+  // Handle Native Built-in RAG File Reading Tool
+  if (toolName === 'read_project_file') {
+    const filePath = args.filePath || args.path || args.file;
+    if (!filePath) {
+      return {
+        error: 'Missing required argument "filePath" for read_project_file.',
+        tool_call_id: toolCallId
+      };
+    }
+
+    try {
+      const fileData = readFileContent(filePath, args.startLine, args.endLine);
+      return {
+        result: limitContentLength(JSON.stringify(fileData, null, 2), settings?.toolOutputLimit || 8000),
+        tool_call_id: toolCallId
+      };
+    } catch (readError) {
+      console.error(`Error reading project file "${filePath}":`, readError);
+      return {
+        error: limitContentLength(`File read error: ${readError.message}`, settings?.toolOutputLimit || 8000),
+        tool_call_id: toolCallId
+      };
+    }
+  }
 
   try {
     // Find the MCP tool configuration matching the requested tool name

@@ -35,6 +35,9 @@ export const ProjectProvider = ({ children }) => {
   const [isMoveModalOpen, setIsMoveModalOpen] = useState(false);
   const [chatToMove, setChatToMove] = useState(null);
 
+  // Modal state for Knowledge Base / RAG
+  const [isKnowledgeBaseModalOpen, setIsKnowledgeBaseModalOpen] = useState(false);
+
   // Load all projects from backend (or fallback to localStorage)
   const loadProjects = useCallback(async () => {
     try {
@@ -202,8 +205,16 @@ export const ProjectProvider = ({ children }) => {
   }, []);
 
   const closeMoveModal = useCallback(() => {
-    setChatToMove(null);
     setIsMoveModalOpen(false);
+    setChatToMove(null);
+  }, []);
+
+  const openKnowledgeBaseModal = useCallback(() => {
+    setIsKnowledgeBaseModalOpen(true);
+  }, []);
+
+  const closeKnowledgeBaseModal = useCallback(() => {
+    setIsKnowledgeBaseModalOpen(false);
   }, []);
 
   const value = {
@@ -229,6 +240,11 @@ export const ProjectProvider = ({ children }) => {
     chatToMove,
     openMoveModal,
     closeMoveModal,
+    // Knowledge Base / RAG modal states
+    isKnowledgeBaseModalOpen,
+    setIsKnowledgeBaseModalOpen,
+    openKnowledgeBaseModal,
+    closeKnowledgeBaseModal,
   };
 
   return <ProjectContext.Provider value={value}>{children}</ProjectContext.Provider>;

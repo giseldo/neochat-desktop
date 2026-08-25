@@ -4,6 +4,8 @@
 
 @layer base {
   :root {
+    --font-sans: 'Montserrat', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    --font-mono: 'JetBrains Mono', 'Fira Code', ui-monospace, SFMono-Regular, monospace;
     --background: 60 13% 94%;
     --foreground: 224 71.4% 4.1%;
     --card: 0 0% 100%;
@@ -47,6 +49,371 @@
     --input: 215 27.9% 16.9%;
     --ring: 9 90% 59%;
   }
+
+  /* Font Themes */
+  [data-font="montserrat"], :root[data-font="montserrat"] {
+    --font-sans: 'Montserrat', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  }
+  [data-font="inter"], :root[data-font="inter"] {
+    --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  }
+  [data-font="roboto"], :root[data-font="roboto"] {
+    --font-sans: 'Roboto', -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
+  }
+  [data-font="plus-jakarta"], :root[data-font="plus-jakarta"] {
+    --font-sans: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  }
+  [data-font="jetbrains-mono"], :root[data-font="jetbrains-mono"] {
+    --font-sans: 'JetBrains Mono', 'Fira Code', ui-monospace, SFMono-Regular, monospace;
+  }
+  [data-font="fira-code"], :root[data-font="fira-code"] {
+    --font-sans: 'Fira Code', 'JetBrains Mono', ui-monospace, SFMono-Regular, monospace;
+  }
+  [data-font="playfair"], :root[data-font="playfair"] {
+    --font-sans: 'Playfair Display', Georgia, Cambria, 'Times New Roman', serif;
+  }
+  [data-font="source-sans"], :root[data-font="source-sans"] {
+    --font-sans: 'Source Sans 3', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  }
+  [data-font="system"], :root[data-font="system"] {
+    --font-sans: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  }
+
+  /* Font Sizes */
+  [data-font-size="sm"], :root[data-font-size="sm"] {
+    font-size: 14px;
+  }
+  [data-font-size="md"], :root[data-font-size="md"] {
+    font-size: 16px;
+  }
+  [data-font-size="lg"], :root[data-font-size="lg"] {
+    font-size: 17.5px;
+  }
+  [data-font-size="xl"], :root[data-font-size="xl"] {
+    font-size: 19px;
+  }
+
+  /* Color Themes (Light Mode) */
+  [data-color-theme="orange"] {
+    --primary: 9 90% 59%;
+    --primary-foreground: 0 0% 100%;
+    --ring: 9 90% 59%;
+  }
+  [data-color-theme="blue"] {
+    --primary: 221 83% 53%;
+    --primary-foreground: 0 0% 100%;
+    --ring: 221 83% 53%;
+  }
+  [data-color-theme="green"] {
+    --primary: 158 64% 40%;
+    --primary-foreground: 0 0% 100%;
+    --ring: 158 64% 40%;
+  }
+  [data-color-theme="purple"] {
+    --primary: 262 83% 58%;
+    --primary-foreground: 0 0% 100%;
+    --ring: 262 83% 58%;
+  }
+  [data-color-theme="rose"] {
+    --primary: 346 77% 50%;
+    --primary-foreground: 0 0% 100%;
+    --ring: 346 77% 50%;
+  }
+  [data-color-theme="amber"] {
+    --primary: 38 92% 50%;
+    --primary-foreground: 0 0% 100%;
+    --ring: 38 92% 50%;
+  }
+  [data-color-theme="teal"] {
+    --primary: 173 80% 40%;
+    --primary-foreground: 0 0% 100%;
+    --ring: 173 80% 40%;
+  }
+  [data-color-theme="slate"] {
+    --primary: 222 47% 11%;
+    --primary-foreground: 0 0% 100%;
+    --ring: 222 47% 11%;
+  }
+
+  /* Color Themes (Dark Mode) */
+  .dark[data-color-theme="orange"],
+  .dark [data-color-theme="orange"] {
+    --primary: 9 90% 59%;
+    --primary-foreground: 0 0% 100%;
+    --ring: 9 90% 59%;
+  }
+  .dark[data-color-theme="blue"],
+  .dark [data-color-theme="blue"] {
+    --primary: 217 91% 60%;
+    --primary-foreground: 222 47% 11%;
+    --ring: 217 91% 60%;
+  }
+  .dark[data-color-theme="green"],
+  .dark [data-color-theme="green"] {
+    --primary: 152 69% 46%;
+    --primary-foreground: 144 61% 10%;
+    --ring: 152 69% 46%;
+  }
+  .dark[data-color-theme="purple"],
+  .dark [data-color-theme="purple"] {
+    --primary: 263 70% 65%;
+    --primary-foreground: 260 50% 10%;
+    --ring: 263 70% 65%;
+  }
+  .dark[data-color-theme="rose"],
+  .dark [data-color-theme="rose"] {
+    --primary: 346 89% 65%;
+    --primary-foreground: 346 80% 10%;
+    --ring: 346 89% 65%;
+  }
+  .dark[data-color-theme="amber"],
+  .dark [data-color-theme="amber"] {
+    --primary: 43 96% 56%;
+    --primary-foreground: 40 80% 10%;
+    --ring: 43 96% 56%;
+  }
+  .dark[data-color-theme="teal"],
+  .dark [data-color-theme="teal"] {
+    --primary: 172 66% 50%;
+    --primary-foreground: 170 80% 10%;
+    --ring: 172 66% 50%;
+  }
+  .dark[data-color-theme="slate"],
+  .dark [data-color-theme="slate"] {
+    --primary: 210 40% 98%;
+    --primary-foreground: 222 47% 11%;
+    --ring: 210 40% 98%;
+  }
+
+  /* Background Styles - Light Mode */
+  :root:not(.dark)[data-bg-theme="white"],
+  html:not(.dark) [data-bg-theme="white"] {
+    --background: 0 0% 100%;
+    --card: 0 0% 100%;
+    --popover: 0 0% 100%;
+    --secondary: 220 14.3% 96%;
+    --secondary-foreground: 220.9 39.3% 11%;
+    --muted: 220 14.3% 96%;
+    --muted-foreground: 220 8.9% 46.1%;
+    --border: 220 13% 91%;
+    --input: 220 13% 91%;
+  }
+  :root:not(.dark)[data-bg-theme="warm"],
+  html:not(.dark) [data-bg-theme="warm"] {
+    --background: 60 13% 94%;
+    --card: 0 0% 100%;
+    --popover: 0 0% 100%;
+    --secondary: 220 14.3% 95.9%;
+    --secondary-foreground: 220.9 39.3% 11%;
+    --muted: 60 10% 90%;
+    --muted-foreground: 220 8.9% 46.1%;
+    --border: 60 10% 86%;
+    --input: 60 10% 86%;
+  }
+  :root:not(.dark)[data-bg-theme="slate"],
+  html:not(.dark) [data-bg-theme="slate"] {
+    --background: 210 20% 98%;
+    --card: 0 0% 100%;
+    --popover: 0 0% 100%;
+    --secondary: 214.3 31.8% 91.4%;
+    --secondary-foreground: 222.2 47.4% 11.2%;
+    --muted: 210 40% 96.1%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+  }
+  :root:not(.dark)[data-bg-theme="tinted"][data-color-theme="orange"],
+  html:not(.dark) [data-bg-theme="tinted"][data-color-theme="orange"] {
+    --background: 12 100% 98%;
+    --card: 0 0% 100%;
+    --popover: 0 0% 100%;
+    --secondary: 12 90% 94%;
+    --muted: 12 90% 94%;
+    --border: 12 70% 90%;
+    --input: 12 70% 90%;
+  }
+  :root:not(.dark)[data-bg-theme="tinted"][data-color-theme="blue"],
+  html:not(.dark) [data-bg-theme="tinted"][data-color-theme="blue"] {
+    --background: 214 100% 97%;
+    --card: 0 0% 100%;
+    --popover: 0 0% 100%;
+    --secondary: 214 95% 93%;
+    --muted: 214 95% 93%;
+    --border: 214 80% 88%;
+    --input: 214 80% 88%;
+  }
+  :root:not(.dark)[data-bg-theme="tinted"][data-color-theme="green"],
+  html:not(.dark) [data-bg-theme="tinted"][data-color-theme="green"] {
+    --background: 140 60% 97%;
+    --card: 0 0% 100%;
+    --popover: 0 0% 100%;
+    --secondary: 140 50% 92%;
+    --muted: 140 50% 92%;
+    --border: 140 40% 85%;
+    --input: 140 40% 85%;
+  }
+  :root:not(.dark)[data-bg-theme="tinted"][data-color-theme="purple"],
+  html:not(.dark) [data-bg-theme="tinted"][data-color-theme="purple"] {
+    --background: 265 100% 98%;
+    --card: 0 0% 100%;
+    --popover: 0 0% 100%;
+    --secondary: 265 90% 94%;
+    --muted: 265 90% 94%;
+    --border: 265 70% 90%;
+    --input: 265 70% 90%;
+  }
+  :root:not(.dark)[data-bg-theme="tinted"][data-color-theme="rose"],
+  html:not(.dark) [data-bg-theme="tinted"][data-color-theme="rose"] {
+    --background: 350 100% 98%;
+    --card: 0 0% 100%;
+    --popover: 0 0% 100%;
+    --secondary: 350 90% 94%;
+    --muted: 350 90% 94%;
+    --border: 350 70% 90%;
+    --input: 350 70% 90%;
+  }
+  :root:not(.dark)[data-bg-theme="tinted"][data-color-theme="amber"],
+  html:not(.dark) [data-bg-theme="tinted"][data-color-theme="amber"] {
+    --background: 45 100% 97%;
+    --card: 0 0% 100%;
+    --popover: 0 0% 100%;
+    --secondary: 45 90% 92%;
+    --muted: 45 90% 92%;
+    --border: 45 70% 86%;
+    --input: 45 70% 86%;
+  }
+  :root:not(.dark)[data-bg-theme="tinted"][data-color-theme="teal"],
+  html:not(.dark) [data-bg-theme="tinted"][data-color-theme="teal"] {
+    --background: 175 60% 97%;
+    --card: 0 0% 100%;
+    --popover: 0 0% 100%;
+    --secondary: 175 50% 92%;
+    --muted: 175 50% 92%;
+    --border: 175 40% 86%;
+    --input: 175 40% 86%;
+  }
+  :root:not(.dark)[data-bg-theme="tinted"][data-color-theme="slate"],
+  html:not(.dark) [data-bg-theme="tinted"][data-color-theme="slate"] {
+    --background: 215 25% 97%;
+    --card: 0 0% 100%;
+    --popover: 0 0% 100%;
+    --secondary: 215 20% 92%;
+    --muted: 215 20% 92%;
+    --border: 215 15% 86%;
+    --input: 215 15% 86%;
+  }
+
+  /* Background Styles - Dark Mode */
+  .dark[data-bg-theme="slate"],
+  .dark [data-bg-theme="slate"] {
+    --background: 224 71.4% 4.1%;
+    --card: 224 71.4% 6%;
+    --popover: 224 71.4% 6%;
+    --secondary: 215 27.9% 16.9%;
+    --muted: 215 27.9% 16.9%;
+    --border: 215 27.9% 16.9%;
+    --input: 215 27.9% 16.9%;
+  }
+  .dark[data-bg-theme="oled"],
+  .dark [data-bg-theme="oled"] {
+    --background: 0 0% 0%;
+    --card: 0 0% 5%;
+    --popover: 0 0% 5%;
+    --secondary: 0 0% 12%;
+    --muted: 0 0% 12%;
+    --border: 0 0% 16%;
+    --input: 0 0% 16%;
+  }
+  .dark[data-bg-theme="zinc"],
+  .dark [data-bg-theme="zinc"] {
+    --background: 240 5.9% 10%;
+    --card: 240 5.9% 13%;
+    --popover: 240 5.9% 13%;
+    --secondary: 240 3.7% 18%;
+    --muted: 240 3.7% 18%;
+    --border: 240 3.7% 20%;
+    --input: 240 3.7% 20%;
+  }
+  .dark[data-bg-theme="tinted"][data-color-theme="orange"],
+  .dark [data-bg-theme="tinted"][data-color-theme="orange"] {
+    --background: 12 50% 8%;
+    --card: 12 45% 11%;
+    --popover: 12 45% 11%;
+    --secondary: 12 40% 17%;
+    --muted: 12 40% 17%;
+    --border: 12 35% 21%;
+    --input: 12 35% 21%;
+  }
+  .dark[data-bg-theme="tinted"][data-color-theme="blue"],
+  .dark [data-bg-theme="tinted"][data-color-theme="blue"] {
+    --background: 224 71% 7%;
+    --card: 224 65% 10%;
+    --popover: 224 65% 10%;
+    --secondary: 224 50% 16%;
+    --muted: 224 50% 16%;
+    --border: 224 45% 20%;
+    --input: 224 45% 20%;
+  }
+  .dark[data-bg-theme="tinted"][data-color-theme="green"],
+  .dark [data-bg-theme="tinted"][data-color-theme="green"] {
+    --background: 160 50% 6%;
+    --card: 160 45% 9%;
+    --popover: 160 45% 9%;
+    --secondary: 160 40% 15%;
+    --muted: 160 40% 15%;
+    --border: 160 35% 19%;
+    --input: 160 35% 19%;
+  }
+  .dark[data-bg-theme="tinted"][data-color-theme="purple"],
+  .dark [data-bg-theme="tinted"][data-color-theme="purple"] {
+    --background: 265 50% 8%;
+    --card: 265 45% 11%;
+    --popover: 265 45% 11%;
+    --secondary: 265 40% 17%;
+    --muted: 265 40% 17%;
+    --border: 265 35% 21%;
+    --input: 265 35% 21%;
+  }
+  .dark[data-bg-theme="tinted"][data-color-theme="rose"],
+  .dark [data-bg-theme="tinted"][data-color-theme="rose"] {
+    --background: 350 50% 8%;
+    --card: 350 45% 11%;
+    --popover: 350 45% 11%;
+    --secondary: 350 40% 17%;
+    --muted: 350 40% 17%;
+    --border: 350 35% 21%;
+    --input: 350 35% 21%;
+  }
+  .dark[data-bg-theme="tinted"][data-color-theme="amber"],
+  .dark [data-bg-theme="tinted"][data-color-theme="amber"] {
+    --background: 35 50% 7%;
+    --card: 35 45% 10%;
+    --popover: 35 45% 10%;
+    --secondary: 35 40% 16%;
+    --muted: 35 40% 16%;
+    --border: 35 35% 20%;
+    --input: 35 35% 20%;
+  }
+  .dark[data-bg-theme="tinted"][data-color-theme="teal"],
+  .dark [data-bg-theme="tinted"][data-color-theme="teal"] {
+    --background: 175 50% 6%;
+    --card: 175 45% 9%;
+    --popover: 175 45% 9%;
+    --secondary: 175 40% 15%;
+    --muted: 175 40% 15%;
+    --border: 175 35% 19%;
+    --input: 175 35% 19%;
+  }
+  .dark[data-bg-theme="tinted"][data-color-theme="slate"],
+  .dark [data-bg-theme="tinted"][data-color-theme="slate"] {
+    --background: 215 28% 9%;
+    --card: 215 25% 12%;
+    --popover: 215 25% 12%;
+    --secondary: 215 20% 18%;
+    --muted: 215 20% 18%;
+    --border: 215 15% 22%;
+    --input: 215 15% 22%;
+  }
 }
 
 @layer base {
@@ -54,7 +421,9 @@
     @apply border-border;
   }
   body {
-    @apply bg-transparent text-foreground;
+    @apply bg-background text-foreground;
+    font-family: var(--font-sans);
+    transition: background-color 0.2s ease, color 0.2s ease;
   }
 }
 
@@ -64,7 +433,7 @@
   }
   
   .btn-primary {
-    @apply bg-[#F55036] text-white hover:bg-[#F55036]/90;
+    @apply bg-primary text-primary-foreground hover:bg-primary/90 shadow-xs;
   }
   
   .input {
@@ -293,7 +662,7 @@ select#model-select {
 }
 
 .chat-list-item.active {
-  @apply bg-[#E9E9DF] text-foreground;
+  @apply bg-primary/10 text-primary font-medium;
 }
 
 .chat-list-item .chat-title {

@@ -108,6 +108,29 @@ export const BUILT_IN_SLASH_COMMANDS = [
     templatePt: 'Gere documentação técnica clara e detalhada (docstrings, tipos ou README com exemplos de uso) para o seguinte código/módulo:\n\n```\n{{input}}\n```',
     templateEn: 'Generate clear and detailed technical documentation (docstrings, types, or README with usage examples) for the following code/module:\n\n```\n{{input}}\n```',
     isBuiltIn: true
+  },
+  {
+    id: 'search',
+    command: 'search',
+    aliases: ['buscar', 'pesquisar', 'web', 'google', 'online'],
+    icon: 'Globe',
+    titleKey: 'slashCommands.defaultSearch',
+    descKey: 'slashCommands.defaultSearchDesc',
+    templatePt: 'Pesquise na internet em tempo real sobre o seguinte assunto e traga informações recentes, fatos e fontes:\n\n{{input}}',
+    templateEn: 'Search the live web for the following topic and provide recent information, facts, and sources:\n\n{{input}}',
+    isBuiltIn: true
+  },
+  {
+    id: 'tools',
+    command: 'tools',
+    aliases: ['ferramentas', 'mcp', 'tools-menu'],
+    icon: 'Hammer',
+    titleKey: 'slashCommands.defaultTools',
+    descKey: 'slashCommands.defaultToolsDesc',
+    action: 'open_tools',
+    templatePt: '',
+    templateEn: '',
+    isBuiltIn: true
   }
 ];
 
@@ -131,6 +154,7 @@ export function getAllPromptCommands(customTemplates = [], t = (k) => k, languag
     title: t(item.titleKey, {}, item.command),
     description: t(item.descKey, {}, ''),
     template: isPt ? item.templatePt : item.templateEn,
+    action: item.action,
     isBuiltIn: true
   }));
 

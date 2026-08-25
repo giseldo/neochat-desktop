@@ -23,6 +23,7 @@ module.exports = [
     languageOptions: {
       globals: {
         ...globals.node,
+        ...globals.browser,
         process: 'readonly',
         __dirname: 'readonly',
         module: 'readonly',
@@ -43,7 +44,7 @@ module.exports = [
 
   // 3. JSX specific config (React Components in Renderer)
   {
-    files: ["src/renderer/**/*.{jsx}"],
+    files: ["src/renderer/**/*.jsx"],
     plugins: {
         react: pluginReact
     },

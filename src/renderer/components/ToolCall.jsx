@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
+import { Globe, BookOpen, FileText, Wrench, ChevronDown, Loader2 } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
+import { cn } from '../lib/utils';
 
 function ToolCall({ toolCall, toolResult }) {
   const { t } = useLanguage();
@@ -52,94 +54,114 @@ function ToolCall({ toolCall, toolResult }) {
   }
 
   const isPending = toolResult === null || toolResult === undefined;
+  const isWebSearch = functionName === 'web_search';
+  const isKnowledgeSearch = functionName === 'query_project_knowledge';
+  const isReadFile = functionName === 'read_project_file';
+  const searchQuery = args?.query || args?.q || '';
+  const filePathArg = args?.filePath || args?.path || '';
+
+  let labelText = formattedName;
+  if (isWebSearch) {
+    labelText = searchQuery ? `"${searchQuery}"` : t('toolCall.webSearch');
+  } else if (isKnowledgeSearch) {
+    labelText = searchQuery ? `"${searchQuery}"` : t('toolCall.knowledgeBase');
+  } else if (isReadFile) {
+    labelText = filePathArg ? `${filePathArg}` : t('toolCall.readFile');
+  }
 
   return (
-    <div className="tool-call-container w-fit max-w-full">
-      <div className="border border-gray-700 rounded-lg p-2 shadow-sm">
+    <div className="tool-call-container w-fit max-w-full my-1">
+      <div className="border border-border/50 bg-muted/60 hover:bg-muted transition-colors rounded-md px-2.5 py-1 text-xs">
         <div 
-          className="flex justify-between items-center cursor-pointer"
+          className="flex justify-between items-center cursor-pointer gap-2 select-none"
           onClick={() => setIsExpanded(!isExpanded)}
         >
-          <div className="flex items-center">
-            <span className="bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 text-xs px-2.5 py-0.5 rounded-full mr-2">
-              {server_label ? `${server_label}` : 'Tool'}
+          <div className="flex items-center gap-1.5 min-w-0">
+            {isWebSearch ? (
+              <span className="inline-flex items-center gap-1 text-[11px] font-medium text-blue-600 dark:text-blue-400 bg-blue-500/10 border border-blue-500/20 px-1.5 py-0.5 rounded shrink-0">
+                <Globe className="w-3 h-3 shrink-0" />
+                <span>{t('toolCall.webSearch')}</span>
+              </span>
+            ) : isKnowledgeSearch ? (
+              <span className="inline-flex items-center gap-1 text-[11px] font-medium text-indigo-600 dark:text-indigo-400 bg-indigo-500/10 border border-indigo-500/20 px-1.5 py-0.5 rounded shrink-0">
+                <BookOpen className="w-3 h-3 shrink-0" />
+                <span>{t('toolCall.knowledgeBase')}</span>
+              </span>
+            ) : isReadFile ? (
+              <span className="inline-flex items-center gap-1 text-[11px] font-medium text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-1.5 py-0.5 rounded shrink-0">
+                <FileText className="w-3 h-3 shrink-0" />
+                <span>{t('toolCall.readFile')}</span>
+              </span>
+            ) : (
+              <span className="inline-flex items-center gap-1 text-[11px] font-medium text-muted-foreground bg-muted border border-border/40 px-1.5 py-0.5 rounded shrink-0">
+                <Wrench className="w-3 h-3 text-muted-foreground shrink-0" />
+                <span>{server_label ? `${server_label}` : t('toolCall.tool')}</span>
+              </span>
+            )}
+            <span className="text-xs text-muted-foreground hover:text-foreground font-normal truncate max-w-[280px] sm:max-w-[420px]" title={labelText}>
+              {labelText}
             </span>
-            <span className="text-sm font-normal">{formattedName}</span>
             {isPending && !isExpanded && (
-              <svg className="animate-spin ml-2 h-4 w-4 text-gray-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-              </svg>
+              <Loader2 className="w-3 h-3 animate-spin text-muted-foreground shrink-0 ml-0.5" />
             )}
           </div>
-          <button className="text-gray-500 ml-2 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
-            <svg 
-              xmlns="http://www.w3.org/2000/svg" 
-              className={`h-5 w-5 transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`} 
-              fill="none" 
-              viewBox="0 0 24 24" 
-              stroke="currentColor"
-            >
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-            </svg>
-          </button>
+          <ChevronDown className={cn("w-3 h-3 text-muted-foreground hover:text-foreground shrink-0 transition-transform duration-200 ml-1", isExpanded && "rotate-180")} />
         </div>
 
         {isExpanded && (
-          <div className="mt-3 pt-3 border-t border-gray-600">
-            <div className="text-sm font-medium text-foreground mb-1">{t('toolCall.arguments')}:</div>
-            <div className="rounded-md text-sm overflow-x-auto">
-              <SyntaxHighlighter 
-                language="json" 
-                style={vscDarkPlus}
-                customStyle={{
-                  borderRadius: '0.375rem', 
-                  margin: 0,
-                  padding: '0.5rem',
-                  fontSize: '0.8rem',
-                  backgroundColor: '#222326'
-                }}
-                wrapLongLines={true}
-              >
-                {JSON.stringify(args, null, 2)}
-              </SyntaxHighlighter>
+          <div className="mt-2 pt-2 border-t border-border/50 space-y-2 text-xs">
+            <div>
+              <div className="text-[11px] font-medium text-muted-foreground mb-1">{t('toolCall.arguments')}:</div>
+              <div className="rounded-md overflow-x-auto">
+                <SyntaxHighlighter 
+                  language="json" 
+                  style={vscDarkPlus}
+                  customStyle={{
+                    borderRadius: '0.375rem', 
+                    margin: 0,
+                    padding: '0.375rem 0.5rem',
+                    fontSize: '0.75rem',
+                    backgroundColor: '#1c1d21'
+                  }}
+                  wrapLongLines={true}
+                >
+                  {JSON.stringify(args, null, 2)}
+                </SyntaxHighlighter>
+              </div>
             </div>
 
             {isPending && (
-              <div className="text-sm flex items-center text-foreground mt-2">
-                <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-gray-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                </svg>
-                {t('toolCall.executing')}
+              <div className="text-[11px] flex items-center text-muted-foreground gap-1.5 mt-1.5">
+                <Loader2 className="w-3 h-3 animate-spin text-muted-foreground shrink-0" />
+                <span>{t('toolCall.executing')}</span>
               </div>
             )}
 
             {error && (
-              <div className="text-red-500 text-sm mt-2 p-2 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-md">
-                <div className="font-medium mb-1">{t('toolCall.error')}:</div>
-                <pre className="whitespace-pre-wrap break-words">{error}</pre>
+              <div className="text-red-500 text-xs mt-1.5 p-2 bg-red-500/10 border border-red-500/20 rounded-md">
+                <div className="font-medium mb-0.5">{t('toolCall.error')}:</div>
+                <pre className="whitespace-pre-wrap break-words font-mono text-[11px]">{error}</pre>
               </div>
             )}
 
             {result && !error && (
-              <div className="mt-2">
-                <div className="text-sm font-medium text-foreground mb-1 flex items-center justify-between">
+              <div>
+                <div className="text-[11px] font-medium text-muted-foreground mb-1 flex items-center justify-between">
                   <span>{t('toolCall.result')}:</span>
-                  <span className="text-xs text-gray-500 font-normal">
+                  <span className="text-[10px] text-muted-foreground font-normal">
                     {t('toolCall.characters', { count: result.length.toLocaleString() })}
                   </span>
                 </div>
-                <div className="rounded-md text-sm overflow-x-auto">
+                <div className="rounded-md overflow-x-auto">
                   <SyntaxHighlighter 
                     language="json" 
                     style={vscDarkPlus}
                     customStyle={{
                       borderRadius: '0.375rem', 
                       margin: 0,
-                      padding: '0.5rem',
-                      fontSize: '0.8rem',
-                      backgroundColor: '#222326'
+                      padding: '0.375rem 0.5rem',
+                      fontSize: '0.75rem',
+                      backgroundColor: '#1c1d21'
                     }}
                     wrapLongLines={true}
                   >
@@ -155,4 +177,4 @@ function ToolCall({ toolCall, toolResult }) {
   );
 }
 
-export default ToolCall; 
+export default ToolCall;

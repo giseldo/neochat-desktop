@@ -1,0 +1,446 @@
+import { useState } from 'react';
+import { useLanguage } from '../context/LanguageContext';
+import { ChevronRight, ChevronDown, Copy, Check, Terminal, AlertCircle } from 'lucide-react';
+import { extractThinking } from '../lib/messageUtils';
+
+export default function TrajectoryLedger({
+  turns = [],
+  viewMode = 'duration', // 'duration' | 'turns' | 'calls'
+  searchQuery = '',
+  onPreviewArtifact: _onPreviewArtifact,
+}) {
+  const { t } = useLanguage();
+  const [expandedTurns, setExpandedTurns] = useState({});
+  const [expandedItems, setExpandedItems] = useState({});
+  const [copiedId, setCopiedId] = useState(null);
+
+  const toggleTurn = (turnId) => {
+    setExpandedTurns(prev => ({
+      ...prev,
+      [turnId]: prev[turnId] === undefined ? false : !prev[turnId]
+    }));
+  };
+
+  const toggleItem = (itemId) => {
+    setExpandedItems(prev => ({
+      ...prev,
+      [itemId]: !prev[itemId]
+    }));
+  };
+
+  const handleCopy = (text, id) => {
+    if (!text) return;
+    navigator.clipboard.writeText(typeof text === 'string' ? text : JSON.stringify(text, null, 2));
+    setCopiedId(id);
+    setTimeout(() => setCopiedId(null), 2000);
+  };
+
+  const formatDuration = (ms) => {
+    if (!ms && ms !== 0) return '';
+    if (ms < 1000) return `${Math.round(ms)}ms`;
+    if (ms < 60000) return `${(ms / 1000).toFixed(1)}s`;
+    return `${(ms / 60000).toFixed(1)}m`;
+  };
+
+  // Helper to format arguments inline: toolName {"arg": "val"}
+  const formatToolCallSignature = (toolName, rawArgs) => {
+    let argsObj = rawArgs;
+    if (typeof rawArgs === 'string') {
+      try {
+        argsObj = JSON.parse(rawArgs);
+      } catch {
+        argsObj = rawArgs;
+      }
+    }
+
+    if (typeof argsObj === 'object' && argsObj !== null) {
+      // Shorten arguments representation for the line preview
+      const keys = Object.keys(argsObj);
+      if (keys.length === 0) return `${toolName} {}`;
+      
+      const formattedParts = keys.map(k => {
+        let val = argsObj[k];
+        if (typeof val === 'string') {
+          const cleanVal = val.replace(/\r?\n/g, ' ');
+          val = cleanVal.length > 50 ? `${cleanVal.substring(0, 50)}...` : cleanVal;
+          return `"${k}": "${val}"`;
+        }
+        return `"${k}": ${JSON.stringify(val)}`;
+      });
+
+      return `${toolName} {${formattedParts.join(', ')}}`;
+    }
+
+    return `${toolName} ${String(rawArgs || '')}`;
+  };
+
+  // Helper to get preview snippet of result
+  const getToolResultSnippet = (toolItem) => {
+    if (toolItem.status === 'running') {
+      return '(no new output) [status: running]';
+    }
+    if (toolItem.status === 'aborted') {
+      return 'ABORTED';
+    }
+    if (toolItem.error) {
+      return `[error] ${toolItem.error}`;
+    }
+    if (toolItem.result !== undefined && toolItem.result !== null) {
+      let text = typeof toolItem.result === 'string' ? toolItem.result : JSON.stringify(toolItem.result);
+      text = text.trim().replace(/\r?\n/g, ' ');
+      if (!text) return '(no output)';
+      return text.length > 80 ? `${text.substring(0, 80)}...` : text;
+    }
+    return '(no output)';
+  };
+
+  const matchesSearch = (item, q) => {
+    if (!q) return true;
+    const query = q.toLowerCase();
+    
+    if (item.type === 'system' && (item.content?.toLowerCase().includes(query) || 'system'.includes(query))) {
+      return true;
+    }
+    if (item.type === 'user') {
+      const text = typeof item.content === 'string' 
+        ? item.content 
+        : Array.isArray(item.content) 
+          ? item.content.map(c => c.text || '').join(' ') 
+          : '';
+      return text.toLowerCase().includes(query) || 'user'.includes(query);
+    }
+    if (item.type === 'assistant') {
+      const text = `${item.content || ''} ${item.reasoning || ''} ${item.liveReasoning || ''}`;
+      return text.toLowerCase().includes(query) || 'assistant'.includes(query);
+    }
+    if (item.type === 'tool') {
+      const text = `${item.name || ''} ${item.arguments || ''} ${item.result || ''} ${item.error || ''}`;
+      return text.toLowerCase().includes(query) || 'tool'.includes(query);
+    }
+    return false;
+  };
+
+  if (turns.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center py-16 text-center text-muted-foreground">
+        <Terminal className="w-10 h-10 mb-3 opacity-40 text-primary" />
+        <p className="text-sm font-medium">{t('trajectory.emptyTrajectory')}</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-4 font-sans text-xs">
+      {turns.map((turn, turnIdx) => {
+        const turnId = turn.id || `turn-${turnIdx}`;
+        // In 'turns' mode, default to collapsed for previous turns if there are multiple turns
+        const isTurnOpen = expandedTurns[turnId] !== undefined
+          ? expandedTurns[turnId]
+          : viewMode === 'turns'
+            ? turnIdx === turns.length - 1
+            : true;
+        
+        // Filter events by search and viewMode
+        let visibleEvents = turn.events.filter(e => matchesSearch(e, searchQuery));
+        if (viewMode === 'calls') {
+          visibleEvents = visibleEvents.filter(e => e.type === 'tool' || e.type === 'assistant');
+        }
+        if (searchQuery && visibleEvents.length === 0) return null;
+
+        const totalSteps = turn.events.filter(e => e.type === 'assistant' || e.type === 'tool').length;
+        const totalTools = turn.events.filter(e => e.type === 'tool').length;
+
+        return (
+          <div
+            key={turnId}
+            id={turnId}
+            className="border border-border/70 bg-card/40 rounded-xl overflow-hidden shadow-2xs transition-colors hover:border-border"
+          >
+            {/* Turn Header (for User turns) */}
+            {turn.turnNumber !== undefined && (
+              <div 
+                className="flex items-center justify-between px-3.5 py-2.5 bg-muted/30 border-b border-border/50 select-none cursor-pointer hover:bg-muted/50 transition-colors"
+                onClick={() => toggleTurn(turnId)}
+              >
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <button className="text-muted-foreground hover:text-foreground">
+                    {isTurnOpen ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronRight className="w-3.5 h-3.5" />}
+                  </button>
+                  <span className="font-semibold text-foreground/80 font-mono text-[11px]">
+                    {t('trajectory.turnLabel', { number: turn.turnNumber })}
+                  </span>
+                  {turn.userPrompt && (
+                    <span className="text-muted-foreground truncate max-w-md italic font-normal">
+                      &ldquo;{turn.userPrompt}&rdquo;
+                    </span>
+                  )}
+                </div>
+
+                {/* Steps & Tool calls summary badge */}
+                <div className="flex items-center gap-2 text-[11px] text-muted-foreground font-mono">
+                  {totalSteps > 0 && (
+                    <span className="px-2 py-0.5 rounded-full bg-muted border border-border/60">
+                      {t('trajectory.stepsAndTools', { steps: totalSteps, tools: totalTools })}
+                    </span>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Turn Events Content */}
+            {isTurnOpen && (
+              <div className="p-3 space-y-2.5 divide-y divide-border/20">
+                {visibleEvents.map((event, eventIdx) => {
+                  const eventId = event.id || `${turnId}-ev-${eventIdx}`;
+                  const isItemExpanded = Boolean(expandedItems[eventId]);
+
+                  // 1. SYSTEM EVENT
+                  if (event.type === 'system') {
+                    return (
+                      <div key={eventId} className="pt-2 first:pt-0 flex items-start gap-3">
+                        <span className="shrink-0 px-2 py-0.5 rounded-md font-semibold text-[10px] uppercase tracking-wider bg-zinc-200 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 border border-zinc-300 dark:border-zinc-700">
+                          {t('trajectory.system')}
+                        </span>
+                        <div className="flex-1 min-w-0">
+                          <div 
+                            className="font-medium text-foreground/90 flex items-center gap-1.5 cursor-pointer hover:text-foreground select-none"
+                            onClick={() => toggleItem(eventId)}
+                          >
+                            <span>{t('trajectory.initialSystemPrompt')}</span>
+                            <span className="text-muted-foreground text-[10px]">
+                              {isItemExpanded ? '▲' : '▼'}
+                            </span>
+                          </div>
+                          {isItemExpanded && (
+                            <div className="mt-2 p-2.5 rounded-lg bg-muted/40 border border-border/60 font-mono text-[11px] whitespace-pre-wrap text-muted-foreground max-h-60 overflow-y-auto">
+                              {event.content}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  }
+
+                  // 2. USER EVENT
+                  if (event.type === 'user') {
+                    const textContent = typeof event.content === 'string'
+                      ? event.content
+                      : Array.isArray(event.content)
+                        ? event.content.filter(p => p.type === 'text').map(p => p.text).join('\n')
+                        : '';
+
+                    const images = Array.isArray(event.content)
+                      ? event.content.filter(p => p.type === 'image_url')
+                      : [];
+
+                    return (
+                      <div key={eventId} className="pt-2 first:pt-0 flex items-start gap-3">
+                        <span className="shrink-0 px-2 py-0.5 rounded-md font-semibold text-[10px] uppercase tracking-wider bg-sky-100 dark:bg-sky-950/60 text-sky-700 dark:text-sky-300 border border-sky-300 dark:border-sky-800">
+                          {t('trajectory.user')}
+                        </span>
+                        <div className="flex-1 min-w-0 space-y-1.5">
+                          <div className="font-normal text-foreground whitespace-pre-wrap leading-relaxed">
+                            {textContent}
+                          </div>
+                          {images.length > 0 && (
+                            <div className="flex flex-wrap gap-2 pt-1">
+                              {images.map((img, i) => (
+                                <img
+                                  key={i}
+                                  src={img.image_url?.url}
+                                  alt="Attachment"
+                                  className="w-16 h-16 object-cover rounded-md border border-border"
+                                />
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  }
+
+                  // 3. ASSISTANT EVENT
+                  if (event.type === 'assistant') {
+                    const rawContent = event.content || '';
+                    const thinkResult = extractThinking(typeof rawContent === 'string' ? rawContent : '');
+                    const cleanText = thinkResult.cleanContent || (typeof rawContent === 'string' ? rawContent : '');
+                    const thinkingText = event.liveReasoning || event.reasoning || thinkResult.thinking;
+                    const isToolOnly = !cleanText.trim() && !thinkingText;
+
+                    return (
+                      <div key={eventId} className="pt-2 first:pt-0 flex items-start gap-3">
+                        <span className="shrink-0 px-2 py-0.5 rounded-md font-semibold text-[10px] uppercase tracking-wider bg-purple-100 dark:bg-purple-950/60 text-purple-700 dark:text-purple-300 border border-purple-300 dark:border-purple-800">
+                          {t('trajectory.assistant')}
+                        </span>
+                        <div className="flex-1 min-w-0 space-y-1.5">
+                          {thinkingText && (
+                            <div className="p-2 rounded-lg bg-purple-50/50 dark:bg-purple-950/20 border border-purple-200/50 dark:border-purple-800/30 text-purple-900 dark:text-purple-200 text-[11px] font-sans">
+                              <div 
+                                className="flex items-center justify-between font-semibold cursor-pointer select-none pb-1"
+                                onClick={() => toggleItem(`${eventId}-think`)}
+                              >
+                                <span className="flex items-center gap-1.5">
+                                  <span>💭 {t('trajectory.model')}</span>
+                                  {event.reasoningDuration && (
+                                    <span className="text-muted-foreground font-normal font-mono">
+                                      ({formatDuration(event.reasoningDuration * 1000)})
+                                    </span>
+                                  )}
+                                </span>
+                                <span className="text-[10px] text-muted-foreground">
+                                  {expandedItems[`${eventId}-think`] ? '▲' : '▼'}
+                                </span>
+                              </div>
+                              {expandedItems[`${eventId}-think`] !== false && (
+                                <div className="mt-1 whitespace-pre-wrap leading-relaxed opacity-90 max-h-48 overflow-y-auto">
+                                  {thinkingText}
+                                </div>
+                              )}
+                            </div>
+                          )}
+
+                          {cleanText.trim() ? (
+                            <div className="text-foreground leading-relaxed whitespace-pre-wrap">
+                              {cleanText}
+                            </div>
+                          ) : isToolOnly ? (
+                            <div className="text-muted-foreground/70 italic font-mono text-[11px]">
+                              {t('trajectory.toolCallOnly')}
+                            </div>
+                          ) : null}
+                        </div>
+                      </div>
+                    );
+                  }
+
+                  // 4. TOOL EVENT
+                  if (event.type === 'tool') {
+                    const isError = Boolean(event.error || event.status === 'error' || event.status === 'aborted');
+                    const signature = formatToolCallSignature(event.name, event.arguments);
+                    const snippet = getToolResultSnippet(event);
+                    const isRunning = event.status === 'running';
+
+                    return (
+                      <div key={eventId} className="pt-2 first:pt-0 flex items-start gap-3">
+                        <span 
+                          className={`shrink-0 px-2 py-0.5 rounded-md font-semibold text-[10px] uppercase tracking-wider border ${
+                            isError
+                              ? 'bg-red-100 dark:bg-red-950/60 text-red-700 dark:text-red-300 border-red-300 dark:border-red-800'
+                              : isRunning
+                                ? 'bg-amber-100 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 border-amber-300 dark:border-amber-800 animate-pulse'
+                                : 'bg-amber-100 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 border-amber-300 dark:border-amber-800'
+                          }`}
+                        >
+                          {t('trajectory.tool')}
+                        </span>
+
+                        <div className="flex-1 min-w-0 space-y-1">
+                          {/* Top row: Signature + Result Snippet + Duration */}
+                          <div 
+                            className="flex items-baseline justify-between gap-2 cursor-pointer font-mono hover:text-foreground group py-0.5 select-none"
+                            onClick={() => toggleItem(eventId)}
+                          >
+                            <div className="flex items-baseline gap-2 min-w-0 overflow-hidden">
+                              <span className="font-semibold text-foreground truncate">
+                                {signature}
+                              </span>
+                              <span className="text-muted-foreground/60 shrink-0">→</span>
+                              <span 
+                                className={`truncate text-[11px] ${
+                                  isError 
+                                    ? 'text-red-500 font-semibold' 
+                                    : isRunning 
+                                      ? 'text-amber-500 italic' 
+                                      : 'text-muted-foreground'
+                                }`}
+                              >
+                                {snippet}
+                              </span>
+                            </div>
+
+                            <div className="flex items-center gap-2 shrink-0">
+                              {event.durationMs && (
+                                <span className="text-[10px] text-muted-foreground/70 font-mono">
+                                  {formatDuration(event.durationMs)}
+                                </span>
+                              )}
+                              <button className="text-muted-foreground group-hover:text-foreground">
+                                {isItemExpanded ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronRight className="w-3.5 h-3.5" />}
+                              </button>
+                            </div>
+                          </div>
+
+                          {/* Expanded Tool Details */}
+                          {isItemExpanded && (
+                            <div className="mt-2 space-y-2.5 p-3 rounded-xl bg-card border border-border/80 text-foreground font-mono animate-in fade-in-0 duration-150">
+                              {/* Arguments */}
+                              <div>
+                                <div className="flex items-center justify-between text-[11px] text-muted-foreground font-sans font-semibold mb-1">
+                                  <span>{t('trajectory.arguments')}</span>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleCopy(event.arguments, `${eventId}-args`)}
+                                    className="flex items-center gap-1 hover:text-foreground text-[10px]"
+                                  >
+                                    {copiedId === `${eventId}-args` ? <Check className="w-3 h-3 text-emerald-500" /> : <Copy className="w-3 h-3" />}
+                                    <span>{copiedId === `${eventId}-args` ? t('trajectory.copied') : t('trajectory.copyArguments')}</span>
+                                  </button>
+                                </div>
+                                <div className="p-2 rounded-lg bg-muted/50 border border-border/60 text-[11px] overflow-x-auto max-h-48">
+                                  <pre className="whitespace-pre-wrap break-all">
+                                    {typeof event.arguments === 'string' ? event.arguments : JSON.stringify(event.arguments, null, 2)}
+                                  </pre>
+                                </div>
+                              </div>
+
+                              {/* Error / stderr (if any) */}
+                              {isError && event.error && (
+                                <div>
+                                  <div className="text-[11px] text-red-500 font-sans font-semibold mb-1 flex items-center gap-1">
+                                    <AlertCircle className="w-3.5 h-3.5" />
+                                    <span>{t('trajectory.errorLabel')}</span>
+                                  </div>
+                                  <div className="p-2 rounded-lg bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 text-red-600 dark:text-red-300 text-[11px] overflow-x-auto whitespace-pre-wrap max-h-48">
+                                    {event.error}
+                                  </div>
+                                </div>
+                              )}
+
+                              {/* Result Output */}
+                              {event.result !== undefined && event.result !== null && (
+                                <div>
+                                  <div className="flex items-center justify-between text-[11px] text-muted-foreground font-sans font-semibold mb-1">
+                                    <span>{t('trajectory.output')}</span>
+                                    <button
+                                      type="button"
+                                      onClick={() => handleCopy(event.result, `${eventId}-res`)}
+                                      className="flex items-center gap-1 hover:text-foreground text-[10px]"
+                                    >
+                                      {copiedId === `${eventId}-res` ? <Check className="w-3 h-3 text-emerald-500" /> : <Copy className="w-3 h-3" />}
+                                      <span>{copiedId === `${eventId}-res` ? t('trajectory.copied') : t('trajectory.copyOutput')}</span>
+                                    </button>
+                                  </div>
+                                  <div className="p-2 rounded-lg bg-muted/50 border border-border/60 text-[11px] overflow-x-auto max-h-60">
+                                    <pre className="whitespace-pre-wrap break-all">
+                                      {typeof event.result === 'string' ? event.result : JSON.stringify(event.result, null, 2)}
+                                    </pre>
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  }
+
+                  return null;
+                })}
+              </div>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}

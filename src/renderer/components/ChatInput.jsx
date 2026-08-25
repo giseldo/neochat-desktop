@@ -1,4 +1,4 @@
-import { ArrowUp, Loader2, ImagePlus, Hammer, Upload, Zap, ZapOff, Square, Mic, MicOff, Terminal } from "lucide-react";
+import { ArrowUp, Loader2, ImagePlus, Hammer, Upload, Zap, ZapOff, Square, Mic, MicOff, Terminal, Globe, BookOpen } from "lucide-react";
 import React, { useContext, useEffect, useRef, useState, useMemo } from "react";
 import TextAreaAutosize from "react-textarea-autosize";
 import { SearchableSelect } from "./ui/SearchableSelect";
@@ -6,6 +6,7 @@ import { Button } from "./ui/button";
 import { cn } from "../lib/utils";
 import { ChatContext } from "../context/ChatContext";
 import { useLanguage } from "../context/LanguageContext";
+import { useProjects } from "../context/ProjectContext";
 import SlashCommandsPopover from "./SlashCommandsPopover";
 import PromptTemplatesModal from "./PromptTemplatesModal";
 import { getAllPromptCommands, PROMPT_TEMPLATES_STORAGE_KEY } from "../lib/defaultPromptCommands";
@@ -19,13 +20,20 @@ function ChatInput({
 	selectedModel = "",
 	onModelChange,
 	onOpenMcpTools,
+	toolsCount = 0,
+	mcpTools = [],
 	modelConfigs = {},
 	focusSignal = 0,
 }) {
+	const effectiveToolsCount = typeof toolsCount === 'number' && toolsCount > 0
+		? toolsCount
+		: (Array.isArray(mcpTools) ? mcpTools.length : 0);
 	const { t, language } = useLanguage();
+	const { activeProject, openKnowledgeBaseModal } = useProjects();
 	const [message, setMessage] = useState("");
 	const [suggestion, setSuggestion] = useState("");
 	const [autocompleteEnabled, setAutocompleteEnabled] = useState(true);
+	const [webSearchActive, setWebSearchActive] = useState(false);
 	const suggestionTimeout = useRef(null);
 	const { messages, activeContext } = useContext(ChatContext);
 
@@ -65,6 +73,44 @@ function ChatInput({
 		};
 		loadCustomTemplates();
 	}, []);
+
+	// Sync web search state with settings
+	useEffect(() => {
+		let isMounted = true;
+		const syncWebSearchSetting = async () => {
+			try {
+				if (window.electron?.getSettings) {
+					const settings = await window.electron.getSettings();
+					if (isMounted && settings?.webSearch) {
+						setWebSearchActive(settings.webSearch.enabled !== false);
+					}
+				}
+			} catch (err) {
+				console.error("Error loading webSearch setting in ChatInput:", err);
+			}
+		};
+		syncWebSearchSetting();
+		return () => { isMounted = false; };
+	}, [focusSignal]);
+
+	const handleToggleWebSearch = async () => {
+		const nextState = !webSearchActive;
+		setWebSearchActive(nextState);
+		if (window.electron?.getSettings && window.electron?.saveSettings) {
+			try {
+				const currentSettings = await window.electron.getSettings();
+				await window.electron.saveSettings({
+					...currentSettings,
+					webSearch: {
+						...(currentSettings.webSearch || {}),
+						enabled: nextState
+					}
+				});
+			} catch (err) {
+				console.error("Failed to save webSearch setting on toggle:", err);
+			}
+		}
+	};
 
 	// All available prompt commands
 	const allPromptCommands = useMemo(() => {
@@ -108,6 +154,17 @@ function ChatInput({
 	// Apply a selected slash command
 	const applySlashCommand = (cmd) => {
 		if (!cmd) return;
+
+		if (cmd.action === 'open_tools' || cmd.id === 'tools') {
+			setIsSlashMenuOpen(false);
+			setSlashFilterQuery("");
+			setMessage("");
+			if (onOpenMcpTools) {
+				onOpenMcpTools();
+			}
+			return;
+		}
+
 		const template = cmd.template || "";
 
 		// If the user typed "/cmd some text" or selected a command with existing text
@@ -550,7 +607,7 @@ function ChatInput({
 	return (
     <div 
 			className={cn(
-				"flex flex-col gap-4 border border-[#CBCDC2] rounded-2xl w-full p-3 bg-[#E9E9DF] backdrop-blur-sm relative",
+				"flex flex-col gap-4 border border-border/80 rounded-2xl w-full p-3 bg-muted/60 dark:bg-muted/30 backdrop-blur-sm relative",
 				isDragOver 
 					? "border-primary border-2 bg-primary/5 transition-all duration-200" 
 					: ""
@@ -685,8 +742,8 @@ function ChatInput({
 				</div>
 
 				{/* Bottom Controls */}
-				<div className="flex items-center justify-between px-2">
-					<div className="flex items-center gap-2">
+				<div className="flex items-center justify-between gap-2 px-1 sm:px-2 flex-wrap min-w-0">
+					<div className="flex items-center gap-1.5 flex-wrap min-w-0">
 						{/* File Upload Button */}
 						{files.length < 5 && (
 							<Button
@@ -694,12 +751,12 @@ function ChatInput({
 								variant="ghost"
 								size="sm"
 								onClick={() => fileInputRef.current?.click()}
-								className="text-muted-foreground hover:text-foreground hover:bg-white/40 hover:shadow-sm transition-all duration-200 rounded-xl px-3 py-1.5"
+								className="text-muted-foreground hover:text-foreground hover:bg-white/40 hover:shadow-sm transition-all duration-200 rounded-xl px-2.5 py-1.5 text-xs font-medium"
 								title={visionSupported ? t('chat.uploadTooltipVision') : t('chat.uploadTooltipNoVision')}
 								disabled={loading}
 							>
-								<ImagePlus className="w-4 h-4 mr-2" />
-								{t('chat.upload')}
+								<ImagePlus className="w-4 h-4 mr-1.5 flex-shrink-0" />
+								<span>{t('chat.upload')}</span>
 							</Button>
 						)}
 						<input
@@ -728,11 +785,11 @@ function ChatInput({
 									setIsPromptTemplatesModalOpen(true);
 								}
 							}}
-							className="text-muted-foreground hover:text-foreground hover:bg-muted/60 hover:shadow-sm transition-all duration-200 rounded-xl px-2.5 py-1.5 font-mono text-xs"
+							className="text-muted-foreground hover:text-foreground hover:bg-muted/60 hover:shadow-sm transition-all duration-200 rounded-xl px-2 py-1.5 font-mono text-xs"
 							title={t('slashCommands.buttonTooltip')}
 							disabled={loading}
 						>
-							<Terminal className="w-4 h-4 mr-1 text-primary" />
+							<Terminal className="w-4 h-4 mr-1 text-primary flex-shrink-0" />
 							<span>/</span>
 						</Button>
 
@@ -743,7 +800,7 @@ function ChatInput({
 							size="sm"
 							onClick={isRecording ? stopRecording : startRecording}
 							className={cn(
-								"transition-all duration-200 rounded-xl px-3 py-1.5",
+								"transition-all duration-200 rounded-xl px-2.5 py-1.5 text-xs font-medium",
 								isRecording
 									? "bg-red-500/20 text-red-500 animate-pulse border border-red-500/40"
 									: isTranscribing
@@ -754,11 +811,11 @@ function ChatInput({
 							disabled={loading || isTranscribing}
 						>
 							{isTranscribing ? (
-								<Loader2 className="w-4 h-4 mr-1.5 animate-spin" />
+								<Loader2 className="w-4 h-4 mr-1.5 animate-spin flex-shrink-0" />
 							) : isRecording ? (
-								<MicOff className="w-4 h-4 mr-1.5 text-red-500" />
+								<MicOff className="w-4 h-4 mr-1.5 text-red-500 flex-shrink-0" />
 							) : (
-								<Mic className="w-4 h-4 mr-1.5" />
+								<Mic className="w-4 h-4 mr-1.5 flex-shrink-0" />
 							)}
 							<span>{isRecording ? t('chat.recording') : isTranscribing ? t('chat.transcribing') : t('chat.voice')}</span>
 						</Button>
@@ -770,17 +827,67 @@ function ChatInput({
 								variant="ghost"
 								size="sm"
 								onClick={onOpenMcpTools}
-								className="text-muted-foreground hover:text-foreground hover:bg-muted/60 hover:shadow-sm transition-all duration-200 rounded-xl px-3 py-1.5"
+								className="text-muted-foreground hover:text-foreground hover:bg-muted/60 hover:shadow-sm transition-all duration-200 rounded-xl px-2.5 py-1.5 text-xs font-medium"
 								title={t('chat.toolsTooltip')}
 								disabled={loading}
 							>
-								<Hammer className="w-4 h-4 mr-2" />
-								{t('chat.tools')}
+								<Hammer className="w-4 h-4 mr-1.5 flex-shrink-0" />
+								<span>
+									{t('chat.tools')}
+									{effectiveToolsCount > 0 ? ` (${effectiveToolsCount})` : ''}
+								</span>
+							</Button>
+						)}
+
+						{/* Web Search Toggle Button */}
+						<Button
+							type="button"
+							variant="ghost"
+							size="sm"
+							onClick={handleToggleWebSearch}
+							className={cn(
+								"transition-all duration-200 rounded-xl px-2.5 py-1.5 text-xs font-medium flex items-center gap-1.5",
+								webSearchActive
+									? "bg-blue-500/15 text-blue-600 dark:text-blue-400 border border-blue-500/30 shadow-xs"
+									: "text-muted-foreground hover:text-foreground hover:bg-muted/60 hover:shadow-xs"
+							)}
+							title={webSearchActive ? t('chat.webSearchActive') : t('chat.webSearchTooltip')}
+							disabled={loading}
+						>
+							<Globe className={cn("w-4 h-4 flex-shrink-0", webSearchActive && "text-blue-500 animate-pulse")} />
+							<span>{t('chat.webSearch')}</span>
+							{webSearchActive && (
+								<span className="w-1.5 h-1.5 rounded-full bg-blue-500 flex-shrink-0"></span>
+							)}
+						</Button>
+
+						{/* Knowledge Base (RAG) Button */}
+						{activeProject && openKnowledgeBaseModal && (
+							<Button
+								type="button"
+								variant="ghost"
+								size="sm"
+								onClick={openKnowledgeBaseModal}
+								className={cn(
+									"transition-all duration-200 rounded-xl px-2.5 py-1.5 text-xs font-medium flex items-center gap-1.5",
+									(activeProject.folders?.length || 0) > 0
+										? "bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/25 shadow-xs"
+										: "text-muted-foreground hover:text-foreground hover:bg-muted/60 hover:shadow-xs"
+								)}
+								title={t('rag.viewKnowledge')}
+								disabled={loading}
+							>
+								<BookOpen className="w-4 h-4 flex-shrink-0 text-indigo-500" />
+								<span>
+									{activeProject.folders?.length > 0
+										? `${activeProject.folders.length} ${activeProject.folders.length === 1 ? 'pasta' : 'pastas'}`
+										: t('rag.knowledgeBase')}
+								</span>
 							</Button>
 						)}
 					</div>
 
-					<div className="flex items-center gap-3">
+					<div className="flex items-center gap-2 flex-shrink-0 ml-auto min-w-0">
 						{/* Autocomplete hint */}
 						{autocompleteEnabled && suggestion && !loading && !isSlashMenuOpen && (
 							<div className="text-xs text-muted-foreground flex items-center gap-1">
@@ -795,7 +902,7 @@ function ChatInput({
 							onValueChange={onModelChange}
 							options={sortedModels}
 							placeholder={t('chat.selectModel')}
-							className="w-48"
+							className="w-40 sm:w-48 max-w-[200px] min-w-[120px]"
 							disabled={loading}
 							getDisplayValue={(value) => getModelDisplayName(value)}
 							getOptionLabel={(model) => getModelDisplayName(model)}

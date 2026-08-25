@@ -51,6 +51,9 @@ const projectManager = require('./projectManager');
 // Import code runner
 const codeRunner = require('./codeRunner');
 
+// Import RAG / Knowledge Base service
+const ragService = require('./ragService');
+
 // Global variable to hold the main window instance
 let mainWindow;
 
@@ -332,6 +335,10 @@ app.whenReady().then(async () => {
   codeRunner.initialize(app);
   codeRunner.initializeCodeRunnerHandlers(ipcMain);
 
+  // Initialize RAG / Knowledge Base service
+  console.log("[Main Init] Initializing RAG Service...");
+  ragService.initialize(app);
+
   // --- Google OAuth IPC Handlers --- //
   ipcMain.handle('google-oauth-refresh', async () => {
     console.log('[Main] Manual Google OAuth token refresh requested');
@@ -389,6 +396,51 @@ app.whenReady().then(async () => {
     return toolHandler.handleExecuteToolCall(event, toolCall, discoveredTools, mcpClients, currentSettings);
   });
   console.log("[Main Init] execute-tool-call registered successfully");
+
+  // Web Search IPC Handler
+  ipcMain.handle('test-web-search', async (event, query, options) => {
+    const { executeWebSearch } = require('./webSearchService');
+    const currentSettings = loadSettings();
+    const searchOptions = {
+      ...(currentSettings?.webSearch || {}),
+      ...(options || {})
+    };
+    return await executeWebSearch(query, searchOptions);
+  });
+
+  // --- RAG / Knowledge Base IPC Handlers ---
+  console.log("[Main Init] Registering RAG handlers...");
+  ipcMain.handle('rag-select-folder', async () => {
+    return ragService.selectFolderDialog(mainWindow);
+  });
+
+  ipcMain.handle('rag-index-folder', async (event, folderPath, projectId) => {
+    return await ragService.indexFolder(folderPath, projectId, (progress) => {
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.webContents.send('rag-indexing-progress', progress);
+      }
+    });
+  });
+
+  ipcMain.handle('rag-query-knowledge', async (event, query, options) => {
+    return ragService.queryKnowledge(query, options);
+  });
+
+  ipcMain.handle('rag-get-project-stats', async (event, projectId) => {
+    return ragService.getProjectKnowledgeStats(projectId);
+  });
+
+  ipcMain.handle('rag-remove-folder', async (event, projectId, folderPath) => {
+    return ragService.removeFolderFromProject(projectId, folderPath);
+  });
+
+  ipcMain.handle('rag-read-file', async (event, filePath, startLine, endLine) => {
+    return ragService.readFileContent(filePath, startLine, endLine);
+  });
+
+  ipcMain.handle('rag-open-folder', async (event, folderPath) => {
+    return ragService.openFolderInExplorer(folderPath);
+  });
 
   // Model configs handler already registered above during early initialization
   console.log("[Main Init] Continuing with remaining handlers...");

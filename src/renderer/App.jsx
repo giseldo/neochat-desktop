@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
-import { createPortal } from 'react-dom';
 import { Link } from 'react-router-dom';
 import MessageList from './components/MessageList';
 import ChatInput from './components/ChatInput';
@@ -7,18 +6,19 @@ import ToolsPanel from './components/ToolsPanel';
 import ToolApprovalModal from './components/ToolApprovalModal';
 import ChatHistorySidebar from './components/ChatHistorySidebar';
 import ThemeToggle from './components/ThemeToggle';
-import PersonaSelector, { DEFAULT_PERSONAS } from './components/PersonaSelector';
+import PersonaSelector, { DEFAULT_PERSONAS, getStoredActivePersona, ACTIVE_PERSONA_STORAGE_KEY } from './components/PersonaSelector';
 import ArtifactsPanel from './components/ArtifactsPanel';
 import McpCatalogModal from './components/McpCatalogModal';
 import ConversationStats from './components/ConversationStats';
+import TrajectoryView from './components/TrajectoryView';
 import ProjectModal from './components/ProjectModal';
 import MoveToProjectModal from './components/MoveToProjectModal';
+import KnowledgeBaseModal from './components/KnowledgeBaseModal';
 import { useChat } from './context/ChatContext';
 import { useProjects } from './context/ProjectContext';
 import { useLanguage } from './context/LanguageContext';
-import { Settings, Zap, PanelLeftClose, PanelLeft, Radio, MessagesSquare, Sparkles, Store, Columns2, X, FolderKanban, Trash2 } from 'lucide-react';
+import { Settings, PanelLeftClose, PanelLeft, Radio, MessagesSquare, Sparkles, Store, Columns2, X, FolderKanban, BookOpen } from 'lucide-react';
 import { Button } from './components/ui/button';
-import { Badge } from './components/ui/badge';
 import { extractThinking } from './lib/messageUtils';
 
 // LocalStorage keys
@@ -81,8 +81,8 @@ function App() {
     messages, 
     setMessages, 
     currentChatId,
+    chatList,
     createNewChat, 
-    clearCurrentChat,
     startFreshChat,
     isSidebarCollapsed,
     toggleSidebar,
@@ -92,12 +92,15 @@ function App() {
     activeProject,
     activeProjectId,
     setActiveProjectId,
-    openEditProjectModal
+    openEditProjectModal,
+    isKnowledgeBaseModalOpen,
+    openKnowledgeBaseModal,
+    closeKnowledgeBaseModal
   } = useProjects();
   const { t } = useLanguage();
+  const [activeTab, setActiveTab] = useState('chat'); // 'chat' | 'trajectory'
+  const [showTrajectoryTab, setShowTrajectoryTab] = useState(true);
   const [loading, setLoading] = useState(false);
-  const [isClearChatModalOpen, setIsClearChatModalOpen] = useState(false);
-  const [isClearingChat, setIsClearingChat] = useState(false);
   const [selectedModel, setSelectedModel] = useState('llama-3.3-70b-versatile');
   const [mcpTools, setMcpTools] = useState([]);
   const [isToolsPanelOpen, setIsToolsPanelOpen] = useState(false);
@@ -136,10 +139,26 @@ function App() {
   // --- End Context Sharing State ---
 
   // --- Persona, Artifacts & Catalog State ---
-  const [activePersona, setActivePersona] = useState(() => DEFAULT_PERSONAS[0]);
+  const [activePersona, setActivePersona] = useState(() => getStoredActivePersona());
   const [activeArtifact, setActiveArtifact] = useState(null);
   const [isMcpCatalogOpen, setIsMcpCatalogOpen] = useState(false);
+
+  useEffect(() => {
+    if (activePersona?.id) {
+      try {
+        localStorage.setItem(ACTIVE_PERSONA_STORAGE_KEY, activePersona.id);
+      } catch (err) {
+        console.error('Failed to persist active persona:', err);
+      }
+    }
+  }, [activePersona]);
   // --- End Persona, Artifacts & Catalog State ---
+
+  const currentChatTitle = useMemo(() => {
+    if (!currentChatId || !chatList) return '';
+    const found = chatList.find(c => c.id === currentChatId);
+    return found?.title || '';
+  }, [currentChatId, chatList]);
 
   // --- Cancellation State ---
   const cancelledRef = useRef(false); // Track if current operation is cancelled
@@ -401,6 +420,7 @@ function App() {
 
         // THEN Load settings
         const settings = await window.electron.getSettings(); // Await settings
+        setShowTrajectoryTab(settings.showTrajectoryTab !== false);
         // Load model filter settings
         setModelFilter(settings.modelFilter || '');
         setModelFilterExclude(settings.modelFilterExclude || '');
@@ -472,6 +492,11 @@ function App() {
     const handleFocus = async () => {
       try {
         const settings = await window.electron.getSettings();
+        const trajectoryEnabled = settings.showTrajectoryTab !== false;
+        setShowTrajectoryTab(trajectoryEnabled);
+        if (!trajectoryEnabled) {
+          setActiveTab('chat');
+        }
         setModelFilter(settings.modelFilter || '');
         setModelFilterExclude(settings.modelFilterExclude || '');
         setUseResponsesApi(settings.useResponsesApi || false);
@@ -644,21 +669,34 @@ function App() {
   }, [messages, isUserScrolling]);
 
   const executeToolCall = async (toolCall) => {
+    const startTime = Date.now();
     try {
       const response = await window.electron.executeToolCall(toolCall);
+      const durationMs = Date.now() - startTime;
       
       // Return the tool response message in the correct format
       return {
         role: 'tool',
         content: response.error ? JSON.stringify({ error: response.error }) : (response.result || ''),
-        tool_call_id: toolCall.id
+        tool_call_id: toolCall.id,
+        durationMs,
+        status: response.error ? 'error' : 'completed',
+        error: response.error || null,
+        createdAt: new Date().toISOString(),
+        timestamp: startTime
       };
     } catch (error) {
       console.error('Error executing tool call:', error);
+      const durationMs = Date.now() - startTime;
       return { 
         role: 'tool', 
         content: JSON.stringify({ error: error.message }),
-        tool_call_id: toolCall.id
+        tool_call_id: toolCall.id,
+        durationMs,
+        status: 'error',
+        error: error.message,
+        createdAt: new Date().toISOString(),
+        timestamp: startTime
       };
     }
   };
@@ -793,6 +831,7 @@ function App() {
     let currentTurnStatus = 'processing'; // processing, completed, paused, error
     let turnAssistantMessage = null;
     let turnToolResponses = [];
+    const turnStartTime = Date.now();
 
     try {
         // Create a streaming assistant message placeholder
@@ -800,7 +839,9 @@ function App() {
             role: 'assistant',
             content: '',
             isStreaming: true,
-            reasoningSummaries: []
+            reasoningSummaries: [],
+            timestamp: turnStartTime,
+            createdAt: new Date().toISOString()
         };
         setMessages(prev => [...prev, assistantPlaceholder]);
 
@@ -1044,7 +1085,10 @@ function App() {
                     pre_calculated_tool_responses: data.pre_calculated_tool_responses,
                     // MCP approval requests from server
                     mcp_approval_requests: data.mcp_approval_requests || finalAssistantData.mcpApprovalRequests,
-                    finish_reason: data.finish_reason
+                    finish_reason: data.finish_reason,
+                    timestamp: turnStartTime,
+                    createdAt: new Date().toISOString(),
+                    durationMs: Date.now() - turnStartTime
                 };
                 turnAssistantMessage = finalAssistantData; // Store the completed message
 
@@ -1269,7 +1313,9 @@ function App() {
     // Format the user message based on content type
     const userMessage = {
       role: 'user',
-      content: content // Assumes ChatInput now sends the correct structured format
+      content: content, // Assumes ChatInput now sends the correct structured format
+      createdAt: new Date().toISOString(),
+      timestamp: Date.now()
     };
     // Add user message optimistically BEFORE the API call
     const initialMessages = [...messages, userMessage];
@@ -1832,34 +1878,7 @@ function App() {
     }
   }, [useResponsesApi]);
 
-  // Handle clearing current chat messages
-  const handleConfirmClearChat = useCallback(async () => {
-    setIsClearingChat(true);
-    try {
-      if (loading) {
-        handleStopGeneration();
-      }
-      await clearCurrentChat();
-    } catch (err) {
-      console.error('Error clearing chat messages:', err);
-    } finally {
-      setIsClearingChat(false);
-      setIsClearChatModalOpen(false);
-    }
-  }, [loading, clearCurrentChat]);
 
-  // Escape key handler to dismiss clear chat modal
-  useEffect(() => {
-    const handleKeyDown = (e) => {
-      if (e.key === 'Escape' && isClearChatModalOpen && !isClearingChat) {
-        setIsClearChatModalOpen(false);
-      }
-    };
-    if (isClearChatModalOpen) {
-      window.addEventListener('keydown', handleKeyDown);
-      return () => window.removeEventListener('keydown', handleKeyDown);
-    }
-  }, [isClearChatModalOpen, isClearingChat]);
   return (
     <div className="flex h-screen bg-background">
       {/* Chat History Sidebar */}
@@ -1887,15 +1906,38 @@ function App() {
                   <PanelLeft className="h-4 w-4" />
                 </Button>
               )}
-              
-              <div className="flex items-center space-x-2">
-                <img 
-                  src="./groqLogo.png" 
-                  alt="Groq Logo" 
-                  className="h-7 w-auto"
-                />
-              </div>
 
+              {/* Chat / Trajectory Tab Switcher */}
+              {showTrajectoryTab && (
+                <div className="flex items-center gap-1 bg-muted/60 p-1 rounded-xl border border-border/70 shadow-2xs">
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab('chat')}
+                    className={`px-3 py-1 text-xs font-semibold rounded-lg transition-all ${
+                      activeTab === 'chat'
+                        ? 'bg-background text-foreground shadow-xs'
+                        : 'text-muted-foreground hover:text-foreground'
+                    }`}
+                  >
+                    {t('trajectory.chatTab')}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab('trajectory')}
+                    className={`px-3 py-1 text-xs font-semibold rounded-lg transition-all flex items-center gap-1.5 ${
+                      activeTab === 'trajectory'
+                        ? 'bg-background text-foreground shadow-xs'
+                        : 'text-muted-foreground hover:text-foreground'
+                    }`}
+                  >
+                    <span>{t('trajectory.trajectoryTab')}</span>
+                    {messages.length > 0 && (
+                      <span className="w-1.5 h-1.5 rounded-full bg-primary" />
+                    )}
+                  </button>
+                </div>
+              )}
+              
               {/* Persona Selector */}
               <PersonaSelector
                 activePersona={activePersona}
@@ -1930,33 +1972,30 @@ function App() {
                 </div>
               )}
 
-              {/* Total Conversation Metrics & Token Summation */}
-              <ConversationStats messages={messages} />
-              
-              {/* Status Badge */}
-              {mcpTools.length > 0 && (
-                <Badge variant="secondary" className="bg-muted text-foreground border border-border">
-                  <Zap className="w-3 h-3 mr-1 text-amber-500" />
-                  {t('header.statusTools', { count: mcpTools.length })}
-                </Badge>
-              )}
-            </div>
-
-            <div className="flex items-center space-x-2">
-              {/* Clear Messages Button (when messages exist) */}
-              {messages.length > 0 && (
+              {/* Project Knowledge Base (RAG) Button */}
+              {activeProject && (
                 <Button
+                  type="button"
                   variant="ghost"
                   size="sm"
-                  onClick={() => setIsClearChatModalOpen(true)}
-                  className="text-xs text-muted-foreground hover:text-destructive hover:bg-muted h-8 px-2 flex items-center gap-1.5"
-                  title={t('header.clearChat')}
+                  onClick={openKnowledgeBaseModal}
+                  className="h-7 px-2.5 text-xs flex items-center gap-1.5 rounded-lg border border-indigo-500/30 text-indigo-600 dark:text-indigo-400 bg-indigo-500/10 hover:bg-indigo-500/20 shadow-2xs"
+                  title={t('rag.viewKnowledge')}
                 >
-                  <Trash2 className="h-3.5 w-3.5" />
-                  <span className="hidden md:inline">{t('header.clearChat')}</span>
+                  <BookOpen className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline font-medium">
+                    {activeProject.folders?.length > 0
+                      ? `${activeProject.folders.length} ${activeProject.folders.length === 1 ? 'pasta' : 'pastas'}`
+                      : t('rag.knowledgeBase')}
+                  </span>
                 </Button>
               )}
 
+              {/* Total Conversation Metrics & Token Summation */}
+              <ConversationStats messages={messages} />
+            </div>
+
+            <div className="flex items-center space-x-2">
               {/* MCP Catalog Button */}
               <Button
                 variant="outline"
@@ -1988,11 +2027,11 @@ function App() {
           <div className="flex-1 overflow-y-auto">
             <div className="max-w-[1600px] mx-auto py-8 px-8 h-full">
               <div className="h-full">
-              {messages.length === 0 ? (
+              {(messages.length === 0 && (activeTab === 'chat' || !showTrajectoryTab)) ? (
                 /* Welcome Screen */
                 <div className="flex flex-col items-center justify-center h-full space-y-8">
                   {/* Chat Input */}
-                  <div className="w-full max-w-2xl">
+                  <div className="w-full max-w-3xl">
                     <ChatInput
                       onSendMessage={handleSendMessage}
                       onStopGeneration={handleStopGeneration}
@@ -2002,6 +2041,39 @@ function App() {
                       selectedModel={selectedModel}
                       onModelChange={setSelectedModel}
                       onOpenMcpTools={() => setIsToolsPanelOpen(true)}
+                      toolsCount={mcpTools.length}
+                      modelConfigs={modelConfigs}
+                      focusSignal={chatFocusSignal}
+                    />
+                  </div>
+                </div>
+              ) : (activeTab === 'trajectory' && showTrajectoryTab) ? (
+                /* Trajectory View */
+                <div className="flex flex-col h-full min-h-0">
+                  <div className="flex-1 overflow-hidden min-h-0 mb-4">
+                    <TrajectoryView
+                      messages={messages}
+                      currentChatTitle={currentChatTitle}
+                      activeProject={activeProject}
+                      selectedModel={selectedModel}
+                      mcpTools={mcpTools}
+                      loading={loading}
+                      onPreviewArtifact={(art) => setActiveArtifact(art)}
+                      onOpenMcpTools={() => setIsToolsPanelOpen(true)}
+                    />
+                  </div>
+
+                  <div className="flex-shrink-0 bg-background/95 backdrop-blur pt-3">
+                    <ChatInput
+                      onSendMessage={handleSendMessage}
+                      onStopGeneration={handleStopGeneration}
+                      loading={loading}
+                      visionSupported={visionSupported}
+                      models={sortedModels}
+                      selectedModel={selectedModel}
+                      onModelChange={setSelectedModel}
+                      onOpenMcpTools={() => setIsToolsPanelOpen(true)}
+                      toolsCount={mcpTools.length}
                       modelConfigs={modelConfigs}
                       focusSignal={chatFocusSignal}
                     />
@@ -2037,6 +2109,7 @@ function App() {
                       selectedModel={selectedModel}
                       onModelChange={setSelectedModel}
                       onOpenMcpTools={() => setIsToolsPanelOpen(true)}
+                      toolsCount={mcpTools.length}
                       modelConfigs={modelConfigs}
                       focusSignal={chatFocusSignal}
                     />
@@ -2089,68 +2162,14 @@ function App() {
       {/* Project Modals */}
       <ProjectModal />
       <MoveToProjectModal />
+      <KnowledgeBaseModal
+        isOpen={isKnowledgeBaseModalOpen}
+        onClose={closeKnowledgeBaseModal}
+        projectId={activeProjectId}
+        projectName={activeProject?.name}
+      />
 
-      {/* Clear Current Chat Messages Modal */}
-      {isClearChatModalOpen && typeof document !== 'undefined' && createPortal(
-        <div
-          className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center z-[9999] p-4 animate-in fade-in-0"
-          onClick={(e) => {
-            if (e.target === e.currentTarget && !isClearingChat) {
-              setIsClearChatModalOpen(false);
-            }
-          }}
-        >
-          <div className="bg-card border border-border rounded-2xl w-full max-w-sm p-4 shadow-2xl animate-in zoom-in-95 flex flex-col space-y-4">
-            <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-xl bg-destructive/10 text-destructive flex items-center justify-center flex-shrink-0">
-                <Trash2 className="w-5 h-5" />
-              </div>
-              <div className="min-w-0 flex-1">
-                <h3 className="font-semibold text-sm text-foreground">
-                  {t('header.clearChatConfirmTitle')}
-                </h3>
-                <p className="text-xs text-muted-foreground mt-0.5">
-                  {messages.length} {messages.length === 1 ? 'mensagem' : 'mensagens'}
-                </p>
-              </div>
-            </div>
 
-            <p className="text-xs text-muted-foreground leading-relaxed">
-              {t('header.clearChatConfirmMessage')}
-            </p>
-
-            <div className="flex items-center justify-end gap-2 pt-1">
-              <button
-                type="button"
-                onClick={() => setIsClearChatModalOpen(false)}
-                disabled={isClearingChat}
-                className="px-3.5 py-1.5 rounded-lg text-xs font-medium text-muted-foreground hover:bg-muted transition-colors disabled:opacity-50"
-              >
-                {t('common.cancel')}
-              </button>
-              <button
-                type="button"
-                onClick={handleConfirmClearChat}
-                disabled={isClearingChat}
-                className="px-4 py-1.5 rounded-lg text-xs font-semibold bg-destructive text-destructive-foreground hover:bg-destructive/90 transition-colors shadow-xs flex items-center gap-1.5 disabled:opacity-50"
-              >
-                {isClearingChat ? (
-                  <>
-                    <div className="w-3 h-3 border-2 border-current border-t-transparent rounded-full animate-spin" />
-                    <span>{t('common.loading')}</span>
-                  </>
-                ) : (
-                  <>
-                    <Trash2 className="w-3.5 h-3.5" />
-                    <span>{t('common.clear')}</span>
-                  </>
-                )}
-              </button>
-            </div>
-          </div>
-        </div>,
-        document.body
-      )}
       </div>
     </div>
   );

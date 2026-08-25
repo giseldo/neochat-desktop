@@ -100,7 +100,7 @@ function getProject(projectId) {
  * @param {Object} projectData - Project attributes
  * @returns {Object} Newly created project
  */
-function createProject({ name, description = '', color = '#f55036', icon = '📁', customPrompt = '' }) {
+function createProject({ name, description = '', color = '#f55036', icon = '📁', customPrompt = '', folders = [] }) {
     if (!name || typeof name !== 'string' || !name.trim()) {
         throw new Error('Project name is required');
     }
@@ -114,6 +114,7 @@ function createProject({ name, description = '', color = '#f55036', icon = '📁
         color: color || PROJECT_COLOR_PRESETS[0],
         icon: icon || '📁',
         customPrompt: (customPrompt || '').trim(),
+        folders: Array.isArray(folders) ? folders : [],
         createdAt: now,
         updatedAt: now
     };
@@ -149,6 +150,7 @@ function updateProject(projectId, updates = {}) {
         color: updates.color !== undefined ? updates.color : current.color,
         icon: updates.icon !== undefined ? updates.icon : current.icon,
         customPrompt: updates.customPrompt !== undefined ? updates.customPrompt.trim() : current.customPrompt,
+        folders: Array.isArray(updates.folders) ? updates.folders : (current.folders || []),
         updatedAt: now
     };
 

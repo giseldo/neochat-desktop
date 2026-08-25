@@ -131,22 +131,22 @@ export function SearchableSelect({
         onClick={() => !disabled && setIsOpen(!isOpen)}
         disabled={disabled}
         className={cn(
-          "flex h-8 w-full items-center justify-between rounded-xl border border-[#CBCDC2] bg-background/50 px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 transition-colors",
+          "flex h-8 w-full items-center justify-between gap-1.5 rounded-xl border border-border/80 bg-background/50 px-2.5 py-1 text-xs sm:text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 transition-colors min-w-0 overflow-hidden",
           isOpen && "ring-2 ring-ring ring-offset-2"
         )}
         aria-haspopup="listbox"
         aria-expanded={isOpen}
       >
-        <span className="line-clamp-1 text-foreground">{displayValue || placeholder}</span>
+        <span className="truncate text-left flex-1 min-w-0 text-foreground">{displayValue || placeholder}</span>
         <ChevronDown className={cn(
-          "h-4 w-4 opacity-50 transition-transform duration-200",
+          "h-3.5 w-3.5 opacity-50 transition-transform duration-200 flex-shrink-0",
           isOpen && "rotate-180"
         )} />
       </button>
 
       {/* Dropdown */}
       {isOpen && (
-        <div className="absolute z-50 bottom-full mb-1 w-full rounded-xl border bg-popover text-popover-foreground shadow-md animate-in fade-in-0 zoom-in-95">
+        <div className="absolute z-50 bottom-full right-0 mb-1 w-full min-w-[200px] max-w-[90vw] rounded-xl border bg-popover text-popover-foreground shadow-md animate-in fade-in-0 zoom-in-95">
           {/* Search Input */}
           <div className="p-2 border-b">
             <input
