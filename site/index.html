@@ -3,18 +3,24 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>NeoChat Desktop — Chat de IA com Groq e MCP</title>
-  <meta name="description" content="NeoChat Desktop é um app de chat desktop com IA Groq, suporte a imagem, servidores MCP locais e remotos, conectores do Google e mais. Baixe para Windows, macOS e Linux." />
+  <title>NeoChat Desktop — Chat de IA de Alta Performance com Groq, MCP e RAG</title>
+  <meta name="description" content="NeoChat Desktop é o app nativo de chat com IA ultra-rápida (Groq), RAG local privado, servidores MCP, conectores Google, push-to-talk por voz e múltiplos provedores. Baixe para Windows, macOS e Linux." />
+  <meta name="keywords" content="NeoChat, Groq, MCP, Model Context Protocol, RAG, Chat AI, Desktop AI, Llama 3.3, IA Desktop, Electron" />
   <meta name="author" content="Giseldo da Silva Neo" />
-  <meta property="og:title" content="NeoChat Desktop — Chat de IA com Groq e MCP" />
-  <meta property="og:description" content="App de chat desktop com IA Groq, suporte a imagem, servidores MCP e conectores do Google. Disponível para Windows, macOS e Linux." />
+  <meta property="og:title" content="NeoChat Desktop — Chat de IA de Alta Performance com Groq, MCP e RAG" />
+  <meta property="og:description" content="App desktop nativo com IA ultra-rápida, RAG local, ferramentas MCP, conectores Google e voz push-to-talk. Disponível para Windows, macOS e Linux." />
   <meta property="og:type" content="website" />
   <meta property="og:image" content="./assets/img/icon.png" />
-  <meta name="theme-color" content="#0a0a0f" />
+  <meta property="og:url" content="https://neochatdesktop.vercel.app" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="NeoChat Desktop — Chat de IA com Groq, MCP e RAG" />
+  <meta name="twitter:description" content="Chat de IA nativo para desktop com velocidade Groq, RAG local, ferramentas MCP e voz push-to-talk." />
+  <meta name="twitter:image" content="./assets/img/icon.png" />
+  <meta name="theme-color" content="#090a0f" />
   <link rel="icon" type="image/png" href="./assets/img/icon.png" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="./assets/css/style.css" />
 </head>
 <body>
@@ -22,16 +28,19 @@
   <div class="bg-grid" aria-hidden="true"></div>
   <div class="bg-glow bg-glow--1" aria-hidden="true"></div>
   <div class="bg-glow bg-glow--2" aria-hidden="true"></div>
+  <div class="bg-glow bg-glow--3" aria-hidden="true"></div>
 
   <!-- ===== Navbar ===== -->
   <header class="nav" id="nav">
     <div class="container nav__inner">
       <a href="#top" class="nav__brand">
-        <img src="./assets/img/icon.png" alt="NeoChat Desktop" class="nav__logo" />
-        <span>NeoChat <strong>Desktop</strong></span>
+        <img src="./assets/img/icon.png" alt="NeoChat Desktop" class="nav__logo" width="32" height="32" />
+        <span class="nav__brand-text">NeoChat <strong>Desktop</strong></span>
       </a>
       <nav class="nav__links" aria-label="Navegação principal">
         <a href="#features">Recursos</a>
+        <a href="#modes">Modos de Uso</a>
+        <a href="#mcp">MCP &amp; RAG</a>
         <a href="#highlights">Diferenciais</a>
         <a href="#download">Download</a>
         <a href="#faq">FAQ</a>
@@ -39,9 +48,9 @@
       <div class="nav__actions">
         <a href="https://github.com/giseldo/neochat-desktop" target="_blank" rel="noopener" class="btn btn--ghost btn--sm" aria-label="Ver no GitHub">
           <svg class="icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 .5C5.73.5.5 5.74.5 12.04c0 5.1 3.29 9.41 7.86 10.94.58.1.79-.25.79-.56v-2c-3.2.7-3.88-1.37-3.88-1.37-.53-1.35-1.3-1.71-1.3-1.71-1.06-.72.08-.71.08-.71 1.17.08 1.79 1.2 1.79 1.2 1.04 1.79 2.73 1.27 3.4.97.1-.76.41-1.27.74-1.56-2.56-.29-5.26-1.28-5.26-5.7 0-1.26.45-2.29 1.19-3.1-.12-.29-.52-1.46.11-3.05 0 0 .97-.31 3.18 1.18a11 11 0 0 1 5.79 0c2.2-1.49 3.17-1.18 3.17-1.18.63 1.59.23 2.76.11 3.05.74.81 1.19 1.84 1.19 3.1 0 4.43-2.71 5.41-5.28 5.69.42.36.79 1.07.79 2.16v3.2c0 .31.21.67.8.56 4.56-1.53 7.85-5.84 7.85-10.94C23.5 5.74 18.27.5 12 .5Z"/></svg>
-          <span class="nav__gh-stars"><span id="starCount">★</span></span>
+          <span class="nav__gh-stars"><span id="starCount">★ GitHub</span></span>
         </a>
-        <a href="#download" class="btn btn--primary btn--sm">Baixar</a>
+        <a href="#download" class="btn btn--primary btn--sm" id="navDownloadBtn">Baixar App</a>
         <button class="nav__toggle" id="navToggle" aria-label="Abrir menu" aria-expanded="false">
           <span></span><span></span><span></span>
         </button>
@@ -49,10 +58,12 @@
     </div>
     <div class="nav__mobile" id="navMobile" aria-hidden="true">
       <a href="#features">Recursos</a>
+      <a href="#modes">Modos de Uso</a>
+      <a href="#mcp">MCP &amp; RAG</a>
       <a href="#highlights">Diferenciais</a>
       <a href="#download">Download</a>
       <a href="#faq">FAQ</a>
-      <a href="https://github.com/giseldo/neochat-desktop" target="_blank" rel="noopener">GitHub</a>
+      <a href="https://github.com/giseldo/neochat-desktop" target="_blank" rel="noopener">GitHub Repo</a>
     </div>
   </header>
 
@@ -61,263 +72,534 @@
     <section class="hero">
       <div class="container hero__inner">
         <div class="hero__content reveal">
-          <span class="badge badge--pill">
-            <span class="pulse-dot"></span> Powered by Groq — Inferência ultra-rápida
-          </span>
+          <div class="badge badge--pill">
+            <span class="pulse-dot"></span> Nova geração de Chat IA Desktop
+          </div>
           <h1 class="hero__title">
-            Chat de IA no desktop<br />
-            com <span class="gradient-text">Groq + MCP</span>
+            O Workspace de IA definitivo no seu desktop com <span class="gradient-text">Groq + MCP + RAG</span>
           </h1>
           <p class="hero__subtitle">
-            Converse com modelos de IA de última geração, envie imagens, conecte
-            servidores MCP locais e remotos, e integre o Google — tudo em um app
-            nativo rápido e bonito para Windows, macOS e Linux.
+            Converse em velocidade instantânea, conecte ferramentas locais e remotas via MCP, indexe seus documentos com RAG privado, acione atalhos de voz Push-to-Talk e integre múltiplos provedores com fallback inteligente.
           </p>
           <div class="hero__cta">
-            <a href="#download" class="btn btn--primary btn--lg">
+            <a href="#download" class="btn btn--primary btn--lg" id="heroPrimaryDownload">
               <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-              Baixar grátis
+              <span id="heroDownloadText">Baixar NeoChat Desktop</span>
             </a>
             <a href="https://github.com/giseldo/neochat-desktop" target="_blank" rel="noopener" class="btn btn--ghost btn--lg">
-              Ver código-fonte
+              <svg class="icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 .5C5.73.5.5 5.74.5 12.04c0 5.1 3.29 9.41 7.86 10.94.58.1.79-.25.79-.56v-2c-3.2.7-3.88-1.37-3.88-1.37-.53-1.35-1.3-1.71-1.3-1.71-1.06-.72.08-.71.08-.71 1.17.08 1.79 1.2 1.79 1.2 1.04 1.79 2.73 1.27 3.4.97.1-.76.41-1.27.74-1.56-2.56-.29-5.26-1.28-5.26-5.7 0-1.26.45-2.29 1.19-3.1-.12-.29-.52-1.46.11-3.05 0 0 .97-.31 3.18 1.18a11 11 0 0 1 5.79 0c2.2-1.49 3.17-1.18 3.17-1.18.63 1.59.23 2.76.11 3.05.74.81 1.19 1.84 1.19 3.1 0 4.43-2.71 5.41-5.28 5.69.42.36.79 1.07.79 2.16v3.2c0 .31.21.67.8.56 4.56-1.53 7.85-5.84 7.85-10.94C23.5 5.74 18.27.5 12 .5Z"/></svg>
+              Código Aberto (GitHub)
             </a>
           </div>
           <div class="hero__platforms">
             <span>Disponível para</span>
             <span class="platform-tags">
-              <span class="platform-tag">Windows</span>
-              <span class="platform-tag">macOS</span>
-              <span class="platform-tag">Linux</span>
+              <span class="platform-tag" data-os="win"><svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><path d="M0 3.449L9.75 2.1v9.451H0m10.949-9.602L24 0v11.4H10.949M0 12.6h9.75v9.451L0 20.699M10.949 12.6H24V24l-12.901-1.801"/></svg> Windows</span>
+              <span class="platform-tag" data-os="mac"><svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.81-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83ZM13 3.5c.73-.93 1.92-1.55 2.96-1.5.13 1.18-.33 2.35-1.02 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.01-3.11Z"/></svg> macOS</span>
+              <span class="platform-tag" data-os="linux"><svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><path d="M12.003 2c-2.458 0-4.47 1.89-4.73 4.298-.44.08-.85.24-1.22.47-.94.59-1.51 1.59-1.51 2.7 0 .54.14 1.05.39 1.5-.66.86-1.03 1.91-1.03 3.03 0 2.74 2.19 4.97 4.93 5.01v.01c.71 1.83 2.35 2.98 4.17 2.98 1.82 0 3.46-1.15 4.17-2.98v-.01c2.74-.04 4.93-2.27 4.93-5.01 0-1.12-.37-2.17-1.03-3.03.25-.45.39-.96.39-1.5 0-1.11-.57-2.11-1.51-2.7-.37-.23-.78-.39-1.22-.47C16.473 3.89 14.461 2 12.003 2z"/></svg> Linux</span>
             </span>
           </div>
         </div>
 
+        <!-- Visual App Preview Window -->
         <div class="hero__visual reveal" data-delay="150">
           <div class="window">
             <div class="window__bar">
-              <span class="window__dot window__dot--red"></span>
-              <span class="window__dot window__dot--yellow"></span>
-              <span class="window__dot window__dot--green"></span>
-              <span class="window__title">NeoChat Desktop</span>
+              <div class="window__dots">
+                <span class="window__dot window__dot--red"></span>
+                <span class="window__dot window__dot--yellow"></span>
+                <span class="window__dot window__dot--green"></span>
+              </div>
+              <div class="window__title-container">
+                <img src="./assets/img/icon.png" alt="" class="window__mini-logo" width="16" height="16" />
+                <span class="window__title">NeoChat Desktop — Llama 3.3 70B Versatile</span>
+              </div>
+              <div class="window__badge-mode">Power User</div>
             </div>
             <div class="window__body">
               <div class="chat-preview">
-                <div class="chat-msg chat-msg--user">Explique este gráfico de vendas 📈 <span class="chat-img">📊</span></div>
-                <div class="chat-msg chat-msg--ai">
-                  <div class="chat-ai-head"><span class="ai-dot"></span> Groq</div>
-                  As vendas cresceram 34% no trimestre. O pico ocorreu em julho,
-                  impulsionado pelo lançamento do produto…
+                <div class="chat-msg chat-msg--user">
+                  <span>Analise este gráfico de métricas e crie um evento na minha agenda para a reunião de alinhamento com a equipe.</span>
+                  <div class="chat-attachment-pill">
+                    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg>
+                    <span>dashboard_q3.png (1024x768)</span>
+                  </div>
                 </div>
+
                 <div class="chat-msg chat-msg--tool">
-                  <span class="tool-icon">🔧</span> MCP · servidor local executou <code>get_sales_data</code>
+                  <span class="tool-icon">📚</span>
+                  <div>
+                    <strong>RAG Local:</strong> <code>relatorio_anual_2026.pdf</code> consultado (similaridade 96%)
+                  </div>
                 </div>
-                <div class="chat-typing">
-                  <span></span><span></span><span></span>
+
+                <div class="chat-msg chat-msg--ai">
+                  <div class="chat-ai-head">
+                    <div class="ai-badge-group">
+                      <span class="ai-dot"></span>
+                      <strong>Groq LPU™</strong>
+                      <span class="ai-latency">⚡ 480 t/s · 185ms</span>
+                    </div>
+                  </div>
+                  <p>Com base na imagem e no histórico do relatório, o crescimento de retenção foi de <strong>+42% no Q3</strong>.</p>
+                  <p>Acionei o conector do <strong>Google Calendar</strong> via MCP para agendar a reunião:</p>
+                </div>
+
+                <div class="chat-msg chat-msg--tool chat-msg--tool-success">
+                  <span class="tool-icon">📅</span>
+                  <div>
+                    <strong>MCP Google Calendar:</strong> Reunião <em>"Alinhamento Resultados Q3"</em> agendada para amanhã às 14:00.
+                  </div>
+                </div>
+
+                <!-- Interactive Chat Input Simulation -->
+                <div class="chat-input-bar">
+                  <div class="chat-input-placeholder">Pergunte algo ou segure Ctrl+Alt para ditar...</div>
+                  <div class="chat-input-tools">
+                    <span class="tool-pill" title="Push-to-talk ativo">🎙️ PTT (Ctrl+Alt)</span>
+                    <span class="tool-pill" title="Captura de tela">✂️ Snip</span>
+                    <span class="tool-pill" title="RAG Ativo">📂 RAG</span>
+                    <button class="send-btn" aria-label="Enviar mensagem">→</button>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
+
+          <!-- Floating Badges -->
           <div class="float-card float-card--1 reveal" data-delay="300">
             <span class="float-card__icon">⚡</span>
             <div>
-              <strong>Inferência rápida</strong>
-              <small>via Groq API</small>
+              <strong>Inferência Ultra-Rápida</strong>
+              <small>Groq LPU™ em tempo real</small>
             </div>
           </div>
           <div class="float-card float-card--2 reveal" data-delay="400">
             <span class="float-card__icon">🔌</span>
             <div>
-              <strong>MCP local &amp; remoto</strong>
-              <small>function calling</small>
+              <strong>MCP Local &amp; Remoto</strong>
+              <small>Catálogo com +50 ferramentas</small>
+            </div>
+          </div>
+          <div class="float-card float-card--3 reveal" data-delay="500">
+            <span class="float-card__icon">🎙️</span>
+            <div>
+              <strong>Push-to-Talk (Ctrl+Alt)</strong>
+              <small>Transcreva voz instantaneamente</small>
             </div>
           </div>
         </div>
       </div>
     </section>
 
-    <!-- ===== Logos / confiança ===== -->
+    <!-- ===== Tech Trust Section ===== -->
     <section class="trust">
       <div class="container trust__inner">
-        <span class="trust__label">Construído com tecnologias modernas</span>
+        <span class="trust__label">Desenvolvido com o que há de mais moderno</span>
         <div class="trust__logos">
-          <span>Electron</span>
-          <span>React 19</span>
-          <span>Groq API</span>
-          <span>MCP</span>
-          <span>Vite</span>
-          <span>Tailwind</span>
+          <span class="trust__pill">Groq LPU™</span>
+          <span class="trust__pill">Model Context Protocol (MCP)</span>
+          <span class="trust__pill">RAG Offline Seguro</span>
+          <span class="trust__pill">Electron 34</span>
+          <span class="trust__pill">React 19</span>
+          <span class="trust__pill">Google OAuth</span>
+          <span class="trust__pill">SafeStorage Encrypted</span>
         </div>
       </div>
     </section>
 
-    <!-- ===== Features ===== -->
+    <!-- ===== Interactive Mode Showcase (User vs Power User) ===== -->
+    <section class="section section--alt" id="modes">
+      <div class="container">
+        <div class="section__head reveal">
+          <span class="badge">Experiência Sob Medida</span>
+          <h2 class="section__title">Dois modos, uma experiência perfeita</h2>
+          <p class="section__subtitle">
+            Alterne entre a simplicidade do <strong>Modo Usuário</strong> para conversas diárias e o poder do <strong>Modo Power User</strong> para desenvolvedores e fluxos avançados.
+          </p>
+        </div>
+
+        <div class="mode-tabs reveal">
+          <button class="mode-tab active" data-target="mode-user" id="tabUserMode">
+            <span class="mode-tab__icon">✨</span>
+            <div>
+              <strong>Modo Usuário</strong>
+              <small>Simples, rápido e sem distrações</small>
+            </div>
+          </button>
+          <button class="mode-tab" data-target="mode-power" id="tabPowerMode">
+            <span class="mode-tab__icon">⚡</span>
+            <div>
+              <strong>Modo Power User</strong>
+              <small>Controle total de parâmetros, RAG, MCP e Git</small>
+            </div>
+          </button>
+        </div>
+
+        <div class="mode-content-container reveal">
+          <!-- User Mode Panel -->
+          <div class="mode-panel active" id="mode-user">
+            <div class="mode-grid">
+              <div class="mode-desc">
+                <span class="mode-tag">Para o dia a dia</span>
+                <h3>Foco total na conversa e na produtividade</h3>
+                <p>O Modo Usuário esconde parâmetros técnicos complexos, entregando uma interface limpa, rápida e intuitiva para quem deseja respostas imediatas, envio de imagens e transcrição por voz.</p>
+                <ul class="check-list">
+                  <li><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> Interface minimalista e sem ruídos visuais</li>
+                  <li><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> Suporte nativo a envio de imagens e capturas de tela (Snip)</li>
+                  <li><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> Push-to-Talk via atalho <code>Ctrl+Alt</code> para ditar</li>
+                  <li><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> Modelos selecionados automaticamente para máxima performance</li>
+                </ul>
+              </div>
+              <div class="mode-card-preview">
+                <div class="preview-box">
+                  <div class="preview-header">
+                    <span class="preview-title">Modo Usuário Ativo</span>
+                    <span class="status-indicator">Online</span>
+                  </div>
+                  <div class="preview-chat-simple">
+                    <div class="bubble user">Resuma as principais novidades do Llama 3.3.</div>
+                    <div class="bubble ai">O Llama 3.3 70B oferece capacidades de ponta comparáveis a modelos muito maiores, com suporte nativo a ferramentas, raciocínio aprimorado e custo de inferência extremamente baixo na Groq.</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Power User Mode Panel -->
+          <div class="mode-panel" id="mode-power">
+            <div class="mode-grid">
+              <div class="mode-desc">
+                <span class="mode-tag mode-tag--power">Para desenvolvedores e especialistas</span>
+                <h3>Controle granular de todos os recursos de IA</h3>
+                <p>O Modo Power User desbloqueia uma estação de trabalho completa com ajustes finos de inferência, fallback automático de provedores, servidor MCP local/remoto, base RAG, Git guardado e logs detalhados.</p>
+                <ul class="check-list">
+                  <li><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> Ajuste de Temperatura, Top-p, System Prompts e Esforço de Raciocínio</li>
+                  <li><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> Fallback ordenado entre múltiplos provedores (Groq, OpenAI, Anthropic, Ollama)</li>
+                  <li><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> Base de Conhecimento RAG com indexação incremental de PDFs e docs</li>
+                  <li><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> Matriz de permissões MCP por ferramenta e integração Git guardada</li>
+                </ul>
+              </div>
+              <div class="mode-card-preview">
+                <div class="preview-box preview-box--power">
+                  <div class="preview-header">
+                    <span class="preview-title">Painel de Engenharia de IA</span>
+                    <span class="status-indicator status-indicator--power">Fallback Ativo</span>
+                  </div>
+                  <div class="preview-power-controls">
+                    <div class="param-row">
+                      <span>Provedor Ativo</span>
+                      <code>Groq (Fallback: OpenAI)</code>
+                    </div>
+                    <div class="param-row">
+                      <span>Temperatura</span>
+                      <div class="slider-mock"><span style="width: 70%"></span></div>
+                    </div>
+                    <div class="param-row">
+                      <span>RAG Local</span>
+                      <span class="badge-mini">14 documentos indexados</span>
+                    </div>
+                    <div class="param-row">
+                      <span>Permissão MCP</span>
+                      <span class="badge-mini badge-mini--green">Safe Execution (Guarded)</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== Features Grid ===== -->
     <section class="section" id="features">
       <div class="container">
         <div class="section__head reveal">
-          <span class="badge">Recursos</span>
-          <h2 class="section__title">Tudo o que você precisa para conversar com IA</h2>
+          <span class="badge">Funcionalidades</span>
+          <h2 class="section__title">Tudo o que você precisa em uma única plataforma</h2>
           <p class="section__subtitle">
-            Uma experiência de chat completa, com ferramentas poderosas e integrações nativas.
+            Construído para aliar a maior velocidade de inferência do mercado à máxima privacidade e extensibilidade local.
           </p>
         </div>
 
         <div class="features-grid">
+          <!-- Feature 1: Groq Speed -->
           <article class="feature-card reveal">
             <div class="feature-card__icon feature-card__icon--blue">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
             </div>
-            <h3>Chat com streaming</h3>
-            <p>Respostas em tempo real via streaming push-based sobre IPC, com renderização em Markdown, realce de sintaxe e suporte a matemática (KaTeX).</p>
+            <h3>Inferência Ultra-Rápida com Groq</h3>
+            <p>Respostas em milissegundos através dos chips LPU™ da Groq, com suporte a streaming em tempo real, Markdown nítido, realce de sintaxe e fórmulas matemáticas em KaTeX.</p>
           </article>
 
-          <article class="feature-card reveal" data-delay="80">
-            <div class="feature-card__icon feature-card__icon--green">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg>
-            </div>
-            <h3>Suporte a imagens</h3>
-            <p>Envie imagens e converse com modelos de visão. O NeoChat detecta automaticamente a capacidade de visão dos modelos Llama 4 e afins.</p>
-          </article>
-
-          <article class="feature-card reveal" data-delay="160">
-            <div class="feature-card__icon feature-card__icon--purple">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="2" width="20" height="8" rx="2"/><rect x="2" y="14" width="20" height="8" rx="2"/><line x1="6" y1="6" x2="6.01" y2="6"/><line x1="6" y1="18" x2="6.01" y2="18"/></svg>
-            </div>
-            <h3>Servidores MCP</h3>
-            <p>Conecte servidores MCP locais (stdio) e remotos (HTTP) para dar aos modelos acesso a ferramentas e dados externos via function calling.</p>
-          </article>
-
-          <article class="feature-card reveal" data-delay="240">
-            <div class="feature-card__icon feature-card__icon--orange">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M2 12h20"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
-            </div>
-            <h3>Conectores Google</h3>
-            <p>Integre Gmail, Google Calendar e Drive com OAuth. Conecte sua conta e permita que a IA acesse e processe seus dados com aprovação.</p>
-          </article>
-
-          <article class="feature-card reveal">
-            <div class="feature-card__icon feature-card__icon--pink">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3z"/></svg>
-            </div>
-            <h3>Ferramentas embutidas</h3>
-            <p>Interpretador de código e busca na web integrados, ativáveis por modelo, para ampliar as capacidades de raciocínio e resposta.</p>
-          </article>
-
+          <!-- Feature 2: Multi-Provider & Fallback -->
           <article class="feature-card reveal" data-delay="80">
             <div class="feature-card__icon feature-card__icon--cyan">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
             </div>
-            <h3>Modelos personalizáveis</h3>
-            <p>Configure temperatura, top-p, esforço de raciocínio e prompt de sistema. Adicione modelos customizados e ajuste a base da API.</p>
+            <h3>Multi-Provedor com Fallback Ordenado</h3>
+            <p>Configure Groq, OpenAI, Anthropic, Ollama ou endpoints customizados. Se um provedor ficar indisponível ou atingir limites de taxa, o NeoChat migra suavemente para o fallback configurado.</p>
           </article>
 
+          <!-- Feature 3: Local RAG -->
+          <article class="feature-card reveal" data-delay="160">
+            <div class="feature-card__icon feature-card__icon--purple">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+            </div>
+            <h3>Base de Conhecimento Local (RAG)</h3>
+            <p>Indexação incremental de arquivos PDF, Word (.docx), planilhas (.xlsx), Markdown e códigos-fonte. Converse com seus documentos privados sem enviar nada para bancos vetoriais na nuvem.</p>
+          </article>
+
+          <!-- Feature 4: MCP Ecosystem -->
+          <article class="feature-card reveal" data-delay="240">
+            <div class="feature-card__icon feature-card__icon--orange">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16.5 9.4 7.55 4.24a1.78 1.78 0 0 0-2.5 1.55v12.42a1.78 1.78 0 0 0 2.5 1.55L16.5 14.6a1.78 1.78 0 0 0 0-3.2z"/><path d="M21 12h-3"/></svg>
+            </div>
+            <h3>Servidores &amp; Catálogo MCP</h3>
+            <p>Execute servidores MCP locais via stdio (scripts nativos para Node, Deno, Docker, NPX, UVX) ou conecte servidores remotos HTTP SSE. Acompanhe logs e controle permissões por ferramenta.</p>
+          </article>
+
+          <!-- Feature 5: Google Connectors -->
+          <article class="feature-card reveal">
+            <div class="feature-card__icon feature-card__icon--green">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/><line x1="2" y1="12" x2="22" y2="12"/></svg>
+            </div>
+            <h3>Conectores Google Workspace</h3>
+            <p>Integração OAuth nativa com Gmail, Google Calendar e Google Drive. Consulte e-mails, agende compromissos e acesse arquivos diretamente no chat com aprovação prévia das ações.</p>
+          </article>
+
+          <!-- Feature 6: Voice Push-to-Talk -->
+          <article class="feature-card reveal" data-delay="80">
+            <div class="feature-card__icon feature-card__icon--pink">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+            </div>
+            <h3>Ditado por Voz &amp; Push-to-Talk</h3>
+            <p>Segure <code>Ctrl+Alt</code> em qualquer momento para falar e solte para transcrever instantaneamente para o chat. Inclui sintetizador de voz (TTS) configurável com reprodução automática.</p>
+          </article>
+
+          <!-- Feature 7: Guarded Git -->
           <article class="feature-card reveal" data-delay="160">
             <div class="feature-card__icon feature-card__icon--indigo">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2a10 10 0 1 0 10 10"/><path d="M12 6v6l4 2"/></svg>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="18" cy="18" r="3"/><circle cx="6" cy="6" r="3"/><path d="M18 15V9a6 6 0 0 0-6-6"/><path d="M6 9v12"/></svg>
             </div>
-            <h3>Captura de contexto</h3>
-            <p>Atalho global (Ctrl+G / Cmd+G) e protocolo <code>groq://</code> para capturar contexto de qualquer lugar e enviar direto para o chat.</p>
+            <h3>Git Integrado com Salvaguardas</h3>
+            <p>Inspecione status de repositórios locais, visualize diffs coloridos, crie commits e envie alterações diretamente pelo app, com verificações de segurança antes de cada ação.</p>
           </article>
 
+          <!-- Feature 8: Workflows & Schedules -->
           <article class="feature-card reveal" data-delay="240">
             <div class="feature-card__icon feature-card__icon--teal">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9z"/></svg>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
             </div>
-            <h3>Tema claro/escuro</h3>
-            <p>Interface com tema claro, escuro ou automático, suporte a múltiplos idiomas e janela popup opcional para acesso rápido.</p>
+            <h3>Workflows &amp; Agendamentos</h3>
+            <p>Automatize processos repetitivos criando fluxos de múltiplos passos com IA e agendando execuções automáticas recorrentes com expressões cron no seu computador.</p>
+          </article>
+
+          <!-- Feature 9: Encrypted Vault -->
+          <article class="feature-card reveal">
+            <div class="feature-card__icon feature-card__icon--blue">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+            </div>
+            <h3>Cofre Criptografado de Credenciais</h3>
+            <p>Suas chaves de API e segredos OAuth são protegidos pela API nativa SafeStorage do seu sistema operacional (DPAPI no Windows, Keychain no macOS, Secret Service no Linux).</p>
+          </article>
+
+          <!-- Feature 10: Observability & Budget -->
+          <article class="feature-card reveal" data-delay="80">
+            <div class="feature-card__icon feature-card__icon--cyan">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+            </div>
+            <h3>Observabilidade &amp; Orçamentos</h3>
+            <p>Acompanhe o consumo diário e mensal de tokens, visualize o custo estimado por modelo/provedor, defina limites de orçamento e exporte relatórios em JSON e CSV.</p>
+          </article>
+
+          <!-- Feature 11: Instant Popup -->
+          <article class="feature-card reveal" data-delay="160">
+            <div class="feature-card__icon feature-card__icon--purple">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="2"/><line x1="9" y1="9" x2="15" y2="15"/><line x1="15" y1="9" x2="9" y2="15"/></svg>
+            </div>
+            <h3>Pop-up Global &amp; Captura de Tela</h3>
+            <p>Abra o NeoChat de qualquer aplicativo com o atalho global <code>Ctrl+G</code> / <code>Cmd+G</code>, use a ferramenta de snip para capturar regiões da tela ou chame via protocolo <code>groq://</code>.</p>
+          </article>
+
+          <!-- Feature 12: Branching & Projects -->
+          <article class="feature-card reveal" data-delay="240">
+            <div class="feature-card__icon feature-card__icon--green">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="6" y1="3" x2="6" y2="15"/><circle cx="18" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M18 9a9 9 0 0 1-9 9"/></svg>
+            </div>
+            <h3>Ramificação de Chats &amp; Projetos</h3>
+            <p>Ramifique qualquer conversa para testar hipóteses paralelas sem perder o contexto original. Organize conversas em Projetos, configure Personas e use Templates de prompt reutilizáveis.</p>
           </article>
         </div>
       </div>
     </section>
 
-    <!-- ===== Highlights / diferenciais ===== -->
-    <section class="section section--alt" id="highlights">
+    <!-- ===== MCP & RAG Architecture Section ===== -->
+    <section class="section section--alt" id="mcp">
+      <div class="container">
+        <div class="section__head reveal">
+          <span class="badge">Extensibilidade</span>
+          <h2 class="section__title">Conecte sua IA ao mundo real</h2>
+          <p class="section__subtitle">
+            O NeoChat Desktop une o poder do protocolo padrão MCP à segurança de dados locais com RAG offline.
+          </p>
+        </div>
+
+        <div class="mcp-grid reveal">
+          <div class="mcp-card">
+            <div class="mcp-card__header">
+              <span class="mcp-badge">MCP Protocol</span>
+              <h3>Servidores MCP Nativos</h3>
+            </div>
+            <p>Dê asas aos modelos para executar comandos, manipular arquivos e consultar APIs externas com segurança:</p>
+            <div class="mcp-chips">
+              <span class="mcp-chip">📁 Filesystem MCP</span>
+              <span class="mcp-chip">🌐 Brave Web Search</span>
+              <span class="mcp-chip">💻 Terminal / Command MCP</span>
+              <span class="mcp-chip">🐘 PostgreSQL &amp; SQLite</span>
+              <span class="mcp-chip">📅 Google Calendar</span>
+              <span class="mcp-chip">✉️ Gmail Connector</span>
+              <span class="mcp-chip">📂 Google Drive</span>
+              <span class="mcp-chip">🐍 Python Code Sandbox</span>
+            </div>
+            <div class="mcp-note">
+              <strong>Permissões em 3 Níveis:</strong> Sempre Permitir, Perguntar a Cada Execução ou Bloquear.
+            </div>
+          </div>
+
+          <div class="mcp-card">
+            <div class="mcp-card__header">
+              <span class="mcp-badge mcp-badge--rag">RAG Privado</span>
+              <h3>Base de Conhecimento Local</h3>
+            </div>
+            <p>Indexação e busca semântica instantânea direto na sua máquina, sem expor documentos confidenciais:</p>
+            <div class="rag-features">
+              <div class="rag-feature">
+                <span class="rag-icon">📄</span>
+                <div>
+                  <strong>Documentos Suportados</strong>
+                  <small>PDFs, DOCX, Planilhas Excel (.xlsx), TXT, Markdown e código.</small>
+                </div>
+              </div>
+              <div class="rag-feature">
+                <span class="rag-icon">⚡</span>
+                <div>
+                  <strong>Indexação Incremental</strong>
+                  <small>Atualiza apenas arquivos novos ou alterados em cache local ultra-rápido.</small>
+                </div>
+              </div>
+              <div class="rag-feature">
+                <span class="rag-icon">🔒</span>
+                <div>
+                  <strong>100% Offline &amp; Privado</strong>
+                  <small>Seus dados permanecem seguros no seu dispositivo.</small>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== Highlights / Diferenciais ===== -->
+    <section class="section" id="highlights">
       <div class="container">
         <div class="section__head reveal">
           <span class="badge">Diferenciais</span>
           <h2 class="section__title">Por que escolher o NeoChat Desktop?</h2>
-          <p class="section__subtitle">Rápido, privado e extensível — pensado para quem leva IA a sério.</p>
+          <p class="section__subtitle">Velocidade inigualável, segurança robusta e liberdade total de configuração.</p>
         </div>
 
         <div class="highlights">
           <div class="highlight reveal">
             <div class="highlight__num">01</div>
             <div class="highlight__body">
-              <h3>Velocidade com Groq</h3>
-              <p>Aproveite a inferência ultrarrápida da Groq API com cache de modelos e detecção automática de capacidades por heurística de nome.</p>
+              <h3>Velocidade Absoluta Groq</h3>
+              <p>Sinta a diferença de conversar com IA em mais de 500 tokens por segundo. Sem lentidão, com carregamento instantâneo de modelos e cache inteligente.</p>
             </div>
           </div>
           <div class="highlight reveal" data-delay="80">
             <div class="highlight__num">02</div>
             <div class="highlight__body">
-              <h3>Privacidade local</h3>
-              <p>Servidores MCP rodam localmente via stdio, com scripts por plataforma. Suas chaves ficam no seu computador — nunca enviadas para servidores nossos.</p>
+              <h3>Privacidade em Primeiro Lugar</h3>
+              <p>Chaves criptografadas no hardware do sistema operacional, RAG em armazenamento local e servidores MCP executados localmente via stdio protegido.</p>
             </div>
           </div>
           <div class="highlight reveal" data-delay="160">
             <div class="highlight__num">03</div>
             <div class="highlight__body">
-              <h3>Multiplataforma real</h3>
-              <p>Binários nativos para Windows (NSIS/portable), macOS (DMG/ZIP) e Linux (AppImage/deb/rpm). Testado em todas as plataformas.</p>
+              <h3>Multiplataforma Nativo</h3>
+              <p>Compilado com binários otimizados para Windows (NSIS/Portable), macOS (DMG Universal Apple Silicon e Intel) e Linux (AppImage, deb, rpm).</p>
             </div>
           </div>
           <div class="highlight reveal" data-delay="240">
             <div class="highlight__num">04</div>
             <div class="highlight__body">
-              <h3>Extensível</h3>
-              <p>Adicione modelos customizados, defina a base da API, conecte servidores MCP remotos e amplie as capacidades sem limites.</p>
+              <h3>Código Aberto &amp; Extensível</h3>
+              <p>Sem taxas ocultas ou bloqueios proprietários. Adicione seus próprios modelos, conecte seus provedores e expanda seu ecossistema como preferir.</p>
             </div>
           </div>
         </div>
       </div>
     </section>
 
-    <!-- ===== Download ===== -->
-    <section class="section" id="download">
+    <!-- ===== Download Section ===== -->
+    <section class="section section--alt" id="download">
       <div class="container">
         <div class="section__head reveal">
           <span class="badge">Download</span>
           <h2 class="section__title">Baixe o NeoChat Desktop</h2>
-          <p class="section__subtitle">Grátis e de código aberto. Escolha sua plataforma.</p>
+          <p class="section__subtitle">Gratuito e de código aberto. Escolha a versão para o seu sistema operacional.</p>
         </div>
 
         <div class="download-grid">
-          <article class="download-card reveal">
+          <!-- Windows Card -->
+          <article class="download-card reveal" id="card-win">
             <div class="download-card__icon">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+              <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M0 3.449L9.75 2.1v9.451H0m10.949-9.602L24 0v11.4H10.949M0 12.6h9.75v9.451L0 20.699M10.949 12.6H24V24l-12.901-1.801"/></svg>
             </div>
             <h3>Windows</h3>
-            <p>Instalador NSIS ou versão portátil</p>
+            <p>Windows 10 / 11 (64-bit)</p>
             <ul class="download-card__files" id="dl-win">
-              <li><a href="https://github.com/giseldo/neochat-desktop/releases" target="_blank" rel="noopener">.exe (NSIS)</a></li>
-              <li><a href="https://github.com/giseldo/neochat-desktop/releases" target="_blank" rel="noopener">.exe (Portable)</a></li>
+              <li><a href="https://github.com/giseldo/neochat-desktop/releases" target="_blank" rel="noopener">.exe (Instalador NSIS)</a></li>
+              <li><a href="https://github.com/giseldo/neochat-desktop/releases" target="_blank" rel="noopener">.exe (Versão Portátil)</a></li>
             </ul>
             <a href="https://github.com/giseldo/neochat-desktop/releases" target="_blank" rel="noopener" class="btn btn--primary btn--block">Baixar para Windows</a>
           </article>
 
-          <article class="download-card download-card--featured reveal" data-delay="80">
+          <!-- macOS Card -->
+          <article class="download-card download-card--featured reveal" id="card-mac" data-delay="80">
             <div class="download-card__badge">Recomendado</div>
             <div class="download-card__icon">
               <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.81-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83ZM13 3.5c.73-.93 1.92-1.55 2.96-1.5.13 1.18-.33 2.35-1.02 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.01-3.11Z"/></svg>
             </div>
             <h3>macOS</h3>
-            <p>Apple Silicon &amp; Intel — DMG</p>
+            <p>Apple Silicon (M1/M2/M3/M4) &amp; Intel</p>
             <ul class="download-card__files" id="dl-mac">
               <li><a href="https://github.com/giseldo/neochat-desktop/releases" target="_blank" rel="noopener">.dmg (Universal)</a></li>
-              <li><a href="https://github.com/giseldo/neochat-desktop/releases" target="_blank" rel="noopener">.zip</a></li>
+              <li><a href="https://github.com/giseldo/neochat-desktop/releases" target="_blank" rel="noopener">.zip (Arquivo compactado)</a></li>
             </ul>
             <a href="https://github.com/giseldo/neochat-desktop/releases" target="_blank" rel="noopener" class="btn btn--primary btn--block">Baixar para macOS</a>
-            <p class="download-card__note">Ou via Homebrew: <code>brew tap ricklamers/groq-desktop-unofficial &amp;&amp; brew install --cask groq-desktop</code></p>
+            <div class="brew-command-box">
+              <small>Ou via Homebrew:</small>
+              <div class="code-copy-row">
+                <code>brew install --cask groq-desktop</code>
+                <button class="copy-btn" data-code="brew tap ricklamers/groq-desktop-unofficial && brew install --cask groq-desktop" title="Copiar comando">Copiar</button>
+              </div>
+            </div>
           </article>
 
-          <article class="download-card reveal" data-delay="160">
+          <!-- Linux Card -->
+          <article class="download-card reveal" id="card-linux" data-delay="160">
             <div class="download-card__icon">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76Z"/></svg>
+              <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12.003 2c-2.458 0-4.47 1.89-4.73 4.298-.44.08-.85.24-1.22.47-.94.59-1.51 1.59-1.51 2.7 0 .54.14 1.05.39 1.5-.66.86-1.03 1.91-1.03 3.03 0 2.74 2.19 4.97 4.93 5.01v.01c.71 1.83 2.35 2.98 4.17 2.98 1.82 0 3.46-1.15 4.17-2.98v-.01c2.74-.04 4.93-2.27 4.93-5.01 0-1.12-.37-2.17-1.03-3.03.25-.45.39-.96.39-1.5 0-1.11-.57-2.11-1.51-2.7-.37-.23-.78-.39-1.22-.47C16.473 3.89 14.461 2 12.003 2z"/></svg>
             </div>
             <h3>Linux</h3>
-            <p>AppImage, deb ou rpm</p>
+            <p>Ubuntu, Debian, Fedora, Arch &amp; outros</p>
             <ul class="download-card__files" id="dl-linux">
-              <li><a href="https://github.com/giseldo/neochat-desktop/releases" target="_blank" rel="noopener">.AppImage</a></li>
-              <li><a href="https://github.com/giseldo/neochat-desktop/releases" target="_blank" rel="noopener">.deb / .rpm</a></li>
+              <li><a href="https://github.com/giseldo/neochat-desktop/releases" target="_blank" rel="noopener">.AppImage (Universal)</a></li>
+              <li><a href="https://github.com/giseldo/neochat-desktop/releases" target="_blank" rel="noopener">.deb (Debian/Ubuntu)</a> / <a href="https://github.com/giseldo/neochat-desktop/releases" target="_blank" rel="noopener">.rpm (Fedora/RHEL)</a></li>
             </ul>
             <a href="https://github.com/giseldo/neochat-desktop/releases" target="_blank" rel="noopener" class="btn btn--primary btn--block">Baixar para Linux</a>
           </article>
@@ -325,40 +607,66 @@
 
         <p class="download-all reveal">
           <a href="https://github.com/giseldo/neochat-desktop/releases" target="_blank" rel="noopener">
-            Ver todas as versões no GitHub →
+            Ver todas as versões e notas de lançamento no GitHub →
           </a>
         </p>
       </div>
     </section>
 
     <!-- ===== FAQ ===== -->
-    <section class="section section--alt" id="faq">
+    <section class="section" id="faq">
       <div class="container container--narrow">
         <div class="section__head reveal">
           <span class="badge">FAQ</span>
-          <h2 class="section__title">Perguntas frequentes</h2>
+          <h2 class="section__title">Perguntas Frequentes</h2>
+          <p class="section__subtitle">Tire suas dúvidas sobre o funcionamento, privacidade e instalação do NeoChat Desktop.</p>
         </div>
 
         <div class="faq">
-          <details class="faq__item reveal">
-            <summary>Preciso de uma chave de API da Groq?</summary>
-            <p>Sim. Obtenha sua chave gratuitamente em <a href="https://console.groq.com" target="_blank" rel="noopener">console.groq.com</a> e adicione-a nas Configurações do app. Você também pode defini-la via variável de ambiente <code>GROQ_API_KEY</code>.</p>
+          <details class="faq__item reveal" open>
+            <summary>Como obtenho uma chave de API da Groq?</summary>
+            <div class="faq__content">
+              <p>Você pode gerar sua chave gratuitamente em <a href="https://console.groq.com" target="_blank" rel="noopener">console.groq.com</a>. Em seguida, basta colar sua chave na tela de <strong>Configurações</strong> do app ou definir a variável de ambiente <code>GROQ_API_KEY</code> no seu sistema operacional.</p>
+            </div>
           </details>
+
           <details class="faq__item reveal" data-delay="80">
-            <summary>O app é gratuito?</summary>
-            <p>Sim, o NeoChat Desktop é de código aberto e gratuito. Você só precisa de uma chave de API da Groq para usar os modelos de IA.</p>
+            <summary>Como funciona o Push-to-Talk por voz?</summary>
+            <div class="faq__content">
+              <p>Basta segurar a combinação de teclas <code>Ctrl+Alt</code> em qualquer momento para iniciar a gravação do seu microfone. Ao soltar as teclas, o áudio é processado e transcrito diretamente para o campo de mensagem. Você também pode ativar a leitura automática de respostas por voz (TTS) nas configurações.</p>
+            </div>
           </details>
+
           <details class="faq__item reveal" data-delay="160">
-            <summary>No macOS aparece um aviso de segurança. O que faço?</summary>
-            <p>Execute o comando abaixo no Terminal e abra o app novamente: <br /><code>xattr -c /Applications/Neochat\ Desktop.app</code></p>
+            <summary>O que são os Modos Usuário e Power User?</summary>
+            <div class="faq__content">
+              <p>O <strong>Modo Usuário</strong> oferece uma interface de chat direta e elegante para conversas diárias. Já o <strong>Modo Power User</strong> adiciona controles avançados: ajuste de temperatura e top-p, fallback ordenado entre múltiplos provedores, matriz de permissões MCP, indexação de documentos no RAG, integração Git e monitoramento de consumo de tokens.</p>
+            </div>
           </details>
+
           <details class="faq__item reveal" data-delay="240">
-            <summary>O que são servidores MCP?</summary>
-            <p>MCP (Model Context Protocol) permite que os modelos usem ferramentas externas e acessem dados — bancos de dados, APIs, arquivos locais e mais. O NeoChat suporta servidores locais (via stdio) e remotos (via HTTP).</p>
+            <summary>Como meus documentos são processados no RAG Local?</summary>
+            <div class="faq__content">
+              <p>Ao adicionar pastas ou arquivos (PDFs, planilhas, DOCX, códigos), a indexação e o cálculo de similaridade ocorrem localmente no seu computador. Seus arquivos originais <strong>nunca</strong> são enviados para servidores de armazenamento externos.</p>
+            </div>
           </details>
+
           <details class="faq__item reveal" data-delay="320">
-            <summary>Como funcionam os conectores do Google?</summary>
-            <p>Você conecta sua conta do Google via OAuth para permitir que a IA acesse Gmail, Calendar e Drive. Cada ação pode exigir sua aprovação, controlada nas configurações.</p>
+            <summary>No macOS aparece um aviso de segurança do Gatekeeper. Como resolver?</summary>
+            <div class="faq__content">
+              <p>Como o app é distribuído de forma independente, execute o seguinte comando uma única vez no Terminal do macOS:</p>
+              <div class="code-copy-row">
+                <code>xattr -c /Applications/Neochat\ Desktop.app</code>
+                <button class="copy-btn" data-code="xattr -c /Applications/Neochat\ Desktop.app" title="Copiar comando">Copiar</button>
+              </div>
+            </div>
+          </details>
+
+          <details class="faq__item reveal" data-delay="400">
+            <summary>O aplicativo é gratuito e de código aberto?</summary>
+            <div class="faq__content">
+              <p>Sim! O NeoChat Desktop é 100% código aberto sob a licença MIT. Você pode auditar o código, compilar por conta própria ou contribuir diretamente no nosso repositório no GitHub.</p>
+            </div>
           </details>
         </div>
       </div>
@@ -368,11 +676,12 @@
     <section class="cta-final">
       <div class="container">
         <div class="cta-final__box reveal">
-          <h2>Pronto para acelerar sua conversa com IA?</h2>
-          <p>Baixe agora e comece a usar em minutos. Sem custos, código aberto.</p>
+          <img src="./assets/img/icon.png" alt="NEO" class="cta-final__icon" width="64" height="64" />
+          <h2>Pronto para acelerar suas conversas com IA?</h2>
+          <p>Baixe agora o NeoChat Desktop e experimente a velocidade da Groq aliada ao ecossistema MCP e RAG local.</p>
           <div class="cta-final__actions">
             <a href="#download" class="btn btn--primary btn--lg">Baixar NeoChat Desktop</a>
-            <a href="https://github.com/giseldo/neochat-desktop" target="_blank" rel="noopener" class="btn btn--ghost btn--lg">Explorar no GitHub</a>
+            <a href="https://github.com/giseldo/neochat-desktop" target="_blank" rel="noopener" class="btn btn--ghost btn--lg">Explorar Código no GitHub</a>
           </div>
         </div>
       </div>
@@ -383,36 +692,39 @@
   <footer class="footer">
     <div class="container footer__inner">
       <div class="footer__brand">
-        <img src="./assets/img/icon.png" alt="NeoChat Desktop" class="footer__logo" />
+        <img src="./assets/img/icon.png" alt="NeoChat Desktop" class="footer__logo" width="36" height="36" />
         <div>
           <strong>NeoChat Desktop</strong>
-          <p>Chat de IA desktop com Groq e MCP.</p>
+          <p>O workspace de IA desktop de alta performance com Groq, MCP e RAG.</p>
         </div>
       </div>
       <div class="footer__links">
         <div class="footer__col">
           <h4>Produto</h4>
           <a href="#features">Recursos</a>
+          <a href="#modes">Modos de Uso</a>
+          <a href="#mcp">MCP &amp; RAG</a>
           <a href="#download">Download</a>
           <a href="#faq">FAQ</a>
         </div>
         <div class="footer__col">
-          <h4>Recursos</h4>
-          <a href="https://github.com/giseldo/neochat-desktop" target="_blank" rel="noopener">Código-fonte</a>
-          <a href="https://github.com/giseldo/neochat-desktop/releases" target="_blank" rel="noopener">Releases</a>
-          <a href="https://github.com/giseldo/neochat-desktop/issues" target="_blank" rel="noopener">Issues</a>
+          <h4>Código &amp; Releases</h4>
+          <a href="https://github.com/giseldo/neochat-desktop" target="_blank" rel="noopener">Repositório GitHub</a>
+          <a href="https://github.com/giseldo/neochat-desktop/releases" target="_blank" rel="noopener">Últimas Versões</a>
+          <a href="https://github.com/giseldo/neochat-desktop/issues" target="_blank" rel="noopener">Reportar Erro / Feedback</a>
         </div>
         <div class="footer__col">
-          <h4>Links</h4>
-          <a href="https://console.groq.com" target="_blank" rel="noopener">Groq Console</a>
-          <a href="https://modelcontextprotocol.io" target="_blank" rel="noopener">MCP</a>
+          <h4>Ecossistema</h4>
+          <a href="https://console.groq.com" target="_blank" rel="noopener">Groq Cloud Console</a>
+          <a href="https://modelcontextprotocol.io" target="_blank" rel="noopener">Model Context Protocol</a>
+          <a href="https://neochatdesktop.vercel.app" target="_blank" rel="noopener">Site Oficial</a>
         </div>
       </div>
     </div>
     <div class="footer__bottom">
       <div class="container footer__bottom-inner">
-        <p>© <span id="year">2026</span> NeoChat Desktop · Feito por <a href="https://github.com/giseldo" target="_blank" rel="noopener">Giseldo da Silva Neo</a></p>
-        <p>Código aberto · MIT</p>
+        <p>© <span id="year">2026</span> NeoChat Desktop · Desenvolvido por <a href="https://github.com/giseldo" target="_blank" rel="noopener">Giseldo da Silva Neo</a></p>
+        <p>Distribuído sob Licença MIT · Código Aberto</p>
       </div>
     </div>
   </footer>

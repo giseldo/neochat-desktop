@@ -703,9 +703,9 @@ const PopupPage = () => {
           <div className="flex items-center justify-between h-4 mb-2">
             <div className="flex items-center gap-2">
               <img 
-                src="./groqLogo.png" 
-                alt="Groq Logo" 
-                className="h-4 w-auto"
+                src="./neoLogo.png" 
+                alt="NEO Logo" 
+                className="h-4 w-auto object-contain"
               />
             </div>
             {/* Compact Model Selector - Always visible when not expanded */}

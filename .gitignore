@@ -3,6 +3,7 @@ node_modules/
 # Electron build output
 dist/
 release/
+.vercel/
 
 # OS generated files
 .DS_Store
