@@ -44,6 +44,7 @@ const schedulerManager = require('./schedulerManager');
 const { autoUpdater } = require('electron-updater');
 const { initializeUpdateManager } = require('./updateManager');
 const { initializeObservabilityHandlers } = require('./observabilityManager');
+const { initializeGitHandlers } = require('./gitManager');
 
 // Import context capture system
 const ContextCapture = require('./contextCapture');
@@ -317,6 +318,7 @@ app.whenReady().then(async () => {
   schedulerManager.initializeHandlers(ipcMain, app, () => mainWindow, workflowManager, Notification);
   initializeUpdateManager({ ipcMain, app, autoUpdater, getWindow: () => mainWindow, loadSettings });
   initializeObservabilityHandlers(ipcMain, app, dialog, loadSettings);
+  initializeGitHandlers(ipcMain, dialog);
 
   // Initialize chat history manager
   chatHistoryManager.initialize(app, loadSettings);

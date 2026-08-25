@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { Link, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Eye, EyeOff, Plus, Trash2, Edit3, Save, X, RefreshCw, Key, Settings as SettingsIcon, Zap, Cpu, Server, AlertCircle, CheckCircle, Sun, Moon, Laptop, Languages, Check, Terminal, Globe, Palette, Type, Sparkles, Sliders, ExternalLink, Route, User, Wrench, Download, UploadCloud, BarChart3 } from 'lucide-react';
+import { ArrowLeft, Eye, EyeOff, Plus, Trash2, Edit3, Save, X, RefreshCw, Key, Settings as SettingsIcon, Zap, Cpu, Server, AlertCircle, CheckCircle, Sun, Moon, Laptop, Languages, Check, Terminal, Globe, Palette, Type, Sparkles, Sliders, ExternalLink, Route, User, Wrench, Download, UploadCloud, BarChart3, GitBranch } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
@@ -77,7 +77,8 @@ function Settings() {
     fallbackModels: {},
     tts: { enabled: true, autoSpeak: false, voiceURI: '', rate: 1.05, pitch: 1 },
     autoUpdate: { checkOnStartup: true, channel: 'stable' },
-    observability: { monthlyBudgetUsd: 0, defaultRate: { input: 0, output: 0 }, modelRates: {} }
+    observability: { monthlyBudgetUsd: 0, defaultRate: { input: 0, output: 0 }, modelRates: {} },
+    gitIntegration: { repositoryPath: '' }
   });
   const [googleOAuthStatus, setGoogleOAuthStatus] = useState(null);
   const [isRefreshingToken, setIsRefreshingToken] = useState(false);
@@ -132,6 +133,9 @@ function Settings() {
   const [speechVoices, setSpeechVoices] = useState([]);
   const [updateStatus, setUpdateStatus] = useState({ status: 'idle', percent: 0 });
   const [usageSummary, setUsageSummary] = useState(null);
+  const [gitOutput, setGitOutput] = useState('');
+  const [gitCommitMessage, setGitCommitMessage] = useState('');
+  const [isGitBusy, setIsGitBusy] = useState(false);
 
   useEffect(() => {
     if (!window.speechSynthesis) return undefined;
@@ -1355,6 +1359,23 @@ function Settings() {
     const updatedSettings = { ...settings, observability: { ...(settings.observability || {}), ...updates } };
     setSettings(updatedSettings);
     saveSettings(updatedSettings);
+  };
+
+  const updateGitRepository = (repositoryPath) => {
+    const updatedSettings = { ...settings, gitIntegration: { ...(settings.gitIntegration || {}), repositoryPath } };
+    setSettings(updatedSettings);
+    saveSettings(updatedSettings);
+  };
+
+  const runGitAction = async (action) => {
+    setIsGitBusy(true);
+    try {
+      const result = await action();
+      setGitOutput(result?.success ? (result.status || result.stdout || t('settings.gitSuccess')) : (result?.error || t('settings.gitError')));
+      return result;
+    } finally {
+      setIsGitBusy(false);
+    }
   };
 
   const handleExportBackup = async () => {
@@ -3426,6 +3447,23 @@ function Settings() {
                   <Button variant="outline" onClick={() => window.electron.observability.export('json')}><Download className="h-4 w-4 mr-2" />JSON</Button>
                   <Button variant="outline" onClick={() => window.electron.observability.export('csv')}><Download className="h-4 w-4 mr-2" />CSV</Button>
                 </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center space-x-2"><GitBranch className="h-5 w-5 text-primary" /><span>{t('settings.gitTitle')}</span></CardTitle>
+                <CardDescription>{t('settings.gitDesc')}</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex gap-2"><Input readOnly value={settings.gitIntegration?.repositoryPath || ''} placeholder={t('settings.gitRepository')} /><Button variant="outline" onClick={async () => { const result = await window.electron.git.selectRepository(); if (result?.success) updateGitRepository(result.path); }}>{t('settings.selectFolder')}</Button></div>
+                <div className="flex flex-wrap gap-2">
+                  <Button variant="outline" disabled={isGitBusy || !settings.gitIntegration?.repositoryPath} onClick={() => runGitAction(() => window.electron.git.status(settings.gitIntegration.repositoryPath))}>{t('settings.gitStatus')}</Button>
+                  <Button variant="outline" disabled={isGitBusy || !settings.gitIntegration?.repositoryPath} onClick={() => runGitAction(() => window.electron.git.diff(settings.gitIntegration.repositoryPath))}>{t('settings.gitDiff')}</Button>
+                </div>
+                <div className="flex gap-2"><Input value={gitCommitMessage} onChange={event => setGitCommitMessage(event.target.value)} placeholder={t('settings.gitCommitMessage')} /><Button disabled={isGitBusy || !gitCommitMessage.trim() || !settings.gitIntegration?.repositoryPath} onClick={() => runGitAction(() => window.electron.git.commit(settings.gitIntegration.repositoryPath, gitCommitMessage))}>{t('settings.gitCommit')}</Button></div>
+                <Button disabled={isGitBusy || !settings.gitIntegration?.repositoryPath} onClick={() => { if (window.confirm(t('settings.gitPushConfirm'))) runGitAction(() => window.electron.git.push(settings.gitIntegration.repositoryPath)); }}>{t('settings.gitPush')}</Button>
+                {gitOutput && <pre className="max-h-48 overflow-auto whitespace-pre-wrap rounded-lg border bg-muted/40 p-3 text-xs">{gitOutput}</pre>}
               </CardContent>
             </Card>
 

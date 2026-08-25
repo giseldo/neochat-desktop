@@ -63,6 +63,13 @@ contextBridge.exposeInMainWorld('electron', {
     getSummary: () => ipcRenderer.invoke('observability-summary'),
     export: format => ipcRenderer.invoke('observability-export', format)
   },
+  git: {
+    selectRepository: () => ipcRenderer.invoke('git-select-repository'),
+    status: repoPath => ipcRenderer.invoke('git-status', repoPath),
+    diff: repoPath => ipcRenderer.invoke('git-diff', repoPath),
+    commit: (repoPath, message) => ipcRenderer.invoke('git-commit', repoPath, message),
+    push: repoPath => ipcRenderer.invoke('git-push', repoPath)
+  },
   toolPermissions: {
     get: () => ipcRenderer.invoke('tool-permissions-get'),
     resolve: (toolName, serverLabel) => ipcRenderer.invoke('tool-permissions-resolve', toolName, serverLabel),
