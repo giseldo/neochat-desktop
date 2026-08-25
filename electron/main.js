@@ -442,6 +442,12 @@ app.whenReady().then(async () => {
     return ragService.openFolderInExplorer(folderPath);
   });
 
+  // --- Local AI Auto-Detection IPC Handlers ---
+  const { detectLocalAiProviders } = require('./localAiService');
+  ipcMain.handle('local-ai-detect', async () => {
+    return await detectLocalAiProviders();
+  });
+
   // Model configs handler already registered above during early initialization
   console.log("[Main Init] Continuing with remaining handlers...");
 

@@ -252,6 +252,11 @@ contextBridge.exposeInMainWorld('electron', {
     }
   },
 
+  // --- Local AI Providers Auto-Detection ---
+  localAi: {
+    detect: () => ipcRenderer.invoke('local-ai-detect'),
+  },
+
   // Generic IPC renderer access (kept for backward compatibility)
   ipcRenderer: {
     invoke: (channel, data) => ipcRenderer.invoke(channel, data),

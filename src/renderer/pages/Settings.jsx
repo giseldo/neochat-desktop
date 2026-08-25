@@ -120,6 +120,27 @@ function Settings() {
   const [newRemoteMcpHeader, setNewRemoteMcpHeader] = useState({ key: '', value: '' });
   const [editingRemoteMcpServerId, setEditingRemoteMcpServerId] = useState(null);
   
+  // Local AI Auto-Detection state
+  const [localAiStatus, setLocalAiStatus] = useState(null);
+  const [isDetectingLocalAi, setIsDetectingLocalAi] = useState(false);
+
+  const checkLocalAi = async () => {
+    if (!window.electron?.localAi?.detect) return;
+    setIsDetectingLocalAi(true);
+    try {
+      const res = await window.electron.localAi.detect();
+      setLocalAiStatus(res);
+    } catch (err) {
+      console.warn('Error detecting local AI:', err);
+    } finally {
+      setIsDetectingLocalAi(false);
+    }
+  };
+
+  useEffect(() => {
+    checkLocalAi();
+  }, []);
+  
   const statusTimeoutRef = useRef(null);
   const saveTimeoutRef = useRef(null);
   const navigate = useNavigate();
@@ -1683,6 +1704,87 @@ function Settings() {
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
+                {/* Local AI Auto-Detection Box */}
+                <div className="p-3.5 rounded-xl border border-border/70 bg-muted/20 space-y-2.5">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Cpu className="w-4 h-4 text-primary shrink-0" />
+                      <span className="text-xs font-semibold text-foreground">
+                        {t('settings.localAiTitle')}
+                      </span>
+                    </div>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={checkLocalAi}
+                      disabled={isDetectingLocalAi}
+                      className="h-7 px-2 text-xs text-muted-foreground hover:text-foreground"
+                    >
+                      <RefreshCw className={cn("w-3 h-3 mr-1", isDetectingLocalAi && "animate-spin")} />
+                      <span>{isDetectingLocalAi ? t('settings.detectingLocalAi') : t('settings.refreshLocalAi')}</span>
+                    </Button>
+                  </div>
+
+                  {localAiStatus && localAiStatus.detected ? (
+                    <div className="space-y-2 pt-1">
+                      {localAiStatus.providers.ollama?.running && (
+                        <div className="flex items-center justify-between p-2 rounded-lg bg-green-500/10 border border-green-500/20 text-xs">
+                          <div className="flex items-center gap-2 min-w-0">
+                            <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse shrink-0" />
+                            <div className="min-w-0">
+                              <div className="font-semibold text-green-700 dark:text-green-300">
+                                🦙 {t('settings.ollamaDetected')}
+                              </div>
+                              <div className="text-[10.5px] text-muted-foreground truncate">
+                                {t('settings.modelsFound', { count: localAiStatus.providers.ollama.models?.length || 0 })} ({localAiStatus.providers.ollama.latencyMs}ms)
+                              </div>
+                            </div>
+                          </div>
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant={settings.provider === 'ollama' ? "secondary" : "default"}
+                            onClick={() => handleProviderChange('ollama')}
+                            className="h-7 px-2.5 text-xs shrink-0"
+                          >
+                            {settings.provider === 'ollama' ? '✓ Ativo' : t('settings.connectOllama')}
+                          </Button>
+                        </div>
+                      )}
+
+                      {localAiStatus.providers.lmstudio?.running && (
+                        <div className="flex items-center justify-between p-2 rounded-lg bg-green-500/10 border border-green-500/20 text-xs">
+                          <div className="flex items-center gap-2 min-w-0">
+                            <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse shrink-0" />
+                            <div className="min-w-0">
+                              <div className="font-semibold text-green-700 dark:text-green-300">
+                                💻 {t('settings.lmstudioDetected')}
+                              </div>
+                              <div className="text-[10.5px] text-muted-foreground truncate">
+                                {t('settings.modelsFound', { count: localAiStatus.providers.lmstudio.models?.length || 0 })} ({localAiStatus.providers.lmstudio.latencyMs}ms)
+                              </div>
+                            </div>
+                          </div>
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant={settings.provider === 'lmstudio' ? "secondary" : "default"}
+                            onClick={() => handleProviderChange('lmstudio')}
+                            className="h-7 px-2.5 text-xs shrink-0"
+                          >
+                            {settings.provider === 'lmstudio' ? '✓ Ativo' : t('settings.connectLmStudio')}
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <p className="text-[11px] text-muted-foreground">
+                      {isDetectingLocalAi ? t('settings.detectingLocalAi') : t('settings.noLocalAiFound')}
+                    </p>
+                  )}
+                </div>
+
                 <div className="space-y-2">
                   <Label htmlFor="provider">{t('settings.providerLabel')}</Label>
                   <Select value={settings.provider || 'groq'} onValueChange={handleProviderChange}>
