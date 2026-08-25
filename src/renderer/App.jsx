@@ -94,6 +94,8 @@ function App() {
     currentChatId,
     chatList,
     createNewChat, 
+    loadChat,
+    loadChatList,
     startFreshChat,
     isSidebarCollapsed,
     toggleSidebar,
@@ -2015,6 +2017,19 @@ function App() {
     }
   }, [useResponsesApi]);
 
+  const handleBranchFromMessage = useCallback(async (messageIndex) => {
+    if (!currentChatId || loading) return;
+    const result = await window.electron.chatHistory.branch(currentChatId, messageIndex);
+    if (!result?.success || !result.chat) {
+      console.error('Unable to branch conversation:', result?.error);
+      return;
+    }
+    await loadChatList();
+    const branch = await loadChat(result.chat.id);
+    await handleChatLoaded(branch);
+    setChatFocusSignal(signal => signal + 1);
+  }, [currentChatId, loading, loadChat, loadChatList, handleChatLoaded]);
+
 
   return (
     <div className="flex h-screen bg-background">
@@ -2303,6 +2318,7 @@ function App() {
                       onToolCallExecute={executeToolCall} 
                       onRemoveLastMessage={handleRemoveLastMessage}
                       onReloadFromMessage={handleReloadFromMessage}
+                      onBranchFromMessage={handleBranchFromMessage}
                       loading={loading}
                       onActionsVisible={scrollToBottom}
                       onPreviewArtifact={(art) => setActiveArtifact(art)}

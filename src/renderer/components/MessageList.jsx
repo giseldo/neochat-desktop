@@ -10,6 +10,7 @@ function MessageList({
   onToolCallExecute, 
   onRemoveLastMessage, 
   onReloadFromMessage, 
+  onBranchFromMessage,
   loading, 
   onActionsVisible,
   onPreviewArtifact 
@@ -150,6 +151,7 @@ function MessageList({
             messageIndex={originalIndex}
             onToolCallExecute={onToolCallExecute}
             onReloadFromMessage={onReloadFromMessage}
+            onBranchFromMessage={onBranchFromMessage}
             allMessages={messages}
             isLastMessage={index === displayMessages.length - 1}
             loading={loading}

@@ -19,7 +19,8 @@
     "test:paths": "node test-paths.js",
     "test:interface-mode": "node test-interface-mode.js",
     "test:secret-store": "node test-secret-store.js",
-    "test:tool-permissions": "node test-tool-permissions.js"
+    "test:tool-permissions": "node test-tool-permissions.js",
+    "test:chat-branching": "node test-chat-branching.js"
   },
   "keywords": [
     "electron",

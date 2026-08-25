@@ -237,6 +237,7 @@ export const translations = {
       ttsCodeOmitted: 'Código omitido na leitura.',
       copyMessage: 'Copiar mensagem',
       regenerate: 'Regenerar resposta',
+      branchConversation: 'Criar ramificação a partir daqui',
       fullscreenClose: 'Fechar imagem em tela cheia',
     },
     personas: {
@@ -1133,6 +1134,7 @@ export const translations = {
       ttsCodeOmitted: 'Code omitted during reading.',
       copyMessage: 'Copy message',
       regenerate: 'Regenerate response',
+      branchConversation: 'Branch conversation from here',
       fullscreenClose: 'Close fullscreen image',
     },
     personas: {

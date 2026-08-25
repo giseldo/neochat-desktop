@@ -5,7 +5,7 @@ import KnowledgeSourcesList from './KnowledgeSourcesList';
 import MarkdownRenderer from './MarkdownRenderer';
 import { TextShimmer } from './ui/text-shimmer';
 import { Badge } from './ui/badge';
-import { Zap, Volume2, VolumeX, Copy, Check, RotateCw, Clock, Gauge, Layers, Info } from 'lucide-react';
+import { Zap, Volume2, VolumeX, Copy, Check, RotateCw, Clock, Gauge, Layers, Info, GitBranch } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
 import { extractThinking } from '../lib/messageUtils';
 import { cn } from '../lib/utils';
@@ -18,6 +18,7 @@ function Message({
   isLastMessage,
   messageIndex,
   onReloadFromMessage,
+  onBranchFromMessage,
   loading,
   onActionsVisible,
   hideReasoningUI = false,
@@ -611,6 +612,15 @@ function Message({
                   title={t('message.regenerate')}
                 >
                   <RotateCw className="w-3.5 h-3.5" />
+                </button>
+              )}
+              {onBranchFromMessage && messageIndex !== undefined && (
+                <button
+                  onClick={() => onBranchFromMessage(messageIndex)}
+                  className="flex items-center gap-1 p-1.5 rounded-md hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
+                  title={t('message.branchConversation')}
+                >
+                  <GitBranch className="w-3.5 h-3.5" />
                 </button>
               )}
             </div>

@@ -72,6 +72,28 @@ function createChat(model = 'llama-3.3-70b-versatile', useResponsesApi = false, 
     return chat;
 }
 
+function createChatBranch(chatId, messageIndex) {
+    const source = loadChat(chatId);
+    if (!source) throw new Error('Source chat not found');
+    if (!Number.isInteger(messageIndex) || messageIndex < 0 || messageIndex >= source.messages.length) {
+        throw new Error('Invalid branch point');
+    }
+    const now = new Date().toISOString();
+    const branch = {
+        ...source,
+        id: crypto.randomUUID(),
+        title: `${source.title || 'New Chat'} (branch)`,
+        createdAt: now,
+        updatedAt: now,
+        parentChatId: source.id,
+        rootChatId: source.rootChatId || source.id,
+        branchPoint: { messageIndex, createdAt: now },
+        messages: source.messages.slice(0, messageIndex + 1)
+    };
+    saveChat(branch);
+    return branch;
+}
+
 /**
  * Save a chat to disk
  * @param {Object} chat - The chat object to save
@@ -169,7 +191,10 @@ function listChats() {
                         model: chat.model,
                         messageCount: chat.messages?.length || 0,
                         useResponsesApi: chat.useResponsesApi || false,
-                        projectId: chat.projectId || null
+                        projectId: chat.projectId || null,
+                        parentChatId: chat.parentChatId || null,
+                        rootChatId: chat.rootChatId || null,
+                        branchPoint: chat.branchPoint || null
                     });
                 } catch (error) {
                     console.error(`Error reading chat file ${file}:`, error);
@@ -359,6 +384,14 @@ function initializeChatHistoryHandlers(ipcMain) {
     // Create a new chat (with optional projectId)
     ipcMain.handle('chat-history-create', async (event, model, useResponsesApi, projectId) => {
         return createChat(model, useResponsesApi, projectId);
+    });
+
+    ipcMain.handle('chat-history-branch', async (_event, chatId, messageIndex) => {
+        try {
+            return { success: true, chat: createChatBranch(chatId, messageIndex) };
+        } catch (error) {
+            return { success: false, error: error.message };
+        }
     });
     
     // Save/update a chat
@@ -602,7 +635,8 @@ module.exports = {
     updateChatProject,
     unassignProjectFromChats,
     generateChatTitle,
-    searchChatsContent
+    searchChatsContent,
+    createChatBranch
 };
 
 

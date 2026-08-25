@@ -236,6 +236,7 @@ contextBridge.exposeInMainWorld('electron', {
     list: () => ipcRenderer.invoke('chat-history-list'),
     load: (chatId) => ipcRenderer.invoke('chat-history-load', chatId),
     create: (model, useResponsesApi, projectId) => ipcRenderer.invoke('chat-history-create', model, useResponsesApi, projectId),
+    branch: (chatId, messageIndex) => ipcRenderer.invoke('chat-history-branch', chatId, messageIndex),
     save: (chat) => ipcRenderer.invoke('chat-history-save', chat),
     updateMessages: (chatId, messages) => ipcRenderer.invoke('chat-history-update-messages', chatId, messages),
     updateTitle: (chatId, title) => ipcRenderer.invoke('chat-history-update-title', chatId, title),
