@@ -380,6 +380,23 @@ app.whenReady().then(async () => {
     chatHandler.handleChatStream(event, messages, model, currentSettings, mergedModelContextSizes, discoveredTools);
   });
 
+  // Compare chat stream for side-by-side multi-model comparison
+  ipcMain.on('compare-chat-stream', async (event, messages, modelA, modelB) => {
+    const currentSettings = loadSettings();
+    let apiModels = modelContextSizes;
+    const apiKey = getActiveApiKey(currentSettings);
+    const modelsUrl = getModelsUrl(currentSettings);
+    if (apiKey && apiKey !== "<replace me>" && modelsUrl) {
+      try {
+        apiModels = await getModelsFromAPIWithCache(apiKey, modelsUrl);
+      } catch (error) {
+        console.error('Error fetching models in compare-chat-stream:', error);
+      }
+    }
+    const mergedModelContextSizes = getModelContextSizes(currentSettings.customModels || {}, apiModels);
+    chatHandler.handleCompareChatStream(event, messages, modelA, modelB, currentSettings, mergedModelContextSizes);
+  });
+
   // Stop chat stream
   ipcMain.on('stop-chat-stream', async (event) => {
     console.log('[Main] Received stop-chat-stream request');

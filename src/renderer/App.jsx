@@ -14,10 +14,11 @@ import TrajectoryView from './components/TrajectoryView';
 import ProjectModal from './components/ProjectModal';
 import MoveToProjectModal from './components/MoveToProjectModal';
 import KnowledgeBaseModal from './components/KnowledgeBaseModal';
+import CompareChatView from './components/CompareChatView';
 import { useChat } from './context/ChatContext';
 import { useProjects } from './context/ProjectContext';
 import { useLanguage } from './context/LanguageContext';
-import { Settings, PanelLeftClose, PanelLeft, Radio, MessagesSquare, Sparkles, Store, Columns2, X, FolderKanban, BookOpen } from 'lucide-react';
+import { Settings, PanelLeftClose, PanelLeft, Radio, MessagesSquare, Sparkles, Store, Columns2, X, FolderKanban, BookOpen, Scale } from 'lucide-react';
 import { Button } from './components/ui/button';
 import { extractThinking } from './lib/messageUtils';
 
@@ -153,6 +154,14 @@ function App() {
     }
   }, [activePersona]);
   // --- End Persona, Artifacts & Catalog State ---
+
+  // --- Multi-Model Comparison State ---
+  const [isCompareMode, setIsCompareMode] = useState(false);
+  const [compareModelA, setCompareModelA] = useState('');
+  const [compareModelB, setCompareModelB] = useState('');
+  const [streamStateA, setStreamStateA] = useState({ isLoading: false, content: '', reasoning: '', ttft: null, metrics: null, error: null });
+  const [streamStateB, setStreamStateB] = useState({ isLoading: false, content: '', reasoning: '', ttft: null, metrics: null, error: null });
+  // --- End Multi-Model Comparison State ---
 
   const currentChatTitle = useMemo(() => {
     if (!currentChatId || !chatList) return '';
@@ -366,6 +375,30 @@ function App() {
       return nameA.localeCompare(nameB);
     });
   }, [models, modelConfigs, modelFilter, modelFilterExclude]);
+
+  // Initialize compare models when sortedModels change
+  useEffect(() => {
+    if (sortedModels.length > 0) {
+      if (!compareModelA) setCompareModelA(sortedModels[0]);
+      if (!compareModelB) setCompareModelB(sortedModels[1] || sortedModels[0]);
+    }
+  }, [sortedModels]);
+
+  const handleSelectWinningResponse = async (winningContent, winningModel) => {
+    const assistantMsg = {
+      role: 'assistant',
+      content: winningContent,
+      model: winningModel,
+      createdAt: new Date().toISOString(),
+      timestamp: Date.now()
+    };
+    const updated = [...messages, assistantMsg];
+    setMessages(updated);
+    if (currentChatId) {
+      await window.electron.chatHistory.saveMessages(currentChatId, updated);
+    }
+    setIsCompareMode(false);
+  };
 
   // Function to update the server status display - moved outside useEffect
   const updateServerStatus = (tools, settings) => {
@@ -1345,6 +1378,32 @@ function App() {
     const initialMessages = [...messages, userMessage];
     setMessages(initialMessages);
 
+    // If in Multi-Model Comparison mode, run both streams concurrently
+    if (isCompareMode) {
+      setStreamStateA({ isLoading: true, content: '', reasoning: '', ttft: null, metrics: null, error: null });
+      setStreamStateB({ isLoading: true, content: '', reasoning: '', ttft: null, metrics: null, error: null });
+
+      const stream = window.electron.startCompareChatStream(
+        initialMessages,
+        compareModelA || selectedModel,
+        compareModelB || selectedModel
+      );
+
+      stream.onStartA((data) => setStreamStateA(prev => ({ ...prev, ttft: data.ttft })));
+      stream.onContentA((data) => setStreamStateA(prev => ({ ...prev, content: (prev.content || '') + data.content })));
+      stream.onReasoningA((data) => setStreamStateA(prev => ({ ...prev, reasoning: (prev.reasoning || '') + data.reasoning })));
+      stream.onCompleteA((data) => setStreamStateA(prev => ({ ...prev, isLoading: false, metrics: data })));
+      stream.onErrorA((data) => setStreamStateA(prev => ({ ...prev, isLoading: false, error: data.error })));
+
+      stream.onStartB((data) => setStreamStateB(prev => ({ ...prev, ttft: data.ttft })));
+      stream.onContentB((data) => setStreamStateB(prev => ({ ...prev, content: (prev.content || '') + data.content })));
+      stream.onReasoningB((data) => setStreamStateB(prev => ({ ...prev, reasoning: (prev.reasoning || '') + data.reasoning })));
+      stream.onCompleteB((data) => setStreamStateB(prev => ({ ...prev, isLoading: false, metrics: data })));
+      stream.onErrorB((data) => setStreamStateB(prev => ({ ...prev, isLoading: false, error: data.error })));
+
+      return;
+    }
+
     setLoading(true);
 
     let currentApiMessages = initialMessages; // Start with messages including the new user one
@@ -2042,6 +2101,23 @@ function App() {
                 <span className="hidden md:inline">{t('header.mcpStore')}</span>
               </Button>
 
+              {/* Compare Mode Toggle Button */}
+              <Button
+                variant={isCompareMode ? "default" : "outline"}
+                size="sm"
+                onClick={() => setIsCompareMode(!isCompareMode)}
+                className={cn(
+                  "text-xs border-border transition-colors",
+                  isCompareMode 
+                    ? "bg-purple-600 hover:bg-purple-700 text-white shadow-xs" 
+                    : "text-foreground hover:bg-muted"
+                )}
+                title={t('header.compareModels')}
+              >
+                <Scale className="h-3.5 w-3.5 mr-1.5 text-purple-400" />
+                <span className="hidden md:inline">{t('header.compareModels')}</span>
+              </Button>
+
               {/* Theme Toggle Button */}
               <ThemeToggle />
 
@@ -2061,7 +2137,40 @@ function App() {
           <div className="flex-1 overflow-y-auto">
             <div className="max-w-[1600px] mx-auto py-8 px-8 h-full">
               <div className="h-full">
-              {(messages.length === 0 && (activeTab === 'chat' || !showTrajectoryTab)) ? (
+              {isCompareMode ? (
+                /* Multi-Model Compare View */
+                <div className="flex flex-col h-full min-h-0">
+                  <div className="flex-1 overflow-hidden min-h-0 mb-4">
+                    <CompareChatView
+                      modelA={compareModelA}
+                      modelB={compareModelB}
+                      onModelAChange={setCompareModelA}
+                      onModelBChange={setCompareModelB}
+                      availableModels={sortedModels.map(id => ({ id, displayName: modelConfigs[id]?.displayName || id }))}
+                      streamStateA={streamStateA}
+                      streamStateB={streamStateB}
+                      onSelectWinningResponse={handleSelectWinningResponse}
+                      onPreviewArtifact={(art) => setActiveArtifact(art)}
+                    />
+                  </div>
+                  <div className="flex-shrink-0 bg-background/95 backdrop-blur pt-3 max-w-4xl mx-auto w-full">
+                    <ChatInput
+                      onSendMessage={handleSendMessage}
+                      onStopGeneration={handleStopGeneration}
+                      loading={streamStateA.isLoading || streamStateB.isLoading}
+                      visionSupported={visionSupported}
+                      models={sortedModels}
+                      selectedModel={selectedModel}
+                      onModelChange={setSelectedModel}
+                      onOpenMcpTools={() => setIsToolsPanelOpen(true)}
+                      toolsCount={mcpTools.length}
+                      modelConfigs={modelConfigs}
+                      focusSignal={chatFocusSignal}
+                      onModelConfigUpdated={handleModelConfigUpdated}
+                    />
+                  </div>
+                </div>
+              ) : (messages.length === 0 && (activeTab === 'chat' || !showTrajectoryTab)) ? (
                 /* Welcome Screen */
                 <div className="flex flex-col items-center justify-center h-full space-y-8">
                   {/* Chat Input */}

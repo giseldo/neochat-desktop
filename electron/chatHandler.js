@@ -1698,9 +1698,96 @@ function stopChatStream(streamId) {
             }
         }
     }
+/**
+ * Runs a single model stream for comparison mode
+ */
+async function runSingleStreamForCompare(event, messages, model, settings, modelContextSizes, channelSuffix) {
+    const streamId = `compare_${channelSuffix}_${Date.now()}`;
+    activeStreams.set(streamId, { cancelled: false, stream: null, event });
+
+    try {
+        validateApiKey(settings);
+        const { modelToUse, modelInfo } = determineModel(model, settings, modelContextSizes);
+        const providerApiKey = getActiveApiKey(settings);
+        const providerBaseUrl = getProviderBaseUrl(settings);
+        const groqConfig = { apiKey: providerApiKey };
+        if (providerBaseUrl) {
+            groqConfig.baseURL = providerBaseUrl;
+        }
+        const groq = new Groq(groqConfig);
+
+        const prunedMessages = pruneMessageHistory(messages, modelInfo.context);
+        const sanitizedMessages = sanitizeMessageHistory(prunedMessages);
+
+        const startTime = Date.now();
+        let accumulatedContent = '';
+        let accumulatedReasoning = '';
+        let isFirstChunk = true;
+        let ttft = 0;
+
+        const stream = await groq.chat.completions.create({
+            messages: sanitizedMessages,
+            model: modelToUse,
+            stream: true,
+            temperature: settings.temperature ?? 0.7,
+            max_tokens: settings.maxTokens ?? 4096
+        });
+
+        const streamInfo = activeStreams.get(streamId);
+        if (streamInfo) streamInfo.stream = stream;
+
+        for await (const chunk of stream) {
+            if (activeStreams.get(streamId)?.cancelled) break;
+
+            const delta = chunk.choices?.[0]?.delta;
+            if (isFirstChunk) {
+                ttft = Date.now() - startTime;
+                event.sender.send(`compare-stream-start-${channelSuffix}`, { model: modelToUse, ttft });
+                isFirstChunk = false;
+            }
+
+            if (delta?.content) {
+                accumulatedContent += delta.content;
+                event.sender.send(`compare-stream-content-${channelSuffix}`, { content: delta.content, accumulated: accumulatedContent });
+            }
+
+            const reasoningDelta = delta?.reasoning || delta?.reasoning_content;
+            if (reasoningDelta) {
+                accumulatedReasoning += reasoningDelta;
+                event.sender.send(`compare-stream-reasoning-${channelSuffix}`, { reasoning: reasoningDelta, accumulated: accumulatedReasoning });
+            }
+        }
+
+        const durationMs = Date.now() - startTime;
+        const estTokens = Math.round(accumulatedContent.length / 3.8);
+        const speedTps = durationMs > 0 ? (estTokens / (durationMs / 1000)).toFixed(1) : 0;
+
+        event.sender.send(`compare-stream-complete-${channelSuffix}`, {
+            model: modelToUse,
+            content: accumulatedContent,
+            reasoning: accumulatedReasoning,
+            durationMs,
+            estimatedTokens: estTokens,
+            tokensPerSec: speedTps,
+            ttft
+        });
+    } catch (error) {
+        console.error(`[CompareStream ${channelSuffix}] Error:`, error);
+        event.sender.send(`compare-stream-error-${channelSuffix}`, { error: error.message });
+    } finally {
+        cleanupStream(streamId);
+    }
 }
 
-// NOTE: handleMcpApprovalResponse removed - Groq does not yet support mcp_approval_response
-// When Groq adds support, this function can be re-implemented to handle approval flow
+/**
+ * Handles concurrent multi-model chat stream for side-by-side comparison
+ */
+async function handleCompareChatStream(event, messages, modelA, modelB, settings, modelContextSizes) {
+    return Promise.all([
+        runSingleStreamForCompare(event, messages, modelA, settings, modelContextSizes, 'a'),
+        runSingleStreamForCompare(event, messages, modelB, settings, modelContextSizes, 'b')
+    ]);
+}
 
-module.exports = { handleChatStream, stopChatStream };
+module.exports = { handleChatStream, handleCompareChatStream, stopChatStream };
+

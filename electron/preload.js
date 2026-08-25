@@ -104,6 +104,31 @@ contextBridge.exposeInMainWorld('electron', {
   cleanupChatStreamListeners: () => {
     cleanupChatStreamListeners();
   },
+
+  // Start Multi-Model Comparison Stream
+  startCompareChatStream: (messages, modelA, modelB) => {
+    ipcRenderer.send('compare-chat-stream', messages, modelA, modelB);
+    const createListener = (channel) => (callback) => {
+      const wrapper = (_, data) => callback(data);
+      ipcRenderer.on(channel, wrapper);
+      return () => ipcRenderer.removeListener(channel, wrapper);
+    };
+
+    return {
+      // Model A
+      onStartA: createListener('compare-stream-start-a'),
+      onContentA: createListener('compare-stream-content-a'),
+      onReasoningA: createListener('compare-stream-reasoning-a'),
+      onCompleteA: createListener('compare-stream-complete-a'),
+      onErrorA: createListener('compare-stream-error-a'),
+      // Model B
+      onStartB: createListener('compare-stream-start-b'),
+      onContentB: createListener('compare-stream-content-b'),
+      onReasoningB: createListener('compare-stream-reasoning-b'),
+      onCompleteB: createListener('compare-stream-complete-b'),
+      onErrorB: createListener('compare-stream-error-b'),
+    };
+  },
   
   // MCP related functions
   connectMcpServer: (serverConfig) => ipcRenderer.invoke('connect-mcp-server', serverConfig),

@@ -33,6 +33,7 @@ export const translations = {
     header: {
       statusTools: '{count} ferramentas',
       mcpStore: 'Loja MCP',
+      compareModels: 'Comparar Modelos',
       newChat: 'Novo Chat',
       clearChat: 'Limpar mensagens',
       clearChatConfirmTitle: 'Limpar Mensagens',
@@ -912,6 +913,7 @@ export const translations = {
     header: {
       statusTools: '{count} tools',
       mcpStore: 'MCP Store',
+      compareModels: 'Compare Models',
       newChat: 'New Chat',
       clearChat: 'Clear messages',
       clearChatConfirmTitle: 'Clear Messages',
