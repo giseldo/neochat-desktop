@@ -200,6 +200,10 @@ function buildApiParams(prunedMessages, modelToUse, settings, tools, modelContex
 
     systemPrompt += `\n\n- Project Knowledge Base (Local RAG): You have access to 'query_project_knowledge' and 'read_project_file'. When answering questions about local project files, code, architecture, or documentation, use 'query_project_knowledge' to search relevant snippets and 'read_project_file' to view detailed file content. Always cite relevant file paths and line ranges (e.g. \`path/file.ext:L10-L40\`) in your response.`;
 
+    if (settings.isAgentMode || settings.agentMode) {
+        systemPrompt += `\n\n- AUTONOMOUS AGENT MODE: You are currently executing in Autonomous Multi-Step Agent Mode. Break down complex requests into logical sequential steps. Proactively invoke the necessary tools (web search, project knowledge, code execution, MCP tools) one after another to research, implement, and verify the user's objective without stopping prematurely. Once all steps are completed, provide a concise, high-quality final summary of your actions and findings.`;
+    }
+
     if (settings.customSystemPrompt && settings.customSystemPrompt.trim()) {
         systemPrompt += `\n\n${settings.customSystemPrompt.trim()}`;
     }

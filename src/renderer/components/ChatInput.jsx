@@ -1,4 +1,4 @@
-import { ArrowUp, Loader2, ImagePlus, Hammer, Upload, Zap, ZapOff, Square, Mic, MicOff, Terminal, Globe, BookOpen, SlidersHorizontal, Camera } from "lucide-react";
+import { ArrowUp, Loader2, ImagePlus, Hammer, Upload, Zap, ZapOff, Square, Mic, MicOff, Terminal, Globe, BookOpen, SlidersHorizontal, Camera, Bot } from "lucide-react";
 import React, { useContext, useEffect, useRef, useState, useMemo } from "react";
 import TextAreaAutosize from "react-textarea-autosize";
 import { SearchableSelect } from "./ui/SearchableSelect";
@@ -54,6 +54,13 @@ function ChatInput({
 	const [isRecording, setIsRecording] = useState(false);
 	const [isTranscribing, setIsTranscribing] = useState(false);
 	const [isSnipModalOpen, setIsSnipModalOpen] = useState(false);
+	const [agentModeActive, setAgentModeActive] = useState(() => {
+		try {
+			return localStorage.getItem('neochat_agent_mode') === 'true';
+		} catch (e) {
+			return false;
+		}
+	});
 	const mediaRecorderRef = useRef(null);
 	const audioChunksRef = useRef([]);
 
@@ -906,6 +913,34 @@ function ChatInput({
 								</span>
 							</Button>
 						)}
+
+						{/* Agent Mode (Autonomous Loop) Toggle Button */}
+						<Button
+							type="button"
+							variant="ghost"
+							size="sm"
+							onClick={() => {
+								const next = !agentModeActive;
+								setAgentModeActive(next);
+								try {
+									localStorage.setItem('neochat_agent_mode', String(next));
+								} catch (e) {}
+							}}
+							className={cn(
+								"transition-all duration-200 rounded-xl px-2.5 py-1.5 text-xs font-medium flex items-center gap-1.5 border",
+								agentModeActive
+									? "bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/40 shadow-xs ring-1 ring-amber-500/20 font-semibold"
+									: "text-muted-foreground hover:text-foreground hover:bg-muted/60 border-transparent"
+							)}
+							title={agentModeActive ? t('chat.agentModeActive') : t('chat.agentModeTooltip')}
+							disabled={loading}
+						>
+							<Bot className={cn("w-4 h-4 flex-shrink-0", agentModeActive && "text-amber-500 animate-bounce")} />
+							<span>{t('chat.agentMode')}</span>
+							{agentModeActive && (
+								<span className="w-1.5 h-1.5 rounded-full bg-amber-500 flex-shrink-0 animate-pulse"></span>
+							)}
+						</Button>
 					</div>
 
 					<div className="flex items-center gap-2 flex-shrink-0 ml-auto min-w-0">

@@ -18,7 +18,7 @@ import CompareChatView from './components/CompareChatView';
 import { useChat } from './context/ChatContext';
 import { useProjects } from './context/ProjectContext';
 import { useLanguage } from './context/LanguageContext';
-import { Settings, PanelLeftClose, PanelLeft, Radio, MessagesSquare, Sparkles, Store, Columns2, X, FolderKanban, BookOpen, Scale } from 'lucide-react';
+import { Settings, PanelLeftClose, PanelLeft, Radio, MessagesSquare, Sparkles, Store, Columns2, X, FolderKanban, BookOpen, Scale, Bot } from 'lucide-react';
 import { Button } from './components/ui/button';
 import { extractThinking } from './lib/messageUtils';
 
@@ -162,6 +162,10 @@ function App() {
   const [streamStateA, setStreamStateA] = useState({ isLoading: false, content: '', reasoning: '', ttft: null, metrics: null, error: null });
   const [streamStateB, setStreamStateB] = useState({ isLoading: false, content: '', reasoning: '', ttft: null, metrics: null, error: null });
   // --- End Multi-Model Comparison State ---
+
+  // --- Autonomous Agent Mode State ---
+  const [agentStep, setAgentStep] = useState(0);
+  // --- End Autonomous Agent Mode State ---
 
   const currentChatTitle = useMemo(() => {
     if (!currentChatId || !chatList) return '';
@@ -1411,12 +1415,20 @@ function App() {
     let emptyResponseRetries = 0; // Track retries for empty responses
     const MAX_EMPTY_RETRIES = 3; // Maximum retries for empty responses
     let toolIterationsCount = 0;
-    const MAX_TOOL_ITERATIONS = 12; // Prevent infinite tool execution loops
+    const isAgentModeActive = localStorage.getItem('neochat_agent_mode') === 'true';
+    const MAX_TOOL_ITERATIONS = isAgentModeActive ? 25 : 12; // Prevent infinite tool execution loops
+
+    if (isAgentModeActive) {
+      setAgentStep(1);
+    }
 
     try {
         while (conversationStatus === 'processing' || conversationStatus === 'completed_with_tools') {
             if (conversationStatus === 'completed_with_tools') {
                 toolIterationsCount++;
+                if (isAgentModeActive) {
+                    setAgentStep(toolIterationsCount + 1);
+                }
                 if (toolIterationsCount >= MAX_TOOL_ITERATIONS) {
                     console.warn(`[Frontend] Maximum tool iterations (${MAX_TOOL_ITERATIONS}) reached. Stopping tool loop.`);
                     break;
@@ -1526,6 +1538,7 @@ function App() {
         setMessages(prev => [...prev, { role: 'assistant', content: `Error: ${error.message}` }]);
         conversationStatus = 'error'; // Ensure loading state is handled
     } finally {
+        setAgentStep(0);
         // Only set loading false if the conversation is not paused
         if (conversationStatus !== 'paused') {
             setLoading(false);
@@ -2130,6 +2143,23 @@ function App() {
             </div>
           </div>
         </header>
+
+      {/* Floating Agent Execution Tracker Banner */}
+      {agentStep > 0 && (
+        <div className="fixed top-14 left-1/2 -translate-x-1/2 z-30 flex items-center gap-2.5 px-4 py-2 rounded-full bg-amber-500/15 border border-amber-500/40 backdrop-blur-md shadow-xl text-xs text-amber-700 dark:text-amber-300 animate-in slide-in-from-top-4 duration-300">
+          <Bot className="w-4 h-4 animate-bounce text-amber-500" />
+          <span className="font-semibold">Modo Agente Autônomo</span>
+          <span className="opacity-60">•</span>
+          <span>Passo {agentStep} de {localStorage.getItem('neochat_agent_mode') === 'true' ? 25 : 12}</span>
+          <button
+            type="button"
+            onClick={handleStopGeneration}
+            className="ml-2 px-2 py-0.5 rounded-full bg-destructive text-destructive-foreground hover:bg-destructive/90 text-[10.5px] font-medium transition-colors"
+          >
+            Interromper
+          </button>
+        </div>
+      )}
 
       {/* Main Content */}
       <div className="flex-1 flex overflow-hidden">
