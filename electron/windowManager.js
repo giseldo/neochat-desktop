@@ -4,6 +4,10 @@ let mainWindow; // Store the main window instance
 
 function createWindow(screen, BrowserWindow) {
   mainWindow = new BrowserWindow({
+    width: 1200,
+    height: 800,
+    minWidth: 900,
+    minHeight: 600,
     maximized: true,
     webPreferences: {
       nodeIntegration: false,

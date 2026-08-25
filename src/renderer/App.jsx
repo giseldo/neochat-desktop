@@ -2270,7 +2270,7 @@ function App() {
                       onPreviewArtifact={(art) => setActiveArtifact(art)}
                     />
                   </div>
-                  <div className="flex-shrink-0 bg-background/95 backdrop-blur pt-3 max-w-4xl mx-auto w-full">
+                  <div className="flex-shrink-0 bg-background/95 backdrop-blur pt-3 max-w-4xl lg:max-w-5xl mx-auto w-full">
                     <ChatInput
                       onSendMessage={handleSendMessage}
                       onStopGeneration={handleStopGeneration}
@@ -2292,7 +2292,7 @@ function App() {
                 /* Welcome Screen */
                 <div className="flex flex-col items-center justify-center h-full space-y-8">
                   {/* Chat Input */}
-                  <div className="w-full max-w-3xl">
+                  <div className="w-full max-w-4xl lg:max-w-5xl">
                     <ChatInput
                       onSendMessage={handleSendMessage}
                       onStopGeneration={handleStopGeneration}
