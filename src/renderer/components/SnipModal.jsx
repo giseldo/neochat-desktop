@@ -96,10 +96,10 @@ export function SnipModal({ isOpen, onClose, onCaptureComplete }) {
             </div>
             <div>
               <h3 className="font-semibold text-sm text-foreground">
-                Snip & Ask (Recorte e Captura de Tela)
+                {t('snip.title')}
               </h3>
               <p className="text-[11px] text-muted-foreground">
-                Selecione uma janela ou tela para anexar ao chat e raciocinar com Visão
+                {t('snip.subtitle')}
               </p>
             </div>
           </div>
@@ -117,7 +117,7 @@ export function SnipModal({ isOpen, onClose, onCaptureComplete }) {
         <div className="px-5 py-3 bg-muted/20 border-b border-border/60 flex items-center justify-between gap-3">
           <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
             <Sparkles className="w-3.5 h-3.5 text-amber-500" />
-            <span>Captura instantânea do monitor principal:</span>
+            <span>{t('snip.instantCapture')}</span>
           </div>
 
           <div className="flex items-center gap-2">
@@ -130,7 +130,7 @@ export function SnipModal({ isOpen, onClose, onCaptureComplete }) {
               className="h-7 text-xs px-2 text-muted-foreground"
             >
               <RefreshCw className={cn("w-3 h-3 mr-1", isLoading && "animate-spin")} />
-              <span>Atualizar</span>
+              <span>{t('snip.refresh')}</span>
             </Button>
 
             <Button
@@ -141,7 +141,7 @@ export function SnipModal({ isOpen, onClose, onCaptureComplete }) {
               className="h-7 text-xs bg-primary text-primary-foreground hover:bg-primary/90 shadow-2xs flex items-center gap-1.5"
             >
               {isCapturing ? <Loader2 className="w-3 h-3 animate-spin" /> : <Monitor className="w-3 h-3" />}
-              <span>Capturar Tela Inteira</span>
+              <span>{t('snip.captureFullscreen')}</span>
             </Button>
           </div>
         </div>
@@ -156,7 +156,7 @@ export function SnipModal({ isOpen, onClose, onCaptureComplete }) {
               filterType === 'all' ? "bg-muted text-foreground" : "text-muted-foreground hover:text-foreground"
             )}
           >
-            Todos ({sources.length})
+            {t('snip.all', { count: sources.length })}
           </button>
           <button
             type="button"
@@ -167,7 +167,7 @@ export function SnipModal({ isOpen, onClose, onCaptureComplete }) {
             )}
           >
             <Monitor className="w-3 h-3" />
-            <span>Telas ({sources.filter(s => s.isScreen).length})</span>
+            <span>{t('snip.screens', { count: sources.filter(s => s.isScreen).length })}</span>
           </button>
           <button
             type="button"
@@ -178,7 +178,7 @@ export function SnipModal({ isOpen, onClose, onCaptureComplete }) {
             )}
           >
             <AppWindow className="w-3 h-3" />
-            <span>Janelas ({sources.filter(s => !s.isScreen).length})</span>
+            <span>{t('snip.windows', { count: sources.filter(s => !s.isScreen).length })}</span>
           </button>
         </div>
 
@@ -187,11 +187,11 @@ export function SnipModal({ isOpen, onClose, onCaptureComplete }) {
           {isLoading ? (
             <div className="h-48 flex flex-col items-center justify-center text-muted-foreground gap-2 text-xs">
               <Loader2 className="w-6 h-6 animate-spin text-primary" />
-              <span>Identificando telas e janelas abertas...</span>
+              <span>{t('snip.loadingSources')}</span>
             </div>
           ) : filteredSources.length === 0 ? (
             <div className="h-48 flex flex-col items-center justify-center text-muted-foreground gap-2 text-xs">
-              <span>Nenhuma fonte encontrada.</span>
+              <span>{t('snip.noSources')}</span>
             </div>
           ) : (
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
@@ -249,7 +249,7 @@ export function SnipModal({ isOpen, onClose, onCaptureComplete }) {
         {/* Footer */}
         <div className="px-5 py-3 border-t border-border bg-muted/30 flex items-center justify-between gap-2">
           <div className="text-[11px] text-muted-foreground truncate">
-            {selectedSource ? `Selecionado: ${selectedSource.name}` : 'Nenhuma fonte selecionada'}
+            {selectedSource ? t('snip.selected', { name: selectedSource.name }) : t('snip.noSelection')}
           </div>
 
           <div className="flex items-center gap-2">
@@ -260,7 +260,7 @@ export function SnipModal({ isOpen, onClose, onCaptureComplete }) {
               onClick={onClose}
               className="h-8 text-xs text-muted-foreground hover:text-foreground"
             >
-              Cancelar
+              {t('common.cancel')}
             </Button>
             <Button
               type="button"
@@ -270,7 +270,7 @@ export function SnipModal({ isOpen, onClose, onCaptureComplete }) {
               className="h-8 text-xs bg-primary text-primary-foreground hover:bg-primary/90 flex items-center gap-1.5 shadow-2xs disabled:opacity-50"
             >
               <Check className="w-3.5 h-3.5" />
-              <span>Anexar Imagem</span>
+              <span>{t('snip.attachImage')}</span>
             </Button>
           </div>
         </div>

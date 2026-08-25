@@ -532,15 +532,13 @@ const PopupPage = () => {
     // Check if any images are being uploaded with a non-vision model
     const hasImages = selectedFiles.some(file => file.type.startsWith("image/"));
     if (hasImages && !visionSupported) {
-      alert("The selected model does not support image inputs. Please select a vision-capable model or upload text files only.");
+      alert(t('chat.nonVisionAlert'));
       if (fileInputRef.current) fileInputRef.current.value = "";
       return;
     }
 
     if (selectedFiles.length > remainingSlots) {
-      alert(
-        `You can only add ${remainingSlots > 0 ? remainingSlots : "no more"} files (max 5).`,
-      );
+      alert(t('chat.maxFilesAlert', { count: remainingSlots > 0 ? remainingSlots : 0 }));
     }
 
     const filePromises = selectedFiles.slice(0, remainingSlots).map((file) => {

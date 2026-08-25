@@ -781,11 +781,11 @@ function ChatInput({
 								size="sm"
 								onClick={() => setIsSnipModalOpen(true)}
 								className="text-muted-foreground hover:text-foreground hover:bg-white/40 hover:shadow-sm transition-all duration-200 rounded-xl px-2.5 py-1.5 text-xs font-medium"
-								title="Snip & Ask (Recortar / Capturar Tela com Visão)"
+								title={t('chat.snipTooltip')}
 								disabled={loading}
 							>
 								<Camera className="w-4 h-4 mr-1.5 flex-shrink-0 text-cyan-500" />
-								<span>Snip & Ask</span>
+								<span>{t('chat.snip')}</span>
 							</Button>
 						)}
 						<input
