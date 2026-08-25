@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { Link, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Eye, EyeOff, Plus, Trash2, Edit3, Save, X, RefreshCw, Key, Settings as SettingsIcon, Zap, Cpu, Server, AlertCircle, CheckCircle, Sun, Moon, Laptop, Languages, Check, Terminal, Globe, Palette, Type, Sparkles, Sliders, ExternalLink, Route, User, Wrench, Download, UploadCloud, BarChart3, GitBranch, Mic, Volume2, Info, Keyboard } from 'lucide-react';
@@ -2788,7 +2788,7 @@ function Settings() {
                               id="remote-mcp-id"
                               name="id"
                               value={newRemoteMcpServer.id}
-                              onChange={handleRemoteMcpServerChange}
+                              onChange={handleNewRemoteMcpServerChange}
                               placeholder="e.g., huggingface"
                               className="h-8 text-sm"
                               disabled={editingRemoteMcpServerId !== null}

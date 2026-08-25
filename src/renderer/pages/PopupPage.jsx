@@ -165,6 +165,7 @@ const PopupPage = () => {
   const [fullScreenImage, setFullScreenImage] = useState(null);
   const [visionSupported, setVisionSupported] = useState(false);
   const [suggestion, setSuggestion] = useState('');
+  const [autocompleteEnabled, setAutocompleteEnabled] = useState(true);
   const messagesEndRef = useRef(null);
   const messagesContainerRef = useRef(null);
   const userScrollingRef = useRef(false);
@@ -357,6 +358,9 @@ const PopupPage = () => {
       
       // Load settings to get model filter
       const settings = await window.electron.getSettings();
+      if (settings.autocompleteEnabled !== undefined) {
+        setAutocompleteEnabled(settings.autocompleteEnabled);
+      }
       const filterText = settings.modelFilter || '';
       const excludeText = settings.modelFilterExclude || '';
       setModelFilter(filterText);

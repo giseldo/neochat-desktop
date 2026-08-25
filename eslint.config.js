@@ -72,6 +72,7 @@ module.exports = [
       react: { version: "detect" }
     },
     rules: {
+      ...pluginJs.configs.recommended.rules,
       ...pluginReact.configs.recommended.rules,
       ...pluginJsxRuntime.rules,
       'react/prop-types': 'off',
@@ -81,6 +82,7 @@ module.exports = [
           'caughtErrors': 'none' // Ignore all caught errors regardless of name
           // 'caughtErrorsIgnorePattern': '^_'
       }],
+      'no-empty': ['error', { allowEmptyCatch: true }],
       'no-unreachable': 'warn'
     }
   }
