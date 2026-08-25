@@ -22,6 +22,7 @@ import { useLanguage } from './context/LanguageContext';
 import { Settings, PanelLeftClose, PanelLeft, Radio, MessagesSquare, Sparkles, Store, Columns2, X, FolderKanban, BookOpen, Scale, Bot, Workflow } from 'lucide-react';
 import { Button } from './components/ui/button';
 import { cn } from './lib/utils';
+import { groupModels } from './lib/modelGrouping';
 import { extractThinking } from './lib/messageUtils';
 
 // LocalStorage keys
@@ -382,27 +383,15 @@ function App() {
     return filteredModels;
   };
 
-  // Sort models alphabetically by display name for consistent ordering
+  // Sort and group models by provider/category and display name
   // and apply model filter if configured
   const sortedModels = useMemo(() => {
     // First apply the filters (inclusion and exclude)
     const filteredModels = filterModels(models, modelFilter, modelFilterExclude, modelConfigs);
     
-    // Then sort the filtered models
-    return filteredModels.sort((a, b) => {
-      // Get display names from modelConfigs
-      const getDisplayName = (modelId) => {
-        const modelInfo = modelConfigs[modelId];
-        if (modelInfo && modelInfo.displayName) {
-          return modelInfo.displayName;
-        }
-        return modelId;
-      };
-      
-      const nameA = getDisplayName(a).toLowerCase();
-      const nameB = getDisplayName(b).toLowerCase();
-      return nameA.localeCompare(nameB);
-    });
+    // Group and sort models logically by group and display name
+    const groups = groupModels(filteredModels, modelConfigs);
+    return groups.flatMap(g => g.models);
   }, [models, modelConfigs, modelFilter, modelFilterExclude]);
 
   // Initialize compare models when sortedModels change

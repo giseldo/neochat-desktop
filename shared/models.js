@@ -214,6 +214,7 @@ function getModelContextSizes(customModels = {}, apiModels = null) {
       vision_supported: config.vision_supported || false,
       builtin_tools_supported: config.builtin_tools_supported || false,
       displayName: config.displayName || modelId,
+      group: config.group || null,
       isCustom: true
     };
   });

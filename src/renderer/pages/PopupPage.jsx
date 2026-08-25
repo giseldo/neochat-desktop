@@ -8,6 +8,7 @@ import { cn } from '../lib/utils';
 import MessageList from '../components/MessageList';
 import { SearchableSelect } from '../components/ui/SearchableSelect';
 import { extractThinking } from '../lib/messageUtils';
+import { getModelGroup, groupModels } from '../lib/modelGrouping';
 
 const ContextPill = ({ title, onRemove }) => (
   <Badge variant="outline" className="inline-flex items-center gap-2 bg-background/50 backdrop-blur-sm border-border/50 text-foreground shadow-sm">
@@ -119,17 +120,14 @@ const CustomModelSelector = ({ selectedModel, models, onModelChange, isCompact =
     return displayName;
   };
 
-  // Sort models alphabetically
+  // Sort and group models
   const sortedModels = useMemo(() => {
-    return [...models].sort((a, b) => {
-      const nameA = getDisplayName(a).toLowerCase();
-      const nameB = getDisplayName(b).toLowerCase();
-      return nameA.localeCompare(nameB);
-    });
+    const groups = groupModels(models, modelConfigs);
+    return groups.flatMap(g => g.models);
   }, [models, modelConfigs]);
 
   return (
-    <div className={cn("relative", isCompact ? "w-32" : "w-48")}>
+    <div className={cn("relative", isCompact ? "w-36" : "w-52")}>
       <SearchableSelect
         value={selectedModel}
         onValueChange={onModelChange}
@@ -139,6 +137,8 @@ const CustomModelSelector = ({ selectedModel, models, onModelChange, isCompact =
         getDisplayValue={(value) => getDisplayName(value)}
         getOptionLabel={(model) => getDisplayName(model)}
         getOptionValue={(model) => model}
+        groupBy={(model) => getModelGroup(model, modelConfigs[model])}
+        dropdownWidthClass="w-72"
       />
     </div>
   );

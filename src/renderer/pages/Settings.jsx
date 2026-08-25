@@ -14,6 +14,7 @@ import { useTheme, COLOR_THEMES, BG_THEMES, FONT_THEMES, FONT_SIZES } from '../c
 import { useLanguage } from '../context/LanguageContext';
 import PromptTemplatesModal from '../components/PromptTemplatesModal';
 import { cn } from '../lib/utils';
+import { getModelGroup, groupModels, parseBulkModelsInput } from '../lib/modelGrouping';
 
 function Settings() {
   const {
@@ -109,11 +110,20 @@ function Settings() {
   const [newCustomModel, setNewCustomModel] = useState({
     id: '',
     displayName: '',
+    group: '',
     context: 8192,
     vision_supported: false,
     builtin_tools_supported: false
   });
   const [editingModelId, setEditingModelId] = useState(null);
+  const [customModelTab, setCustomModelTab] = useState('single'); // 'single' | 'bulk' | 'json'
+  const [bulkModelsInput, setBulkModelsInput] = useState('');
+  const [bulkDefaultContext, setBulkDefaultContext] = useState(8192);
+  const [bulkDefaultGroup, setBulkDefaultGroup] = useState('');
+  const [bulkVisionSupported, setBulkVisionSupported] = useState(false);
+  const [bulkToolsSupported, setBulkToolsSupported] = useState(false);
+  const [customModelsJsonInput, setCustomModelsJsonInput] = useState('');
+  const [customModelSearchQuery, setCustomModelSearchQuery] = useState('');
   
   // Remote MCP Server state
   const [newRemoteMcpServer, setNewRemoteMcpServer] = useState({
@@ -1009,7 +1019,8 @@ function Settings() {
       displayName: newCustomModel.displayName.trim(),
       context: newCustomModel.context,
       vision_supported: newCustomModel.vision_supported,
-      builtin_tools_supported: newCustomModel.builtin_tools_supported
+      builtin_tools_supported: newCustomModel.builtin_tools_supported,
+      group: newCustomModel.group?.trim() || getModelGroup(newCustomModel.id.trim())
     };
 
     console.log('Saving custom model:', newCustomModel.id, 'with config:', modelConfig);
@@ -1019,7 +1030,7 @@ function Settings() {
       ...settings,
       customModels: {
         ...settings.customModels,
-        [newCustomModel.id]: modelConfig
+        [newCustomModel.id.trim()]: modelConfig
       }
     };
 
@@ -1027,8 +1038,107 @@ function Settings() {
     saveSettings(updatedSettings);
     
     // Clear the form
-    setNewCustomModel({ id: '', displayName: '', context: 8192, vision_supported: false, builtin_tools_supported: false });
+    setNewCustomModel({ id: '', displayName: '', group: '', context: 8192, vision_supported: false, builtin_tools_supported: false });
     setEditingModelId(null);
+    setSaveStatus({ type: 'success', message: t('settings.savedSuccess') });
+  };
+
+  const handleSaveBulkModels = (e) => {
+    e?.preventDefault?.();
+    const parsedModels = parseBulkModelsInput(bulkModelsInput, {
+      context: bulkDefaultContext,
+      group: bulkDefaultGroup,
+      vision_supported: bulkVisionSupported,
+      builtin_tools_supported: bulkToolsSupported
+    });
+
+    if (parsedModels.length === 0) {
+      setSaveStatus({ type: 'error', message: 'Nenhum modelo válido encontrado no texto.' });
+      return;
+    }
+
+    const updatedCustomModels = { ...(settings.customModels || {}) };
+    parsedModels.forEach(m => {
+      updatedCustomModels[m.id] = {
+        displayName: m.displayName || m.id,
+        context: m.context || 8192,
+        vision_supported: !!m.vision_supported,
+        builtin_tools_supported: !!m.builtin_tools_supported,
+        group: m.group || getModelGroup(m.id)
+      };
+    });
+
+    const updatedSettings = {
+      ...settings,
+      customModels: updatedCustomModels
+    };
+
+    setSettings(updatedSettings);
+    saveSettings(updatedSettings);
+    setBulkModelsInput('');
+    setSaveStatus({
+      type: 'success',
+      message: t('settings.modelsAddedSuccess', { count: parsedModels.length })
+    });
+  };
+
+  const handleImportCustomModelsJson = () => {
+    try {
+      const parsedModels = parseBulkModelsInput(customModelsJsonInput);
+      if (parsedModels.length === 0) {
+        setSaveStatus({ type: 'error', message: t('settings.importJsonError') });
+        return;
+      }
+
+      const updatedCustomModels = { ...(settings.customModels || {}) };
+      parsedModels.forEach(m => {
+        updatedCustomModels[m.id] = {
+          displayName: m.displayName || m.id,
+          context: m.context || 8192,
+          vision_supported: !!m.vision_supported,
+          builtin_tools_supported: !!m.builtin_tools_supported,
+          group: m.group || getModelGroup(m.id)
+        };
+      });
+
+      const updatedSettings = {
+        ...settings,
+        customModels: updatedCustomModels
+      };
+
+      setSettings(updatedSettings);
+      saveSettings(updatedSettings);
+      setCustomModelsJsonInput('');
+      setSaveStatus({
+        type: 'success',
+        message: t('settings.importJsonSuccess', { count: parsedModels.length })
+      });
+    } catch (err) {
+      setSaveStatus({ type: 'error', message: t('settings.importJsonError') });
+    }
+  };
+
+  const handleExportCustomModelsJson = async () => {
+    try {
+      const jsonStr = JSON.stringify(settings.customModels || {}, null, 2);
+      await navigator.clipboard.writeText(jsonStr);
+      setSaveStatus({ type: 'success', message: 'JSON copiado para a área de transferência!' });
+    } catch (err) {
+      console.error('Error copying JSON:', err);
+    }
+  };
+
+  const handleDeleteAllCustomModels = () => {
+    if (window.confirm(t('settings.deleteAllCustomModelsConfirm'))) {
+      const updatedSettings = {
+        ...settings,
+        customModels: {}
+      };
+      setSettings(updatedSettings);
+      saveSettings(updatedSettings);
+      cancelModelEditing();
+      setSaveStatus({ type: 'success', message: t('settings.savedSuccess') });
+    }
   };
 
   const removeCustomModel = (modelId) => {
@@ -1053,10 +1163,12 @@ function Settings() {
     const modelToEdit = settings.customModels[modelId];
     if (!modelToEdit) return;
 
+    setCustomModelTab('single');
     setEditingModelId(modelId);
     setNewCustomModel({
       id: modelId,
       displayName: modelToEdit.displayName || '',
+      group: modelToEdit.group || getModelGroup(modelId),
       context: modelToEdit.context || 8192,
       vision_supported: modelToEdit.vision_supported || false,
       builtin_tools_supported: modelToEdit.builtin_tools_supported || false
@@ -1065,7 +1177,7 @@ function Settings() {
 
   const cancelModelEditing = () => {
     setEditingModelId(null);
-    setNewCustomModel({ id: '', displayName: '', context: 8192, vision_supported: false, builtin_tools_supported: false });
+    setNewCustomModel({ id: '', displayName: '', group: '', context: 8192, vision_supported: false, builtin_tools_supported: false });
   };
 
   // Remote MCP Server Management Functions
@@ -3518,191 +3630,500 @@ function Settings() {
                   {t('settings.customModelsDesc')}
                 </CardDescription>
               </CardHeader>
-              <CardContent className="space-y-4">
-                {/* Configured Custom Models List */}
-                {Object.keys(settings.customModels || {}).length > 0 ? (
-                  <div className="space-y-4">
-                    <h4 className="font-medium text-sm">{t('settings.configuredCustomModelsTitle', { count: Object.keys(settings.customModels || {}).length })}</h4>
-                    <div className="space-y-3">
-                      {Object.entries(settings.customModels || {}).map(([id, config]) => (
-                        <Card key={id} className="border-border/50">
-                          <CardContent className="p-4">
-                            <div className="flex justify-between items-start">
-                              <div className="flex-1 space-y-2">
-                                <div className="flex items-center space-x-2">
-                                  <Badge variant="secondary">{config.displayName || id}</Badge>
-                                  <Badge variant="outline" className="text-xs">
-                                    {t('settings.tokensCount', { count: config.context?.toLocaleString() || '8,192' })}
-                                  </Badge>
-                                  {config.vision_supported && (
-                                    <Badge variant="outline" className="text-xs bg-blue-50 text-blue-700">
-                                      {t('settings.visionBadge')}
-                                    </Badge>
-                                  )}
-                                  {config.builtin_tools_supported && (
-                                    <Badge variant="outline" className="text-xs bg-green-50 text-green-700">
-                                      {t('settings.builtinToolsBadge')}
-                                    </Badge>
-                                  )}
-                                </div>
-                                
-                                <div className="text-sm text-muted-foreground font-mono">
-                                  {t('settings.modelIdPrefix', { id })}
-                                </div>
-                              </div>
-                              
-                              <div className="flex space-x-2 ml-4">
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={() => startModelEditing(id)}
-                                >
-                                  <Edit3 className="h-3 w-3" />
-                                </Button>
-                                <Button
-                                  variant="destructive"
-                                  size="sm"
-                                  onClick={() => removeCustomModel(id)}
-                                >
-                                  <Trash2 className="h-3 w-3" />
-                                </Button>
-                              </div>
+              <CardContent className="space-y-6">
+                {/* Configured Custom Models Section */}
+                <div className="space-y-4">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <h4 className="font-medium text-sm flex items-center gap-2">
+                      <span>{t('settings.configuredCustomModelsTitle', { count: Object.keys(settings.customModels || {}).length })}</span>
+                    </h4>
+                    {Object.keys(settings.customModels || {}).length > 0 && (
+                      <div className="flex items-center gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={handleExportCustomModelsJson}
+                          className="text-xs h-8"
+                          title="Exportar JSON para clipboard"
+                        >
+                          <Download className="h-3.5 w-3.5 mr-1.5" />
+                          {t('settings.exportJsonBtn')}
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={handleDeleteAllCustomModels}
+                          className="text-xs h-8 text-destructive hover:bg-destructive/10 hover:text-destructive"
+                          title={t('settings.deleteAllCustomModels')}
+                        >
+                          <Trash2 className="h-3.5 w-3.5 mr-1.5" />
+                          {t('common.clear')}
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+
+                  {Object.keys(settings.customModels || {}).length > 0 ? (
+                    <div className="space-y-4">
+                      {/* Search / Filter configured models */}
+                      {Object.keys(settings.customModels || {}).length > 3 && (
+                        <div className="relative">
+                          <Input
+                            type="text"
+                            value={customModelSearchQuery}
+                            onChange={(e) => setCustomModelSearchQuery(e.target.value)}
+                            placeholder={t('settings.searchCustomModelsPlaceholder')}
+                            className="text-xs sm:text-sm h-8"
+                          />
+                          {customModelSearchQuery && (
+                            <button
+                              type="button"
+                              onClick={() => setCustomModelSearchQuery('')}
+                              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground text-xs"
+                            >
+                              ✕
+                            </button>
+                          )}
+                        </div>
+                      )}
+
+                      {/* Grouped Models List */}
+                      {(() => {
+                        const allModelIds = Object.keys(settings.customModels || {});
+                        const query = customModelSearchQuery.trim().toLowerCase();
+                        const filteredIds = query
+                          ? allModelIds.filter(id => {
+                              const cfg = settings.customModels[id] || {};
+                              const name = (cfg.displayName || id).toLowerCase();
+                              const grp = (cfg.group || getModelGroup(id, cfg)).toLowerCase();
+                              return id.toLowerCase().includes(query) || name.includes(query) || grp.includes(query);
+                            })
+                          : allModelIds;
+
+                        if (filteredIds.length === 0) {
+                          return (
+                            <div className="text-center py-6 text-xs text-muted-foreground border rounded-xl bg-muted/20">
+                              {t('common.noModelsFound')}
                             </div>
-                          </CardContent>
-                        </Card>
-                      ))}
-                    </div>
-                  </div>
-                ) : (
-                  <div className="text-center py-8 text-muted-foreground">
-                    <Cpu className="h-12 w-12 mx-auto mb-3 opacity-50" />
-                    <p>{t('settings.noCustomModels')}</p>
-                    <p className="text-sm">{t('settings.addCustomModelGetStarted')}</p>
-                  </div>
-                )}
+                          );
+                        }
 
-                {/* Add New Custom Model Section */}
-                <div className="border-t pt-6 space-y-4">
-                  <h4 className="font-medium text-sm flex items-center space-x-2">
-                    <Plus className="h-4 w-4" />
-                    <span>{editingModelId ? t('settings.editCustomModelTitle') : t('settings.addNewCustomModelTitle')}</span>
-                  </h4>
-                  
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="model-id">{t('settings.modelIdLabel')}</Label>
-                      <Input
-                        id="model-id"
-                        name="id"
-                        value={newCustomModel.id}
-                        onChange={handleNewCustomModelChange}
-                        placeholder={t('settings.modelIdPlaceholder')}
-                        disabled={editingModelId !== null}
-                      />
-                      <p className="text-xs text-muted-foreground">
-                        {t('settings.modelIdHelp')}
-                      </p>
+                        const grouped = groupModels(filteredIds, settings.customModels);
+
+                        return grouped.map(({ group, models: groupModelIds }) => (
+                          <div key={group} className="space-y-2">
+                            <div className="flex items-center gap-2 px-1 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                              <span>{group}</span>
+                              <Badge variant="outline" className="text-[10px] px-1.5 py-0">
+                                {groupModelIds.length}
+                              </Badge>
+                            </div>
+                            <div className="space-y-2">
+                              {groupModelIds.map((id) => {
+                                const config = settings.customModels[id] || {};
+                                return (
+                                  <Card key={id} className="border-border/50 bg-background/50 hover:bg-muted/20 transition-colors">
+                                    <CardContent className="p-3 sm:p-4">
+                                      <div className="flex justify-between items-start gap-2">
+                                        <div className="flex-1 space-y-1.5 min-w-0">
+                                          <div className="flex flex-wrap items-center gap-1.5">
+                                            <span className="font-medium text-sm text-foreground truncate">
+                                              {config.displayName || id}
+                                            </span>
+                                            <Badge variant="outline" className="text-[11px] font-mono">
+                                              {t('settings.tokensCount', { count: config.context?.toLocaleString() || '8,192' })}
+                                            </Badge>
+                                            {config.group && (
+                                              <Badge variant="secondary" className="text-[10px] bg-muted/80">
+                                                {config.group}
+                                              </Badge>
+                                            )}
+                                            {config.vision_supported && (
+                                              <Badge variant="outline" className="text-[10px] bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/30">
+                                                {t('settings.visionBadge')}
+                                              </Badge>
+                                            )}
+                                            {config.builtin_tools_supported && (
+                                              <Badge variant="outline" className="text-[10px] bg-green-500/10 text-green-600 dark:text-green-400 border-green-500/30">
+                                                {t('settings.builtinToolsBadge')}
+                                              </Badge>
+                                            )}
+                                          </div>
+                                          <div className="text-xs text-muted-foreground font-mono truncate">
+                                            {t('settings.modelIdPrefix', { id })}
+                                          </div>
+                                        </div>
+                                        
+                                        <div className="flex items-center gap-1.5 ml-2 flex-shrink-0">
+                                          <Button
+                                            variant="outline"
+                                            size="sm"
+                                            onClick={() => startModelEditing(id)}
+                                            className="h-7 w-7 p-0"
+                                            title={t('common.edit')}
+                                          >
+                                            <Edit3 className="h-3 w-3" />
+                                          </Button>
+                                          <Button
+                                            variant="destructive"
+                                            size="sm"
+                                            onClick={() => removeCustomModel(id)}
+                                            className="h-7 w-7 p-0"
+                                            title={t('common.delete')}
+                                          >
+                                            <Trash2 className="h-3 w-3" />
+                                          </Button>
+                                        </div>
+                                      </div>
+                                    </CardContent>
+                                  </Card>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        ));
+                      })()}
                     </div>
-                    
-                    <div className="space-y-2">
-                      <Label htmlFor="model-display-name">{t('settings.displayNameLabel')}</Label>
-                      <Input
-                        id="model-display-name"
-                        name="displayName"
-                        value={newCustomModel.displayName}
-                        onChange={handleNewCustomModelChange}
-                        placeholder={t('settings.displayNamePlaceholder')}
-                      />
-                      <p className="text-xs text-muted-foreground">
-                        {t('settings.displayNameHelp')}
-                      </p>
+                  ) : (
+                    <div className="text-center py-6 text-muted-foreground border border-dashed rounded-xl bg-muted/10">
+                      <Cpu className="h-10 w-10 mx-auto mb-2 opacity-40 text-primary" />
+                      <p className="text-sm font-medium">{t('settings.noCustomModels')}</p>
+                      <p className="text-xs text-muted-foreground mt-1">{t('settings.addCustomModelGetStarted')}</p>
                     </div>
+                  )}
+                </div>
+
+                {/* Add Custom Models Section with Tabs */}
+                <div className="border-t pt-5 space-y-4">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                    <h4 className="font-medium text-sm flex items-center space-x-2">
+                      <Plus className="h-4 w-4 text-primary" />
+                      <span>{editingModelId ? t('settings.editCustomModelTitle') : t('settings.addNewCustomModelTitle')}</span>
+                    </h4>
+
+                    {/* Tabs */}
+                    {!editingModelId && (
+                      <div className="flex items-center gap-1 bg-muted/60 p-1 rounded-xl border border-border/50 self-start">
+                        <Button
+                          type="button"
+                          variant={customModelTab === 'single' ? 'secondary' : 'ghost'}
+                          size="sm"
+                          onClick={() => setCustomModelTab('single')}
+                          className="text-xs h-7 px-2.5 rounded-lg"
+                        >
+                          {t('settings.tabSingleModel')}
+                        </Button>
+                        <Button
+                          type="button"
+                          variant={customModelTab === 'bulk' ? 'secondary' : 'ghost'}
+                          size="sm"
+                          onClick={() => setCustomModelTab('bulk')}
+                          className="text-xs h-7 px-2.5 rounded-lg"
+                        >
+                          {t('settings.tabBulkAdd')}
+                        </Button>
+                        <Button
+                          type="button"
+                          variant={customModelTab === 'json' ? 'secondary' : 'ghost'}
+                          size="sm"
+                          onClick={() => setCustomModelTab('json')}
+                          className="text-xs h-7 px-2.5 rounded-lg"
+                        >
+                          {t('settings.tabJsonImportExport')}
+                        </Button>
+                      </div>
+                    )}
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="model-context">{t('settings.contextSizeLabel')}</Label>
-                      <Input
-                        id="model-context"
-                        name="context"
-                        type="number"
-                        value={newCustomModel.context}
-                        onChange={handleNewCustomModelChange}
-                        placeholder="8192"
-                        min="1024"
-                        max="1000000"
-                      />
-                      <p className="text-xs text-muted-foreground">
-                        {t('settings.contextSizeHelp')}
-                      </p>
+                  {/* SINGLE MODEL FORM */}
+                  {customModelTab === 'single' && (
+                    <div className="space-y-4 bg-muted/20 p-4 rounded-xl border border-border/60">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-1.5">
+                          <Label htmlFor="model-id" className="text-xs font-medium">{t('settings.modelIdLabel')} *</Label>
+                          <Input
+                            id="model-id"
+                            name="id"
+                            value={newCustomModel.id}
+                            onChange={handleNewCustomModelChange}
+                            placeholder={t('settings.modelIdPlaceholder')}
+                            disabled={editingModelId !== null}
+                            className="text-xs sm:text-sm font-mono"
+                          />
+                          <p className="text-[11px] text-muted-foreground">
+                            {t('settings.modelIdHelp')}
+                          </p>
+                        </div>
+                        
+                        <div className="space-y-1.5">
+                          <Label htmlFor="model-display-name" className="text-xs font-medium">{t('settings.displayNameLabel')} *</Label>
+                          <Input
+                            id="model-display-name"
+                            name="displayName"
+                            value={newCustomModel.displayName}
+                            onChange={handleNewCustomModelChange}
+                            placeholder={t('settings.displayNamePlaceholder')}
+                            className="text-xs sm:text-sm"
+                          />
+                          <p className="text-[11px] text-muted-foreground">
+                            {t('settings.displayNameHelp')}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-1.5">
+                          <Label htmlFor="model-group" className="text-xs font-medium">{t('settings.groupLabel')}</Label>
+                          <Input
+                            id="model-group"
+                            name="group"
+                            value={newCustomModel.group || ''}
+                            onChange={handleNewCustomModelChange}
+                            placeholder={t('settings.groupPlaceholder')}
+                            className="text-xs sm:text-sm"
+                          />
+                          <p className="text-[11px] text-muted-foreground">
+                            {t('settings.groupHelp')}
+                          </p>
+                        </div>
+
+                        <div className="space-y-1.5">
+                          <Label htmlFor="model-context" className="text-xs font-medium">{t('settings.contextSizeLabel')}</Label>
+                          <Input
+                            id="model-context"
+                            name="context"
+                            type="number"
+                            value={newCustomModel.context}
+                            onChange={handleNewCustomModelChange}
+                            placeholder="8192"
+                            min="1024"
+                            max="1000000"
+                            className="text-xs sm:text-sm"
+                          />
+                          <p className="text-[11px] text-muted-foreground">
+                            {t('settings.contextSizeHelp')}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="space-y-2 pt-1 border-t border-border/40">
+                        <Label className="text-xs font-medium">{t('settings.capabilitiesLabel')}</Label>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                          <div className="flex items-center space-x-2">
+                            <input
+                              type="checkbox"
+                              id="model-vision"
+                              name="vision_supported"
+                              checked={newCustomModel.vision_supported}
+                              onChange={handleNewCustomModelChange}
+                              className="rounded border-gray-300 h-4 w-4 text-primary focus:ring-primary"
+                            />
+                            <Label htmlFor="model-vision" className="text-xs font-normal cursor-pointer">
+                              {t('settings.visionSupportLabel')}
+                            </Label>
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            <input
+                              type="checkbox"
+                              id="model-builtin-tools"
+                              name="builtin_tools_supported"
+                              checked={newCustomModel.builtin_tools_supported}
+                              onChange={handleNewCustomModelChange}
+                              className="rounded border-gray-300 h-4 w-4 text-primary focus:ring-primary"
+                            />
+                            <Label htmlFor="model-builtin-tools" className="text-xs font-normal cursor-pointer">
+                              {t('settings.toolsSupportLabel')}
+                            </Label>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="flex justify-end space-x-2 pt-2">
+                        {editingModelId && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={cancelModelEditing}
+                          >
+                            <X className="h-3.5 w-3.5 mr-1.5" />
+                            {t('common.cancel')}
+                          </Button>
+                        )}
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            setNewCustomModel({
+                              id: '', displayName: '', group: '', context: 8192, vision_supported: false, builtin_tools_supported: false
+                            });
+                            setEditingModelId(null);
+                          }}
+                        >
+                          <X className="h-3.5 w-3.5 mr-1.5" />
+                          {t('common.clear')}
+                        </Button>
+                        <Button
+                          size="sm"
+                          onClick={handleSaveCustomModel}
+                          disabled={!newCustomModel.id || !newCustomModel.displayName}
+                        >
+                          <Save className="h-3.5 w-3.5 mr-1.5" />
+                          {editingModelId ? t('settings.updateModelBtn') : t('settings.addModelBtn')}
+                        </Button>
+                      </div>
                     </div>
-                    
-                    <div className="space-y-2">
-                      <Label htmlFor="model-vision">{t('settings.capabilitiesLabel')}</Label>
-                      <div className="space-y-3 pt-2">
+                  )}
+
+                  {/* BULK ADD FORM */}
+                  {customModelTab === 'bulk' && (
+                    <div className="space-y-4 bg-muted/20 p-4 rounded-xl border border-border/60">
+                      <p className="text-xs text-muted-foreground">
+                        {t('settings.bulkAddModelsHelp')}
+                      </p>
+
+                      <div className="space-y-1.5">
+                        <Textarea
+                          value={bulkModelsInput}
+                          onChange={(e) => setBulkModelsInput(e.target.value)}
+                          placeholder={t('settings.bulkAddPlaceholder')}
+                          rows={6}
+                          className="font-mono text-xs leading-relaxed"
+                        />
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div className="space-y-1.5">
+                          <Label htmlFor="bulk-context" className="text-xs font-medium">{t('settings.defaultContextSizeLabel')}</Label>
+                          <Input
+                            id="bulk-context"
+                            type="number"
+                            value={bulkDefaultContext}
+                            onChange={(e) => setBulkDefaultContext(parseInt(e.target.value) || 8192)}
+                            placeholder="8192"
+                            className="text-xs"
+                          />
+                        </div>
+                        <div className="space-y-1.5">
+                          <Label htmlFor="bulk-group" className="text-xs font-medium">{t('settings.defaultGroupLabel')}</Label>
+                          <Input
+                            id="bulk-group"
+                            value={bulkDefaultGroup}
+                            onChange={(e) => setBulkDefaultGroup(e.target.value)}
+                            placeholder={t('settings.groupPlaceholder')}
+                            className="text-xs"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1 border-t border-border/40">
                         <div className="flex items-center space-x-2">
                           <input
                             type="checkbox"
-                            id="model-vision"
-                            name="vision_supported"
-                            checked={newCustomModel.vision_supported}
-                            onChange={handleNewCustomModelChange}
-                            className="rounded border-gray-300"
+                            id="bulk-vision"
+                            checked={bulkVisionSupported}
+                            onChange={(e) => setBulkVisionSupported(e.target.checked)}
+                            className="rounded border-gray-300 h-4 w-4 text-primary focus:ring-primary"
                           />
-                          <Label htmlFor="model-vision" className="text-sm font-normal">
+                          <Label htmlFor="bulk-vision" className="text-xs font-normal cursor-pointer">
                             {t('settings.visionSupportLabel')}
                           </Label>
                         </div>
                         <div className="flex items-center space-x-2">
                           <input
                             type="checkbox"
-                            id="model-builtin-tools"
-                            name="builtin_tools_supported"
-                            checked={newCustomModel.builtin_tools_supported}
-                            onChange={handleNewCustomModelChange}
-                            className="rounded border-gray-300"
+                            id="bulk-builtin-tools"
+                            checked={bulkToolsSupported}
+                            onChange={(e) => setBulkToolsSupported(e.target.checked)}
+                            className="rounded border-gray-300 h-4 w-4 text-primary focus:ring-primary"
                           />
-                          <Label htmlFor="model-builtin-tools" className="text-sm font-normal">
+                          <Label htmlFor="bulk-builtin-tools" className="text-xs font-normal cursor-pointer">
                             {t('settings.toolsSupportLabel')}
                           </Label>
                         </div>
                       </div>
-                      <p className="text-xs text-muted-foreground">
-                        {t('settings.capabilitiesHelp')}
-                      </p>
-                    </div>
-                  </div>
 
-                  <div className="flex justify-end space-x-2">
-                    {editingModelId && (
-                      <Button
-                        variant="outline"
-                        onClick={cancelModelEditing}
-                      >
-                        <X className="h-4 w-4 mr-2" />
-                        {t('common.cancel')}
-                      </Button>
-                    )}
-                    <Button
-                      variant="outline"
-                      onClick={() => {
-                        setNewCustomModel({
-                          id: '', displayName: '', context: 8192, vision_supported: false, builtin_tools_supported: false
+                      {/* Live Detection Preview */}
+                      {(() => {
+                        const detected = parseBulkModelsInput(bulkModelsInput, {
+                          context: bulkDefaultContext,
+                          group: bulkDefaultGroup,
+                          vision_supported: bulkVisionSupported,
+                          builtin_tools_supported: bulkToolsSupported
                         });
-                        setEditingModelId(null);
-                      }}
-                    >
-                      <X className="h-4 w-4 mr-2" />
-                      {t('common.clear')}
-                    </Button>
-                    <Button
-                      onClick={handleSaveCustomModel}
-                      disabled={!newCustomModel.id || !newCustomModel.displayName}
-                    >
-                      <Save className="h-4 w-4 mr-2" />
-                      {editingModelId ? t('settings.updateModelBtn') : t('settings.addModelBtn')}
-                    </Button>
-                  </div>
+
+                        return (
+                          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2">
+                            <div className="text-xs">
+                              {detected.length > 0 ? (
+                                <Badge variant="secondary" className="text-xs font-normal">
+                                  {t('settings.modelsDetectedCount', { count: detected.length })}
+                                </Badge>
+                              ) : (
+                                <span className="text-muted-foreground text-xs">
+                                  Nenhum modelo digitado ainda.
+                                </span>
+                              )}
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => setBulkModelsInput('')}
+                                disabled={!bulkModelsInput}
+                              >
+                                <X className="h-3.5 w-3.5 mr-1.5" />
+                                {t('common.clear')}
+                              </Button>
+                              <Button
+                                size="sm"
+                                onClick={handleSaveBulkModels}
+                                disabled={detected.length === 0}
+                              >
+                                <Plus className="h-3.5 w-3.5 mr-1.5" />
+                                {t('settings.addBulkModelsBtn', { count: detected.length })}
+                              </Button>
+                            </div>
+                          </div>
+                        );
+                      })()}
+                    </div>
+                  )}
+
+                  {/* JSON IMPORT / EXPORT */}
+                  {customModelTab === 'json' && (
+                    <div className="space-y-4 bg-muted/20 p-4 rounded-xl border border-border/60">
+                      <p className="text-xs text-muted-foreground">
+                        {t('settings.importJsonPlaceholder')}
+                      </p>
+
+                      <Textarea
+                        value={customModelsJsonInput}
+                        onChange={(e) => setCustomModelsJsonInput(e.target.value)}
+                        placeholder={'{\n  "openai/gpt-oss-20b": {\n    "displayName": "GPT OSS 20B",\n    "context": 128000,\n    "group": "OpenAI"\n  }\n}'}
+                        rows={6}
+                        className="font-mono text-xs"
+                      />
+
+                      <div className="flex justify-end gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={handleExportCustomModelsJson}
+                        >
+                          <Download className="h-3.5 w-3.5 mr-1.5" />
+                          {t('settings.exportJsonBtn')}
+                        </Button>
+                        <Button
+                          size="sm"
+                          onClick={handleImportCustomModelsJson}
+                          disabled={!customModelsJsonInput.trim()}
+                        >
+                          <UploadCloud className="h-3.5 w-3.5 mr-1.5" />
+                          {t('settings.importJsonBtn')}
+                        </Button>
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 {/* Model Filter */}

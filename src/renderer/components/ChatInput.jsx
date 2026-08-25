@@ -12,6 +12,7 @@ import PromptTemplatesModal from "./PromptTemplatesModal";
 import ModelParametersModal from "./ModelParametersModal";
 import SnipModal from "./SnipModal";
 import { getAllPromptCommands, PROMPT_TEMPLATES_STORAGE_KEY } from "../lib/defaultPromptCommands";
+import { getModelGroup, groupModels } from "../lib/modelGrouping";
 
 function ChatInput({
 	onSendMessage,
@@ -427,13 +428,10 @@ function ChatInput({
 		return modelId;
 	};
 
-	// Sort models alphabetically by display name
+	// Sort and group models by provider/category and display name
 	const sortedModels = useMemo(() => {
-		return [...models].sort((a, b) => {
-			const nameA = getModelDisplayName(a).toLowerCase();
-			const nameB = getModelDisplayName(b).toLowerCase();
-			return nameA.localeCompare(nameB);
-		});
+		const groups = groupModels(models, modelConfigs);
+		return groups.flatMap(g => g.models);
 	}, [models, modelConfigs]);
 	const [isDragOver, setIsDragOver] = useState(false);
 	const [fullScreenImage, setFullScreenImage] = useState(null);
@@ -1084,11 +1082,13 @@ function ChatInput({
 								onValueChange={onModelChange}
 								options={sortedModels}
 								placeholder={t('chat.selectModel')}
-								className="w-36 sm:w-44 max-w-[180px] min-w-[110px]"
+								className="w-36 sm:w-48 max-w-[200px] min-w-[110px]"
 								disabled={loading}
 								getDisplayValue={(value) => getModelDisplayName(value)}
 								getOptionLabel={(model) => getModelDisplayName(model)}
 								getOptionValue={(model) => model}
+								groupBy={(model) => getModelGroup(model, modelConfigs[model])}
+								dropdownWidthClass="w-72 sm:w-80"
 							/>
 							<Button
 								type="button"

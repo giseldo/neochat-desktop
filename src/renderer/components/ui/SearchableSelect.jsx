@@ -1,10 +1,11 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { Check, ChevronDown } from 'lucide-react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
+import { Check, ChevronDown, Layers } from 'lucide-react';
 import { useLanguage } from '../../context/LanguageContext';
 import { cn } from '../../lib/utils';
 
 /**
  * A searchable select component that allows filtering options by typing
+ * and optionally grouping options by categories/providers.
  */
 export function SearchableSelect({ 
   value, 
@@ -15,7 +16,9 @@ export function SearchableSelect({
   disabled = false,
   getDisplayValue,
   getOptionLabel,
-  getOptionValue
+  getOptionValue,
+  groupBy = null, // Optional grouping function: (option) => string
+  dropdownWidthClass = "w-full min-w-[240px] max-w-[90vw]"
 }) {
   const { t } = useLanguage();
   const [isOpen, setIsOpen] = useState(false);
@@ -33,11 +36,39 @@ export function SearchableSelect({
   const getLabel = getOptionLabel || ((opt) => typeof opt === 'string' ? opt : opt.label);
   const getValue = getOptionValue || ((opt) => typeof opt === 'string' ? opt : opt.value);
 
-  // Filter options based on search query
-  const filteredOptions = options.filter(option => {
-    const label = getLabel(option).toLowerCase();
-    return label.includes(searchQuery.toLowerCase());
-  });
+  // Filter options based on search query (matches label, value, or group name)
+  const filteredOptions = useMemo(() => {
+    const query = searchQuery.trim().toLowerCase();
+    if (!query) return options;
+
+    return options.filter(option => {
+      const label = String(getLabel(option) || '').toLowerCase();
+      const val = String(getValue(option) || '').toLowerCase();
+      const group = groupBy ? String(groupBy(option) || '').toLowerCase() : '';
+      return label.includes(query) || val.includes(query) || group.includes(query);
+    });
+  }, [options, searchQuery, getLabel, getValue, groupBy]);
+
+  // Group filtered options if groupBy is provided
+  const groupedSections = useMemo(() => {
+    if (!groupBy || filteredOptions.length === 0) {
+      return null;
+    }
+
+    const groupsMap = new Map();
+    filteredOptions.forEach(option => {
+      const groupName = groupBy(option) || 'Outros';
+      if (!groupsMap.has(groupName)) {
+        groupsMap.set(groupName, []);
+      }
+      groupsMap.get(groupName).push(option);
+    });
+
+    return Array.from(groupsMap.entries()).map(([group, items]) => ({
+      group,
+      items
+    }));
+  }, [filteredOptions, groupBy]);
 
   // Reset highlighted index when filtered options change
   useEffect(() => {
@@ -69,7 +100,7 @@ export function SearchableSelect({
   // Scroll highlighted item into view
   useEffect(() => {
     if (isOpen && listRef.current) {
-      const highlightedElement = listRef.current.children[highlightedIndex];
+      const highlightedElement = listRef.current.querySelector(`[data-item-index="${highlightedIndex}"]`);
       if (highlightedElement) {
         highlightedElement.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
       }
@@ -123,6 +154,9 @@ export function SearchableSelect({
     setSearchQuery('');
   };
 
+  // Keep a running index counter across grouped sections for keyboard navigation mapping
+  let runningItemIndex = 0;
+
   return (
     <div ref={containerRef} className={cn("relative", className)}>
       {/* Trigger Button */}
@@ -146,9 +180,12 @@ export function SearchableSelect({
 
       {/* Dropdown */}
       {isOpen && (
-        <div className="absolute z-50 bottom-full right-0 mb-1 w-full min-w-[200px] max-w-[90vw] rounded-xl border bg-popover text-popover-foreground shadow-md animate-in fade-in-0 zoom-in-95">
+        <div className={cn(
+          "absolute z-50 bottom-full right-0 mb-1 rounded-xl border bg-popover text-popover-foreground shadow-xl animate-in fade-in-0 zoom-in-95 backdrop-blur-md",
+          dropdownWidthClass
+        )}>
           {/* Search Input */}
-          <div className="p-2 border-b">
+          <div className="p-2 border-b border-border/60">
             <input
               ref={inputRef}
               type="text"
@@ -156,21 +193,69 @@ export function SearchableSelect({
               onChange={(e) => setSearchQuery(e.target.value)}
               onKeyDown={handleKeyDown}
               placeholder={t('common.typeToFilter')}
-              className="w-full px-2 py-1.5 text-sm bg-background rounded-lg border border-input focus:outline-none focus:ring-2 focus:ring-ring text-foreground"
+              className="w-full px-2.5 py-1.5 text-xs sm:text-sm bg-background/80 rounded-lg border border-input focus:outline-none focus:ring-2 focus:ring-ring text-foreground placeholder:text-muted-foreground"
             />
           </div>
 
           {/* Options List */}
           <div 
             ref={listRef}
-            className="max-h-[300px] overflow-y-auto p-1"
+            className="max-h-[320px] overflow-y-auto p-1 space-y-0.5"
             role="listbox"
           >
             {filteredOptions.length === 0 ? (
-              <div className="py-6 text-center text-sm text-muted-foreground">
+              <div className="py-6 text-center text-xs sm:text-sm text-muted-foreground">
                 {t('common.noModelsFound')}
               </div>
+            ) : groupedSections ? (
+              // Grouped rendering
+              groupedSections.map((section) => (
+                <div key={section.group} className="py-1">
+                  {/* Group Header */}
+                  <div className="px-2.5 py-1 text-[11px] font-semibold tracking-wider text-muted-foreground uppercase flex items-center justify-between border-b border-border/30 mb-1">
+                    <span className="truncate">{section.group}</span>
+                    <span className="text-[10px] text-muted-foreground/70 font-mono font-normal">
+                      {section.items.length}
+                    </span>
+                  </div>
+
+                  {/* Group Items */}
+                  <div className="space-y-0.5">
+                    {section.items.map((option) => {
+                      const optionValue = getValue(option);
+                      const optionLabel = getLabel(option);
+                      const isSelected = optionValue === value;
+                      const currentIndex = runningItemIndex++;
+                      const isHighlighted = currentIndex === highlightedIndex;
+
+                      return (
+                        <div
+                          key={optionValue}
+                          data-item-index={currentIndex}
+                          onClick={() => handleOptionClick(option)}
+                          onMouseEnter={() => setHighlightedIndex(currentIndex)}
+                          className={cn(
+                            "relative flex w-full cursor-pointer select-none items-center rounded-lg py-1.5 pl-7 pr-2 text-xs sm:text-sm outline-none transition-colors text-foreground",
+                            isHighlighted && "bg-accent text-accent-foreground",
+                            isSelected && "font-medium text-primary bg-primary/10"
+                          )}
+                          role="option"
+                          aria-selected={isSelected}
+                        >
+                          {isSelected && (
+                            <span className="absolute left-2 flex h-3.5 w-3.5 items-center justify-center text-primary">
+                              <Check className="h-3.5 w-3.5" />
+                            </span>
+                          )}
+                          <span className="truncate">{optionLabel}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))
             ) : (
+              // Flat rendering
               filteredOptions.map((option, index) => {
                 const optionValue = getValue(option);
                 const optionLabel = getLabel(option);
@@ -180,22 +265,23 @@ export function SearchableSelect({
                 return (
                   <div
                     key={optionValue}
+                    data-item-index={index}
                     onClick={() => handleOptionClick(option)}
                     onMouseEnter={() => setHighlightedIndex(index)}
                     className={cn(
-                      "relative flex w-full cursor-pointer select-none items-center rounded-lg py-1.5 pl-8 pr-2 text-sm outline-none transition-colors text-foreground",
+                      "relative flex w-full cursor-pointer select-none items-center rounded-lg py-1.5 pl-7 pr-2 text-xs sm:text-sm outline-none transition-colors text-foreground",
                       isHighlighted && "bg-accent text-accent-foreground",
-                      isSelected && "font-medium"
+                      isSelected && "font-medium text-primary bg-primary/10"
                     )}
                     role="option"
                     aria-selected={isSelected}
                   >
                     {isSelected && (
-                      <span className="absolute left-2 flex h-3.5 w-3.5 items-center justify-center">
-                        <Check className="h-4 w-4" />
+                      <span className="absolute left-2 flex h-3.5 w-3.5 items-center justify-center text-primary">
+                        <Check className="h-3.5 w-3.5" />
                       </span>
                     )}
-                    {optionLabel}
+                    <span className="truncate">{optionLabel}</span>
                   </div>
                 );
               })

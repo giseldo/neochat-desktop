@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { 
   Columns2, 
   Sparkles, 
@@ -21,6 +21,7 @@ import { Button } from './ui/button';
 import { Badge } from './ui/badge';
 import { cn } from '../lib/utils';
 import { useLanguage } from '../context/LanguageContext';
+import { getModelGroup } from '../lib/modelGrouping';
 
 export function CompareChatView({
   modelA,
@@ -52,6 +53,21 @@ export function CompareChatView({
     }
   };
 
+  const groupedModels = useMemo(() => {
+    const groups = new Map();
+    availableModels.forEach((m) => {
+      const groupName = getModelGroup(m.id);
+      if (!groups.has(groupName)) {
+        groups.set(groupName, []);
+      }
+      groups.get(groupName).push(m);
+    });
+    return Array.from(groups.entries()).map(([group, items]) => ({
+      group,
+      items
+    }));
+  }, [availableModels]);
+
   return (
     <div className="w-full flex-1 grid grid-cols-1 md:grid-cols-2 divide-y md:divide-y-0 md:divide-x divide-border overflow-hidden bg-background/50">
       {/* MODEL A COLUMN */}
@@ -67,10 +83,14 @@ export function CompareChatView({
               onChange={(e) => onModelAChange(e.target.value)}
               className="bg-background border border-border rounded-lg px-2 py-1 text-xs text-foreground font-medium focus:outline-none focus:ring-1 focus:ring-primary truncate flex-1"
             >
-              {availableModels.map((m) => (
-                <option key={m.id} value={m.id}>
-                  {m.displayName || m.id}
-                </option>
+              {groupedModels.map((g) => (
+                <optgroup key={g.group} label={g.group}>
+                  {g.items.map((m) => (
+                    <option key={m.id} value={m.id}>
+                      {m.displayName || m.id}
+                    </option>
+                  ))}
+                </optgroup>
               ))}
             </select>
           </div>
@@ -206,10 +226,14 @@ export function CompareChatView({
               onChange={(e) => onModelBChange(e.target.value)}
               className="bg-background border border-border rounded-lg px-2 py-1 text-xs text-foreground font-medium focus:outline-none focus:ring-1 focus:ring-primary truncate flex-1"
             >
-              {availableModels.map((m) => (
-                <option key={m.id} value={m.id}>
-                  {m.displayName || m.id}
-                </option>
+              {groupedModels.map((g) => (
+                <optgroup key={g.group} label={g.group}>
+                  {g.items.map((m) => (
+                    <option key={m.id} value={m.id}>
+                      {m.displayName || m.id}
+                    </option>
+                  ))}
+                </optgroup>
               ))}
             </select>
           </div>
