@@ -1677,7 +1677,13 @@ async function handleChatStream(event, messages, model, settings, modelContextSi
 
         const tools = prepareTools(discoveredTools, false, settings);
         const cleanedMessages = cleanMessages(messages);
-        const candidates = getProviderCandidates(settings);
+        const modelProvider = modelInfo?.provider || settings.provider || 'groq';
+        const primarySettings = {
+            ...settings,
+            provider: modelProvider,
+            model: modelToUse
+        };
+        const candidates = getProviderCandidates(primarySettings);
         let lastError = null;
         for (const [candidateIndex, candidate] of candidates.entries()) {
             const candidateModel = candidateIndex === 0 ? modelToUse : (candidate.model || getDefaultModel(candidate));
@@ -1740,15 +1746,21 @@ async function runSingleStreamForCompare(event, messages, model, settings, model
     activeStreams.set(streamId, { cancelled: false, stream: null, event });
 
     try {
-        validateApiKey(settings);
         const { modelToUse, modelInfo } = determineModel(model, settings, modelContextSizes);
+        const modelProvider = modelInfo?.provider || settings.provider || 'groq';
+        const modelSettings = {
+            ...settings,
+            provider: modelProvider,
+            model: modelToUse
+        };
+        validateApiKey(modelSettings);
         const visionCheckPassed = checkVisionSupport(messages, modelInfo, modelToUse, event);
         if (!visionCheckPassed) {
             cleanupStream(streamId);
             return;
         }
 
-        const groq = createGroqClient(settings);
+        const groq = createGroqClient(modelSettings);
 
         const cleanedMessages = cleanMessages(messages);
         const prunedMessages = pruneMessageHistory(cleanedMessages, modelToUse, modelContextSizes);

@@ -124,6 +124,10 @@ function Settings() {
   const [bulkToolsSupported, setBulkToolsSupported] = useState(false);
   const [customModelsJsonInput, setCustomModelsJsonInput] = useState('');
   const [customModelSearchQuery, setCustomModelSearchQuery] = useState('');
+  const [modelConfigs, setModelConfigs] = useState({});
+  const [allLoadedModels, setAllLoadedModels] = useState([]);
+  const [providerModelSearchQuery, setProviderModelSearchQuery] = useState('');
+  const [isRefreshingModels, setIsRefreshingModels] = useState(false);
   
   // Remote MCP Server state
   const [newRemoteMcpServer, setNewRemoteMcpServer] = useState({
@@ -289,6 +293,15 @@ function Settings() {
         setSettings(settingsData);
         const provider = (providerList || []).find(p => p.id === settingsData.provider);
         setActiveProvider(provider || null);
+
+        // Fetch model configurations for all configured providers
+        try {
+          const configs = await window.electron.getModelConfigs();
+          setModelConfigs(configs || {});
+          setAllLoadedModels(Object.keys(configs || {}).filter(k => k !== 'default'));
+        } catch (mErr) {
+          console.error('Error fetching model configs in settings:', mErr);
+        }
         
         // Fetch Google OAuth status
         try {
@@ -409,6 +422,9 @@ function Settings() {
     saveSettings(updatedSettings);
     const provider = providers.find(p => p.id === value);
     setActiveProvider(provider || null);
+    setTimeout(() => {
+      fetchAndSetModelConfigs();
+    }, 1000);
   };
 
   const getActiveApiKeyValue = () => {
@@ -992,6 +1008,60 @@ function Settings() {
     setJsonError(null);
   };
 
+  // Model Management and Activation Handlers
+  const fetchAndSetModelConfigs = async () => {
+    setIsRefreshingModels(true);
+    try {
+      const configs = await window.electron.getModelConfigs();
+      setModelConfigs(configs || {});
+      const ids = Object.keys(configs || {}).filter(k => k !== 'default');
+      setAllLoadedModels(ids);
+    } catch (err) {
+      console.error('Error refreshing model configs:', err);
+    } finally {
+      setIsRefreshingModels(false);
+    }
+  };
+
+  const handleToggleModelEnabled = (modelId) => {
+    const currentDisabled = Array.isArray(settings.disabledModels) ? settings.disabledModels : [];
+    const isCurrentlyDisabled = currentDisabled.includes(modelId);
+    const updatedDisabled = isCurrentlyDisabled
+      ? currentDisabled.filter(id => id !== modelId)
+      : [...currentDisabled, modelId];
+
+    const updatedSettings = {
+      ...settings,
+      disabledModels: updatedDisabled
+    };
+
+    setSettings(updatedSettings);
+    saveSettings(updatedSettings);
+  };
+
+  const handleEnableAllInGroup = (modelIds) => {
+    const currentDisabled = Array.isArray(settings.disabledModels) ? settings.disabledModels : [];
+    const updatedDisabled = currentDisabled.filter(id => !modelIds.includes(id));
+    const updatedSettings = {
+      ...settings,
+      disabledModels: updatedDisabled
+    };
+    setSettings(updatedSettings);
+    saveSettings(updatedSettings);
+  };
+
+  const handleDisableAllInGroup = (modelIds) => {
+    const currentDisabled = Array.isArray(settings.disabledModels) ? settings.disabledModels : [];
+    const toAdd = modelIds.filter(id => !currentDisabled.includes(id));
+    const updatedDisabled = [...currentDisabled, ...toAdd];
+    const updatedSettings = {
+      ...settings,
+      disabledModels: updatedDisabled
+    };
+    setSettings(updatedSettings);
+    saveSettings(updatedSettings);
+  };
+
   // Custom Model Management Functions
   const handleNewCustomModelChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -1041,6 +1111,7 @@ function Settings() {
     setNewCustomModel({ id: '', displayName: '', group: '', context: 8192, vision_supported: false, builtin_tools_supported: false });
     setEditingModelId(null);
     setSaveStatus({ type: 'success', message: t('settings.savedSuccess') });
+    fetchAndSetModelConfigs();
   };
 
   const handleSaveBulkModels = (e) => {
@@ -1080,6 +1151,7 @@ function Settings() {
       type: 'success',
       message: t('settings.modelsAddedSuccess', { count: parsedModels.length })
     });
+    fetchAndSetModelConfigs();
   };
 
   const handleImportCustomModelsJson = () => {
@@ -1113,6 +1185,7 @@ function Settings() {
         type: 'success',
         message: t('settings.importJsonSuccess', { count: parsedModels.length })
       });
+      fetchAndSetModelConfigs();
     } catch (err) {
       setSaveStatus({ type: 'error', message: t('settings.importJsonError') });
     }
@@ -1138,6 +1211,7 @@ function Settings() {
       saveSettings(updatedSettings);
       cancelModelEditing();
       setSaveStatus({ type: 'success', message: t('settings.savedSuccess') });
+      fetchAndSetModelConfigs();
     }
   };
 
@@ -1157,6 +1231,7 @@ function Settings() {
     if (editingModelId === modelId) {
       cancelModelEditing();
     }
+    fetchAndSetModelConfigs();
   };
 
   const startModelEditing = (modelId) => {
@@ -3616,6 +3691,200 @@ function Settings() {
                   {t('settings.deleteAllChatsHelp')}
                 </p>
                 </div>
+              </CardContent>
+            </Card>
+
+            {/* Active Models by Provider */}
+            <Card>
+              <CardHeader>
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div>
+                    <CardTitle className="flex items-center space-x-2">
+                      <Cpu className="h-5 w-5 text-primary" />
+                      <span>{t('settings.modelsByProviderTitle')}</span>
+                    </CardTitle>
+                    <CardDescription className="mt-1">
+                      {t('settings.modelsByProviderDesc')}
+                    </CardDescription>
+                  </div>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={fetchAndSetModelConfigs}
+                    disabled={isRefreshingModels}
+                    className="text-xs h-8 self-start sm:self-auto shrink-0"
+                  >
+                    <RefreshCw className={cn("h-3.5 w-3.5 mr-1.5", isRefreshingModels && "animate-spin")} />
+                    <span>{isRefreshingModels ? t('settings.detectingLocalAi') : t('common.refresh')}</span>
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-5">
+                {/* Search Bar for provider models */}
+                {allLoadedModels.length > 3 && (
+                  <div className="relative">
+                    <Input
+                      type="text"
+                      value={providerModelSearchQuery}
+                      onChange={(e) => setProviderModelSearchQuery(e.target.value)}
+                      placeholder={t('settings.searchModelsPlaceholder')}
+                      className="text-xs sm:text-sm h-9 pr-8"
+                    />
+                    {providerModelSearchQuery && (
+                      <button
+                        type="button"
+                        onClick={() => setProviderModelSearchQuery('')}
+                        className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground text-xs"
+                      >
+                        ✕
+                      </button>
+                    )}
+                  </div>
+                )}
+
+                {allLoadedModels.length > 0 ? (
+                  <div className="space-y-5">
+                    {(() => {
+                      const query = providerModelSearchQuery.trim().toLowerCase();
+                      const filteredModelIds = query
+                        ? allLoadedModels.filter(id => {
+                            const cfg = modelConfigs[id] || {};
+                            const name = (cfg.displayName || id).toLowerCase();
+                            const grp = (cfg.group || cfg.provider || getModelGroup(id, cfg)).toLowerCase();
+                            return id.toLowerCase().includes(query) || name.includes(query) || grp.includes(query);
+                          })
+                        : allLoadedModels;
+
+                      if (filteredModelIds.length === 0) {
+                        return (
+                          <div className="text-center py-6 text-xs text-muted-foreground border rounded-xl bg-muted/20">
+                            {t('common.noModelsFound')}
+                          </div>
+                        );
+                      }
+
+                      const groups = groupModels(filteredModelIds, modelConfigs);
+                      const disabledList = Array.isArray(settings.disabledModels) ? settings.disabledModels : [];
+
+                      return groups.map(({ group, models: groupModelIds }) => {
+                        const activeCount = groupModelIds.filter(id => !disabledList.includes(id)).length;
+                        const totalCount = groupModelIds.length;
+
+                        return (
+                          <div key={group} className="border rounded-xl p-3.5 sm:p-4 bg-card/60 space-y-3 shadow-xs">
+                            {/* Group Header */}
+                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2 border-b border-border/50">
+                              <div className="flex items-center gap-2">
+                                <span className="font-semibold text-sm text-foreground tracking-wide">{group}</span>
+                                <Badge variant={activeCount > 0 ? "secondary" : "outline"} className="text-[11px] px-2">
+                                  {t('settings.activeModelsCount', { active: activeCount, total: totalCount })}
+                                </Badge>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => handleEnableAllInGroup(groupModelIds)}
+                                  disabled={activeCount === totalCount}
+                                  className="text-xs h-7 px-2 text-primary hover:text-primary"
+                                >
+                                  {t('settings.enableAllModels')}
+                                </Button>
+                                <span className="text-muted-foreground text-xs">•</span>
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => handleDisableAllInGroup(groupModelIds)}
+                                  disabled={activeCount === 0}
+                                  className="text-xs h-7 px-2 text-muted-foreground hover:text-destructive"
+                                >
+                                  {t('settings.disableAllModels')}
+                                </Button>
+                              </div>
+                            </div>
+
+                            {/* Model Grid */}
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5 pt-1">
+                              {groupModelIds.map(modelId => {
+                                const config = modelConfigs[modelId] || {};
+                                const isEnabled = !disabledList.includes(modelId);
+
+                                return (
+                                  <div
+                                    key={modelId}
+                                    className={cn(
+                                      "flex items-center justify-between p-2.5 rounded-lg border transition-colors",
+                                      isEnabled
+                                        ? "bg-background border-border/80 hover:border-border"
+                                        : "bg-muted/30 border-dashed border-border/40 opacity-70"
+                                    )}
+                                  >
+                                    <div className="flex items-center gap-2.5 min-w-0 mr-2">
+                                      <Switch
+                                        id={`toggle-${modelId}`}
+                                        checked={isEnabled}
+                                        onChange={() => handleToggleModelEnabled(modelId)}
+                                        aria-label={`Toggle ${config.displayName || modelId}`}
+                                      />
+                                      <div className="min-w-0 space-y-0.5">
+                                        <div className="flex items-center gap-1.5 truncate">
+                                          <span className="font-medium text-xs text-foreground truncate">
+                                            {config.displayName || modelId}
+                                          </span>
+                                          {config.vision_supported && (
+                                            <Badge variant="outline" className="text-[9px] px-1 py-0 bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/30">
+                                              Vision
+                                            </Badge>
+                                          )}
+                                          {config.builtin_tools_supported && (
+                                            <Badge variant="outline" className="text-[9px] px-1 py-0 bg-green-500/10 text-green-600 dark:text-green-400 border-green-500/30">
+                                              Tools
+                                            </Badge>
+                                          )}
+                                        </div>
+                                        <div className="text-[10.5px] text-muted-foreground font-mono truncate">
+                                          {modelId} {config.context ? `(${Number(config.context).toLocaleString()} tokens)` : ''}
+                                        </div>
+                                      </div>
+                                    </div>
+
+                                    <Badge
+                                      variant={isEnabled ? "secondary" : "outline"}
+                                      className={cn(
+                                        "text-[10px] shrink-0 font-normal",
+                                        isEnabled ? "bg-green-500/10 text-green-700 dark:text-green-300 border-green-500/20" : "text-muted-foreground"
+                                      )}
+                                    >
+                                      {isEnabled ? t('settings.statusActive') : t('settings.statusInactive')}
+                                    </Badge>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        );
+                      });
+                    })()}
+                  </div>
+                ) : (
+                  <div className="text-center py-6 text-muted-foreground border border-dashed rounded-xl bg-muted/10">
+                    <Cpu className="h-10 w-10 mx-auto mb-2 opacity-40 text-primary" />
+                    <p className="text-sm font-medium">{t('settings.noModelsAvailable')}</p>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={fetchAndSetModelConfigs}
+                      className="mt-3 text-xs"
+                    >
+                      <RefreshCw className="h-3.5 w-3.5 mr-1.5" />
+                      {t('common.refresh')}
+                    </Button>
+                  </div>
+                )}
               </CardContent>
             </Card>
 

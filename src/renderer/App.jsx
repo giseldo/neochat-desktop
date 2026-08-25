@@ -134,6 +134,7 @@ function App() {
   const [models, setModels] = useState([]); // State for model list
   const [modelFilter, setModelFilter] = useState(''); // State for model filter setting
   const [modelFilterExclude, setModelFilterExclude] = useState(''); // State for model filter exclude setting
+  const [disabledModels, setDisabledModels] = useState([]); // State for disabled models list
 
   // State for current model's vision capability
   const [visionSupported, setVisionSupported] = useState(false);
@@ -309,9 +310,14 @@ function App() {
   // Models list derived from capabilities keys
   // const models = Object.keys(MODEL_CAPABILITIES).filter(key => key !== 'default');
 
-  // Helper function to filter models based on modelFilter setting
-  const filterModels = (modelList, filterText, excludeText, configs) => {
+  // Helper function to filter models based on modelFilter setting and disabledModels list
+  const filterModels = (modelList, filterText, excludeText, configs, disabledList = []) => {
     let filteredModels = modelList;
+
+    // Filter out disabled models
+    if (Array.isArray(disabledList) && disabledList.length > 0) {
+      filteredModels = filteredModels.filter(modelId => !disabledList.includes(modelId));
+    }
 
     // First, apply inclusion filter if specified
     if (filterText && filterText.trim()) {
@@ -332,7 +338,7 @@ function App() {
         };
 
         // Filter models that match any filter term (case-insensitive)
-        filteredModels = modelList.filter(modelId => {
+        filteredModels = filteredModels.filter(modelId => {
           const displayName = getDisplayName(modelId).toLowerCase();
           const modelIdLower = modelId.toLowerCase();
           
@@ -386,13 +392,13 @@ function App() {
   // Sort and group models by provider/category and display name
   // and apply model filter if configured
   const sortedModels = useMemo(() => {
-    // First apply the filters (inclusion and exclude)
-    const filteredModels = filterModels(models, modelFilter, modelFilterExclude, modelConfigs);
+    // First apply the filters (inclusion, exclude, disabled)
+    const filteredModels = filterModels(models, modelFilter, modelFilterExclude, modelConfigs, disabledModels);
     
     // Group and sort models logically by group and display name
     const groups = groupModels(filteredModels, modelConfigs);
     return groups.flatMap(g => g.models);
-  }, [models, modelConfigs, modelFilter, modelFilterExclude]);
+  }, [models, modelConfigs, modelFilter, modelFilterExclude, disabledModels]);
 
   // Initialize compare models when sortedModels change
   useEffect(() => {
@@ -487,6 +493,7 @@ function App() {
         // Load model filter settings
         setModelFilter(settings.modelFilter || '');
         setModelFilterExclude(settings.modelFilterExclude || '');
+        setDisabledModels(settings.disabledModels || []);
         // Load useResponsesApi setting
         setUseResponsesApi(settings.useResponsesApi || false);
         let effectiveModel = availableModels.length > 0 ? availableModels[0] : 'default'; // Default fallback if no models or no setting
@@ -563,6 +570,7 @@ function App() {
         }
         setModelFilter(settings.modelFilter || '');
         setModelFilterExclude(settings.modelFilterExclude || '');
+        setDisabledModels(settings.disabledModels || []);
         setUseResponsesApi(settings.useResponsesApi || false);
 
         // Refresh model configs (e.g., after switching provider in Settings).

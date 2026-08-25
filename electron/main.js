@@ -24,7 +24,7 @@ const { BrowserWindow, ipcMain, screen, shell, dialog, Notification } = require(
 
 // Import shared models
 const { MODEL_CONTEXT_SIZES, getModelContextSizes, getModelsFromAPIWithCache } = require('../shared/models.js');
-const { PROVIDER_LIST, getActiveApiKey, getProviderBaseUrl, getModelsUrl } = require('../shared/providers.js');
+const { PROVIDER_LIST, getActiveApiKey, getProviderBaseUrl, getModelsUrl, getConfiguredProviders, getApiKeyForProvider, getModelsUrlForProvider } = require('../shared/providers.js');
 
 // Import handlers
 const chatHandler = require('./chatHandler');
@@ -235,31 +235,42 @@ app.whenReady().then(async () => {
   }
 
   // --- Early IPC Handlers required by popup and renderer before other init --- //
-  let lastModelFetchProvider = null; // Track which provider/key the model cache reflects
-
   ipcMain.handle('get-model-configs', async () => {
     // Return a copy to prevent accidental modification with custom models merged in
     const currentSettings = loadSettings();
-    const apiKey = getActiveApiKey(currentSettings);
-    const modelsUrl = getModelsUrl(currentSettings);
-    const providerId = currentSettings.provider || 'groq';
-    
-    // Try to fetch fresh models if a key is available
-    let apiModels = modelContextSizes;
-    const providerSignature = `${providerId}|${apiKey || ''}|${modelsUrl || ''}`;
-    const providerChanged = lastModelFetchProvider !== providerSignature;
-    if (apiKey && apiKey !== "<replace me>" && modelsUrl) {
-      try {
-        // Force refresh when the active provider or key changed
-        apiModels = await getModelsFromAPIWithCache(apiKey, modelsUrl, providerChanged);
-        lastModelFetchProvider = providerSignature;
-      } catch (error) {
-        console.error('Error fetching models in get-model-configs:', error);
-        // Fall back to cached modelContextSizes
+    const configuredProviders = getConfiguredProviders(currentSettings);
+    let allApiModels = {};
+
+    for (const provider of configuredProviders) {
+      const apiKey = getApiKeyForProvider(currentSettings, provider.id);
+      const modelsUrl = getModelsUrlForProvider(currentSettings, provider.id);
+      
+      if (modelsUrl && (apiKey || provider.requiresApiKey === false)) {
+        try {
+          const providerModels = await getModelsFromAPIWithCache(
+            apiKey,
+            modelsUrl,
+            false,
+            { providerId: provider.id, providerName: provider.name }
+          );
+          if (providerModels) {
+            Object.entries(providerModels).forEach(([id, cfg]) => {
+              if (id !== 'default') {
+                allApiModels[id] = cfg;
+              }
+            });
+          }
+        } catch (error) {
+          console.warn(`[get-model-configs] Failed to fetch models for ${provider.name}:`, error.message);
+        }
       }
     }
+
+    if (Object.keys(allApiModels).length === 0) {
+      allApiModels = modelContextSizes;
+    }
     
-    const mergedModelContextSizes = getModelContextSizes(currentSettings.customModels || {}, apiModels);
+    const mergedModelContextSizes = getModelContextSizes(currentSettings.customModels || {}, allApiModels);
     return JSON.parse(JSON.stringify(mergedModelContextSizes));
   });
 

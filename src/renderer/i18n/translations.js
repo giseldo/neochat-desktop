@@ -822,6 +822,17 @@ export const translations = {
       updateModelBtn: 'Atualizar Modelo',
       saveModelBtn: 'Salvar Modelo',
 
+      // Models by Provider
+      modelsByProviderTitle: 'Modelos Ativos por Provedor',
+      modelsByProviderDesc: 'Ative ou desative individualmente os modelos de cada provedor configurado (ex: Groq, DeepSeek, OpenAI). Apenas modelos ativos aparecem no seletor de modelos da conversa.',
+      activeModelsCount: '{active} de {total} modelos ativos',
+      enableAllModels: 'Ativar Todos',
+      disableAllModels: 'Desativar Todos',
+      searchModelsPlaceholder: 'Filtrar modelos por nome, ID ou provedor...',
+      noModelsAvailable: 'Nenhum modelo disponível para os provedores configurados.',
+      statusActive: 'Ativo',
+      statusInactive: 'Desativado',
+
       // Model Filters
       modelFilterInclusionTitle: 'Filtro de Modelos',
       modelFilterInclusionLabel: 'Filtro de Inclusão de Modelos (um termo por linha):',
@@ -1835,6 +1846,17 @@ export const translations = {
       addModelBtn: 'Add Model',
       updateModelBtn: 'Update Model',
       saveModelBtn: 'Save Model',
+
+      // Models by Provider
+      modelsByProviderTitle: 'Active Models by Provider',
+      modelsByProviderDesc: 'Individually enable or disable models for each configured provider (e.g., Groq, DeepSeek, OpenAI). Only active models will appear in model selectors.',
+      activeModelsCount: '{active} of {total} active models',
+      enableAllModels: 'Enable All',
+      disableAllModels: 'Disable All',
+      searchModelsPlaceholder: 'Filter models by name, ID, or provider...',
+      noModelsAvailable: 'No models available for configured providers.',
+      statusActive: 'Active',
+      statusInactive: 'Disabled',
 
       // Model Filters
       modelFilterInclusionTitle: 'Model Filter',

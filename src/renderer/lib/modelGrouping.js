@@ -62,6 +62,11 @@ export function getModelGroup(modelId, config = null) {
     return config.group.trim();
   }
 
+  // 2. Provider in config (from configured API providers)
+  if (config && config.provider && config.provider.trim()) {
+    return formatNamespaceName(config.provider.trim());
+  }
+
   const trimmed = modelId.trim();
 
   // 2. Namespaced model (e.g., openai/gpt-4o, canopylabs/orpheus-v1-english, accounts/fireworks/...)

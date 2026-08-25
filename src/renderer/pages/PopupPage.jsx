@@ -25,9 +25,13 @@ const ContextPill = ({ title, onRemove }) => (
   </Badge>
 );
 
-// Helper function to filter models based on modelFilter setting
-const filterModels = (modelList, filterText, excludeText, configs) => {
+// Helper function to filter models based on modelFilter setting and disabledModels
+const filterModels = (modelList, filterText, excludeText, configs, disabledList = []) => {
   let filteredModels = modelList;
+
+  if (Array.isArray(disabledList) && disabledList.length > 0) {
+    filteredModels = filteredModels.filter(m => !disabledList.includes(m));
+  }
 
   // First, apply inclusion filter if specified
   if (filterText && filterText.trim()) {
@@ -258,8 +262,8 @@ const PopupPage = () => {
         return modelInfo?.displayName || modelId;
       };
       
-      // Filter models first (inclusion and exclude)
-      const filteredModels = filterModels(availableModels, filterText, excludeText, configs);
+      // Filter models first (inclusion, exclude, disabled)
+      const filteredModels = filterModels(availableModels, filterText, excludeText, configs, settings.disabledModels || []);
       
       // Then sort
       const sortedModels = filteredModels.sort((a, b) => {

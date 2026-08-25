@@ -222,6 +222,67 @@ function getModelsUrl(settings) {
   return baseUrl ? `${baseUrl.replace(/\/+$/, '')}/models` : null;
 }
 
+function getApiKeyForProvider(settings, providerId) {
+  if (!settings) return null;
+  const provider = getProviderById(providerId);
+
+  // If local provider that doesn't require a key
+  if (provider.requiresApiKey === false && (!settings.apiKeys || !settings.apiKeys[provider.id])) {
+    return 'local-key';
+  }
+
+  // Environment variable
+  if (provider.envVar && process.env[provider.envVar]) {
+    return process.env[provider.envVar];
+  }
+
+  const storedKey = settings.apiKeys && settings.apiKeys[provider.id];
+  if (storedKey && storedKey !== '<replace me>') {
+    return storedKey;
+  }
+
+  if (provider.id === 'groq' && settings.GROQ_API_KEY && settings.GROQ_API_KEY !== '<replace me>') {
+    return settings.GROQ_API_KEY;
+  }
+
+  return null;
+}
+
+function getBaseUrlForProvider(settings, providerId) {
+  if (!settings) return null;
+  const provider = getProviderById(providerId);
+  if (provider.id === 'custom') {
+    return settings.customApiBaseUrl && settings.customApiBaseUrl.trim()
+      ? settings.customApiBaseUrl.trim()
+      : null;
+  }
+  return provider.baseUrl || null;
+}
+
+function getModelsUrlForProvider(settings, providerId) {
+  const provider = getProviderById(providerId);
+  if (provider.modelsUrl) {
+    return provider.modelsUrl;
+  }
+  const baseUrl = getBaseUrlForProvider(settings, providerId);
+  return baseUrl ? `${baseUrl.replace(/\/+$/, '')}/models` : null;
+}
+
+function getConfiguredProviders(settings = {}) {
+  const configured = [];
+  PROVIDER_LIST.forEach((p) => {
+    const key = getApiKeyForProvider(settings, p.id);
+    const isCurrent = (settings.provider || 'groq') === p.id;
+    const isFallback = Array.isArray(settings.fallbackProviders) && settings.fallbackProviders.includes(p.id);
+    
+    // Configured if it has an API key, is local, is current, or is in fallbacks
+    if (key || p.isLocal || isCurrent || isFallback) {
+      configured.push(getProviderById(p.id));
+    }
+  });
+  return configured;
+}
+
 function getProviderCandidates(settings = {}) {
   const ids = [settings.provider || 'groq', ...(Array.isArray(settings.fallbackProviders) ? settings.fallbackProviders : [])];
   return [...new Set(ids)].map((providerId, index) => {
@@ -244,5 +305,9 @@ module.exports = {
   getProviderBaseUrl,
   getDefaultModel,
   getModelsUrl,
+  getApiKeyForProvider,
+  getBaseUrlForProvider,
+  getModelsUrlForProvider,
+  getConfiguredProviders,
   getProviderCandidates,
 };

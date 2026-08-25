@@ -118,7 +118,7 @@ async function fetchModelsFromAPI(apiKey, modelsUrl) {
 /**
  * Convert API response to model context sizes format
  */
-function convertAPIModelsToContextSizes(apiResponse) {
+function convertAPIModelsToContextSizes(apiResponse, providerMeta = null) {
   const modelContextSizes = { default: DEFAULT_MODEL_CONFIG };
   
   if (!apiResponse?.data || !Array.isArray(apiResponse.data)) {
@@ -140,18 +140,23 @@ function convertAPIModelsToContextSizes(apiResponse) {
     const modelId = model.id;
     
     // Apply heuristics to determine model capabilities
-    modelContextSizes[modelId] = applyModelHeuristics(modelId, model);
+    const capabilities = applyModelHeuristics(modelId, model);
+    if (providerMeta) {
+      capabilities.provider = providerMeta.providerId || 'groq';
+      capabilities.group = providerMeta.providerName || providerMeta.providerId || 'Groq';
+    }
+    modelContextSizes[modelId] = capabilities;
   });
   
-  console.log(`Loaded ${chatModels.length} chat models from API`);
+  console.log(`Loaded ${chatModels.length} chat models from API (${providerMeta?.providerName || 'default'})`);
   return modelContextSizes;
 }
 
 /**
  * Get models with caching (per provider/API-key)
  */
-async function getModelsFromAPIWithCache(apiKey, modelsUrl, forceRefresh = false) {
-  const cacheKey = `${modelsUrl || 'default'}|${apiKey || ''}`;
+async function getModelsFromAPIWithCache(apiKey, modelsUrl, forceRefresh = false, providerMeta = null) {
+  const cacheKey = `${modelsUrl || 'default'}|${apiKey || ''}|${providerMeta?.providerId || ''}`;
   const now = Date.now();
 
   // Return cached models if they're still fresh
@@ -162,11 +167,11 @@ async function getModelsFromAPIWithCache(apiKey, modelsUrl, forceRefresh = false
   }
 
   // Fetch fresh models
-  console.log('Fetching fresh models from API');
+  console.log(`Fetching fresh models from API (${providerMeta?.providerName || modelsUrl})`);
   const apiResponse = await fetchModelsFromAPI(apiKey, modelsUrl);
 
   if (apiResponse) {
-    const models = convertAPIModelsToContextSizes(apiResponse);
+    const models = convertAPIModelsToContextSizes(apiResponse, providerMeta);
     modelCache.set(cacheKey, { models, lastFetchTime: now });
     return models;
   }
@@ -214,7 +219,8 @@ function getModelContextSizes(customModels = {}, apiModels = null) {
       vision_supported: config.vision_supported || false,
       builtin_tools_supported: config.builtin_tools_supported || false,
       displayName: config.displayName || modelId,
-      group: config.group || null,
+      group: config.group || 'Personalizados',
+      provider: config.provider || 'custom',
       isCustom: true
     };
   });
