@@ -1,6 +1,6 @@
 {
   "name": "groq-desktop-app",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "A simple Electron app with Groq API integration",
   "main": "electron/main.js",
   "type": "commonjs",
