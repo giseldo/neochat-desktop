@@ -166,6 +166,13 @@ const PopupPage = () => {
   const [visionSupported, setVisionSupported] = useState(false);
   const [suggestion, setSuggestion] = useState('');
   const messagesEndRef = useRef(null);
+  const messagesContainerRef = useRef(null);
+  const userScrollingRef = useRef(false);
+  const [isUserScrolling, setIsUserScrolling] = useState(false);
+  const lastScrollTopRef = useRef(0);
+  const isProgrammaticScrollRef = useRef(false);
+  const scrollThrottleRef = useRef(null);
+  const rafRef = useRef(null);
   const textareaRef = useRef(null);
   const fileInputRef = useRef(null);
   const popupRef = useRef(null);
@@ -193,10 +200,109 @@ const PopupPage = () => {
     };
   }, []);
 
-  // Auto-scroll to bottom when messages change
+  // Handle scroll and wheel events to detect when user manually scrolls
   useEffect(() => {
-    scrollToBottom();
-  }, [messages]);
+    const container = messagesContainerRef.current;
+    if (!container) return;
+
+    const cancelPendingAutoScroll = () => {
+      if (scrollThrottleRef.current) {
+        clearTimeout(scrollThrottleRef.current);
+        scrollThrottleRef.current = null;
+      }
+      if (rafRef.current) {
+        cancelAnimationFrame(rafRef.current);
+        rafRef.current = null;
+      }
+    };
+
+    const handleScroll = () => {
+      const currentScrollTop = container.scrollTop;
+      const { scrollHeight, clientHeight } = container;
+      const distanceFromBottom = scrollHeight - currentScrollTop - clientHeight;
+      const prevScrollTop = lastScrollTopRef.current;
+      lastScrollTopRef.current = currentScrollTop;
+
+      if (isProgrammaticScrollRef.current) {
+        return;
+      }
+
+      if (currentScrollTop < prevScrollTop - 1) {
+        userScrollingRef.current = true;
+        setIsUserScrolling(true);
+        cancelPendingAutoScroll();
+      } else if (distanceFromBottom <= 30) {
+        userScrollingRef.current = false;
+        setIsUserScrolling(false);
+      }
+    };
+
+    const handleWheel = (e) => {
+      if (e.deltaY < 0) {
+        userScrollingRef.current = true;
+        setIsUserScrolling(true);
+        cancelPendingAutoScroll();
+      } else if (e.deltaY > 0) {
+        const { scrollTop, scrollHeight, clientHeight } = container;
+        const distanceFromBottom = scrollHeight - scrollTop - clientHeight;
+        if (distanceFromBottom <= 30) {
+          userScrollingRef.current = false;
+          setIsUserScrolling(false);
+        }
+      }
+    };
+
+    container.addEventListener('scroll', handleScroll, { passive: true });
+    container.addEventListener('wheel', handleWheel, { passive: true });
+
+    return () => {
+      container.removeEventListener('scroll', handleScroll);
+      container.removeEventListener('wheel', handleWheel);
+    };
+  }, []);
+
+  // Auto-scroll to bottom when messages change, but only if user hasn't scrolled up
+  useEffect(() => {
+    if (!isUserScrolling && !userScrollingRef.current) {
+      const isStreaming = messages.some(msg => msg.isStreaming === true);
+      
+      if (isStreaming) {
+        if (rafRef.current) {
+          cancelAnimationFrame(rafRef.current);
+        }
+        if (scrollThrottleRef.current) {
+          clearTimeout(scrollThrottleRef.current);
+        }
+        
+        scrollThrottleRef.current = setTimeout(() => {
+          rafRef.current = requestAnimationFrame(() => {
+            scrollToBottom(true);
+            rafRef.current = null;
+          });
+          scrollThrottleRef.current = null;
+        }, 50);
+      } else {
+        if (scrollThrottleRef.current) {
+          clearTimeout(scrollThrottleRef.current);
+          scrollThrottleRef.current = null;
+        }
+        if (rafRef.current) {
+          cancelAnimationFrame(rafRef.current);
+          rafRef.current = null;
+        }
+        scrollToBottom(false);
+      }
+    }
+    
+    return () => {
+      if (scrollThrottleRef.current) {
+        clearTimeout(scrollThrottleRef.current);
+      }
+      if (rafRef.current) {
+        cancelAnimationFrame(rafRef.current);
+      }
+    };
+  }, [messages, isUserScrolling, scrollToBottom]);
 
   // Auto-resize textarea
   useEffect(() => {
@@ -309,9 +415,32 @@ const PopupPage = () => {
     }
   };
 
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  };
+  const scrollToBottom = useCallback((instant = false) => {
+    if (userScrollingRef.current) return;
+    const container = messagesContainerRef.current;
+    if (!container) return;
+
+    isProgrammaticScrollRef.current = true;
+
+    if (instant) {
+      container.scrollTop = container.scrollHeight;
+      lastScrollTopRef.current = container.scrollTop;
+      requestAnimationFrame(() => {
+        if (container) {
+          lastScrollTopRef.current = container.scrollTop;
+        }
+        isProgrammaticScrollRef.current = false;
+      });
+    } else {
+      container.scrollTo({ top: container.scrollHeight, behavior: 'smooth' });
+      setTimeout(() => {
+        if (container) {
+          lastScrollTopRef.current = container.scrollTop;
+        }
+        isProgrammaticScrollRef.current = false;
+      }, 350);
+    }
+  }, []);
 
   const closePopup = () => {
     window.close();
@@ -429,6 +558,10 @@ const PopupPage = () => {
       role: 'user',
       content: uiMessageContent,
     };
+
+    // Reset user scrolling flag
+    userScrollingRef.current = false;
+    setIsUserScrolling(false);
 
     setMessages(prev => [...prev, userMessageForUi]);
     setInputValue('');
@@ -686,10 +819,15 @@ const PopupPage = () => {
           </div>
 
           {/* Messages */}
-          <div className="p-4 space-y-4 rounded-t-3xl overflow-y-auto" style={{ WebkitAppRegion: 'no-drag' }}>
+          <div 
+            ref={messagesContainerRef}
+            className="p-4 space-y-4 rounded-t-3xl overflow-y-auto max-h-[50vh]" 
+            style={{ WebkitAppRegion: 'no-drag' }}
+          >
             <MessageList 
               messages={messages} 
             />
+            <div ref={messagesEndRef} />
           </div>
         </>
       )}
