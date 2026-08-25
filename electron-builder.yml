@@ -4,56 +4,44 @@ artifactName: "${productName}-${version}.${ext}"
 copyright: "Copyright © 2026 Neo"
 
 directories:
-  buildResources: build
+  buildResources: public
   output: release
 
 files:
-  - "!**/.vscode/*"
-  - "!src/*"
-  - "!electron.vite.config.{js,ts,mjs,cjs}"
-  - "!{.eslintignore,.eslintrc.cjs,.prettierignore,.prettierrc.yaml,dev-app-update.yml,CHANGELOG.md,README.md}"
-  - "!{.env,.env.*,.npmrc,pnpm-lock.yaml}"
-  - "!{tsconfig.json,tsconfig.node.json,tsconfig.web.json}"
-
-extraMetadata:
-  main: dist/main/index.js
+  - dist/**/*
+  - electron/**/*
+  - shared/**/*
+  - node_modules/**/*
 
 # macOS Configuration
 mac:
-  category: public.app-category.developer-tools
+  category: public.app-category.productivity
   target:
     - dmg
     - zip
-  icon: build/icon.icns
+  icon: public/icon.png
   darkModeSupport: true
   hardenedRuntime: true
   gatekeeperAssess: false
-  extendInfo:
-    NSRequiresAquaSystemAppearance: false
 
 # Windows Configuration
 win:
   target:
     - nsis
     - portable
-  icon: build/icon.ico
+  icon: public/icon.png
   publisherName: Neo
-  verifyUpdateCodeSignature: false
   requestedExecutionLevel: asInvoker
 
 nsis:
   oneClick: false
   perMachine: false
   allowToChangeInstallationDirectory: true
-  installerIcon: build/installerIcon.ico
-  uninstallerIcon: build/uninstallerIcon.ico
-  installerHeaderIcon: build/installerHeaderIcon.ico
   createDesktopShortcut: true
   createStartMenuShortcut: true
   shortcutName: NeoChat
   runAfterFinish: true
   deleteAppDataOnUninstall: false
-  include: build/installer.nsh
 
 # Linux Configuration
 linux:
@@ -66,28 +54,13 @@ linux:
   description: Chat interface with image support and local MCP servers
   vendor: Neo
   maintainer: Neo
-  icon: build/icon.png
+  icon: public/icon.png
   executableName: neochat-desktop
 
 publish:
   provider: github
   owner: giseldo
   repo: neochat-releases
-
-# Make sure scripts are executable
-fileAssociations:
-  - ext: sh
-    role: Shell
-    perMachine: true
-    isExecutable: true
-  - ext: cmd
-    role: Command
-    perMachine: true
-    isExecutable: true 
-  - ext: ps1
-    role: PowerShell
-    perMachine: true
-    isExecutable: true
 
 # Ensure executable permissions are set
 asarUnpack:
