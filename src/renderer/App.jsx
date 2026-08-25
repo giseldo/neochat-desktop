@@ -1577,6 +1577,15 @@ function App() {
     }
   };
 
+  useEffect(() => {
+    if (!window.electron?.schedules?.onRun) return undefined;
+    return window.electron.schedules.onRun(async ({ prompt }) => {
+      if (loading || !prompt) return;
+      localStorage.setItem('neochat_agent_mode', 'true');
+      await handleSendMessage(prompt);
+    });
+  }, [loading, currentChatId, messages]);
+
   // --- Placeholder for resuming chat after modal interaction ---
   const resumeChatFlow = async (handledToolResponse) => {
       if (!pausedChatState) {

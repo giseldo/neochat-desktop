@@ -38,6 +38,16 @@ contextBridge.exposeInMainWorld('electron', {
     delete: (id) => ipcRenderer.invoke('workflows-delete', id),
     buildPrompt: (id, variables) => ipcRenderer.invoke('workflows-build-prompt', id, variables)
   },
+  schedules: {
+    list: () => ipcRenderer.invoke('schedules-list'),
+    save: (schedule) => ipcRenderer.invoke('schedules-save', schedule),
+    delete: (id) => ipcRenderer.invoke('schedules-delete', id),
+    onRun: (callback) => {
+      const listener = (_event, payload) => callback(payload);
+      ipcRenderer.on('workflow-scheduled-run', listener);
+      return () => ipcRenderer.removeListener('workflow-scheduled-run', listener);
+    }
+  },
   toolPermissions: {
     get: () => ipcRenderer.invoke('tool-permissions-get'),
     resolve: (toolName, serverLabel) => ipcRenderer.invoke('tool-permissions-resolve', toolName, serverLabel),

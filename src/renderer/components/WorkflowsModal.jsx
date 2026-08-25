@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Play, Plus, Save, Trash2, Workflow, X } from 'lucide-react';
+import { CalendarClock, Play, Plus, Save, Trash2, Workflow, X } from 'lucide-react';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Textarea } from './ui/textarea';
@@ -11,8 +11,13 @@ export default function WorkflowsModal({ isOpen, onClose, onRun }) {
   const [editing, setEditing] = useState(null);
   const [form, setForm] = useState({ name: '', description: '', steps: '' });
   const [error, setError] = useState('');
+  const [schedules, setSchedules] = useState([]);
+  const [schedule, setSchedule] = useState({ type: 'daily', time: '09:00', intervalMinutes: 60 });
 
-  const refresh = useCallback(async () => setItems(await window.electron.workflows.list()), []);
+  const refresh = useCallback(async () => {
+    setItems(await window.electron.workflows.list());
+    setSchedules(await window.electron.schedules.list());
+  }, []);
   useEffect(() => { if (isOpen) refresh(); }, [isOpen, refresh]);
   if (!isOpen) return null;
 
@@ -30,6 +35,12 @@ export default function WorkflowsModal({ isOpen, onClose, onRun }) {
     });
     if (!result.success) return setError(result.error);
     edit(null);
+    await refresh();
+  };
+  const saveSchedule = async () => {
+    if (!editing) return setError(t('workflows.saveBeforeSchedule'));
+    const result = await window.electron.schedules.save({ ...schedule, workflowId: editing });
+    if (!result.success) return setError(result.error);
     await refresh();
   };
 
@@ -50,6 +61,12 @@ export default function WorkflowsModal({ isOpen, onClose, onRun }) {
                   <Button size="sm" variant="ghost" onClick={() => onRun(item)}><Play className="w-3.5 h-3.5 mr-1" />{t('workflows.run')}</Button>
                   <Button size="icon" variant="ghost" onClick={async () => { await window.electron.workflows.delete(item.id); await refresh(); }}><Trash2 className="w-3.5 h-3.5 text-destructive" /></Button>
                 </div>
+                {schedules.filter(scheduleItem => scheduleItem.workflowId === item.id).map(scheduleItem => (
+                  <div key={scheduleItem.id} className="flex items-center justify-between text-[11px] text-muted-foreground bg-muted rounded px-2 py-1">
+                    <span><CalendarClock className="inline w-3 h-3 mr-1" />{scheduleItem.type === 'daily' ? scheduleItem.time : t('workflows.everyMinutes', { count: scheduleItem.intervalMinutes })}</span>
+                    <button onClick={async () => { await window.electron.schedules.delete(scheduleItem.id); await refresh(); }}><X className="w-3 h-3" /></button>
+                  </div>
+                ))}
               </div>
             ))}
           </div>
@@ -58,6 +75,17 @@ export default function WorkflowsModal({ isOpen, onClose, onRun }) {
             <Textarea value={form.description} onChange={event => setForm({ ...form, description: event.target.value })} placeholder={t('workflows.description')} rows={2} />
             <Textarea value={form.steps} onChange={event => setForm({ ...form, steps: event.target.value })} placeholder={t('workflows.stepsPlaceholder')} rows={14} className="font-mono text-sm" />
             <p className="text-xs text-muted-foreground">{t('workflows.stepsHelp')}</p>
+            <div className="border-t border-border pt-4 space-y-3">
+              <h3 className="text-sm font-semibold flex items-center gap-2"><CalendarClock className="w-4 h-4" />{t('workflows.schedule')}</h3>
+              <div className="flex flex-wrap gap-2">
+                <select className="h-9 rounded-md border border-input bg-background px-3 text-sm" value={schedule.type} onChange={event => setSchedule({ ...schedule, type: event.target.value })}>
+                  <option value="daily">{t('workflows.daily')}</option>
+                  <option value="interval">{t('workflows.interval')}</option>
+                </select>
+                {schedule.type === 'daily' ? <Input className="w-32" type="time" value={schedule.time} onChange={event => setSchedule({ ...schedule, time: event.target.value })} /> : <Input className="w-40" type="number" min="1" value={schedule.intervalMinutes} onChange={event => setSchedule({ ...schedule, intervalMinutes: Number(event.target.value) })} />}
+                <Button variant="outline" onClick={saveSchedule}>{t('workflows.addSchedule')}</Button>
+              </div>
+            </div>
             {error && <p className="text-xs text-destructive">{error}</p>}
             <Button onClick={save}><Save className="w-4 h-4 mr-2" />{t('common.save')}</Button>
           </div>
