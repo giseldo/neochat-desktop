@@ -64,6 +64,21 @@ function ChatInput({
 	});
 	const mediaRecorderRef = useRef(null);
 	const audioChunksRef = useRef([]);
+	const isRecordingRef = useRef(false);
+	const isTranscribingRef = useRef(false);
+	const loadingRef = useRef(loading);
+
+	useEffect(() => {
+		isRecordingRef.current = isRecording;
+	}, [isRecording]);
+
+	useEffect(() => {
+		isTranscribingRef.current = isTranscribing;
+	}, [isTranscribing]);
+
+	useEffect(() => {
+		loadingRef.current = loading;
+	}, [loading]);
 
 	// Load custom prompt templates on mount
 	useEffect(() => {
@@ -235,6 +250,7 @@ function ChatInput({
 
 	// Start voice recording for Whisper STT
 	const startRecording = async () => {
+		if (loadingRef.current || isTranscribingRef.current || isRecordingRef.current) return;
 		try {
 			const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
 			audioChunksRef.current = [];
@@ -264,6 +280,11 @@ function ChatInput({
 
 						if (res && res.success && res.text) {
 							setMessage(prev => (prev ? `${prev.trim()} ${res.text.trim()}` : res.text.trim()));
+							setTimeout(() => {
+								if (textareaRef.current) {
+									textareaRef.current.focus();
+								}
+							}, 50);
 						} else if (res && res.error) {
 							alert(t('chat.transcriptionError', { error: res.error }));
 						}
@@ -286,11 +307,58 @@ function ChatInput({
 
 	// Stop voice recording
 	const stopRecording = () => {
-		if (mediaRecorderRef.current && isRecording) {
-			mediaRecorderRef.current.stop();
+		if (mediaRecorderRef.current && (mediaRecorderRef.current.state === 'recording' || isRecordingRef.current)) {
+			try {
+				if (mediaRecorderRef.current.state === 'recording') {
+					mediaRecorderRef.current.stop();
+				}
+			} catch (e) {
+				console.error('Error stopping MediaRecorder:', e);
+			}
 			setIsRecording(false);
 		}
 	};
+
+	// Toggle voice recording
+	const toggleRecording = () => {
+		if (loadingRef.current || isTranscribingRef.current) return;
+		if (isRecordingRef.current) {
+			stopRecording();
+		} else {
+			startRecording();
+		}
+	};
+
+	// Keyboard shortcut: Ctrl+Alt (or Cmd+Alt / Ctrl+Alt+V / Ctrl+Alt+Space) to toggle voice recording
+	useEffect(() => {
+		const handleVoiceShortcut = (e) => {
+			if (e.repeat) return;
+
+			const hasCtrlOrMeta = e.ctrlKey || e.metaKey;
+			const hasAlt = e.altKey;
+
+			if (hasCtrlOrMeta && hasAlt) {
+				const isModifierCombo = e.key === 'Alt' || e.key === 'Control' || e.key === 'AltGraph';
+				const isVoiceKey = e.key?.toLowerCase() === 'v' || e.code === 'Space';
+
+				if (isModifierCombo || isVoiceKey) {
+					e.preventDefault();
+					e.stopPropagation();
+					toggleRecording();
+				}
+			}
+		};
+
+		window.addEventListener('keydown', handleVoiceShortcut, true);
+		return () => {
+			window.removeEventListener('keydown', handleVoiceShortcut, true);
+			if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
+				try {
+					mediaRecorderRef.current.stop();
+				} catch (e) {}
+			}
+		};
+	}, []);
 
 	// Helper function to get display name for a model
 	const getModelDisplayName = (modelId) => {
@@ -827,7 +895,7 @@ function ChatInput({
 							type="button"
 							variant="ghost"
 							size="sm"
-							onClick={isRecording ? stopRecording : startRecording}
+							onClick={toggleRecording}
 							className={cn(
 								"transition-all duration-200 rounded-xl px-2.5 py-1.5 text-xs font-medium",
 								isRecording
