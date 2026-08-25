@@ -756,7 +756,7 @@ const PopupPage = () => {
   return (
     <div 
       ref={popupRef} 
-      className="flex flex-col bg-neutral-50 backdrop-blur-xl animate-in fade-in-0 zoom-in-95 duration-300 scrollbar-none" 
+      className="flex flex-col bg-card text-foreground border border-border/90 rounded-2xl shadow-2xl overflow-hidden animate-in fade-in-0 zoom-in-95 duration-200 scrollbar-none" 
       style={{ WebkitAppRegion: 'drag' }}
     >
       

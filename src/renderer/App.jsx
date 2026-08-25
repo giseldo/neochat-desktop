@@ -2067,12 +2067,59 @@ function App() {
     setChatFocusSignal(s => s + 1);
   }, [loading, createNewChat, selectedModel, useResponsesApi, activeProjectId]);
 
-  // Keyboard shortcut: Ctrl+N (or Cmd+N on macOS) to create a new chat
+  // Global Keyboard shortcuts:
+  // - Ctrl/Cmd + N -> New Chat
+  // - Ctrl/Cmd + / or '?' (when outside inputs) -> Toggle Shortcuts Central
+  // - Ctrl/Cmd + , -> Settings
+  // - Ctrl/Cmd + B -> Toggle Sidebar
+  // - '/' (when outside inputs) -> Focus Chat Input
   useEffect(() => {
     const handleKeyDown = (e) => {
-      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'n') {
+      const isInputFocused = ['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement?.tagName) ||
+        document.activeElement?.isContentEditable;
+      
+      const isModifier = e.ctrlKey || e.metaKey;
+
+      // Ctrl/Cmd + N: New Chat
+      if (isModifier && e.key.toLowerCase() === 'n') {
         e.preventDefault();
         handleNewChat();
+        return;
+      }
+
+      // Ctrl/Cmd + /: Keyboard Shortcuts Modal
+      if (isModifier && e.key === '/') {
+        e.preventDefault();
+        setIsShortcutsModalOpen(prev => !prev);
+        return;
+      }
+
+      // '?' outside inputs: Keyboard Shortcuts Modal
+      if (!isModifier && !e.altKey && e.key === '?' && !isInputFocused) {
+        e.preventDefault();
+        setIsShortcutsModalOpen(true);
+        return;
+      }
+
+      // Ctrl/Cmd + ,: Settings
+      if (isModifier && e.key === ',') {
+        e.preventDefault();
+        navigate('/settings');
+        return;
+      }
+
+      // Ctrl/Cmd + B: Toggle Sidebar
+      if (isModifier && e.key.toLowerCase() === 'b') {
+        e.preventDefault();
+        toggleSidebar();
+        return;
+      }
+
+      // '/' outside inputs: Focus Chat Input
+      if (!isModifier && !e.altKey && e.key === '/' && !isInputFocused) {
+        e.preventDefault();
+        setChatFocusSignal(s => s + 1);
+        return;
       }
     };
 
@@ -2080,7 +2127,7 @@ function App() {
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
     };
-  }, [handleNewChat]);
+  }, [handleNewChat, toggleSidebar, navigate]);
 
   // Handle when a chat is loaded from history - switch API mode if needed
   const handleChatLoaded = useCallback(async (chat) => {
@@ -2284,6 +2331,17 @@ function App() {
               />
 
               
+              {/* Keyboard Shortcuts Button */}
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                onClick={() => setIsShortcutsModalOpen(true)}
+                className="text-foreground hover:bg-muted" 
+                title={t('header.keyboardShortcuts')}
+              >
+                <Keyboard className="h-5 w-5" />
+              </Button>
+
               <Link to="/settings">
                 <Button variant="ghost" size="icon" className="text-foreground hover:bg-muted" title={t('header.settings')}>
                   <Settings className="h-5 w-5" />
@@ -2537,6 +2595,11 @@ function App() {
         projectName={activeProject?.name}
       />
 
+      {/* Keyboard Shortcuts Central Modal */}
+      <KeyboardShortcutsModal
+        isOpen={isShortcutsModalOpen}
+        onClose={() => setIsShortcutsModalOpen(false)}
+      />
 
       </div>
     </div>

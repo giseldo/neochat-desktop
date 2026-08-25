@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { Link, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Eye, EyeOff, Plus, Trash2, Edit3, Save, X, RefreshCw, Key, Settings as SettingsIcon, Zap, Cpu, Server, AlertCircle, CheckCircle, Sun, Moon, Laptop, Languages, Check, Terminal, Globe, Palette, Type, Sparkles, Sliders, ExternalLink, Route, User, Wrench, Download, UploadCloud, BarChart3, GitBranch, Mic, Volume2, Info } from 'lucide-react';
+import { ArrowLeft, Eye, EyeOff, Plus, Trash2, Edit3, Save, X, RefreshCw, Key, Settings as SettingsIcon, Zap, Cpu, Server, AlertCircle, CheckCircle, Sun, Moon, Laptop, Languages, Check, Terminal, Globe, Palette, Type, Sparkles, Sliders, ExternalLink, Route, User, Wrench, Download, UploadCloud, BarChart3, GitBranch, Mic, Volume2, Info, Keyboard } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
@@ -13,6 +13,7 @@ import Switch from '../components/ui/Switch';
 import { useTheme, COLOR_THEMES, BG_THEMES, FONT_THEMES, FONT_SIZES } from '../context/ThemeContext';
 import { useLanguage } from '../context/LanguageContext';
 import PromptTemplatesModal from '../components/PromptTemplatesModal';
+import KeyboardShortcutsModal, { formatAccelerator, KeyCombo, KeyBadge } from '../components/KeyboardShortcutsModal';
 import { cn } from '../lib/utils';
 import { getModelGroup, groupModels, parseBulkModelsInput } from '../lib/modelGrouping';
 
@@ -47,6 +48,7 @@ function Settings() {
     disabledMcpServers: [],
     customSystemPrompt: '',
     popupEnabled: true,
+    popupShortcut: 'CommandOrControl+Shift+Space',
     customCompletionUrl: '',
     toolOutputLimit: 8000,
     customApiBaseUrl: '',
@@ -153,6 +155,79 @@ function Settings() {
   const [gitOutput, setGitOutput] = useState('');
   const [gitCommitMessage, setGitCommitMessage] = useState('');
   const [isGitBusy, setIsGitBusy] = useState(false);
+  const [isShortcutsModalOpen, setIsShortcutsModalOpen] = useState(false);
+  const [isRecordingShortcut, setIsRecordingShortcut] = useState(false);
+  const [shortcutStatus, setShortcutStatus] = useState(null);
+
+  const isMac = useMemo(() => {
+    return typeof navigator !== 'undefined' && /Mac|iPhone|iPod|iPad/.test(navigator.platform);
+  }, []);
+
+  const POPUP_SHORTCUT_PRESETS = useMemo(() => [
+    { value: 'CommandOrControl+Shift+Space', label: `${isMac ? '⌘+Shift+Space' : 'Ctrl+Shift+Espaço'} (Padrão)` },
+    { value: 'Alt+Space', label: `${isMac ? '⌥+Space' : 'Alt+Espaço'}` },
+    { value: 'Alt+Shift+G', label: `${isMac ? '⌥+Shift+G' : 'Alt+Shift+G'}` },
+    { value: 'CommandOrControl+Alt+G', label: `${isMac ? '⌘+⌥+G' : 'Ctrl+Alt+G'}` },
+    { value: 'CommandOrControl+Shift+G', label: `${isMac ? '⌘+Shift+G' : 'Ctrl+Shift+G'}` },
+    { value: 'CommandOrControl+G', label: `${isMac ? '⌘+G' : 'Ctrl+G'}` },
+  ], [isMac]);
+
+  // Load shortcut status on mount
+  useEffect(() => {
+    if (window.electron?.getGlobalShortcutStatus) {
+      window.electron.getGlobalShortcutStatus()
+        .then(status => setShortcutStatus(status))
+        .catch(err => console.warn('Error fetching shortcut status:', err));
+    }
+  }, []);
+
+  // Listen for keypress when recording custom shortcut
+  useEffect(() => {
+    if (!isRecordingShortcut) return;
+
+    const handleRecordKeyDown = (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+
+      if (e.key === 'Escape') {
+        setIsRecordingShortcut(false);
+        return;
+      }
+
+      const isModifierKey = ['Control', 'Meta', 'Alt', 'Shift', 'AltGraph'].includes(e.key);
+      if (isModifierKey) return;
+
+      const modifiers = [];
+      if (e.ctrlKey || e.metaKey) modifiers.push('CommandOrControl');
+      if (e.altKey) modifiers.push('Alt');
+      if (e.shiftKey) modifiers.push('Shift');
+
+      if (modifiers.length === 0) {
+        return;
+      }
+
+      let keyPart = e.code.replace('Key', '').replace('Digit', '');
+      if (e.code === 'Space' || e.key === ' ') {
+        keyPart = 'Space';
+      } else if (e.key.length === 1) {
+        keyPart = e.key.toUpperCase();
+      }
+
+      const recordedShortcut = [...modifiers, keyPart].join('+');
+      const updatedSettings = { ...settings, popupShortcut: recordedShortcut };
+      setSettings(updatedSettings);
+      saveSettings(updatedSettings);
+      setIsRecordingShortcut(false);
+
+      if (window.electron?.updateGlobalShortcut) {
+        window.electron.updateGlobalShortcut(recordedShortcut, settings.popupEnabled !== false)
+          .then(res => setShortcutStatus(res));
+      }
+    };
+
+    window.addEventListener('keydown', handleRecordKeyDown, true);
+    return () => window.removeEventListener('keydown', handleRecordKeyDown, true);
+  }, [isRecordingShortcut, settings]);
 
   useEffect(() => {
     if (!window.speechSynthesis) return undefined;
@@ -2980,25 +3055,174 @@ function Settings() {
               </CardContent>
             </Card>
 
-            {/* Popup Window Settings */}
-            <Card>
-              <CardHeader>
-                <CardTitle>{t('settings.popupWindowTitle')}</CardTitle>
-                <CardDescription>
-                  {t('settings.popupWindowDesc')}
-                </CardDescription>
+            {/* Popup Window & Global Shortcuts Settings */}
+            <Card className="border-border">
+              <CardHeader className="flex flex-row items-start justify-between space-y-0">
+                <div className="space-y-1">
+                  <CardTitle className="flex items-center gap-2">
+                    <Globe className="h-5 w-5 text-primary" />
+                    <span>{t('settings.popupWindowTitle')}</span>
+                  </CardTitle>
+                  <CardDescription>
+                    {t('settings.popupWindowDesc')}
+                  </CardDescription>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setIsShortcutsModalOpen(true)}
+                  className="text-xs flex items-center gap-1.5 border-border hover:bg-muted shrink-0"
+                >
+                  <Keyboard className="w-3.5 h-3.5 text-primary" />
+                  <span>{t('settings.viewAllShortcutsBtn')}</span>
+                </Button>
               </CardHeader>
-              <CardContent>
+              <CardContent className="space-y-5">
+                {/* Enable/Disable Toggle */}
                 <div className="flex items-center justify-between">
-                  <Label htmlFor="popup-enabled" className="font-medium">
-                    {t('settings.popupWindowLabel')}
-                  </Label>
+                  <div className="space-y-0.5">
+                    <Label htmlFor="popup-enabled" className="font-medium">
+                      {t('settings.popupWindowLabel')}
+                    </Label>
+                    <p className="text-xs text-muted-foreground">
+                      {t('settings.popupWindowHelp')}
+                    </p>
+                  </div>
                   <Switch
                     id="popup-enabled"
-                    checked={settings.popupEnabled}
-                    onChange={(e) => handleToggleChange('popupEnabled', e.target.checked)}
+                    checked={settings.popupEnabled !== false}
+                    onChange={(e) => {
+                      const newEnabled = e.target.checked;
+                      handleToggleChange('popupEnabled', newEnabled);
+                      if (window.electron?.updateGlobalShortcut) {
+                        window.electron.updateGlobalShortcut(settings.popupShortcut || 'CommandOrControl+Shift+Space', newEnabled)
+                          .then(res => setShortcutStatus(res));
+                      }
+                    }}
                   />
                 </div>
+
+                {/* Shortcut Configuration Section */}
+                {settings.popupEnabled !== false && (
+                  <div className="p-4 rounded-xl bg-muted/30 border border-border/80 space-y-4">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                      <div className="space-y-1">
+                        <Label className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+                          <Keyboard className="w-3.5 h-3.5 text-primary" />
+                          <span>{t('settings.popupShortcutLabel')}</span>
+                        </Label>
+                        <p className="text-xs text-muted-foreground">
+                          {t('settings.popupShortcutHelp')}
+                        </p>
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        <KeyCombo 
+                          keys={formatAccelerator(settings.popupShortcut || 'CommandOrControl+Shift+Space', isMac)} 
+                        />
+                      </div>
+                    </div>
+
+                    {/* Presets & Custom Recorder */}
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-2.5 pt-1">
+                      <div className="w-full sm:w-64">
+                        <Select
+                          value={POPUP_SHORTCUT_PRESETS.some(p => p.value === settings.popupShortcut) ? settings.popupShortcut : 'custom'}
+                          onValueChange={(val) => {
+                            if (val === 'custom') {
+                              setIsRecordingShortcut(true);
+                            } else {
+                              const updated = { ...settings, popupShortcut: val };
+                              setSettings(updated);
+                              saveSettings(updated);
+                              if (window.electron?.updateGlobalShortcut) {
+                                window.electron.updateGlobalShortcut(val, true).then(res => setShortcutStatus(res));
+                              }
+                            }
+                          }}
+                        >
+                          <SelectTrigger className="h-8 text-xs bg-background">
+                            <SelectValue placeholder={t('settings.popupShortcutPreset')} />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {POPUP_SHORTCUT_PRESETS.map((preset) => (
+                              <SelectItem key={preset.value} value={preset.value} className="text-xs">
+                                {preset.label}
+                              </SelectItem>
+                            ))}
+                            <SelectItem value="custom" className="text-xs">
+                              {t('settings.popupShortcutCustom')}...
+                            </SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        {isRecordingShortcut ? (
+                          <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-primary/10 border border-primary/30 text-primary text-xs font-medium animate-pulse">
+                            <span className="w-2 h-2 rounded-full bg-primary animate-ping" />
+                            <span>{t('settings.popupShortcutRecording')}</span>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => setIsRecordingShortcut(false)}
+                              className="h-5 px-1.5 text-[10px] hover:bg-primary/20 text-primary rounded"
+                            >
+                              {t('common.cancel')}
+                            </Button>
+                          </div>
+                        ) : (
+                          <>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              onClick={() => setIsRecordingShortcut(true)}
+                              className="h-8 text-xs flex items-center gap-1.5 bg-background border-border hover:bg-muted"
+                            >
+                              <Keyboard className="w-3.5 h-3.5" />
+                              <span>{t('settings.popupShortcutRecordBtn')}</span>
+                            </Button>
+
+                            {settings.popupShortcut !== 'CommandOrControl+Shift+Space' && (
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => {
+                                  const updated = { ...settings, popupShortcut: 'CommandOrControl+Shift+Space' };
+                                  setSettings(updated);
+                                  saveSettings(updated);
+                                  if (window.electron?.updateGlobalShortcut) {
+                                    window.electron.updateGlobalShortcut('CommandOrControl+Shift+Space', true).then(res => setShortcutStatus(res));
+                                  }
+                                }}
+                                className="h-8 text-xs text-muted-foreground hover:text-foreground"
+                              >
+                                {t('settings.popupShortcutResetBtn')}
+                              </Button>
+                            )}
+                          </>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Status Badge */}
+                    <div className="pt-1 flex items-center gap-2">
+                      {shortcutStatus?.success !== false ? (
+                        <Badge variant="outline" className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30 text-xs py-0.5 px-2 flex items-center gap-1.5">
+                          <CheckCircle className="w-3.5 h-3.5" />
+                          <span>{t('settings.popupShortcutActive')}</span>
+                        </Badge>
+                      ) : (
+                        <Badge variant="outline" className="bg-destructive/10 text-destructive border-destructive/30 text-xs py-0.5 px-2 flex items-center gap-1.5">
+                          <AlertCircle className="w-3.5 h-3.5" />
+                          <span>{t('settings.popupShortcutFailed')}</span>
+                        </Badge>
+                      )}
+                    </div>
+                  </div>
+                )}
               </CardContent>
             </Card>
 
@@ -4622,6 +4846,12 @@ function Settings() {
       <PromptTemplatesModal
         isOpen={isPromptTemplatesModalOpen}
         onClose={() => setIsPromptTemplatesModalOpen(false)}
+      />
+
+      {/* Keyboard Shortcuts Central Modal */}
+      <KeyboardShortcutsModal
+        isOpen={isShortcutsModalOpen}
+        onClose={() => setIsShortcutsModalOpen(false)}
       />
     </div>
   );
