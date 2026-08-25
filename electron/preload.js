@@ -32,6 +32,12 @@ contextBridge.exposeInMainWorld('electron', {
     export: () => ipcRenderer.invoke('backup-export'),
     import: () => ipcRenderer.invoke('backup-import')
   },
+  workflows: {
+    list: () => ipcRenderer.invoke('workflows-list'),
+    save: (workflow) => ipcRenderer.invoke('workflows-save', workflow),
+    delete: (id) => ipcRenderer.invoke('workflows-delete', id),
+    buildPrompt: (id, variables) => ipcRenderer.invoke('workflows-build-prompt', id, variables)
+  },
   toolPermissions: {
     get: () => ipcRenderer.invoke('tool-permissions-get'),
     resolve: (toolName, serverLabel) => ipcRenderer.invoke('tool-permissions-resolve', toolName, serverLabel),

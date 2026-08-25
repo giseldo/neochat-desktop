@@ -21,7 +21,8 @@
     "test:secret-store": "node test-secret-store.js",
     "test:tool-permissions": "node test-tool-permissions.js",
     "test:chat-branching": "node test-chat-branching.js",
-    "test:backup-manager": "node test-backup-manager.js"
+    "test:backup-manager": "node test-backup-manager.js",
+    "test:workflows": "node test-workflows.js"
   },
   "keywords": [
     "electron",

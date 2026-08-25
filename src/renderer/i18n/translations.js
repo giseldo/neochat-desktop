@@ -824,6 +824,16 @@ export const translations = {
       defaultTools: 'Ferramentas MCP',
       defaultToolsDesc: 'Ver e gerenciar as ferramentas MCP disponíveis',
     },
+    workflows: {
+      title: 'Workflows',
+      new: 'Novo workflow',
+      name: 'Nome do workflow',
+      description: 'Descrição e objetivo',
+      run: 'Executar',
+      stepsCount: '{count} etapas',
+      stepsPlaceholder: 'Primeira etapa\n---\nSegunda etapa usando {{variavel}}',
+      stepsHelp: 'Separe etapas com uma linha contendo ---. Use {{nome}} para variáveis.',
+    },
     promptTemplates: {
       modalTitle: 'Biblioteca de Prompts & Atalhos (/)',
       modalSubtitle: 'Crie e gerencie atalhos personalizados para invocar templates rapidamente digitando / no campo de chat.',
@@ -1726,6 +1736,16 @@ export const translations = {
       defaultSearchDesc: 'Searches the live web for up-to-date facts, news, and cited sources',
       defaultTools: 'MCP Tools',
       defaultToolsDesc: 'View and manage available MCP tools',
+    },
+    workflows: {
+      title: 'Workflows',
+      new: 'New workflow',
+      name: 'Workflow name',
+      description: 'Description and objective',
+      run: 'Run',
+      stepsCount: '{count} steps',
+      stepsPlaceholder: 'First step\n---\nSecond step using {{variable}}',
+      stepsHelp: 'Separate steps with a line containing ---. Use {{name}} for variables.',
     },
     promptTemplates: {
       modalTitle: 'Prompt Library & Shortcuts (/)',

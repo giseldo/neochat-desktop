@@ -39,6 +39,7 @@ const authManager = require('./authManager');
 const googleOAuthManager = require('./googleOAuthManager');
 const { initializeToolPermissionHandlers } = require('./toolPermissionManager');
 const { initializeBackupHandlers } = require('./backupManager');
+const workflowManager = require('./workflowManager');
 
 // Import context capture system
 const ContextCapture = require('./contextCapture');
@@ -308,6 +309,7 @@ app.whenReady().then(async () => {
   initializeSettingsHandlers(ipcMain, app, safeStorage);
   initializeToolPermissionHandlers(ipcMain, loadSettings, saveSettings);
   initializeBackupHandlers(ipcMain, app, dialog, () => mainWindow, loadSettings, saveSettings);
+  workflowManager.initializeHandlers(ipcMain, app);
 
   // Initialize chat history manager
   chatHistoryManager.initialize(app, loadSettings);

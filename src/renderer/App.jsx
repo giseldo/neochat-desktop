@@ -15,10 +15,11 @@ import ProjectModal from './components/ProjectModal';
 import MoveToProjectModal from './components/MoveToProjectModal';
 import KnowledgeBaseModal from './components/KnowledgeBaseModal';
 import CompareChatView from './components/CompareChatView';
+import WorkflowsModal from './components/WorkflowsModal';
 import { useChat } from './context/ChatContext';
 import { useProjects } from './context/ProjectContext';
 import { useLanguage } from './context/LanguageContext';
-import { Settings, PanelLeftClose, PanelLeft, Radio, MessagesSquare, Sparkles, Store, Columns2, X, FolderKanban, BookOpen, Scale, Bot } from 'lucide-react';
+import { Settings, PanelLeftClose, PanelLeft, Radio, MessagesSquare, Sparkles, Store, Columns2, X, FolderKanban, BookOpen, Scale, Bot, Workflow } from 'lucide-react';
 import { Button } from './components/ui/button';
 import { cn } from './lib/utils';
 import { extractThinking } from './lib/messageUtils';
@@ -157,6 +158,7 @@ function App() {
   const [activePersona, setActivePersona] = useState(() => getStoredActivePersona());
   const [activeArtifact, setActiveArtifact] = useState(null);
   const [isMcpCatalogOpen, setIsMcpCatalogOpen] = useState(false);
+  const [isWorkflowsOpen, setIsWorkflowsOpen] = useState(false);
 
   useEffect(() => {
     if (activePersona?.id) {
@@ -2150,6 +2152,16 @@ function App() {
             </div>
 
             <div className="flex items-center space-x-2">
+              {isPowerUser && <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setIsWorkflowsOpen(true)}
+                className="text-xs text-foreground border-border hover:bg-muted"
+                title={t('workflows.title')}
+              >
+                <Workflow className="h-3.5 w-3.5 mr-1.5 text-primary" />
+                <span className="hidden lg:inline">{t('workflows.title')}</span>
+              </Button>}
               {/* MCP Catalog Button */}
               {isPowerUser && <Button
                 variant="outline"
@@ -2387,6 +2399,18 @@ function App() {
           }}
         />
       )}
+
+      <WorkflowsModal
+        isOpen={isWorkflowsOpen}
+        onClose={() => setIsWorkflowsOpen(false)}
+        onRun={async (workflow) => {
+          const result = await window.electron.workflows.buildPrompt(workflow.id, {});
+          if (!result?.success) return;
+          localStorage.setItem('neochat_agent_mode', 'true');
+          setIsWorkflowsOpen(false);
+          await handleSendMessage(result.prompt);
+        }}
+      />
 
       {/* Project Modals */}
       <ProjectModal />
