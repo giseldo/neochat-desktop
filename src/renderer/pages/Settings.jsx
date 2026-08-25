@@ -75,7 +75,8 @@ function Settings() {
     remoteMcpServers: {},
     fallbackProviders: [],
     fallbackModels: {},
-    tts: { enabled: true, autoSpeak: false, voiceURI: '', rate: 1.05, pitch: 1 }
+    tts: { enabled: true, autoSpeak: false, voiceURI: '', rate: 1.05, pitch: 1 },
+    autoUpdate: { checkOnStartup: true, channel: 'stable' }
   });
   const [googleOAuthStatus, setGoogleOAuthStatus] = useState(null);
   const [isRefreshingToken, setIsRefreshingToken] = useState(false);
@@ -128,6 +129,7 @@ function Settings() {
   const [localAiStatus, setLocalAiStatus] = useState(null);
   const [isDetectingLocalAi, setIsDetectingLocalAi] = useState(false);
   const [speechVoices, setSpeechVoices] = useState([]);
+  const [updateStatus, setUpdateStatus] = useState({ status: 'idle', percent: 0 });
 
   useEffect(() => {
     if (!window.speechSynthesis) return undefined;
@@ -135,6 +137,11 @@ function Settings() {
     loadVoices();
     window.speechSynthesis.addEventListener('voiceschanged', loadVoices);
     return () => window.speechSynthesis.removeEventListener('voiceschanged', loadVoices);
+  }, []);
+
+  useEffect(() => {
+    window.electron?.updater?.getStatus?.().then(setUpdateStatus);
+    return window.electron?.updater?.onStatus?.(setUpdateStatus);
   }, []);
 
   const checkLocalAi = async () => {
@@ -1330,6 +1337,12 @@ function Settings() {
     saveSettings(updatedSettings);
   };
 
+  const updateAutoUpdate = (updates) => {
+    const updatedSettings = { ...settings, autoUpdate: { ...(settings.autoUpdate || {}), ...updates } };
+    setSettings(updatedSettings);
+    saveSettings(updatedSettings);
+  };
+
   const handleExportBackup = async () => {
     const result = await window.electron.backup.export();
     if (result?.success) setSaveStatus({ type: 'success', message: t('settings.backupExported') });
@@ -1792,6 +1805,26 @@ function Settings() {
                 <div className="grid sm:grid-cols-2 gap-4">
                   <div className="space-y-2"><Label>{t('settings.ttsRate')}: {settings.tts?.rate || 1.05}</Label><input className="w-full" type="range" min="0.5" max="2" step="0.05" value={settings.tts?.rate || 1.05} onChange={event => updateTts({ rate: Number(event.target.value) })} /></div>
                   <div className="space-y-2"><Label>{t('settings.ttsPitch')}: {settings.tts?.pitch || 1}</Label><input className="w-full" type="range" min="0.5" max="2" step="0.05" value={settings.tts?.pitch || 1} onChange={event => updateTts({ pitch: Number(event.target.value) })} /></div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>{t('settings.updatesTitle')}</CardTitle>
+                <CardDescription>{t('settings.updatesDesc', { version: updateStatus.currentVersion || '' })}</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex items-center justify-between"><Label>{t('settings.checkUpdatesStartup')}</Label><Switch checked={settings.autoUpdate?.checkOnStartup !== false} onChange={event => updateAutoUpdate({ checkOnStartup: event.target.checked })} /></div>
+                <div className="flex items-center gap-3">
+                  <Label>{t('settings.updateChannel')}</Label>
+                  <select className="h-9 rounded-md border border-input bg-background px-3 text-sm" value={settings.autoUpdate?.channel || 'stable'} onChange={event => updateAutoUpdate({ channel: event.target.value })}><option value="stable">Stable</option><option value="beta">Beta</option></select>
+                </div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <Button variant="outline" onClick={() => window.electron.updater.check()} disabled={updateStatus.status === 'checking'}><RefreshCw className={`w-4 h-4 mr-2 ${updateStatus.status === 'checking' ? 'animate-spin' : ''}`} />{t('settings.checkUpdates')}</Button>
+                  {updateStatus.status === 'available' && <Button onClick={() => window.electron.updater.download()}><Download className="w-4 h-4 mr-2" />{t('settings.downloadUpdate', { version: updateStatus.version })}</Button>}
+                  {updateStatus.status === 'downloaded' && <Button onClick={() => window.electron.updater.install()}>{t('settings.installUpdate', { version: updateStatus.version })}</Button>}
+                  <span className="text-xs text-muted-foreground">{t(`settings.updateStatus_${updateStatus.status}`, { percent: updateStatus.percent, error: updateStatus.error || '' })}</span>
                 </div>
               </CardContent>
             </Card>

@@ -72,7 +72,7 @@ linux:
 publish:
   provider: github
   owner: giseldo
-  repo: groq-desktop-giseldo
+  repo: neochat-desktop
 
 # Make sure scripts are executable
 fileAssociations:

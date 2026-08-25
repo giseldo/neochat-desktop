@@ -41,6 +41,8 @@ const { initializeToolPermissionHandlers } = require('./toolPermissionManager');
 const { initializeBackupHandlers } = require('./backupManager');
 const workflowManager = require('./workflowManager');
 const schedulerManager = require('./schedulerManager');
+const { autoUpdater } = require('electron-updater');
+const { initializeUpdateManager } = require('./updateManager');
 
 // Import context capture system
 const ContextCapture = require('./contextCapture');
@@ -312,6 +314,7 @@ app.whenReady().then(async () => {
   initializeBackupHandlers(ipcMain, app, dialog, () => mainWindow, loadSettings, saveSettings);
   workflowManager.initializeHandlers(ipcMain, app);
   schedulerManager.initializeHandlers(ipcMain, app, () => mainWindow, workflowManager, Notification);
+  initializeUpdateManager({ ipcMain, app, autoUpdater, getWindow: () => mainWindow, loadSettings });
 
   // Initialize chat history manager
   chatHistoryManager.initialize(app, loadSettings);
@@ -579,7 +582,9 @@ app.whenReady().then(async () => {
       return { success: false, error: err.message };
     } finally {
       if (fs.existsSync(tempFile)) {
-        try { fs.unlinkSync(tempFile); } catch (e) {}
+        try { fs.unlinkSync(tempFile); } catch (error) {
+          console.warn('[Whisper] Could not remove temporary audio file:', error.message);
+        }
       }
     }
   });

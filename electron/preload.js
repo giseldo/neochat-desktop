@@ -48,6 +48,17 @@ contextBridge.exposeInMainWorld('electron', {
       return () => ipcRenderer.removeListener('workflow-scheduled-run', listener);
     }
   },
+  updater: {
+    getStatus: () => ipcRenderer.invoke('updater-get-status'),
+    check: () => ipcRenderer.invoke('updater-check'),
+    download: () => ipcRenderer.invoke('updater-download'),
+    install: () => ipcRenderer.invoke('updater-install'),
+    onStatus: (callback) => {
+      const listener = (_event, status) => callback(status);
+      ipcRenderer.on('updater-status', listener);
+      return () => ipcRenderer.removeListener('updater-status', listener);
+    }
+  },
   toolPermissions: {
     get: () => ipcRenderer.invoke('tool-permissions-get'),
     resolve: (toolName, serverLabel) => ipcRenderer.invoke('tool-permissions-resolve', toolName, serverLabel),
