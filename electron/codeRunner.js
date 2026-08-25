@@ -127,7 +127,7 @@ async function executeLocalCode({ language, code, timeout = 20000 }) {
 
       const child = spawn(cmd, args, {
         cwd: tempDir,
-        env: { ...process.env, PYTHONUNBUFFERED: '1' }
+        env: { ...process.env, PYTHONUNBUFFERED: '1', PYTHONIOENCODING: 'utf-8' }
       });
 
       const timer = setTimeout(() => {

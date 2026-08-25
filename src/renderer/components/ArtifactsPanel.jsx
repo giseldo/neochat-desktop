@@ -107,12 +107,17 @@ export function ArtifactsPanel({ artifact, onClose, className }) {
 
       const rawType = (artifact.type || '').toLowerCase();
       const isVisual = ['html', 'svg', 'mermaid', 'markdown', 'md', 'jsx', 'tsx', 'react'].includes(rawType) || isReactCode(code);
-      const isExecutable = ['js', 'javascript', 'ts', 'typescript', 'py', 'python'].includes(rawType) && !isReactCode(code);
+      const isExecutableType = ['js', 'javascript', 'ts', 'typescript', 'py', 'python'].includes(rawType) && !isReactCode(code);
 
       if (isVisual) {
         setActiveTab('preview');
-      } else if (isExecutable) {
-        setActiveTab('code');
+      } else if (isExecutableType) {
+        if (artifact.autoRun) {
+          setActiveTab('console');
+          executeCode(code);
+        } else {
+          setActiveTab('code');
+        }
       } else {
         setActiveTab('code');
       }
@@ -229,7 +234,8 @@ export function ArtifactsPanel({ artifact, onClose, className }) {
     }
   };
 
-  const executeCode = async () => {
+  const executeCode = async (codeOverride) => {
+    const targetCode = typeof codeOverride === 'string' ? codeOverride : currentCode;
     if (!isExecutable || isRunning) return;
 
     setIsRunning(true);
@@ -246,7 +252,7 @@ export function ArtifactsPanel({ artifact, onClose, className }) {
           setStatusMessage('Executando Python localmente...');
           const localRes = await window.electron.codeRunner.executeCode({
             language: 'python',
-            code: currentCode
+            code: targetCode
           });
 
           const logs = [];
@@ -267,7 +273,7 @@ export function ArtifactsPanel({ artifact, onClose, className }) {
           };
         } else {
           setStatusMessage('Executando no WebAssembly Pyodide...');
-          const pyodideRes = await runPythonWithPyodide(currentCode, (msg) => setStatusMessage(msg));
+          const pyodideRes = await runPythonWithPyodide(targetCode, (msg) => setStatusMessage(msg));
           result = {
             ...pyodideRes,
             runtime: 'Pyodide (WebAssembly)'
@@ -280,7 +286,7 @@ export function ArtifactsPanel({ artifact, onClose, className }) {
           setStatusMessage('Executando Node.js localmente...');
           const localRes = await window.electron.codeRunner.executeCode({
             language: 'javascript',
-            code: currentCode
+            code: targetCode
           });
 
           const logs = [];
@@ -301,7 +307,7 @@ export function ArtifactsPanel({ artifact, onClose, className }) {
           };
         } else {
           setStatusMessage('Executando em Sandbox JavaScript...');
-          const jsRes = await runJavaScript(currentCode);
+          const jsRes = await runJavaScript(targetCode);
           result = {
             ...jsRes,
             runtime: 'JavaScript (Sandbox)'
@@ -687,7 +693,7 @@ export function ArtifactsPanel({ artifact, onClose, className }) {
         {/* TAB 4: CONSOLE & LOGS */}
         {activeTab === 'console' && (
           <div className="w-full h-full p-4 overflow-y-auto font-mono text-xs space-y-4 bg-muted/10 custom-scrollbar">
-            {/* Header / Clear button */}
+            {/* Header / Clear button / Copy button */}
             <div className="flex items-center justify-between pb-2 border-b border-border/60">
               <div className="flex items-center gap-2">
                 <Terminal className="w-4 h-4 text-primary" />
@@ -699,23 +705,55 @@ export function ArtifactsPanel({ artifact, onClose, className }) {
                 </span>
               </div>
 
-              <button
-                type="button"
-                onClick={() => {
-                  setSandboxLogs([]);
-                  setExecutionOutput(null);
-                }}
-                className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted text-xs transition-colors"
-              >
-                <Trash2 className="w-3.5 h-3.5" />
-                <span>{t('artifacts.clearConsole')}</span>
-              </button>
+              <div className="flex items-center gap-1.5">
+                {(executionOutput?.logs?.length > 0 || sandboxLogs.length > 0 || executionOutput?.error || executionOutput?.result) && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const lines = [];
+                      if (executionOutput?.logs) {
+                        for (const l of executionOutput.logs) {
+                          lines.push(l.message);
+                        }
+                      }
+                      if (executionOutput?.result) {
+                        lines.push(`[Retorno]: ${executionOutput.result}`);
+                      }
+                      if (executionOutput?.error) {
+                        lines.push(`[Erro]: ${executionOutput.error}`);
+                      }
+                      for (const l of sandboxLogs) {
+                        lines.push(l.message);
+                      }
+                      handleCopy(lines.join('\n'));
+                    }}
+                    className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted text-xs transition-colors"
+                    title={t('artifacts.copyOutput')}
+                  >
+                    {copied ? <Check className="w-3.5 h-3.5 text-green-500" /> : <Copy className="w-3.5 h-3.5" />}
+                    <span>{t('artifacts.copyOutput')}</span>
+                  </button>
+                )}
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSandboxLogs([]);
+                    setExecutionOutput(null);
+                  }}
+                  className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted text-xs transition-colors"
+                  title={t('artifacts.clearConsole')}
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                  <span>{t('artifacts.clearConsole')}</span>
+                </button>
+              </div>
             </div>
 
             {/* Execution Status Banner (if run) */}
             {executionOutput && (
               <div className={cn(
-                "p-3 rounded-xl border space-y-1.5",
+                "p-3 rounded-xl border space-y-2",
                 executionOutput.success
                   ? "bg-green-500/10 border-green-500/20 text-green-600 dark:text-green-400"
                   : "bg-red-500/10 border-red-500/20 text-red-600 dark:text-red-400"
@@ -725,52 +763,107 @@ export function ArtifactsPanel({ artifact, onClose, className }) {
                     {executionOutput.success ? <CheckCircle2 className="w-4 h-4" /> : <AlertCircle className="w-4 h-4" />}
                     <span>{executionOutput.success ? t('artifacts.executionSuccess') : t('artifacts.executionError')}</span>
                   </div>
-                  <span className="text-[10px] opacity-80">
+                  <span className="text-[10px] opacity-80 font-mono">
                     {executionOutput.runtime} • {executionOutput.durationMs}ms
                   </span>
                 </div>
 
                 {executionOutput.error && (
-                  <pre className="text-[11px] p-2 rounded bg-black/10 dark:bg-black/30 overflow-x-auto whitespace-pre-wrap">
+                  <pre className="text-[11px] p-2.5 rounded-lg bg-black/10 dark:bg-black/40 border border-red-500/20 text-red-700 dark:text-red-300 overflow-x-auto whitespace-pre-wrap font-mono">
                     {executionOutput.error}
                   </pre>
                 )}
               </div>
             )}
 
-            {/* Sandbox Live Logs */}
-            {sandboxLogs.length > 0 ? (
+            {/* Execution Output Logs (stdout / stderr) */}
+            {executionOutput?.logs && executionOutput.logs.length > 0 && (
+              <div className="space-y-1.5">
+                <div className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider flex items-center justify-between">
+                  <span>{t('artifacts.consoleLogs', { count: executionOutput.logs.length })}</span>
+                </div>
+                {executionOutput.logs.map((log, index) => {
+                  const level = log.type || log.level || 'log';
+                  return (
+                    <div
+                      key={`exec-log-${index}`}
+                      className={cn(
+                        "p-2.5 rounded-lg border text-[11.5px] leading-relaxed flex items-start gap-2.5 font-mono shadow-2xs",
+                        level === 'error'
+                          ? "bg-red-500/10 border-red-500/20 text-red-600 dark:text-red-400"
+                          : level === 'warn'
+                          ? "bg-amber-500/10 border-amber-500/20 text-amber-600 dark:text-amber-400"
+                          : "bg-muted/40 border-border/60 text-foreground"
+                      )}
+                    >
+                      <span className="text-[10px] opacity-50 shrink-0 select-none mt-0.5">
+                        {new Date(log.timestamp || Date.now()).toLocaleTimeString()}
+                      </span>
+                      <pre className="overflow-x-auto whitespace-pre-wrap font-mono flex-1 text-foreground selection:bg-primary/20">
+                        {log.message}
+                      </pre>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            {/* Evaluated Return Value (if any) */}
+            {executionOutput?.result && (
               <div className="space-y-1.5">
                 <div className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
-                  Logs em Tempo Real da Sandbox:
+                  {t('artifacts.returnValue')}
                 </div>
-                {sandboxLogs.map((log, index) => (
-                  <div
-                    key={index}
-                    className={cn(
-                      "p-2 rounded-lg border text-[11.5px] leading-relaxed flex items-start gap-2",
-                      log.level === 'error'
-                        ? "bg-red-500/10 border-red-500/20 text-red-600 dark:text-red-400"
-                        : log.level === 'warn'
-                        ? "bg-amber-500/10 border-amber-500/20 text-amber-600 dark:text-amber-400"
-                        : "bg-muted/30 border-border/40 text-foreground/90"
-                    )}
-                  >
-                    <span className="text-[10px] opacity-60 shrink-0 font-mono mt-0.5">
-                      {new Date(log.timestamp).toLocaleTimeString()}
-                    </span>
-                    <pre className="overflow-x-auto whitespace-pre-wrap font-mono flex-1">
-                      {log.message}
-                    </pre>
-                  </div>
-                ))}
+                <div className="p-2.5 rounded-lg border bg-muted/40 border-border/60 text-foreground font-mono text-[11.5px]">
+                  <pre className="overflow-x-auto whitespace-pre-wrap font-mono">
+                    {executionOutput.result}
+                  </pre>
+                </div>
               </div>
-            ) : !executionOutput && (
+            )}
+
+            {/* Sandbox Live Logs */}
+            {sandboxLogs.length > 0 && (
+              <div className="space-y-1.5">
+                <div className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
+                  Logs em Tempo Real da Sandbox ({sandboxLogs.length}):
+                </div>
+                {sandboxLogs.map((log, index) => {
+                  const level = log.level || log.type || 'log';
+                  return (
+                    <div
+                      key={`sandbox-log-${index}`}
+                      className={cn(
+                        "p-2 rounded-lg border text-[11.5px] leading-relaxed flex items-start gap-2.5 font-mono shadow-2xs",
+                        level === 'error'
+                          ? "bg-red-500/10 border-red-500/20 text-red-600 dark:text-red-400"
+                          : level === 'warn'
+                          ? "bg-amber-500/10 border-amber-500/20 text-amber-600 dark:text-amber-400"
+                          : "bg-muted/30 border-border/40 text-foreground/90"
+                      )}
+                    >
+                      <span className="text-[10px] opacity-50 shrink-0 select-none mt-0.5">
+                        {new Date(log.timestamp || Date.now()).toLocaleTimeString()}
+                      </span>
+                      <pre className="overflow-x-auto whitespace-pre-wrap font-mono flex-1">
+                        {log.message}
+                      </pre>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            {/* Empty State */}
+            {!executionOutput && sandboxLogs.length === 0 && (
               <div className="p-8 text-center text-muted-foreground text-xs space-y-2">
                 <Terminal className="w-8 h-8 mx-auto opacity-40" />
-                <div>{t('artifacts.noConsoleLogs')}</div>
-                <p className="text-[11px] max-w-xs mx-auto opacity-80">
-                  Os `console.log`, avisos e erros executados na Live Sandbox aparecerão automaticamente aqui.
+                <div className="font-medium text-foreground/80">{t('artifacts.noConsoleLogs')}</div>
+                <p className="text-[11px] max-w-xs mx-auto opacity-70">
+                  {isExecutable
+                    ? 'Execute o código usando o botão "Executar" ou pressione Ctrl+Enter para ver a saída do console aqui.'
+                    : 'Os console.log, avisos e erros executados na Live Sandbox aparecerão automaticamente aqui.'
+                  }
                 </p>
               </div>
             )}

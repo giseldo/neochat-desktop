@@ -105,7 +105,7 @@ export function CodeBlock({ language, code, onPreviewArtifact, className }) {
           {isExecutable && onPreviewArtifact && (
             <button
               type="button"
-              onClick={() => onPreviewArtifact({ type: lang, code: cleanCode })}
+              onClick={() => onPreviewArtifact({ type: lang, code: cleanCode, autoRun: true })}
               className="flex items-center gap-1 px-2 py-0.5 rounded text-xs text-primary font-medium hover:bg-primary/10 transition-colors"
               title={t('artifacts.runInArtifact')}
             >

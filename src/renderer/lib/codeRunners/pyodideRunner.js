@@ -75,39 +75,21 @@ export async function runPythonWithPyodide(code, onStatusUpdate) {
   try {
     const pyodide = await getPyodide(onStatusUpdate);
 
-    // Setup stdout and stderr capture in Python
-    const setupCaptureCode = `
-import sys
-import io
+    const stdoutLines = [];
+    const stderrLines = [];
 
-class JSOutputCapture(io.StringIO):
-    def __init__(self, is_stderr=False):
-        super().__init__()
-        self.is_stderr = is_stderr
-        self.buffer_list = []
+    // Setup stdout and stderr capture via Pyodide API
+    pyodide.setStdout({
+      batched: (msg) => {
+        if (msg) stdoutLines.push(msg);
+      }
+    });
 
-    def write(self, s):
-        if s:
-            self.buffer_list.append((self.is_stderr, s))
-        return len(s)
-
-__sys_stdout_orig = sys.stdout
-__sys_stderr_orig = sys.stderr
-
-__capture_out = JSOutputCapture(is_stderr=False)
-__capture_err = JSOutputCapture(is_stderr=True)
-
-sys.stdout = __capture_out
-sys.stderr = __capture_err
-`;
-
-    const restoreCaptureCode = `
-sys.stdout = __sys_stdout_orig
-sys.stderr = __sys_stderr_orig
-`;
-
-    // Run setup
-    await pyodide.runPythonAsync(setupCaptureCode);
+    pyodide.setStderr({
+      batched: (msg) => {
+        if (msg) stderrLines.push(msg);
+      }
+    });
 
     let rawResult = null;
     let execError = null;
@@ -118,37 +100,18 @@ sys.stderr = __sys_stderr_orig
       execError = err;
     }
 
-    // Retrieve captured buffers
-    const capturedOutput = pyodide.globals.get('__capture_out').buffer_list.toJs();
-    const capturedErrors = pyodide.globals.get('__capture_err').buffer_list.toJs();
-
-    // Restore stdout
-    await pyodide.runPythonAsync(restoreCaptureCode);
-
-    // Process output logs
-    let combinedStdout = '';
-    let combinedStderr = '';
-
-    if (Array.isArray(capturedOutput)) {
-      combinedStdout = capturedOutput.map(([_, s]) => s).join('');
-    }
-
-    if (Array.isArray(capturedErrors)) {
-      combinedStderr = capturedErrors.map(([_, s]) => s).join('');
-    }
-
-    if (combinedStdout.trim()) {
+    if (stdoutLines.length > 0) {
       logs.push({
         type: 'log',
-        message: combinedStdout.replace(/\n$/, ''),
+        message: stdoutLines.join('\n'),
         timestamp: Date.now()
       });
     }
 
-    if (combinedStderr.trim()) {
+    if (stderrLines.length > 0) {
       logs.push({
         type: 'error',
-        message: combinedStderr.replace(/\n$/, ''),
+        message: stderrLines.join('\n'),
         timestamp: Date.now()
       });
     }
