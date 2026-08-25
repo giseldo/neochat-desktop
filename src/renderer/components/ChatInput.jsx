@@ -67,6 +67,8 @@ function ChatInput({
 	const isRecordingRef = useRef(false);
 	const isTranscribingRef = useRef(false);
 	const loadingRef = useRef(loading);
+	const isHoldingVoiceRef = useRef(false);
+	const shouldStopImmediatelyRef = useRef(false);
 
 	useEffect(() => {
 		isRecordingRef.current = isRecording;
@@ -251,8 +253,17 @@ function ChatInput({
 	// Start voice recording for Whisper STT
 	const startRecording = async () => {
 		if (loadingRef.current || isTranscribingRef.current || isRecordingRef.current) return;
+		shouldStopImmediatelyRef.current = false;
 		try {
 			const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+			
+			// If user released the key before media stream resolved
+			if (shouldStopImmediatelyRef.current) {
+				stream.getTracks().forEach(track => track.stop());
+				shouldStopImmediatelyRef.current = false;
+				return;
+			}
+
 			audioChunksRef.current = [];
 			const mimeType = MediaRecorder.isTypeSupported('audio/webm') ? 'audio/webm' : 'audio/mp4';
 			const mediaRecorder = new MediaRecorder(stream, { mimeType });
@@ -267,6 +278,12 @@ function ChatInput({
 			mediaRecorder.onstop = async () => {
 				const audioBlob = new Blob(audioChunksRef.current, { type: mimeType });
 				stream.getTracks().forEach(track => track.stop());
+
+				if (audioBlob.size < 100) {
+					setIsRecording(false);
+					return;
+				}
+
 				setIsTranscribing(true);
 
 				try {
@@ -299,6 +316,11 @@ function ChatInput({
 
 			mediaRecorder.start(250);
 			setIsRecording(true);
+
+			if (shouldStopImmediatelyRef.current) {
+				shouldStopImmediatelyRef.current = false;
+				stopRecording();
+			}
 		} catch (err) {
 			console.error('Microphone access denied or error:', err);
 			alert(t('chat.micError'));
@@ -307,6 +329,7 @@ function ChatInput({
 
 	// Stop voice recording
 	const stopRecording = () => {
+		shouldStopImmediatelyRef.current = true;
 		if (mediaRecorderRef.current && (mediaRecorderRef.current.state === 'recording' || isRecordingRef.current)) {
 			try {
 				if (mediaRecorderRef.current.state === 'recording') {
@@ -319,21 +342,21 @@ function ChatInput({
 		}
 	};
 
-	// Toggle voice recording
+	// Toggle voice recording (for mouse clicks)
 	const toggleRecording = () => {
 		if (loadingRef.current || isTranscribingRef.current) return;
 		if (isRecordingRef.current) {
+			isHoldingVoiceRef.current = false;
 			stopRecording();
 		} else {
+			isHoldingVoiceRef.current = false;
 			startRecording();
 		}
 	};
 
-	// Keyboard shortcut: Ctrl+Alt (or Cmd+Alt / Ctrl+Alt+V / Ctrl+Alt+Space) to toggle voice recording
+	// Keyboard shortcut: Hold Ctrl+Alt (or Cmd+Alt / Ctrl+Alt+V / Ctrl+Alt+Space) to record, release to transcribe
 	useEffect(() => {
-		const handleVoiceShortcut = (e) => {
-			if (e.repeat) return;
-
+		const handleVoiceKeyDown = (e) => {
 			const hasCtrlOrMeta = e.ctrlKey || e.metaKey;
 			const hasAlt = e.altKey;
 
@@ -344,14 +367,47 @@ function ChatInput({
 				if (isModifierCombo || isVoiceKey) {
 					e.preventDefault();
 					e.stopPropagation();
-					toggleRecording();
+
+					if (e.repeat) return;
+
+					if (!isRecordingRef.current && !loadingRef.current && !isTranscribingRef.current) {
+						isHoldingVoiceRef.current = true;
+						startRecording();
+					}
 				}
 			}
 		};
 
-		window.addEventListener('keydown', handleVoiceShortcut, true);
+		const handleVoiceKeyUp = (e) => {
+			if (isHoldingVoiceRef.current || isRecordingRef.current) {
+				const isModifier = e.key === 'Alt' || e.key === 'Control' || e.key === 'AltGraph' ||
+					e.code?.includes('Control') || e.code?.includes('Alt');
+				const isVoiceKey = e.key?.toLowerCase() === 'v' || e.code === 'Space';
+
+				if (isModifier || isVoiceKey) {
+					e.preventDefault();
+					e.stopPropagation();
+					isHoldingVoiceRef.current = false;
+					stopRecording();
+				}
+			}
+		};
+
+		const handleBlur = () => {
+			if (isHoldingVoiceRef.current || isRecordingRef.current) {
+				isHoldingVoiceRef.current = false;
+				stopRecording();
+			}
+		};
+
+		window.addEventListener('keydown', handleVoiceKeyDown, true);
+		window.addEventListener('keyup', handleVoiceKeyUp, true);
+		window.addEventListener('blur', handleBlur);
+
 		return () => {
-			window.removeEventListener('keydown', handleVoiceShortcut, true);
+			window.removeEventListener('keydown', handleVoiceKeyDown, true);
+			window.removeEventListener('keyup', handleVoiceKeyUp, true);
+			window.removeEventListener('blur', handleBlur);
 			if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
 				try {
 					mediaRecorderRef.current.stop();
