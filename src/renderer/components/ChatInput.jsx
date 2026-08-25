@@ -888,11 +888,11 @@ function ChatInput({
 								variant="ghost"
 								size="sm"
 								onClick={() => fileInputRef.current?.click()}
-								className="text-muted-foreground hover:text-foreground hover:bg-white/40 hover:shadow-sm transition-all duration-200 rounded-xl px-2.5 py-1.5 text-xs font-medium"
+								className="text-muted-foreground hover:text-foreground hover:bg-muted/60 hover:shadow-sm transition-all duration-200 rounded-xl px-2.5 py-1.5 text-xs font-medium"
 								title={visionSupported ? t('chat.uploadTooltipVision') : t('chat.uploadTooltipNoVision')}
 								disabled={loading}
 							>
-								<ImagePlus className="w-4 h-4 mr-1.5 flex-shrink-0" />
+								<ImagePlus className="w-4 h-4 mr-1.5 flex-shrink-0 text-emerald-500" />
 								<span>{t('chat.upload')}</span>
 							</Button>
 						)}
@@ -904,7 +904,7 @@ function ChatInput({
 								variant="ghost"
 								size="sm"
 								onClick={() => setIsSnipModalOpen(true)}
-								className="text-muted-foreground hover:text-foreground hover:bg-white/40 hover:shadow-sm transition-all duration-200 rounded-xl px-2.5 py-1.5 text-xs font-medium"
+								className="text-muted-foreground hover:text-foreground hover:bg-muted/60 hover:shadow-sm transition-all duration-200 rounded-xl px-2.5 py-1.5 text-xs font-medium"
 								title={t('chat.snipTooltip')}
 								disabled={loading}
 							>
@@ -964,11 +964,11 @@ function ChatInput({
 							disabled={loading || isTranscribing}
 						>
 							{isTranscribing ? (
-								<Loader2 className="w-4 h-4 mr-1.5 animate-spin flex-shrink-0" />
+								<Loader2 className="w-4 h-4 mr-1.5 animate-spin flex-shrink-0 text-primary" />
 							) : isRecording ? (
 								<MicOff className="w-4 h-4 mr-1.5 text-red-500 flex-shrink-0" />
 							) : (
-								<Mic className="w-4 h-4 mr-1.5 flex-shrink-0" />
+								<Mic className="w-4 h-4 mr-1.5 flex-shrink-0 text-rose-500" />
 							)}
 							<span>{isRecording ? t('chat.recording') : isTranscribing ? t('chat.transcribing') : t('chat.voice')}</span>
 						</Button>
@@ -984,7 +984,7 @@ function ChatInput({
 								title={t('chat.toolsTooltip')}
 								disabled={loading}
 							>
-								<Hammer className="w-4 h-4 mr-1.5 flex-shrink-0" />
+								<Hammer className="w-4 h-4 mr-1.5 flex-shrink-0 text-amber-500" />
 								<span>
 									{t('chat.tools')}
 									{effectiveToolsCount > 0 ? ` (${effectiveToolsCount})` : ''}
@@ -1007,7 +1007,7 @@ function ChatInput({
 							title={webSearchActive ? t('chat.webSearchActive') : t('chat.webSearchTooltip')}
 							disabled={loading}
 						>
-							<Globe className={cn("w-4 h-4 flex-shrink-0", webSearchActive && "text-blue-500 animate-pulse")} />
+							<Globe className={cn("w-4 h-4 flex-shrink-0 text-blue-500", webSearchActive && "animate-pulse")} />
 							<span>{t('chat.webSearch')}</span>
 							{webSearchActive && (
 								<span className="w-1.5 h-1.5 rounded-full bg-blue-500 flex-shrink-0"></span>
@@ -1060,7 +1060,7 @@ function ChatInput({
 							title={agentModeActive ? t('chat.agentModeActive') : t('chat.agentModeTooltip')}
 							disabled={loading}
 						>
-							<Bot className={cn("w-4 h-4 flex-shrink-0", agentModeActive && "text-amber-500 animate-bounce")} />
+							<Bot className={cn("w-4 h-4 flex-shrink-0 text-purple-500", agentModeActive && "text-amber-500 animate-bounce")} />
 							<span>{t('chat.agentMode')}</span>
 							{agentModeActive && (
 								<span className="w-1.5 h-1.5 rounded-full bg-amber-500 flex-shrink-0 animate-pulse"></span>

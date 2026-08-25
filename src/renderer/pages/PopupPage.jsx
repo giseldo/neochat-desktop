@@ -794,7 +794,7 @@ const PopupPage = () => {
                 title={visionSupported ? t('chat.uploadTooltipVision') : t('chat.uploadTooltipNoVision')}
                 disabled={!visionSupported}
               >
-                <ImagePlus size={18} />
+                <ImagePlus size={18} className={visionSupported ? "text-emerald-500" : ""} />
               </Button>
             )}
             <input
