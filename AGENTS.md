@@ -8,6 +8,7 @@ Electron + React 19 desktop chat app for Groq (chat, image input, local MCP serv
 - Dev: `pnpm dev` (runs Vite on :5173 + Electron concurrently). DevTools auto-opens; main window is created `fullscreen: true` (`electron/windowManager.js`).
 - Build: `pnpm build` (Vite → `dist/`), `pnpm build:electron` (electron-builder), `pnpm dist` (both, output to `release/`).
 - **No test framework, no typecheck, no lint script.** Verification is ad-hoc `node test-*.js` scripts (`test-paths.js`, `test-resolver.js`, `test-popup-window.js`, ...). `pnpm test:paths` runs one; `test-cross-platform.sh` requires Docker and runs Linux tests via `test-linux.Dockerfile`; `test-windows.ps1` for Windows. Run ESLint via `npx eslint` (flat config).
+- **Workflow**: Always test/build, then `git commit` and `git push` to `origin main` automatically after implementing each requested change/feature.
 
 ## Architecture
 
