@@ -34,6 +34,7 @@ win:
   requestedExecutionLevel: asInvoker
 
 nsis:
+  artifactName: "${productName}-Setup-${version}.${ext}"
   oneClick: false
   perMachine: false
   allowToChangeInstallationDirectory: true
@@ -42,6 +43,9 @@ nsis:
   shortcutName: NeoChat
   runAfterFinish: true
   deleteAppDataOnUninstall: false
+
+portable:
+  artifactName: "${productName}-Portable-${version}.${ext}"
 
 # Linux Configuration
 linux:

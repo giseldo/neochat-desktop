@@ -1,6 +1,6 @@
 {
   "name": "groq-desktop-app",
-  "version": "1.0.1",
+  "version": "1.1.0",
   "description": "A simple Electron app with Groq API integration",
   "main": "electron/main.js",
   "type": "commonjs",
@@ -90,51 +90,6 @@
     "tailwindcss": "^3.3.3",
     "vite": "^6.2.6",
     "wait-on": "8.0.3"
-  },
-  "build": {
-    "appId": "com.groq.desktop",
-    "productName": "NeoChat Desktop",
-    "files": [
-      "dist/**/*",
-      "electron/**/*",
-      "shared/**/*",
-      "node_modules/**/*"
-    ],
-    "asarUnpack": [
-      "electron/scripts/*.sh",
-      "electron/scripts/*.cmd",
-      "electron/scripts/*.ps1"
-    ],
-    "directories": {
-      "buildResources": "public",
-      "output": "release"
-    },
-    "mac": {
-      "category": "public.app-category.productivity"
-    },
-    "win": {
-      "target": [
-        "nsis",
-        "portable"
-      ],
-      "icon": "public/icon.png"
-    },
-    "linux": {
-      "target": [
-        "AppImage",
-        "deb",
-        "rpm"
-      ],
-      "category": "Development",
-      "icon": "public/icon.png"
-    },
-    "publish": [
-      {
-        "provider": "github",
-        "owner": "giseldo",
-        "repo": "neochat-releases"
-      }
-    ]
   },
   "engines": {
     "node": ">=16.0.0"
