@@ -648,6 +648,21 @@ function App() {
     }
   }, []);
 
+  // Callback to toggle interfaceMode (user / power) from Quick Menu
+  const handleInterfaceModeChange = useCallback(async (newMode) => {
+    const validMode = newMode === 'power' ? 'power' : 'user';
+    setInterfaceMode(validMode);
+    try {
+      const currentSettings = await window.electron.getSettings();
+      await window.electron.saveSettings({
+        ...currentSettings,
+        interfaceMode: validMode
+      });
+    } catch (error) {
+      console.error('Error saving interfaceMode from quick menu:', error);
+    }
+  }, []);
+
   // Check if user is at the bottom of the scroll area (within 100px threshold)
   const isAtBottom = () => {
     if (!messagesContainerRef.current) return true;
@@ -2200,8 +2215,11 @@ function App() {
                 <span className="hidden md:inline">{t('header.compareModels')}</span>
               </Button>}
 
-              {/* Theme Toggle Button */}
-              <ThemeToggle />
+              {/* Theme & Quick Appearance / Mode Toggle */}
+              <ThemeToggle
+                interfaceMode={interfaceMode}
+                onInterfaceModeChange={handleInterfaceModeChange}
+              />
 
               
               <Link to="/settings">
