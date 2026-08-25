@@ -1702,6 +1702,8 @@ function stopChatStream(streamId) {
             }
         }
     }
+}
+
 /**
  * Runs a single model stream for comparison mode
  */
