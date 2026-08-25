@@ -244,9 +244,12 @@ contextBridge.exposeInMainWorld('electron', {
     return () => ipcRenderer.removeListener('context-captured', listener);
   },
 
-  // --- Popup Window Functions ---
+  // --- Popup Window & Global Shortcut Functions ---
   closePopup: () => ipcRenderer.invoke('close-popup'),
   isPopupOpen: () => ipcRenderer.invoke('is-popup-open'),
+  togglePopup: () => ipcRenderer.invoke('toggle-popup'),
+  updateGlobalShortcut: (shortcut, enabled) => ipcRenderer.invoke('update-global-shortcut', { shortcut, enabled }),
+  getGlobalShortcutStatus: () => ipcRenderer.invoke('get-global-shortcut-status'),
   
   // Event listener for popup context (sent when popup opens with context)
   onPopupContext: (callback) => {
@@ -256,9 +259,6 @@ contextBridge.exposeInMainWorld('electron', {
     return () => ipcRenderer.removeListener('popup-context', listener);
   },
 
-  // Other?
-  sendToMain: (channel, data) => ipcRenderer.send(channel, data),
-  
   // Custom context menu
   showContextMenu: (items) => ipcRenderer.send('show-context-menu', items),
 

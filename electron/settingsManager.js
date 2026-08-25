@@ -52,6 +52,7 @@ function loadSettings() {
             toolPermissions: { defaultPolicy: 'prompt', tools: {}, allowAll: false },
             customSystemPrompt: '',
             popupEnabled: true,
+            popupShortcut: 'CommandOrControl+Shift+Space',
             customCompletionUrl: '',
             toolOutputLimit: 8000,
             customApiBaseUrl: '',
@@ -102,6 +103,7 @@ function loadSettings() {
         toolPermissions: { defaultPolicy: 'prompt', tools: {}, allowAll: false },
         customSystemPrompt: '',
         popupEnabled: true,
+        popupShortcut: 'CommandOrControl+Shift+Space',
         customCompletionUrl: '',
         toolOutputLimit: 8000,
         customApiBaseUrl: '',
@@ -182,6 +184,7 @@ function loadSettings() {
             settings.toolPermissions = settings.toolPermissions || defaultSettings.toolPermissions;
             settings.customSystemPrompt = settings.customSystemPrompt || defaultSettings.customSystemPrompt;
             settings.popupEnabled = settings.popupEnabled ?? defaultSettings.popupEnabled;
+            settings.popupShortcut = settings.popupShortcut || defaultSettings.popupShortcut;
 
             // Log API key status only if not configured (for debugging)
             if (!settings.GROQ_API_KEY || settings.GROQ_API_KEY === "<replace me>") {

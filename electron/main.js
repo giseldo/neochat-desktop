@@ -112,51 +112,75 @@ function setContextForRenderer(context) {
 }
 
 // --- Context Capture Functions ---
-function initializeContextCapture() {
-  contextCapture = new ContextCapture();
-  popupWindowManager = new PopupWindowManager();
-  
-  // Register global hotkey with callback that opens popup
-  const success = contextCapture.registerGlobalHotkey((capturedContext) => {
-    console.log('Context captured via global hotkey:', capturedContext);
+function getContextCaptureCallback() {
+  return (capturedContext) => {
+    console.log('[Main] Context captured via global hotkey:', capturedContext);
     lastCapturedContext = capturedContext;
     
     // Check if popup is enabled in settings
     const settings = loadSettings();
     if (settings.popupEnabled === false) {
-      console.log('Popup is disabled in settings. Not showing.');
-      // Optionally, show the main window instead
+      console.log('[Main] Popup is disabled in settings. Focusing main window.');
       if (mainWindow) {
         if (mainWindow.isMinimized()) mainWindow.restore();
         mainWindow.focus();
-        // If you want to pass context to the main window, you can do it here
         if (mainWindow.webContents) {
-            mainWindow.webContents.send('context-captured', capturedContext);
+          mainWindow.webContents.send('context-captured', capturedContext);
         }
       }
       return;
     }
 
-    // Open popup window with captured context
+    // Toggle/Open popup window with captured context
     try {
-      const { x, y } = screen.getCursorScreenPoint();
-      popupWindowManager.createPopupWindow(capturedContext, { x, y });
-      console.log('Popup window opened with context from:', capturedContext.source);
+      const mousePosition = screen.getCursorScreenPoint();
+      if (popupWindowManager) {
+        popupWindowManager.togglePopup(capturedContext, mousePosition);
+        console.log('[Main] Popup window toggled/opened with context');
+      }
     } catch (error) {
-      console.error('Error opening popup window:', error);
+      console.error('[Main] Error opening popup window:', error);
     }
     
-    // Also notify main window if it exists (for legacy support)
+    // Also notify main window if it exists
     if (mainWindow && !mainWindow.isDestroyed() && mainWindow.webContents) {
       mainWindow.webContents.send('context-captured', capturedContext);
     }
-  });
+  };
+}
+
+function initializeContextCapture() {
+  contextCapture = new ContextCapture();
+  popupWindowManager = new PopupWindowManager();
   
-  if (!success) {
-    console.error('Failed to register global hotkey for context capture');
+  const settings = loadSettings();
+  const shortcut = settings.popupShortcut || 'CommandOrControl+Shift+Space';
+  const enabled = settings.popupEnabled !== false;
+
+  if (!enabled) {
+    console.log('[Main] Context capture hotkey disabled in settings.');
+    return { success: true, disabled: true };
   }
-  
-  return success;
+
+  const result = contextCapture.registerGlobalHotkey(getContextCaptureCallback(), shortcut);
+  return result;
+}
+
+function reconfigureGlobalShortcut(shortcut, enabled = true) {
+  if (!contextCapture) {
+    contextCapture = new ContextCapture();
+  }
+  if (!popupWindowManager) {
+    popupWindowManager = new PopupWindowManager();
+  }
+
+  if (enabled === false) {
+    contextCapture.unregisterGlobalHotkey();
+    return { success: true, disabled: true, accelerator: null };
+  }
+
+  const effectiveShortcut = shortcut || 'CommandOrControl+Shift+Space';
+  return contextCapture.registerGlobalHotkey(getContextCaptureCallback(), effectiveShortcut);
 }
 
 function cleanupContextCapture() {
@@ -539,7 +563,7 @@ app.whenReady().then(async () => {
     return null;
   });
 
-  // --- Popup Window IPC Handlers ---
+  // --- Popup Window & Global Shortcut IPC Handlers ---
   ipcMain.handle('close-popup', async () => {
     if (popupWindowManager) {
       popupWindowManager.closePopup();
@@ -548,6 +572,31 @@ app.whenReady().then(async () => {
 
   ipcMain.handle('is-popup-open', async () => {
     return popupWindowManager ? popupWindowManager.isOpen() : false;
+  });
+
+  ipcMain.handle('toggle-popup', async () => {
+    if (popupWindowManager) {
+      const mousePosition = screen.getCursorScreenPoint();
+      popupWindowManager.togglePopup(lastCapturedContext, mousePosition);
+      return true;
+    }
+    return false;
+  });
+
+  ipcMain.handle('update-global-shortcut', async (event, { shortcut, enabled }) => {
+    console.log('[Main] Updating global shortcut:', { shortcut, enabled });
+    const result = reconfigureGlobalShortcut(shortcut, enabled);
+    return result;
+  });
+
+  ipcMain.handle('get-global-shortcut-status', async () => {
+    const settings = loadSettings();
+    const status = contextCapture ? contextCapture.getStatus() : { isRegistered: false, accelerator: null };
+    return {
+      ...status,
+      configuredShortcut: settings.popupShortcut || 'CommandOrControl+Shift+Space',
+      enabled: settings.popupEnabled !== false
+    };
   });
 
   // --- Auth IPC Handler ---

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import MessageList from './components/MessageList';
 import ChatInput from './components/ChatInput';
 import ToolsPanel from './components/ToolsPanel';
@@ -17,10 +17,11 @@ import KnowledgeBaseModal from './components/KnowledgeBaseModal';
 import CompareChatView from './components/CompareChatView';
 import WorkflowsModal from './components/WorkflowsModal';
 import WelcomeScreen from './components/WelcomeScreen';
+import KeyboardShortcutsModal from './components/KeyboardShortcutsModal';
 import { useChat } from './context/ChatContext';
 import { useProjects } from './context/ProjectContext';
 import { useLanguage } from './context/LanguageContext';
-import { Settings, PanelLeftClose, PanelLeft, Radio, MessagesSquare, Sparkles, Store, Columns2, X, FolderKanban, BookOpen, Scale, Bot, Workflow, ChevronDown } from 'lucide-react';
+import { Settings, PanelLeftClose, PanelLeft, Radio, MessagesSquare, Sparkles, Store, Columns2, X, FolderKanban, BookOpen, Scale, Bot, Workflow, ChevronDown, Keyboard } from 'lucide-react';
 import { Button } from './components/ui/button';
 import { cn } from './lib/utils';
 import { groupModels } from './lib/modelGrouping';
@@ -114,11 +115,13 @@ function App() {
     closeKnowledgeBaseModal
   } = useProjects();
   const { t } = useLanguage();
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('chat'); // 'chat' | 'trajectory'
   const [showTrajectoryTab, setShowTrajectoryTab] = useState(true);
   const [interfaceMode, setInterfaceMode] = useState('user');
   const isPowerUser = interfaceMode === 'power';
   const [loading, setLoading] = useState(false);
+  const [isShortcutsModalOpen, setIsShortcutsModalOpen] = useState(false);
   const [selectedModel, setSelectedModel] = useState('llama-3.3-70b-versatile');
   const [mcpTools, setMcpTools] = useState([]);
   const [isToolsPanelOpen, setIsToolsPanelOpen] = useState(false);
