@@ -29,6 +29,7 @@ function ChatInput({
 	focusSignal = 0,
 	onModelConfigUpdated,
 	powerUserMode = false,
+	presetMessage = "",
 }) {
 	const effectiveToolsCount = typeof toolsCount === 'number' && toolsCount > 0
 		? toolsCount
@@ -41,6 +42,19 @@ function ChatInput({
 	const [webSearchActive, setWebSearchActive] = useState(false);
 	const suggestionTimeout = useRef(null);
 	const { messages, activeContext } = useContext(ChatContext);
+
+	useEffect(() => {
+		if (presetMessage) {
+			setMessage(presetMessage);
+			setTimeout(() => {
+				if (textareaRef.current) {
+					textareaRef.current.focus();
+					const len = presetMessage.length;
+					textareaRef.current.setSelectionRange(len, len);
+				}
+			}, 50);
+		}
+	}, [presetMessage]);
 
 	// Slash Commands & Prompt Templates state
 	const [customTemplates, setCustomTemplates] = useState([]);

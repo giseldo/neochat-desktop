@@ -16,6 +16,7 @@ import MoveToProjectModal from './components/MoveToProjectModal';
 import KnowledgeBaseModal from './components/KnowledgeBaseModal';
 import CompareChatView from './components/CompareChatView';
 import WorkflowsModal from './components/WorkflowsModal';
+import WelcomeScreen from './components/WelcomeScreen';
 import { useChat } from './context/ChatContext';
 import { useProjects } from './context/ProjectContext';
 import { useLanguage } from './context/LanguageContext';
@@ -186,6 +187,10 @@ function App() {
   // --- Autonomous Agent Mode State ---
   const [agentStep, setAgentStep] = useState(0);
   // --- End Autonomous Agent Mode State ---
+
+  // --- Preset Input Message State for Welcome suggestions ---
+  const [presetInputMessage, setPresetInputMessage] = useState('');
+  // --- End Preset Input Message State ---
 
   useEffect(() => {
     if (!isPowerUser) {
@@ -2344,11 +2349,20 @@ function App() {
                 </div>
               ) : (messages.length === 0 && (activeTab === 'chat' || !showTrajectoryTab)) ? (
                 /* Welcome Screen */
-                <div className="flex flex-col items-center justify-center h-full space-y-8">
+                <div className="flex flex-col items-center justify-center h-full max-w-4xl lg:max-w-5xl mx-auto w-full px-4 py-6 overflow-y-auto">
+                  <WelcomeScreen
+                    onSelectPrompt={(promptText) => {
+                      setPresetInputMessage(promptText);
+                      setChatFocusSignal(prev => prev + 1);
+                    }}
+                  />
                   {/* Chat Input */}
-                  <div className="w-full max-w-4xl lg:max-w-5xl">
+                  <div className="w-full">
                     <ChatInput
-                      onSendMessage={handleSendMessage}
+                      onSendMessage={(msg, files) => {
+                        setPresetInputMessage('');
+                        handleSendMessage(msg, files);
+                      }}
                       onStopGeneration={handleStopGeneration}
                       loading={loading}
                       visionSupported={visionSupported}
@@ -2361,6 +2375,7 @@ function App() {
                       focusSignal={chatFocusSignal}
                       onModelConfigUpdated={handleModelConfigUpdated}
                       powerUserMode={isPowerUser}
+                      presetMessage={presetInputMessage}
                     />
                   </div>
                 </div>

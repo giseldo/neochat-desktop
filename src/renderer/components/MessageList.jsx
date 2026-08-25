@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import Message from './Message';
 import MarkdownRenderer from './MarkdownRenderer';
 import { Bot } from 'lucide-react';
+import { ClaudeAsterisk } from './WelcomeScreen';
 import { useLanguage } from '../context/LanguageContext';
 import { extractThinking } from '../lib/messageUtils';
 
@@ -36,10 +37,8 @@ function MessageList({
 
   if (messages.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center h-full text-muted-foreground select-none p-6">
-        <div className="p-3 rounded-2xl bg-primary/10 text-primary mb-3">
-          <Bot className="w-8 h-8" />
-        </div>
+      <div className="flex flex-col items-center justify-center h-full min-h-[250px] text-muted-foreground select-none p-6 animate-in fade-in duration-300">
+        <ClaudeAsterisk className="w-8 h-8 mb-3" />
         <h3 className="font-semibold text-sm text-foreground mb-1">{t('welcome.title')}</h3>
         <p className="text-center text-xs max-w-sm text-muted-foreground">
           {t('welcome.subtitle')}
