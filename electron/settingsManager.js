@@ -8,6 +8,17 @@ require('dotenv').config();
 let appInstance; // To store app instance for userData path
 let secretStore;
 
+function normalizeTts(value = {}) {
+    const clamp = (number, fallback) => Math.min(2, Math.max(0.5, Number.isFinite(Number(number)) ? Number(number) : fallback));
+    return {
+        enabled: value.enabled !== false,
+        autoSpeak: value.autoSpeak === true,
+        voiceURI: typeof value.voiceURI === 'string' ? value.voiceURI : '',
+        rate: clamp(value.rate, 1.05),
+        pitch: clamp(value.pitch, 1)
+    };
+}
+
 function persistSettings(settings, settingsPath) {
     const result = secretStore ? secretStore.save(settings) : { protected: false, publicSettings: settings };
     const temporaryPath = `${settingsPath}.tmp`;
@@ -67,6 +78,7 @@ function loadSettings() {
         apiKeys: {},
         fallbackProviders: [],
         fallbackModels: {},
+        tts: { enabled: true, autoSpeak: false, voiceURI: '', rate: 1.05, pitch: 1 },
         GROQ_API_KEY: process.env.GROQ_API_KEY || "<replace me>",
         model: process.env.GROQ_DEFAULT_MODEL || "llama-3.3-70b-versatile",
         temperature: 0.7,
@@ -140,6 +152,7 @@ function loadSettings() {
             settings.apiKeys = settings.apiKeys || {};
             settings.fallbackProviders = Array.isArray(settings.fallbackProviders) ? settings.fallbackProviders : [];
             settings.fallbackModels = settings.fallbackModels || {};
+            settings.tts = normalizeTts(settings.tts);
 
             // Migrate legacy GROQ_API_KEY into apiKeys.groq (and keep in sync)
             if (settings.GROQ_API_KEY && settings.GROQ_API_KEY !== "<replace me>" && !settings.apiKeys.groq) {
@@ -296,5 +309,6 @@ async function saveSettings(settings) {
 module.exports = {
     loadSettings,
     saveSettings,
-    initializeSettingsHandlers
+    initializeSettingsHandlers,
+    normalizeTts
 };

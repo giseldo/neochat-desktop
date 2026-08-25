@@ -74,7 +74,8 @@ function Settings() {
     googleTokenExpiresAt: null,
     remoteMcpServers: {},
     fallbackProviders: [],
-    fallbackModels: {}
+    fallbackModels: {},
+    tts: { enabled: true, autoSpeak: false, voiceURI: '', rate: 1.05, pitch: 1 }
   });
   const [googleOAuthStatus, setGoogleOAuthStatus] = useState(null);
   const [isRefreshingToken, setIsRefreshingToken] = useState(false);
@@ -126,6 +127,15 @@ function Settings() {
   // Local AI Auto-Detection state
   const [localAiStatus, setLocalAiStatus] = useState(null);
   const [isDetectingLocalAi, setIsDetectingLocalAi] = useState(false);
+  const [speechVoices, setSpeechVoices] = useState([]);
+
+  useEffect(() => {
+    if (!window.speechSynthesis) return undefined;
+    const loadVoices = () => setSpeechVoices(window.speechSynthesis.getVoices());
+    loadVoices();
+    window.speechSynthesis.addEventListener('voiceschanged', loadVoices);
+    return () => window.speechSynthesis.removeEventListener('voiceschanged', loadVoices);
+  }, []);
 
   const checkLocalAi = async () => {
     if (!window.electron?.localAi?.detect) return;
@@ -1314,6 +1324,12 @@ function Settings() {
     saveSettings(updatedSettings);
   };
 
+  const updateTts = (updates) => {
+    const updatedSettings = { ...settings, tts: { ...(settings.tts || {}), ...updates } };
+    setSettings(updatedSettings);
+    saveSettings(updatedSettings);
+  };
+
   const handleExportBackup = async () => {
     const result = await window.electron.backup.export();
     if (result?.success) setSaveStatus({ type: 'success', message: t('settings.backupExported') });
@@ -1754,6 +1770,28 @@ function Settings() {
                       </div>
                     </div>
                   </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>{t('settings.ttsTitle')}</CardTitle>
+                <CardDescription>{t('settings.ttsDesc')}</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex items-center justify-between"><Label>{t('settings.ttsEnabled')}</Label><Switch checked={settings.tts?.enabled !== false} onChange={event => updateTts({ enabled: event.target.checked })} /></div>
+                <div className="flex items-center justify-between"><Label>{t('settings.ttsAutoSpeak')}</Label><Switch checked={settings.tts?.autoSpeak === true} onChange={event => updateTts({ autoSpeak: event.target.checked })} /></div>
+                <div className="space-y-2">
+                  <Label>{t('settings.ttsVoice')}</Label>
+                  <select className="w-full h-10 rounded-md border border-input bg-background px-3 text-sm" value={settings.tts?.voiceURI || ''} onChange={event => updateTts({ voiceURI: event.target.value })}>
+                    <option value="">{t('settings.ttsSystemVoice')}</option>
+                    {speechVoices.map(voice => <option key={voice.voiceURI} value={voice.voiceURI}>{voice.name} ({voice.lang})</option>)}
+                  </select>
+                </div>
+                <div className="grid sm:grid-cols-2 gap-4">
+                  <div className="space-y-2"><Label>{t('settings.ttsRate')}: {settings.tts?.rate || 1.05}</Label><input className="w-full" type="range" min="0.5" max="2" step="0.05" value={settings.tts?.rate || 1.05} onChange={event => updateTts({ rate: Number(event.target.value) })} /></div>
+                  <div className="space-y-2"><Label>{t('settings.ttsPitch')}: {settings.tts?.pitch || 1}</Label><input className="w-full" type="range" min="0.5" max="2" step="0.05" value={settings.tts?.pitch || 1} onChange={event => updateTts({ pitch: Number(event.target.value) })} /></div>
                 </div>
               </CardContent>
             </Card>

@@ -509,6 +509,14 @@ export const translations = {
       
       // Appearance Card
       appearanceTitle: 'Aparência e Tema',
+      ttsTitle: 'Leitura em voz alta',
+      ttsDesc: 'Configure a voz usada para ler respostas do assistente.',
+      ttsEnabled: 'Exibir controle de leitura',
+      ttsAutoSpeak: 'Ler novas respostas automaticamente',
+      ttsVoice: 'Voz',
+      ttsSystemVoice: 'Voz padrão do sistema',
+      ttsRate: 'Velocidade',
+      ttsPitch: 'Tom',
       interfaceModeTitle: 'Experiência da interface',
       interfaceModeDesc: 'Escolha uma interface simples para uso cotidiano ou revele todos os controles técnicos.',
       userMode: 'Modo Usuário',
@@ -1431,6 +1439,14 @@ export const translations = {
       
       // Appearance Card
       appearanceTitle: 'Appearance & Theme',
+      ttsTitle: 'Read aloud',
+      ttsDesc: 'Configure the voice used to read assistant responses.',
+      ttsEnabled: 'Show read-aloud control',
+      ttsAutoSpeak: 'Automatically read new responses',
+      ttsVoice: 'Voice',
+      ttsSystemVoice: 'System default voice',
+      ttsRate: 'Rate',
+      ttsPitch: 'Pitch',
       interfaceModeTitle: 'Interface experience',
       interfaceModeDesc: 'Choose a clean everyday interface or reveal every technical control.',
       userMode: 'User Mode',

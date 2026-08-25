@@ -25,7 +25,8 @@
     "test:workflows": "node test-workflows.js",
     "test:scheduler": "node test-scheduler.js",
     "test:rag-incremental": "node test-rag-incremental.js",
-    "test:provider-fallback": "node test-provider-fallback.js"
+    "test:provider-fallback": "node test-provider-fallback.js",
+    "test:tts-settings": "node test-tts-settings.js"
   },
   "keywords": [
     "electron",

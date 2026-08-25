@@ -34,6 +34,8 @@ function Message({
   const [copySuccess, setCopySuccess] = useState(false);
   const [showActions, setShowActions] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
+  const [ttsSettings, setTtsSettings] = useState({ enabled: true, autoSpeak: false, voiceURI: '', rate: 1.05, pitch: 1 });
+  const autoSpokenRef = useRef(null);
   const [showDetailedStats, setShowDetailedStats] = useState(false);
   const wasStreamingRef = useRef(false);
   const actionTimeoutRef = useRef(null);
@@ -80,6 +82,10 @@ function Message({
   const isReasoningComplete = (effectiveReasoningDuration && hasReasoning) || (!isStreamingMessage && hasReasoning) || (!extracted.isStreamingThink && hasReasoning);
   
   // Auto-collapse when streaming finishes
+  useEffect(() => {
+    window.electron?.getSettings?.().then(settings => setTtsSettings(current => ({ ...current, ...(settings.tts || {}) }))).catch(() => {});
+  }, []);
+
   useEffect(() => {
     if (wasStreamingRef.current && !isStreamingMessage) {
       setShowReasoning(false);
@@ -309,7 +315,10 @@ function Message({
 
       const utterance = new SpeechSynthesisUtterance(cleanText);
       utterance.lang = language === 'pt' ? 'pt-BR' : 'en-US';
-      utterance.rate = 1.05;
+      utterance.rate = Number(ttsSettings.rate) || 1.05;
+      utterance.pitch = Number(ttsSettings.pitch) || 1;
+      const selectedVoice = window.speechSynthesis.getVoices().find(voice => voice.voiceURI === ttsSettings.voiceURI);
+      if (selectedVoice) utterance.voice = selectedVoice;
 
       utterance.onend = () => setIsSpeaking(false);
       utterance.onerror = () => setIsSpeaking(false);
@@ -318,6 +327,14 @@ function Message({
       window.speechSynthesis.speak(utterance);
     }
   };
+
+  useEffect(() => {
+    if (!ttsSettings.autoSpeak || isUser || !isLastMessage || isStreamingMessage || loading) return;
+    const key = `${message.timestamp || message.createdAt || ''}:${typeof message.content === 'string' ? message.content : ''}`;
+    if (!key || autoSpokenRef.current === key) return;
+    autoSpokenRef.current = key;
+    toggleSpeech();
+  }, [ttsSettings.autoSpeak, isUser, isLastMessage, isStreamingMessage, loading, message.content, message.timestamp, message.createdAt]);
 
   const isOutputCollapsed = (toolIndex) => {
     return !collapsedOutputs.has(toolIndex);
@@ -584,7 +601,7 @@ function Message({
 
             {/* Actions: TTS, Copy, Reload */}
             <div className="flex items-center gap-1">
-              <button
+              {ttsSettings.enabled !== false && <button
                 onClick={toggleSpeech}
                 className={cn(
                   "flex items-center gap-1 p-1.5 rounded-md transition-colors",
@@ -595,7 +612,7 @@ function Message({
                 title={isSpeaking ? t('message.ttsStop') : t('message.ttsListen')}
               >
                 {isSpeaking ? <VolumeX className="w-3.5 h-3.5" /> : <Volume2 className="w-3.5 h-3.5" />}
-              </button>
+              </button>}
 
               <button
                 onClick={handleCopy}
