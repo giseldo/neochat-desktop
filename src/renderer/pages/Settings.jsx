@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { Link, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Eye, EyeOff, Plus, Trash2, Edit3, Save, X, RefreshCw, Key, Settings as SettingsIcon, Zap, Cpu, Server, AlertCircle, CheckCircle, Sun, Moon, Laptop, Languages, Check, Terminal, Globe, Palette, Type, Sparkles, Sliders, ExternalLink, Route, User, Wrench, Download, UploadCloud, BarChart3, GitBranch } from 'lucide-react';
+import { ArrowLeft, Eye, EyeOff, Plus, Trash2, Edit3, Save, X, RefreshCw, Key, Settings as SettingsIcon, Zap, Cpu, Server, AlertCircle, CheckCircle, Sun, Moon, Laptop, Languages, Check, Terminal, Globe, Palette, Type, Sparkles, Sliders, ExternalLink, Route, User, Wrench, Download, UploadCloud, BarChart3, GitBranch, Mic, Volume2, Info } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
@@ -78,6 +78,7 @@ function Settings() {
     fallbackProviders: [],
     fallbackModels: {},
     tts: { enabled: true, autoSpeak: false, voiceURI: '', rate: 1.05, pitch: 1 },
+    voiceInput: { enabled: true },
     autoUpdate: { checkOnStartup: true, channel: 'stable' },
     observability: { monthlyBudgetUsd: 0, defaultRate: { input: 0, output: 0 }, modelRates: {} },
     gitIntegration: { repositoryPath: '' }
@@ -1537,6 +1538,12 @@ function Settings() {
     saveSettings(updatedSettings);
   };
 
+  const updateVoiceInput = (updates) => {
+    const updatedSettings = { ...settings, voiceInput: { ...(settings.voiceInput || {}), ...updates } };
+    setSettings(updatedSettings);
+    saveSettings(updatedSettings);
+  };
+
   const updateAutoUpdate = (updates) => {
     const updatedSettings = { ...settings, autoUpdate: { ...(settings.autoUpdate || {}), ...updates } };
     setSettings(updatedSettings);
@@ -2010,9 +2017,56 @@ function Settings() {
               </CardContent>
             </Card>
 
+            {/* Voice Input (Speech-to-Text) */}
             <Card>
               <CardHeader>
-                <CardTitle>{t('settings.ttsTitle')}</CardTitle>
+                <CardTitle className="flex items-center space-x-2">
+                  <Mic className="h-5 w-5 text-primary" />
+                  <span>{t('settings.voiceInputTitle')}</span>
+                </CardTitle>
+                <CardDescription>{t('settings.voiceInputDesc')}</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label>{t('settings.voiceInputEnabled')}</Label>
+                    <p className="text-xs text-muted-foreground">{t('settings.voiceInputEnabledDesc')}</p>
+                  </div>
+                  <Switch
+                    checked={settings.voiceInput?.enabled !== false}
+                    onChange={event => updateVoiceInput({ enabled: event.target.checked })}
+                  />
+                </div>
+
+                <div className="rounded-xl border border-border/70 bg-muted/20 p-3.5 space-y-2 text-xs">
+                  <div className="flex items-start gap-2.5">
+                    <Info className="w-4 h-4 text-primary shrink-0 mt-0.5" />
+                    <div className="space-y-1.5 text-foreground/90">
+                      <p className="font-semibold text-foreground">
+                        {t('settings.voiceInputInfoTitle')}
+                      </p>
+                      <p className="text-muted-foreground leading-relaxed">
+                        {t('settings.voiceInputInfoModel')}
+                      </p>
+                      <p className="text-muted-foreground leading-relaxed">
+                        {t('settings.voiceInputInfoUniversal')}
+                      </p>
+                      <p className="text-muted-foreground leading-relaxed">
+                        {t('settings.voiceInputInfoShortcut')}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Read Aloud (TTS) */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center space-x-2">
+                  <Volume2 className="h-5 w-5 text-primary" />
+                  <span>{t('settings.ttsTitle')}</span>
+                </CardTitle>
                 <CardDescription>{t('settings.ttsDesc')}</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">

@@ -55,6 +55,7 @@ function ChatInput({
 	const [rowHeight, setRowHeight] = useState(null);
 	const [isRecording, setIsRecording] = useState(false);
 	const [isTranscribing, setIsTranscribing] = useState(false);
+	const [voiceInputEnabled, setVoiceInputEnabled] = useState(true);
 	const [isSnipModalOpen, setIsSnipModalOpen] = useState(false);
 	const [agentModeActive, setAgentModeActive] = useState(() => {
 		try {
@@ -67,6 +68,7 @@ function ChatInput({
 	const audioChunksRef = useRef([]);
 	const isRecordingRef = useRef(false);
 	const isTranscribingRef = useRef(false);
+	const voiceInputEnabledRef = useRef(true);
 	const loadingRef = useRef(loading);
 	const isHoldingVoiceRef = useRef(false);
 	const shouldStopImmediatelyRef = useRef(false);
@@ -78,6 +80,10 @@ function ChatInput({
 	useEffect(() => {
 		isTranscribingRef.current = isTranscribing;
 	}, [isTranscribing]);
+
+	useEffect(() => {
+		voiceInputEnabledRef.current = voiceInputEnabled;
+	}, [voiceInputEnabled]);
 
 	useEffect(() => {
 		loadingRef.current = loading;
@@ -105,22 +111,27 @@ function ChatInput({
 		loadCustomTemplates();
 	}, []);
 
-	// Sync web search state with settings
+	// Sync web search and voice input states with settings
 	useEffect(() => {
 		let isMounted = true;
-		const syncWebSearchSetting = async () => {
+		const syncSettings = async () => {
 			try {
 				if (window.electron?.getSettings) {
 					const settings = await window.electron.getSettings();
-					if (isMounted && settings?.webSearch) {
-						setWebSearchActive(settings.webSearch.enabled !== false);
+					if (isMounted) {
+						if (settings?.webSearch) {
+							setWebSearchActive(settings.webSearch.enabled !== false);
+						}
+						if (settings?.voiceInput) {
+							setVoiceInputEnabled(settings.voiceInput.enabled !== false);
+						}
 					}
 				}
 			} catch (err) {
-				console.error("Error loading webSearch setting in ChatInput:", err);
+				console.error("Error loading settings in ChatInput:", err);
 			}
 		};
-		syncWebSearchSetting();
+		syncSettings();
 		return () => { isMounted = false; };
 	}, [focusSignal]);
 
@@ -345,7 +356,7 @@ function ChatInput({
 
 	// Toggle voice recording (for mouse clicks)
 	const toggleRecording = () => {
-		if (loadingRef.current || isTranscribingRef.current) return;
+		if (!voiceInputEnabled || loadingRef.current || isTranscribingRef.current) return;
 		if (isRecordingRef.current) {
 			isHoldingVoiceRef.current = false;
 			stopRecording();
@@ -358,6 +369,7 @@ function ChatInput({
 	// Keyboard shortcut: Hold Ctrl+Alt (or Cmd+Alt / Ctrl+Alt+V / Ctrl+Alt+Space) to record, release to transcribe
 	useEffect(() => {
 		const handleVoiceKeyDown = (e) => {
+			if (!voiceInputEnabledRef.current) return;
 			const hasCtrlOrMeta = e.ctrlKey || e.metaKey;
 			const hasAlt = e.altKey;
 
@@ -945,31 +957,33 @@ function ChatInput({
 						</Button>}
 
 						{/* Voice Dictation (Whisper) Button */}
-						<Button
-							type="button"
-							variant="ghost"
-							size="sm"
-							onClick={toggleRecording}
-							className={cn(
-								"transition-all duration-200 rounded-xl px-2.5 py-1.5 text-xs font-medium",
-								isRecording
-									? "bg-red-500/20 text-red-500 animate-pulse border border-red-500/40"
-									: isTranscribing
-										? "text-primary animate-pulse"
-										: "text-muted-foreground hover:text-foreground hover:bg-muted/60 hover:shadow-sm"
-							)}
-							title={isRecording ? t('chat.voiceRecordingTooltip') : isTranscribing ? t('chat.voiceTranscribingTooltip') : t('chat.voiceTooltip')}
-							disabled={loading || isTranscribing}
-						>
-							{isTranscribing ? (
-								<Loader2 className="w-4 h-4 mr-1.5 animate-spin flex-shrink-0 text-primary" />
-							) : isRecording ? (
-								<MicOff className="w-4 h-4 mr-1.5 text-red-500 flex-shrink-0" />
-							) : (
-								<Mic className="w-4 h-4 mr-1.5 flex-shrink-0 text-rose-500" />
-							)}
-							<span>{isRecording ? t('chat.recording') : isTranscribing ? t('chat.transcribing') : t('chat.voice')}</span>
-						</Button>
+						{voiceInputEnabled && (
+							<Button
+								type="button"
+								variant="ghost"
+								size="sm"
+								onClick={toggleRecording}
+								className={cn(
+									"transition-all duration-200 rounded-xl px-2.5 py-1.5 text-xs font-medium",
+									isRecording
+										? "bg-red-500/20 text-red-500 animate-pulse border border-red-500/40"
+										: isTranscribing
+											? "text-primary animate-pulse"
+											: "text-muted-foreground hover:text-foreground hover:bg-muted/60 hover:shadow-sm"
+								)}
+								title={isRecording ? t('chat.voiceRecordingTooltip') : isTranscribing ? t('chat.voiceTranscribingTooltip') : t('chat.voiceTooltip')}
+								disabled={loading || isTranscribing}
+							>
+								{isTranscribing ? (
+									<Loader2 className="w-4 h-4 mr-1.5 animate-spin flex-shrink-0 text-primary" />
+								) : isRecording ? (
+									<MicOff className="w-4 h-4 mr-1.5 text-red-500 flex-shrink-0" />
+								) : (
+									<Mic className="w-4 h-4 mr-1.5 flex-shrink-0 text-rose-500" />
+								)}
+								<span>{isRecording ? t('chat.recording') : isTranscribing ? t('chat.transcribing') : t('chat.voice')}</span>
+							</Button>
+						)}
 
 						{/* MCP Tools Button */}
 						{powerUserMode && onOpenMcpTools && (

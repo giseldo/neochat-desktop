@@ -569,6 +569,9 @@ app.whenReady().then(async () => {
   // --- Audio Transcription (Whisper) ---
   ipcMain.handle('transcribe-audio', async (event, { audioBase64, mimeType = 'audio/webm' }) => {
     const currentSettings = loadSettings();
+    if (currentSettings.voiceInput && currentSettings.voiceInput.enabled === false) {
+      return { success: false, error: 'O recurso de voz está desativado nas configurações.' };
+    }
     const apiKey = currentSettings.GROQ_API_KEY || (currentSettings.apiKeys && currentSettings.apiKeys.groq) || process.env.GROQ_API_KEY;
     if (!apiKey || apiKey === '<replace me>') {
       return { success: false, error: 'Chave Groq API Key não configurada nas configurações.' };

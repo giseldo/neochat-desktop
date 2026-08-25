@@ -19,6 +19,12 @@ function normalizeTts(value = {}) {
     };
 }
 
+function normalizeVoiceInput(value = {}) {
+    return {
+        enabled: value.enabled !== false
+    };
+}
+
 function persistSettings(settings, settingsPath) {
     const result = secretStore ? secretStore.save(settings) : { protected: false, publicSettings: settings };
     const temporaryPath = `${settingsPath}.tmp`;
@@ -61,6 +67,7 @@ function loadSettings() {
             googleClientSecret: "",
             googleTokenExpiresAt: null,
             customPromptTemplates: [],
+            voiceInput: { enabled: true },
             webSearch: {
                 enabled: true,
                 provider: 'local',
@@ -80,6 +87,7 @@ function loadSettings() {
         fallbackProviders: [],
         fallbackModels: {},
         tts: { enabled: true, autoSpeak: false, voiceURI: '', rate: 1.05, pitch: 1 },
+        voiceInput: { enabled: true },
         autoUpdate: { checkOnStartup: true, channel: 'stable' },
         observability: { monthlyBudgetUsd: 0, defaultRate: { input: 0, output: 0 }, modelRates: {} },
         gitIntegration: { repositoryPath: '' },
@@ -158,6 +166,7 @@ function loadSettings() {
             settings.fallbackProviders = Array.isArray(settings.fallbackProviders) ? settings.fallbackProviders : [];
             settings.fallbackModels = settings.fallbackModels || {};
             settings.tts = normalizeTts(settings.tts);
+            settings.voiceInput = normalizeVoiceInput(settings.voiceInput);
     settings.autoUpdate = { ...defaultSettings.autoUpdate, ...(settings.autoUpdate || {}) };
     settings.observability = { ...defaultSettings.observability, ...(settings.observability || {}), defaultRate: { ...defaultSettings.observability.defaultRate, ...(settings.observability?.defaultRate || {}) } };
     settings.gitIntegration = { ...defaultSettings.gitIntegration, ...(settings.gitIntegration || {}) };
@@ -318,5 +327,6 @@ module.exports = {
     loadSettings,
     saveSettings,
     initializeSettingsHandlers,
-    normalizeTts
+    normalizeTts,
+    normalizeVoiceInput
 };

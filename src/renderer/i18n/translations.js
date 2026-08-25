@@ -520,6 +520,14 @@ export const translations = {
       
       // Appearance Card
       appearanceTitle: 'Aparência e Tema',
+      voiceInputTitle: 'Ditado e Entrada de Voz',
+      voiceInputDesc: 'Transcreva sua voz diretamente no campo de mensagem com velocidade ultrarrápida.',
+      voiceInputEnabled: 'Habilitar recurso de voz (ditado)',
+      voiceInputEnabledDesc: 'Exibe o botão de voz no chat e permite gravar pelo atalho de teclado.',
+      voiceInputInfoTitle: 'Como funciona o recurso de voz:',
+      voiceInputInfoModel: '• Modelo de Transcrição: Utiliza o modelo Whisper Large v3 (whisper-large-v3) da Groq para transcrição de áudio em texto (Speech-to-Text). Requer uma chave Groq API Key configurada.',
+      voiceInputInfoUniversal: '• Compatibilidade Universal: Funciona com qualquer modelo ou provedor de chat (OpenAI, Claude, DeepSeek, Gemini, Ollama, etc.), pois o áudio é transcrito em texto e inserido diretamente na caixa de mensagem.',
+      voiceInputInfoShortcut: '• Atalho rápido: Você pode segurar Ctrl+Alt (ou Cmd+Alt no Mac) a qualquer momento para falar e soltar para transcrever instantaneamente.',
       ttsTitle: 'Leitura em voz alta',
       ttsDesc: 'Configure a voz usada para ler respostas do assistente.',
       ttsEnabled: 'Exibir controle de leitura',
@@ -1546,6 +1554,14 @@ export const translations = {
       
       // Appearance Card
       appearanceTitle: 'Appearance & Theme',
+      voiceInputTitle: 'Voice Dictation & Input',
+      voiceInputDesc: 'Transcribe your speech directly into the message box with ultra-fast speed.',
+      voiceInputEnabled: 'Enable voice dictation feature',
+      voiceInputEnabledDesc: 'Displays the voice button in the chat input and enables the keyboard push-to-talk shortcut.',
+      voiceInputInfoTitle: 'How the voice feature works:',
+      voiceInputInfoModel: '• Transcription Model: Uses Groq\'s Whisper Large v3 (whisper-large-v3) for Speech-to-Text transcription. Requires a Groq API Key configured in settings.',
+      voiceInputInfoUniversal: '• Universal Compatibility: Works with any chat model or provider (OpenAI, Claude, DeepSeek, Gemini, Ollama, etc.), because audio is transcribed to text and inserted into the message box.',
+      voiceInputInfoShortcut: '• Push-to-Talk Shortcut: Hold Ctrl+Alt (or Cmd+Alt on Mac) at any time to speak and release to transcribe instantly.',
       ttsTitle: 'Read aloud',
       ttsDesc: 'Configure the voice used to read assistant responses.',
       ttsEnabled: 'Show read-aloud control',
