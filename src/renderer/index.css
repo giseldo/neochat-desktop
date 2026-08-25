@@ -600,6 +600,51 @@ select#model-select option {
   }
 }
 
+@keyframes neo-spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes neo-spin-burst {
+  0% {
+    transform: rotate(0deg) scale(1);
+  }
+  50% {
+    transform: rotate(360deg) scale(1.15);
+  }
+  100% {
+    transform: rotate(720deg) scale(1);
+  }
+}
+
+@keyframes neo-spin-3d {
+  0% {
+    transform: perspective(400px) rotateY(0deg);
+  }
+  100% {
+    transform: perspective(400px) rotateY(360deg);
+  }
+}
+
+.animate-neo-spin {
+  animation: neo-spin 12s linear infinite;
+  transform-origin: center center;
+}
+
+.animate-neo-spin-fast {
+  animation: neo-spin 3s linear infinite;
+  transform-origin: center center;
+}
+
+.animate-neo-burst {
+  animation: neo-spin-burst 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+  transform-origin: center center;
+}
+
 @keyframes shimmer {
   0% {
     background-position: 200% center;

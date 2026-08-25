@@ -24,32 +24,8 @@ import { getRandomGreeting, getRandomTip, SUGGESTION_PROMPTS } from '../data/wel
 import { cn } from '../lib/utils';
 import { Button } from './ui/button';
 
-export function ClaudeAsterisk({ className = "w-8 h-8", color = "#D97757" }) {
-  const angles = [0, 30, 60, 90, 120, 150, 180, 210, 240, 270, 300, 330];
-  return (
-    <svg
-      viewBox="0 0 32 32"
-      className={cn("inline-block shrink-0 transition-transform duration-500 hover:rotate-90 select-none", className)}
-      style={{ color: color || '#D97757' }}
-      aria-hidden="true"
-    >
-      {angles.map((deg) => (
-        <line
-          key={deg}
-          x1="16"
-          y1="4.5"
-          x2="16"
-          y2="10.5"
-          stroke="currentColor"
-          strokeWidth="2.5"
-          strokeLinecap="round"
-          transform={`rotate(${deg} 16 16)`}
-        />
-      ))}
-      <circle cx="16" cy="16" r="2.2" fill="currentColor" />
-    </svg>
-  );
-}
+import { NeoSymbol, ClaudeAsterisk } from './NeoSymbol';
+export { NeoSymbol, ClaudeAsterisk };
 
 const getTipIcon = (iconName) => {
   const props = { className: "w-3.5 h-3.5 shrink-0" };
@@ -84,6 +60,8 @@ export default function WelcomeScreen({
   const [isFading, setIsFading] = useState(false);
   const [isRotating, setIsRotating] = useState(false);
 
+  const [isGreetingSpinning, setIsGreetingSpinning] = useState(false);
+
   // Sync when language changes
   useEffect(() => {
     setGreeting(getRandomGreeting(lang));
@@ -101,7 +79,9 @@ export default function WelcomeScreen({
   }, [lang]);
 
   const handleShuffleGreeting = useCallback(() => {
+    setIsGreetingSpinning(true);
     setGreeting(getRandomGreeting(lang));
+    setTimeout(() => setIsGreetingSpinning(false), 600);
   }, [lang]);
 
   const suggestions = SUGGESTION_PROMPTS.map(item => ({
@@ -113,13 +93,17 @@ export default function WelcomeScreen({
 
   return (
     <div className={cn("flex flex-col items-center justify-center text-center select-none w-full max-w-3xl mx-auto mb-6 px-4 animate-in fade-in duration-300", className)}>
-      {/* Claude-style Greeting Header */}
+      {/* Neo Greeting Header */}
       <div 
         className="flex items-center justify-center gap-3.5 mb-5 cursor-pointer group"
         onClick={handleShuffleGreeting}
         title={lang === 'pt' ? 'Clique para trocar saudação' : 'Click to change greeting'}
       >
-        <ClaudeAsterisk className="w-8 h-8 md:w-9 md:h-9 group-hover:scale-110 transition-transform duration-300" />
+        <NeoSymbol 
+          className="w-8 h-8 md:w-9 md:h-9 group-hover:scale-110 transition-transform duration-300" 
+          spinning={true}
+          spinBurst={isGreetingSpinning}
+        />
         <h2 className="text-2xl md:text-3xl lg:text-[2rem] font-medium tracking-tight text-foreground font-serif group-hover:text-primary transition-colors">
           {greeting}
         </h2>
