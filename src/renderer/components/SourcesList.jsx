@@ -5,39 +5,35 @@ import { cn } from '../lib/utils';
 
 export function SourcesList({ sources = [], className = '' }) {
   const { t } = useLanguage();
-  const [isExpanded, setIsExpanded] = useState(true);
+  const [isExpanded, setIsExpanded] = useState(false);
 
   if (!sources || sources.length === 0) return null;
 
   return (
-    <div className={cn("my-3 rounded-xl border border-border/70 bg-card/60 overflow-hidden shadow-xs text-foreground", className)}>
+    <div className={cn("my-1.5 rounded-md border border-border/50 bg-muted/60 overflow-hidden shadow-xs text-foreground", className)}>
       {/* Header Bar */}
       <div 
         onClick={() => setIsExpanded(!isExpanded)}
-        className="flex items-center justify-between px-3.5 py-2.5 bg-muted/40 hover:bg-muted/70 cursor-pointer transition-colors select-none text-xs"
+        className="flex items-center justify-between px-2.5 py-1 hover:bg-muted/80 cursor-pointer transition-colors select-none text-xs"
       >
-        <div className="flex items-center gap-2 font-medium text-foreground">
-          <div className="p-1 rounded-md bg-blue-500/10 text-blue-600 dark:text-blue-400">
-            <Globe className="w-3.5 h-3.5" />
-          </div>
-          <span>{t('sources.title')}</span>
-          <span className="px-1.5 py-0.5 rounded-full text-[10px] bg-primary/10 text-primary font-semibold">
+        <div className="flex items-center gap-1.5 min-w-0">
+          <span className="inline-flex items-center gap-1 text-[11px] font-medium text-blue-600 dark:text-blue-400 bg-blue-500/10 border border-blue-500/20 px-1.5 py-0.5 rounded shrink-0">
+            <Globe className="w-3 h-3 shrink-0" />
+            <span>{t('sources.title')}</span>
+          </span>
+          <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-primary/10 text-primary font-semibold shrink-0">
             {sources.length}
           </span>
         </div>
 
-        <button 
-          type="button" 
-          className="text-muted-foreground hover:text-foreground p-0.5 rounded transition-transform"
-          aria-label={isExpanded ? "Collapse sources" : "Expand sources"}
-        >
-          {isExpanded ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
-        </button>
+        <ChevronDown 
+          className={cn("w-3 h-3 text-muted-foreground hover:text-foreground shrink-0 transition-transform duration-200 ml-1", isExpanded && "rotate-180")} 
+        />
       </div>
 
       {/* Sources Grid / List */}
       {isExpanded && (
-        <div className="p-2.5 grid grid-cols-1 sm:grid-cols-2 gap-2">
+        <div className="p-2.5 grid grid-cols-1 sm:grid-cols-2 gap-2 border-t border-border/40 bg-card/40">
           {sources.map((source, index) => {
             const domain = source.domain || (source.url ? (() => {
               try { return new URL(source.url).hostname.replace(/^www\./, ''); } catch { return ''; }
