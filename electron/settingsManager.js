@@ -79,7 +79,8 @@ function loadSettings() {
         fallbackProviders: [],
         fallbackModels: {},
         tts: { enabled: true, autoSpeak: false, voiceURI: '', rate: 1.05, pitch: 1 },
-        autoUpdate: { checkOnStartup: true, channel: 'stable' },
+    autoUpdate: { checkOnStartup: true, channel: 'stable' },
+    observability: { monthlyBudgetUsd: 0, defaultRate: { input: 0, output: 0 }, modelRates: {} },
         GROQ_API_KEY: process.env.GROQ_API_KEY || "<replace me>",
         model: process.env.GROQ_DEFAULT_MODEL || "llama-3.3-70b-versatile",
         temperature: 0.7,
@@ -154,7 +155,8 @@ function loadSettings() {
             settings.fallbackProviders = Array.isArray(settings.fallbackProviders) ? settings.fallbackProviders : [];
             settings.fallbackModels = settings.fallbackModels || {};
             settings.tts = normalizeTts(settings.tts);
-            settings.autoUpdate = { ...defaultSettings.autoUpdate, ...(settings.autoUpdate || {}) };
+    settings.autoUpdate = { ...defaultSettings.autoUpdate, ...(settings.autoUpdate || {}) };
+    settings.observability = { ...defaultSettings.observability, ...(settings.observability || {}), defaultRate: { ...defaultSettings.observability.defaultRate, ...(settings.observability?.defaultRate || {}) } };
 
             // Migrate legacy GROQ_API_KEY into apiKeys.groq (and keep in sync)
             if (settings.GROQ_API_KEY && settings.GROQ_API_KEY !== "<replace me>" && !settings.apiKeys.groq) {

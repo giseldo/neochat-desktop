@@ -27,7 +27,8 @@
     "test:rag-incremental": "node test-rag-incremental.js",
     "test:provider-fallback": "node test-provider-fallback.js",
     "test:tts-settings": "node test-tts-settings.js",
-    "test:update-manager": "node test-update-manager.js"
+    "test:update-manager": "node test-update-manager.js",
+    "test:observability": "node test-observability-manager.js"
   },
   "keywords": [
     "electron",

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { Link, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Eye, EyeOff, Plus, Trash2, Edit3, Save, X, RefreshCw, Key, Settings as SettingsIcon, Zap, Cpu, Server, AlertCircle, CheckCircle, Sun, Moon, Laptop, Languages, Check, Terminal, Globe, Palette, Type, Sparkles, Sliders, ExternalLink, Route, User, Wrench, Download, UploadCloud } from 'lucide-react';
+import { ArrowLeft, Eye, EyeOff, Plus, Trash2, Edit3, Save, X, RefreshCw, Key, Settings as SettingsIcon, Zap, Cpu, Server, AlertCircle, CheckCircle, Sun, Moon, Laptop, Languages, Check, Terminal, Globe, Palette, Type, Sparkles, Sliders, ExternalLink, Route, User, Wrench, Download, UploadCloud, BarChart3 } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
@@ -76,7 +76,8 @@ function Settings() {
     fallbackProviders: [],
     fallbackModels: {},
     tts: { enabled: true, autoSpeak: false, voiceURI: '', rate: 1.05, pitch: 1 },
-    autoUpdate: { checkOnStartup: true, channel: 'stable' }
+    autoUpdate: { checkOnStartup: true, channel: 'stable' },
+    observability: { monthlyBudgetUsd: 0, defaultRate: { input: 0, output: 0 }, modelRates: {} }
   });
   const [googleOAuthStatus, setGoogleOAuthStatus] = useState(null);
   const [isRefreshingToken, setIsRefreshingToken] = useState(false);
@@ -130,6 +131,7 @@ function Settings() {
   const [isDetectingLocalAi, setIsDetectingLocalAi] = useState(false);
   const [speechVoices, setSpeechVoices] = useState([]);
   const [updateStatus, setUpdateStatus] = useState({ status: 'idle', percent: 0 });
+  const [usageSummary, setUsageSummary] = useState(null);
 
   useEffect(() => {
     if (!window.speechSynthesis) return undefined;
@@ -142,6 +144,12 @@ function Settings() {
   useEffect(() => {
     window.electron?.updater?.getStatus?.().then(setUpdateStatus);
     return window.electron?.updater?.onStatus?.(setUpdateStatus);
+  }, []);
+
+  const refreshUsageSummary = () => window.electron?.observability?.getSummary?.().then(setUsageSummary);
+
+  useEffect(() => {
+    refreshUsageSummary();
   }, []);
 
   const checkLocalAi = async () => {
@@ -1339,6 +1347,12 @@ function Settings() {
 
   const updateAutoUpdate = (updates) => {
     const updatedSettings = { ...settings, autoUpdate: { ...(settings.autoUpdate || {}), ...updates } };
+    setSettings(updatedSettings);
+    saveSettings(updatedSettings);
+  };
+
+  const updateObservability = (updates) => {
+    const updatedSettings = { ...settings, observability: { ...(settings.observability || {}), ...updates } };
     setSettings(updatedSettings);
     saveSettings(updatedSettings);
   };
@@ -3386,6 +3400,32 @@ function Settings() {
                 <p className="text-xs text-muted-foreground mt-2">
                   {t('settings.resetToolApprovalsHelp')}
                 </p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center space-x-2"><BarChart3 className="h-5 w-5 text-primary" /><span>{t('settings.observabilityTitle')}</span></CardTitle>
+                <CardDescription>{t('settings.observabilityDesc', { month: usageSummary?.month || '' })}</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                  <div className="rounded-lg border p-3"><p className="text-xs text-muted-foreground">{t('settings.usageChats')}</p><p className="text-lg font-semibold">{usageSummary?.chats || 0}</p></div>
+                  <div className="rounded-lg border p-3"><p className="text-xs text-muted-foreground">{t('settings.usageMessages')}</p><p className="text-lg font-semibold">{usageSummary?.messages || 0}</p></div>
+                  <div className="rounded-lg border p-3"><p className="text-xs text-muted-foreground">{t('settings.usageTokens')}</p><p className="text-lg font-semibold">{(usageSummary?.totalTokens || 0).toLocaleString()}</p></div>
+                  <div className="rounded-lg border p-3"><p className="text-xs text-muted-foreground">{t('settings.usageCost')}</p><p className="text-lg font-semibold">${(usageSummary?.estimatedCostUsd || 0).toFixed(4)}</p></div>
+                </div>
+                {usageSummary?.monthlyBudgetUsd > 0 && <div className="space-y-1"><div className="flex justify-between text-xs"><span>{t('settings.monthlyBudget')}</span><span className={usageSummary.budgetExceeded ? 'text-destructive font-semibold' : ''}>{usageSummary.budgetPercent}%</span></div><div className="h-2 rounded-full bg-muted overflow-hidden"><div className={usageSummary.budgetExceeded ? 'h-full bg-destructive' : 'h-full bg-primary'} style={{ width: `${Math.min(100, usageSummary.budgetPercent)}%` }} /></div></div>}
+                <div className="grid sm:grid-cols-3 gap-3">
+                  <div className="space-y-2"><Label>{t('settings.monthlyBudgetUsd')}</Label><Input type="number" min="0" step="0.01" value={settings.observability?.monthlyBudgetUsd || 0} onChange={event => updateObservability({ monthlyBudgetUsd: Number(event.target.value) })} /></div>
+                  <div className="space-y-2"><Label>{t('settings.inputRate')}</Label><Input type="number" min="0" step="0.01" value={settings.observability?.defaultRate?.input || 0} onChange={event => updateObservability({ defaultRate: { ...(settings.observability?.defaultRate || {}), input: Number(event.target.value) } })} /></div>
+                  <div className="space-y-2"><Label>{t('settings.outputRate')}</Label><Input type="number" min="0" step="0.01" value={settings.observability?.defaultRate?.output || 0} onChange={event => updateObservability({ defaultRate: { ...(settings.observability?.defaultRate || {}), output: Number(event.target.value) } })} /></div>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <Button variant="outline" onClick={refreshUsageSummary}><RefreshCw className="h-4 w-4 mr-2" />{t('settings.refreshUsage')}</Button>
+                  <Button variant="outline" onClick={() => window.electron.observability.export('json')}><Download className="h-4 w-4 mr-2" />JSON</Button>
+                  <Button variant="outline" onClick={() => window.electron.observability.export('csv')}><Download className="h-4 w-4 mr-2" />CSV</Button>
+                </div>
               </CardContent>
             </Card>
 

@@ -59,6 +59,10 @@ contextBridge.exposeInMainWorld('electron', {
       return () => ipcRenderer.removeListener('updater-status', listener);
     }
   },
+  observability: {
+    getSummary: () => ipcRenderer.invoke('observability-summary'),
+    export: format => ipcRenderer.invoke('observability-export', format)
+  },
   toolPermissions: {
     get: () => ipcRenderer.invoke('tool-permissions-get'),
     resolve: (toolName, serverLabel) => ipcRenderer.invoke('tool-permissions-resolve', toolName, serverLabel),
