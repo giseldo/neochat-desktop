@@ -20,8 +20,26 @@ xattr -c /Applications/Groq\ Desktop.app
 
 ## Features
 
-- Chat interface with image support
-- Local MCP servers
+- Chat multimodal with image input, conversation branching, projects, personas, and reusable prompt templates
+- Clean **User mode** for everyday chat and a configurable **Power user mode** for models, providers, MCP, diagnostics, automation, and developer tools
+- Local and remote MCP servers with global, server, and per-tool permission policies
+- OS-native encrypted credential vault for API keys and OAuth secrets
+- Ordered provider/model fallback for OpenAI-compatible endpoints
+- Incremental local knowledge base (RAG) with PDF and Office document extraction
+- Reusable multi-step workflows with recurring schedules
+- Versioned backup and restore that excludes credentials
+- Configurable text-to-speech, including optional automatic playback
+- Safe in-app update checks with stable and beta channels
+- Local usage/cost observability, monthly budgets, and JSON/CSV export
+- Guarded Git status, diff, commit, and push actions for power users
+
+## User and Power User modes
+
+The interface starts in **User mode**, which keeps the chat focused and hides technical controls. Open Settings → Interface experience to switch modes at any time.
+
+**Power user mode** reveals model parameters, provider fallback, custom endpoints and models, MCP configuration and permissions, trajectories, knowledge indexing, workflows and schedules, observability, backups, updates, and Git integration. The preference is stored locally and does not change existing chats.
+
+Sensitive credentials are not written as plain text to exported backups. When supported by the operating system, they are encrypted through Electron's native secure storage.
 
 ## Prerequisites
 
@@ -118,6 +136,26 @@ The testing scripts will check:
 - Environment variable handling
 - Path separators
 - Command resolution
+
+### Feature tests
+
+The repository uses focused Node.js tests. Available scripts include:
+
+```bash
+pnpm test:interface-mode
+pnpm test:secret-store
+pnpm test:tool-permissions
+pnpm test:chat-branching
+pnpm test:backup-manager
+pnpm test:workflows
+pnpm test:scheduler
+pnpm test:rag-incremental
+pnpm test:provider-fallback
+pnpm test:tts-settings
+pnpm test:update-manager
+pnpm test:observability
+pnpm test:git-manager
+```
 
 ## Configuration
 
