@@ -2,6 +2,7 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 const { dialog, shell } = require('electron');
+const { OfficeParser } = require('officeparser');
 
 let appInstance = null;
 
@@ -55,13 +56,17 @@ const SUPPORTED_EXTENSIONS = new Set([
   // Shell scripts
   '.sh', '.bash', '.zsh', '.ps1', '.cmd', '.bat',
   // Documents & Markdown
-  '.md', '.markdown', '.txt', '.csv', '.tsv', '.log', '.rst', '.adoc'
+  '.md', '.markdown', '.txt', '.csv', '.tsv', '.log', '.rst', '.adoc',
+  '.pdf', '.docx', '.xlsx', '.pptx', '.odt', '.ods', '.odp', '.rtf', '.epub'
 ]);
+
+const DOCUMENT_EXTENSIONS = new Set(['.pdf', '.docx', '.xlsx', '.pptx', '.odt', '.ods', '.odp', '.rtf', '.epub']);
 
 /**
  * Maximum file size to index (500 KB per file)
  */
 const MAX_FILE_SIZE_BYTES = 500 * 1024;
+const MAX_DOCUMENT_SIZE_BYTES = 20 * 1024 * 1024;
 
 /**
  * Initialize ragService with Electron app instance
@@ -221,55 +226,29 @@ function chunkFileContent(fileContent, relativePath, fullPath) {
 /**
  * Scan a directory recursively and extract text chunks from all supported files
  */
-function scanDirectory(folderPath, baseFolder = null, onProgress = null, stats = { scannedFiles: 0 }) {
-  if (!fs.existsSync(folderPath)) return [];
+function collectIndexableFiles(folderPath, baseFolder = null, files = []) {
+  if (!fs.existsSync(folderPath)) return files;
   const root = baseFolder || folderPath;
-  let chunks = [];
-
-  const entries = fs.readdirSync(folderPath, { withFileTypes: true });
-
-  for (const entry of entries) {
+  for (const entry of fs.readdirSync(folderPath, { withFileTypes: true })) {
     const fullPath = path.join(folderPath, entry.name);
-
     if (entry.isDirectory()) {
-      if (IGNORED_DIRECTORIES.has(entry.name) || entry.name.startsWith('.')) {
-        continue;
-      }
-      const subChunks = scanDirectory(fullPath, root, onProgress, stats);
-      chunks = chunks.concat(subChunks);
-    } else if (entry.isFile()) {
-      const ext = path.extname(entry.name).toLowerCase();
-      if (!SUPPORTED_EXTENSIONS.has(ext)) {
-        continue;
-      }
-
-      try {
-        const fileStat = fs.statSync(fullPath);
-        if (fileStat.size > MAX_FILE_SIZE_BYTES || fileStat.size === 0) {
-          continue;
-        }
-
-        const relativePath = path.relative(root, fullPath);
-        const fileContent = fs.readFileSync(fullPath, 'utf8');
-
-        const fileChunks = chunkFileContent(fileContent, relativePath, fullPath);
-        chunks = chunks.concat(fileChunks);
-
-        stats.scannedFiles++;
-        if (onProgress && typeof onProgress === 'function') {
-          onProgress({
-            scannedFiles: stats.scannedFiles,
-            currentFile: relativePath,
-            chunksCreated: chunks.length
-          });
-        }
-      } catch (err) {
-        console.warn(`[RAG] Error reading file ${fullPath}: ${err.message}`);
-      }
+      if (!IGNORED_DIRECTORIES.has(entry.name) && !entry.name.startsWith('.')) collectIndexableFiles(fullPath, root, files);
+      continue;
     }
+    const ext = path.extname(entry.name).toLowerCase();
+    if (!entry.isFile() || !SUPPORTED_EXTENSIONS.has(ext)) continue;
+    const stat = fs.statSync(fullPath);
+    const sizeLimit = DOCUMENT_EXTENSIONS.has(ext) ? MAX_DOCUMENT_SIZE_BYTES : MAX_FILE_SIZE_BYTES;
+    if (!stat.size || stat.size > sizeLimit) continue;
+    files.push({ fullPath, relativePath: path.relative(root, fullPath), ext, size: stat.size, mtimeMs: stat.mtimeMs, signature: `${stat.size}:${Math.floor(stat.mtimeMs)}` });
   }
+  return files;
+}
 
-  return chunks;
+async function extractFileText(file) {
+  if (!DOCUMENT_EXTENSIONS.has(file.ext)) return { text: fs.readFileSync(file.fullPath, 'utf8'), extractor: 'text' };
+  const ast = await OfficeParser.parseOffice(file.fullPath, { ocr: false });
+  return { text: ast.toText(), extractor: `officeparser:${ast.type || file.ext.slice(1)}` };
 }
 
 /**
@@ -355,17 +334,49 @@ async function indexFolder(folderPath, projectId = 'global', onProgress = null) 
   console.log(`[RAG] Starting indexing for folder: ${folderPath} (Project: ${projectId})`);
 
   const startTime = Date.now();
-  const stats = { scannedFiles: 0 };
-  const newChunks = scanDirectory(folderPath, folderPath, onProgress, stats);
-
   // Load existing index to merge if multiple folders are linked to the project
   const existing = loadProjectIndex(projectId) || { folders: {}, chunks: [] };
-  
-  // Remove previous chunks belonging to this folder path
-  const normalizedFolderPath = path.resolve(folderPath).replace(/\\/g, '/');
+  const isInsideFolder = filePath => {
+    const relative = path.relative(path.resolve(folderPath), path.resolve(filePath));
+    return relative === '' || (!relative.startsWith('..') && !path.isAbsolute(relative));
+  };
+  const existingFolderChunks = (existing.chunks || []).filter(chunk => isInsideFolder(chunk.filePath));
+  const chunksByFile = new Map();
+  for (const chunk of existingFolderChunks) {
+    const key = path.resolve(chunk.filePath).replace(/\\/g, '/');
+    if (!chunksByFile.has(key)) chunksByFile.set(key, []);
+    chunksByFile.get(key).push(chunk);
+  }
+  const oldManifest = existing.fileManifest || {};
+  const fileManifest = { ...oldManifest };
+  for (const key of Object.keys(fileManifest)) if (isInsideFolder(key)) delete fileManifest[key];
+  const files = collectIndexableFiles(folderPath, folderPath);
+  const currentKeys = new Set(files.map(file => path.resolve(file.fullPath).replace(/\\/g, '/')));
+  const previousKeys = new Set([...chunksByFile.keys(), ...Object.keys(oldManifest).filter(isInsideFolder)]);
+  const stats = { scannedFiles: files.length, addedFiles: 0, changedFiles: 0, unchangedFiles: 0, removedFiles: [...previousKeys].filter(key => !currentKeys.has(key)).length };
+  const newChunks = [];
+  for (const [index, file] of files.entries()) {
+    const key = path.resolve(file.fullPath).replace(/\\/g, '/');
+    const previous = oldManifest[key];
+    let fileChunks;
+    let extractor = previous?.extractor || 'text';
+    if (previous?.signature === file.signature && chunksByFile.has(key)) {
+      fileChunks = chunksByFile.get(key);
+      stats.unchangedFiles++;
+    } else {
+      const extracted = await extractFileText(file);
+      extractor = extracted.extractor;
+      fileChunks = chunkFileContent(extracted.text, file.relativePath, file.fullPath);
+      if (previous) stats.changedFiles++; else stats.addedFiles++;
+    }
+    newChunks.push(...fileChunks);
+    fileManifest[key] = { signature: file.signature, extractor, size: file.size, mtimeMs: file.mtimeMs, chunkIds: fileChunks.map(chunk => chunk.id), indexedAt: new Date().toISOString() };
+    onProgress?.({ scannedFiles: index + 1, totalFiles: files.length, currentFile: file.relativePath, chunksCreated: newChunks.length });
+  }
+
+  // Remove previous chunks belonging to this folder path and merge the incremental result.
   const filteredExistingChunks = (existing.chunks || []).filter(c => {
-    const cFolder = path.resolve(c.filePath).replace(/\\/g, '/');
-    return !cFolder.startsWith(normalizedFolderPath);
+    return !isInsideFolder(c.filePath);
   });
 
   const mergedChunks = [...filteredExistingChunks, ...newChunks];
@@ -377,7 +388,11 @@ async function indexFolder(folderPath, projectId = 'global', onProgress = null) 
     folderName,
     fileCount: stats.scannedFiles,
     chunkCount: newChunks.length,
-    lastIndexedAt: new Date().toISOString()
+    lastIndexedAt: new Date().toISOString(),
+    addedFiles: stats.addedFiles,
+    changedFiles: stats.changedFiles,
+    unchangedFiles: stats.unchangedFiles,
+    removedFiles: stats.removedFiles
   };
 
   const fullIndexData = {
@@ -387,6 +402,7 @@ async function indexFolder(folderPath, projectId = 'global', onProgress = null) 
     totalFiles: Object.values(existing.folders).reduce((acc, f) => acc + (f.fileCount || 0), 0),
     totalChunks: mergedChunks.length,
     chunks: mergedChunks,
+    fileManifest,
     bm25: {
       invertedIndex: bm25.invertedIndex,
       docLengths: bm25.docLengths,
@@ -407,7 +423,11 @@ async function indexFolder(folderPath, projectId = 'global', onProgress = null) 
     fileCount: stats.scannedFiles,
     chunkCount: newChunks.length,
     totalChunks: mergedChunks.length,
-    durationMs
+    durationMs,
+    addedFiles: stats.addedFiles,
+    changedFiles: stats.changedFiles,
+    unchangedFiles: stats.unchangedFiles,
+    removedFiles: stats.removedFiles
   };
 }
 
@@ -683,5 +703,7 @@ module.exports = {
   readFileContent,
   getProjectKnowledgeStats,
   getRagToolDefinitions,
-  tokenizeText
+  tokenizeText,
+  collectIndexableFiles,
+  extractFileText
 };

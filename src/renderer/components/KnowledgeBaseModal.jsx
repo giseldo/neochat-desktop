@@ -92,7 +92,7 @@ export default function KnowledgeBaseModal({ isOpen, onClose, projectId = null, 
       if (indexResult.success) {
         setStatusMessage({
           type: 'success',
-          text: t('rag.indexSuccess', { files: indexResult.fileCount, chunks: indexResult.chunkCount })
+          text: `${t('rag.indexSuccess', { files: indexResult.fileCount, chunks: indexResult.chunkCount })} ${t('rag.indexIncremental', { added: indexResult.addedFiles, changed: indexResult.changedFiles, unchanged: indexResult.unchangedFiles, removed: indexResult.removedFiles })}`
         });
         await loadStats();
 
@@ -136,7 +136,7 @@ export default function KnowledgeBaseModal({ isOpen, onClose, projectId = null, 
       if (res.success) {
         setStatusMessage({
           type: 'success',
-          text: t('rag.indexSuccess', { files: res.fileCount, chunks: res.chunkCount })
+          text: `${t('rag.indexSuccess', { files: res.fileCount, chunks: res.chunkCount })} ${t('rag.indexIncremental', { added: res.addedFiles, changed: res.changedFiles, unchanged: res.unchangedFiles, removed: res.removedFiles })}`
         });
         await loadStats();
       }
