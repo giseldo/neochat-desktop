@@ -481,6 +481,11 @@ const PopupPage = () => {
 
     if (!hasText && !hasFiles) return;
 
+    if (!models || models.length === 0 || !selectedModel || selectedModel === 'default') {
+      alert(t('chat.noModelsAlert'));
+      return;
+    }
+
     // Expand the popup on the first message
     if (!isExpanded) {
       setIsExpanded(true);
@@ -959,7 +964,7 @@ const PopupPage = () => {
                 value={inputValue}
                 onChange={(e) => setInputValue(e.target.value)}
                 onKeyDown={handleKeyPress}
-                placeholder={t('chat.askAnything')}
+                placeholder={models.length === 0 ? t('chat.noModelsInputPlaceholder') : t('chat.askAnything')}
                 className="min-h-[44px] max-h-[200px] resize-none border-border/50 bg-background/80 backdrop-blur-sm focus:none pt-[10px] pr-12 rounded-2xl transition-all duration-200 text-foreground placeholder:text-muted-foreground"
                 rows={1}
                 disabled={loading}
