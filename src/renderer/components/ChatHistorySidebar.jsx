@@ -9,33 +9,34 @@ import {
   Plus, 
   ChevronLeft, 
   ChevronRight, 
+  ChevronDown,
+  ChevronUp,
   Trash2, 
   MoreVertical,
   Clock,
   Search,
-  Download,
   FileText,
   Code,
   FileJson,
   X,
   FolderKanban,
   FolderPlus,
-  Layers,
   Settings2,
-  Folder,
-  Tag
+  FolderOpen,
+  Folder
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 
-// LocalStorage key for sidebar width
+// LocalStorage keys
 const SIDEBAR_WIDTH_KEY = 'chat_sidebar_width';
-const MIN_SIDEBAR_WIDTH = 220;
-const MAX_SIDEBAR_WIDTH = 480;
-const DEFAULT_SIDEBAR_WIDTH = 270;
-const COLLAPSED_WIDTH = 64;
+const EXPANDED_PROJECTS_KEY = 'neochat_expanded_projects';
+const MIN_SIDEBAR_WIDTH = 230;
+const MAX_SIDEBAR_WIDTH = 500;
+const DEFAULT_SIDEBAR_WIDTH = 280;
 
 // Format relative time for chat items
 function formatRelativeTime(dateString, t, language) {
+  if (!dateString) return '';
   const date = new Date(dateString);
   const now = new Date();
   const diffMs = now - date;
@@ -68,7 +69,7 @@ function highlightMatch(text, query) {
       parts.push(text.substring(lastIndex, index));
     }
     parts.push(
-      <mark key={index} className="bg-primary/25 text-foreground font-semibold px-0.5 rounded">
+      <mark key={index} className="bg-primary/30 text-foreground font-semibold px-0.5 rounded">
         {text.substring(index, index + trimmed.length)}
       </mark>
     );
@@ -100,7 +101,7 @@ function groupChatsByDate(chats) {
   const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
 
   chats.forEach(chat => {
-    const chatDate = new Date(chat.updatedAt);
+    const chatDate = new Date(chat.updatedAt || chat.createdAt || 0);
     
     if (chatDate >= todayStart) {
       groups.today.push(chat);
@@ -185,7 +186,6 @@ function ChatHistorySidebar({ onNewChat, onChatLoaded, loading }) {
     projects,
     activeProjectId,
     setActiveProjectId,
-    activeProject,
     openCreateProjectModal,
     openEditProjectModal,
     openMoveModal,
@@ -193,11 +193,11 @@ function ChatHistorySidebar({ onNewChat, onChatLoaded, loading }) {
 
   const { t, language } = useLanguage();
   
-  const [activeTab, setActiveTab] = useState('all'); // 'all' | 'projects'
   const [searchQuery, setSearchQuery] = useState('');
   const [deepSearchResults, setDeepSearchResults] = useState([]);
   const [isSearchingDeep, setIsSearchingDeep] = useState(false);
   const [hoveredChatId, setHoveredChatId] = useState(null);
+  const [hoveredProjectId, setHoveredProjectId] = useState(null);
   const [menuOpenChatId, setMenuOpenChatId] = useState(null);
   const [deletingChatId, setDeletingChatId] = useState(null);
   const [chatToDelete, setChatToDelete] = useState(null);
@@ -205,6 +205,92 @@ function ChatHistorySidebar({ onNewChat, onChatLoaded, loading }) {
   const [isDeletingAll, setIsDeletingAll] = useState(false);
   const [menuPosition, setMenuPosition] = useState({ top: 0, left: 0 });
   const menuButtonRefs = useRef({});
+
+  // Expanded project IDs set (persisted in localStorage)
+  const [expandedProjects, setExpandedProjects] = useState(() => {
+    try {
+      const saved = localStorage.getItem(EXPANDED_PROJECTS_KEY);
+      if (saved) {
+        return new Set(JSON.parse(saved));
+      }
+    } catch (e) {
+      console.error('Error loading expanded projects:', e);
+    }
+    return new Set();
+  });
+
+  // Track "Mostrar mais" state for projects with many chats
+  const [showAllInProject, setShowAllInProject] = useState({});
+
+  // Section collapses
+  const [isProjectsSectionOpen, setIsProjectsSectionOpen] = useState(true);
+  const [isChatsSectionOpen, setIsChatsSectionOpen] = useState(true);
+
+  // Resize state
+  const [sidebarWidth, setSidebarWidth] = useState(() => {
+    const savedWidth = localStorage.getItem(SIDEBAR_WIDTH_KEY);
+    return savedWidth ? parseInt(savedWidth, 10) : DEFAULT_SIDEBAR_WIDTH;
+  });
+  const [isResizing, setIsResizing] = useState(false);
+  const sidebarRef = useRef(null);
+
+  // Map of project IDs to project objects for fast lookup
+  const projectMap = useMemo(() => {
+    const map = new Map();
+    (projects || []).forEach(p => map.set(p.id, p));
+    return map;
+  }, [projects]);
+
+  // Group chats by project and identify unassigned chats
+  const { projectChatsMap, unassignedChats } = useMemo(() => {
+    const map = new Map();
+    const unassigned = [];
+
+    (projects || []).forEach(p => map.set(p.id, []));
+
+    (chatList || []).forEach(chat => {
+      if (chat.projectId && map.has(chat.projectId)) {
+        map.get(chat.projectId).push(chat);
+      } else {
+        unassigned.push(chat);
+      }
+    });
+
+    return { projectChatsMap: map, unassignedChats: unassigned };
+  }, [chatList, projects]);
+
+  // Auto-expand project when active chat is in that project
+  useEffect(() => {
+    if (!currentChatId || !chatList) return;
+    const currentChat = chatList.find(c => c.id === currentChatId);
+    if (currentChat && currentChat.projectId) {
+      setExpandedProjects(prev => {
+        if (prev.has(currentChat.projectId)) return prev;
+        const next = new Set(prev);
+        next.add(currentChat.projectId);
+        try {
+          localStorage.setItem(EXPANDED_PROJECTS_KEY, JSON.stringify(Array.from(next)));
+        } catch (e) {}
+        return next;
+      });
+    }
+  }, [currentChatId, chatList]);
+
+  // Toggle project expanded state
+  const toggleProject = useCallback((projectId) => {
+    setExpandedProjects(prev => {
+      const next = new Set(prev);
+      if (next.has(projectId)) {
+        next.delete(projectId);
+      } else {
+        next.add(projectId);
+      }
+      try {
+        localStorage.setItem(EXPANDED_PROJECTS_KEY, JSON.stringify(Array.from(next)));
+      } catch (e) {}
+      return next;
+    });
+  }, []);
 
   // Deep Search effect with debounce
   useEffect(() => {
@@ -232,48 +318,15 @@ function ChatHistorySidebar({ onNewChat, onChatLoaded, loading }) {
     return () => clearTimeout(timer);
   }, [searchQuery]);
 
-  // Resize state
-  const [sidebarWidth, setSidebarWidth] = useState(() => {
-    const savedWidth = localStorage.getItem(SIDEBAR_WIDTH_KEY);
-    return savedWidth ? parseInt(savedWidth, 10) : DEFAULT_SIDEBAR_WIDTH;
-  });
-  const [isResizing, setIsResizing] = useState(false);
-  const sidebarRef = useRef(null);
-
-  // Map of project IDs to project objects for fast lookup
-  const projectMap = useMemo(() => {
-    const map = new Map();
-    (projects || []).forEach(p => map.set(p.id, p));
-    return map;
-  }, [projects]);
-
-  // Effective deep search results (filtered by active project if set)
-  const effectiveDeepResults = useMemo(() => {
+  // Filtered search matching projects
+  const matchingProjects = useMemo(() => {
     if (!searchQuery.trim()) return [];
-    let list = deepSearchResults;
-    if (activeProjectId) {
-      list = list.filter(c => c.projectId === activeProjectId);
-    }
-    return list;
-  }, [deepSearchResults, activeProjectId, searchQuery]);
-
-  // Filter chats by project and search query (fallback)
-  const filteredChats = useMemo(() => {
-    let list = chatList;
-    
-    // Filter by active project if one is selected
-    if (activeProjectId) {
-      list = list.filter(c => c.projectId === activeProjectId);
-    }
-    
-    // Filter by search query
-    if (searchQuery.trim()) {
-      const q = searchQuery.toLowerCase();
-      list = list.filter(c => (c.title || '').toLowerCase().includes(q));
-    }
-    
-    return list;
-  }, [chatList, activeProjectId, searchQuery]);
+    const q = searchQuery.toLowerCase().trim();
+    return (projects || []).filter(p => 
+      (p.name || '').toLowerCase().includes(q) || 
+      (p.description || '').toLowerCase().includes(q)
+    );
+  }, [projects, searchQuery]);
 
   // Handle mouse move during resize
   const handleMouseMove = useCallback((e) => {
@@ -318,6 +371,11 @@ function ChatHistorySidebar({ onNewChat, onChatLoaded, loading }) {
     if (chatId === currentChatId) return;
     const chat = await loadChat(chatId);
     if (chat) {
+      if (chat.projectId) {
+        setActiveProjectId(chat.projectId);
+      } else {
+        setActiveProjectId(null);
+      }
       if (onChatLoaded) {
         onChatLoaded(chat);
       }
@@ -396,14 +454,11 @@ function ChatHistorySidebar({ onNewChat, onChatLoaded, loading }) {
     }
 
     if (window.electron?.exportChatFile) {
-      const res = await window.electron.exportChatFile({
+      await window.electron.exportChatFile({
         format,
         title: chat.title || t('sidebar.conversationDefault').toLowerCase(),
         content
       });
-      if (res && res.success) {
-        // Success feedback
-      }
     }
   };
 
@@ -417,167 +472,144 @@ function ChatHistorySidebar({ onNewChat, onChatLoaded, loading }) {
         const rect = button.getBoundingClientRect();
         setMenuPosition({
           top: rect.bottom + 4,
-          left: Math.max(10, rect.right - 170),
+          left: Math.max(10, rect.right - 175),
         });
       }
       setMenuOpenChatId(chatId);
     }
   };
 
-  const groupedChats = groupChatsByDate(filteredChats);
-
-  const renderChatGroup = (title, chats) => {
-    if (chats.length === 0) return null;
+  // Render individual chat row item
+  const renderChatItem = (chat, isIndented = false) => {
+    const isCurrent = currentChatId === chat.id;
+    const isDeleting = deletingChatId === chat.id;
+    const isHovered = hoveredChatId === chat.id;
+    const isMenuOpen = menuOpenChatId === chat.id;
 
     return (
-      <div className="mb-3">
-        {!isSidebarCollapsed && (
-          <div className="px-3 py-1 text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
-            {title}
+      <div
+        key={chat.id}
+        className={cn(
+          "group relative flex items-center justify-between rounded-lg cursor-pointer transition-all duration-150 select-none",
+          isIndented 
+            ? "py-1.5 px-2 text-xs" 
+            : "py-2 px-2.5 mx-2 text-xs",
+          isCurrent 
+            ? "bg-muted text-foreground font-medium shadow-2xs border-l-2 border-primary" 
+            : "hover:bg-muted/60 text-muted-foreground hover:text-foreground",
+          isDeleting && "opacity-50"
+        )}
+        onClick={() => handleChatClick(chat.id)}
+        onMouseEnter={() => setHoveredChatId(chat.id)}
+        onMouseLeave={() => {
+          setHoveredChatId(null);
+          if (menuOpenChatId === chat.id) setMenuOpenChatId(null);
+        }}
+      >
+        <div className="flex items-center gap-2 min-w-0 pr-12">
+          <MessageSquare className={cn(
+            "flex-shrink-0 transition-colors",
+            isIndented ? "h-3.5 w-3.5 text-muted-foreground/70 group-hover:text-primary" : "h-3.5 w-3.5 text-primary/80",
+            isCurrent && "text-primary"
+          )} />
+          <div className="min-w-0 flex-1">
+            <div className="truncate text-xs font-normal">
+              {chat.title || t('sidebar.newChat')}
+            </div>
+            {!isIndented && (
+              <div className="flex items-center gap-1 text-[10px] text-muted-foreground/70 mt-0.5">
+                <Clock className="h-2.5 w-2.5" />
+                <span>{formatRelativeTime(chat.updatedAt, t, language)}</span>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Action buttons on hover */}
+        {(isHovered || isMenuOpen || chatToDelete?.id === chat.id) && (
+          <div className="absolute right-1.5 top-1/2 -translate-y-1/2 flex items-center gap-0.5 bg-background/90 backdrop-blur-xs px-1 py-0.5 rounded-md border border-border/50 shadow-2xs">
+            <button
+              type="button"
+              onClick={(e) => handlePromptDelete(e, chat)}
+              className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-destructive transition-colors"
+              title={t('sidebar.deleteChat')}
+            >
+              <Trash2 className="h-3 w-3" />
+            </button>
+            <button
+              ref={(el) => menuButtonRefs.current[chat.id] = el}
+              onClick={(e) => handleMenuToggle(e, chat.id)}
+              className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
+              title={t('sidebar.chatOptions')}
+            >
+              <MoreVertical className="h-3 w-3" />
+            </button>
           </div>
         )}
-        <div className="space-y-0.5">
-          {chats.map(chat => {
-            const project = chat.projectId ? projectMap.get(chat.projectId) : null;
-            return (
-              <div
-                key={chat.id}
-                className={cn(
-                  "relative group flex items-center gap-2 px-3 py-2 cursor-pointer rounded-lg mx-2 transition-colors duration-150",
-                  currentChatId === chat.id 
-                    ? "bg-muted text-foreground font-medium shadow-xs" 
-                    : "hover:bg-muted/60 text-muted-foreground hover:text-foreground",
-                  deletingChatId === chat.id && "opacity-50"
-                )}
-                onClick={() => handleChatClick(chat.id)}
-                onMouseEnter={() => setHoveredChatId(chat.id)}
-                onMouseLeave={() => {
-                  setHoveredChatId(null);
-                  if (menuOpenChatId === chat.id) setMenuOpenChatId(null);
-                }}
-              >
-                <MessageSquare className="h-4 w-4 flex-shrink-0 text-primary/80" />
-                
-                {!isSidebarCollapsed && (
-                  <>
-                    <div className="flex-1 min-w-0 pr-14">
-                      <div className="truncate text-xs font-medium">
-                        {chat.title || t('sidebar.newChat')}
-                      </div>
-                      
-                      <div className="flex items-center gap-2 text-[10px] text-muted-foreground/80 mt-0.5">
-                        <div className="flex items-center gap-1">
-                          <Clock className="h-2.5 w-2.5" />
-                          <span>{formatRelativeTime(chat.updatedAt, t, language)}</span>
-                        </div>
 
-                        {/* Project Pill (shown when in "All Chats" view) */}
-                        {!activeProjectId && project && (
-                          <span 
-                            className="inline-flex items-center gap-0.5 px-1.5 py-0.2 rounded-full text-[9px] font-medium truncate max-w-[100px]"
-                            style={{ 
-                              backgroundColor: `${project.color || '#f55036'}18`, 
-                              color: project.color || '#f55036' 
-                            }}
-                            title={`${t('sidebar.projectLabel')}: ${project.name}`}
-                          >
-                            <span>{project.icon || '📁'}</span>
-                            <span className="truncate">{project.name}</span>
-                          </span>
-                        )}
-                      </div>
-                    </div>
+        {/* Dropdown menu */}
+        {isMenuOpen && (
+          <div 
+            className="fixed py-1 bg-popover border border-border rounded-xl shadow-xl w-48 z-[9999] text-xs animate-in fade-in-0 zoom-in-95"
+            style={{ 
+              top: menuPosition.top, 
+              left: menuPosition.left,
+            }}
+          >
+            {/* Move to Project */}
+            <button
+              onClick={(e) => handleOpenMoveModal(e, chat)}
+              className="w-full flex items-center gap-2 px-3 py-1.5 hover:bg-muted text-foreground transition-colors text-left font-medium"
+            >
+              <FolderKanban className="h-3.5 w-3.5 text-primary" />
+              <span>{t('sidebar.moveToProject')}</span>
+            </button>
 
-                    {/* Action buttons (Direct Delete & 3-dots menu) */}
-                    {(hoveredChatId === chat.id || menuOpenChatId === chat.id || chatToDelete?.id === chat.id) && (
-                      <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-0.5">
-                        <button
-                          type="button"
-                          onClick={(e) => handlePromptDelete(e, chat)}
-                          className="p-1 rounded-md hover:bg-background/80 text-muted-foreground hover:text-destructive transition-colors"
-                          title={t('sidebar.deleteChat')}
-                        >
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </button>
-                        <button
-                          ref={(el) => menuButtonRefs.current[chat.id] = el}
-                          onClick={(e) => handleMenuToggle(e, chat.id)}
-                          className="p-1 rounded-md hover:bg-background/80 text-muted-foreground hover:text-foreground transition-colors"
-                          title={t('sidebar.chatOptions')}
-                        >
-                          <MoreVertical className="h-3.5 w-3.5" />
-                        </button>
-                      </div>
-                    )}
-                    
-                    {/* Dropdown menu */}
-                    {menuOpenChatId === chat.id && (
-                      <div 
-                        className="fixed py-1 bg-popover border border-border rounded-lg shadow-xl w-48 z-[9999] text-xs"
-                        style={{ 
-                          top: menuPosition.top, 
-                          left: menuPosition.left,
-                        }}
-                      >
-                        {/* Move to Project */}
-                        <button
-                          onClick={(e) => handleOpenMoveModal(e, chat)}
-                          className="w-full flex items-center gap-2 px-3 py-1.5 hover:bg-muted text-foreground transition-colors text-left font-medium"
-                        >
-                          <FolderKanban className="h-3.5 w-3.5 text-primary" />
-                          <span>{t('sidebar.moveToProject')}</span>
-                        </button>
+            <div className="my-1 border-t border-border" />
 
-                        <div className="my-1 border-t border-border" />
+            <div className="px-2 py-0.5 text-[10px] font-semibold text-muted-foreground uppercase">
+              {t('sidebar.exportChat')}
+            </div>
+            <button
+              onClick={(e) => handleExportChat(e, chat.id, 'md')}
+              className="w-full flex items-center gap-2 px-3 py-1.5 hover:bg-muted text-foreground transition-colors text-left"
+            >
+              <FileText className="h-3.5 w-3.5 text-primary" />
+              <span>{t('sidebar.exportMarkdown')}</span>
+            </button>
+            <button
+              onClick={(e) => handleExportChat(e, chat.id, 'html')}
+              className="w-full flex items-center gap-2 px-3 py-1.5 hover:bg-muted text-foreground transition-colors text-left"
+            >
+              <Code className="h-3.5 w-3.5 text-blue-500" />
+              <span>{t('sidebar.exportHtml')}</span>
+            </button>
+            <button
+              onClick={(e) => handleExportChat(e, chat.id, 'json')}
+              className="w-full flex items-center gap-2 px-3 py-1.5 hover:bg-muted text-foreground transition-colors text-left"
+            >
+              <FileJson className="h-3.5 w-3.5 text-amber-500" />
+              <span>{t('sidebar.exportJson')}</span>
+            </button>
 
-                        <div className="px-2 py-0.5 text-[10px] font-semibold text-muted-foreground uppercase">
-                          {t('sidebar.exportChat')}
-                        </div>
-                        <button
-                          onClick={(e) => handleExportChat(e, chat.id, 'md')}
-                          className="w-full flex items-center gap-2 px-3 py-1.5 hover:bg-muted text-foreground transition-colors text-left"
-                        >
-                          <FileText className="h-3.5 w-3.5 text-primary" />
-                          <span>{t('sidebar.exportMarkdown')}</span>
-                        </button>
-                        <button
-                          onClick={(e) => handleExportChat(e, chat.id, 'html')}
-                          className="w-full flex items-center gap-2 px-3 py-1.5 hover:bg-muted text-foreground transition-colors text-left"
-                        >
-                          <Code className="h-3.5 w-3.5 text-blue-500" />
-                          <span>{t('sidebar.exportHtml')}</span>
-                        </button>
-                        <button
-                          onClick={(e) => handleExportChat(e, chat.id, 'json')}
-                          className="w-full flex items-center gap-2 px-3 py-1.5 hover:bg-muted text-foreground transition-colors text-left"
-                        >
-                          <FileJson className="h-3.5 w-3.5 text-amber-500" />
-                          <span>{t('sidebar.exportJson')}</span>
-                        </button>
+            <div className="my-1 border-t border-border" />
 
-                        <div className="my-1 border-t border-border" />
-
-                        <button
-                          onClick={(e) => handlePromptDelete(e, chat)}
-                          className="w-full flex items-center gap-2 px-3 py-1.5 text-destructive hover:bg-destructive/10 transition-colors text-left"
-                        >
-                          <Trash2 className="h-3.5 w-3.5" />
-                          <span>{t('sidebar.deleteChat')}</span>
-                        </button>
-                      </div>
-                    )}
-                  </>
-                )}
-              </div>
-            );
-          })}
-        </div>
+            <button
+              onClick={(e) => handlePromptDelete(e, chat)}
+              className="w-full flex items-center gap-2 px-3 py-1.5 text-destructive hover:bg-destructive/10 transition-colors text-left font-medium"
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+              <span>{t('sidebar.deleteChat')}</span>
+            </button>
+          </div>
+        )}
       </div>
     );
   };
 
-  const renderDeepSearchResults = () => {
-    if (isSearchingDeep && effectiveDeepResults.length === 0) {
+  // Render search results view
+  const renderSearchResults = () => {
+    if (isSearchingDeep && deepSearchResults.length === 0 && matchingProjects.length === 0) {
       return (
         <div className="py-8 px-4 text-center text-xs text-muted-foreground">
           <div className="w-5 h-5 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-2" />
@@ -586,97 +618,144 @@ function ChatHistorySidebar({ onNewChat, onChatLoaded, loading }) {
       );
     }
 
-    if (effectiveDeepResults.length === 0) {
+    if (deepSearchResults.length === 0 && matchingProjects.length === 0) {
       return (
         <div className="px-4 py-8 text-center text-xs text-muted-foreground">
-          <MessageSquare className="h-7 w-7 mx-auto mb-2 opacity-40 text-primary" />
+          <Search className="h-7 w-7 mx-auto mb-2 opacity-40 text-primary" />
           <p className="font-medium">{t('sidebar.emptySearch')}</p>
         </div>
       );
     }
 
     return (
-      <div className="space-y-2 px-2 py-1">
-        <div className="flex items-center justify-between px-2 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
-          <span>{t('sidebar.matchesCount', { count: effectiveDeepResults.length })}</span>
-          {isSearchingDeep && (
-            <div className="w-3 h-3 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-          )}
-        </div>
-
-        {effectiveDeepResults.map((chat) => {
-          const project = chat.projectId ? projectMap.get(chat.projectId) : null;
-          const hasMessageMatches = Array.isArray(chat.matches) && chat.matches.length > 0;
-
-          return (
-            <div
-              key={chat.id}
-              className={cn(
-                "rounded-xl border border-border/70 bg-card hover:bg-muted/40 transition-colors p-2 space-y-1.5 shadow-2xs",
-                currentChatId === chat.id && "border-primary/50 bg-primary/5"
-              )}
-            >
-              {/* Chat Header Row */}
-              <div
-                onClick={() => handleChatClick(chat.id)}
-                className="flex items-start justify-between cursor-pointer gap-2 group"
-              >
-                <div className="flex items-center gap-2 min-w-0">
-                  <MessageSquare className="h-3.5 w-3.5 text-primary shrink-0 mt-0.5" />
-                  <div className="min-w-0">
-                    <div className="text-xs font-semibold text-foreground truncate group-hover:text-primary transition-colors">
-                      {highlightMatch(chat.title || t('sidebar.conversationDefault'), searchQuery)}
-                    </div>
-                    <div className="flex items-center gap-2 text-[10px] text-muted-foreground mt-0.5">
-                      <div className="flex items-center gap-1">
-                        <Clock className="h-2.5 w-2.5" />
-                        <span>{formatRelativeTime(chat.updatedAt, t, language)}</span>
-                      </div>
-                      {project && (
-                        <span
-                          className="inline-flex items-center gap-0.5 px-1.5 py-0.2 rounded-full text-[9px] font-medium truncate max-w-[100px]"
-                          style={{
-                            backgroundColor: `${project.color || '#f55036'}18`,
-                            color: project.color || '#f55036'
-                          }}
-                        >
-                          <span>{project.icon || '📁'}</span>
-                          <span className="truncate">{project.name}</span>
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                </div>
-
-                {chat.matchCount > 0 && (
-                  <span className="shrink-0 text-[10px] px-1.5 py-0.5 rounded-full bg-primary/10 text-primary font-semibold font-mono">
-                    {chat.matchCount} {chat.matchCount === 1 ? 'match' : 'matches'}
-                  </span>
-                )}
-              </div>
-
-              {/* Message match snippets */}
-              {hasMessageMatches && (
-                <div className="space-y-1 pt-1 border-t border-border/30">
-                  {chat.matches.slice(0, 3).map((m, idx) => (
-                    <div
-                      key={idx}
-                      onClick={() => handleChatClick(chat.id)}
-                      className="p-1.5 rounded-lg bg-background/80 hover:bg-muted cursor-pointer transition-colors text-[11px] border border-border/40 font-mono text-muted-foreground hover:text-foreground leading-relaxed"
+      <div className="space-y-3 px-2 py-1">
+        {/* Matching Projects */}
+        {matchingProjects.length > 0 && (
+          <div className="space-y-1">
+            <div className="px-2 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
+              {t('projects.title')} ({matchingProjects.length})
+            </div>
+            {matchingProjects.map(proj => {
+              const chats = projectChatsMap.get(proj.id) || [];
+              return (
+                <div
+                  key={proj.id}
+                  onClick={() => {
+                    setActiveProjectId(proj.id);
+                    toggleProject(proj.id);
+                  }}
+                  className="p-2 rounded-xl border border-border/70 bg-card hover:bg-muted/40 transition-colors cursor-pointer space-y-1"
+                >
+                  <div className="flex items-center gap-2">
+                    <span 
+                      className="w-6 h-6 rounded-md flex items-center justify-center text-xs"
+                      style={{ backgroundColor: `${proj.color || '#f55036'}20`, color: proj.color || '#f55036' }}
                     >
-                      <div className="flex items-center gap-1 text-[9px] font-sans font-semibold text-primary mb-0.5">
-                        <span>{m.role === 'user' ? t('sidebar.userLabel') : t('sidebar.assistantLabel')}</span>
-                      </div>
-                      <p className="line-clamp-2">
-                        {highlightMatch(m.snippet, searchQuery)}
-                      </p>
-                    </div>
-                  ))}
+                      {proj.icon || '📁'}
+                    </span>
+                    <span className="text-xs font-semibold text-foreground truncate">
+                      {highlightMatch(proj.name, searchQuery)}
+                    </span>
+                    <span className="ml-auto text-[10px] text-muted-foreground">
+                      {chats.length} {chats.length === 1 ? 'conversa' : 'conversas'}
+                    </span>
+                  </div>
+                  {proj.description && (
+                    <p className="text-[11px] text-muted-foreground line-clamp-1 pl-8">
+                      {highlightMatch(proj.description, searchQuery)}
+                    </p>
+                  )}
                 </div>
+              );
+            })}
+          </div>
+        )}
+
+        {/* Matching Conversations & Snippets */}
+        {deepSearchResults.length > 0 && (
+          <div className="space-y-2">
+            <div className="flex items-center justify-between px-2 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
+              <span>{t('sidebar.matchesCount', { count: deepSearchResults.length })}</span>
+              {isSearchingDeep && (
+                <div className="w-3 h-3 border-2 border-primary border-t-transparent rounded-full animate-spin" />
               )}
             </div>
-          );
-        })}
+
+            {deepSearchResults.map((chat) => {
+              const project = chat.projectId ? projectMap.get(chat.projectId) : null;
+              const hasMessageMatches = Array.isArray(chat.matches) && chat.matches.length > 0;
+
+              return (
+                <div
+                  key={chat.id}
+                  className={cn(
+                    "rounded-xl border border-border/70 bg-card hover:bg-muted/40 transition-colors p-2 space-y-1.5 shadow-2xs",
+                    currentChatId === chat.id && "border-primary/50 bg-primary/5"
+                  )}
+                >
+                  {/* Chat Header Row */}
+                  <div
+                    onClick={() => handleChatClick(chat.id)}
+                    className="flex items-start justify-between cursor-pointer gap-2 group"
+                  >
+                    <div className="flex items-center gap-2 min-w-0">
+                      <MessageSquare className="h-3.5 w-3.5 text-primary shrink-0 mt-0.5" />
+                      <div className="min-w-0">
+                        <div className="text-xs font-semibold text-foreground truncate group-hover:text-primary transition-colors">
+                          {highlightMatch(chat.title || t('sidebar.conversationDefault'), searchQuery)}
+                        </div>
+                        <div className="flex items-center gap-2 text-[10px] text-muted-foreground mt-0.5">
+                          <div className="flex items-center gap-1">
+                            <Clock className="h-2.5 w-2.5" />
+                            <span>{formatRelativeTime(chat.updatedAt, t, language)}</span>
+                          </div>
+                          {project && (
+                            <span
+                              className="inline-flex items-center gap-0.5 px-1.5 py-0.2 rounded-full text-[9px] font-medium truncate max-w-[100px]"
+                              style={{
+                                backgroundColor: `${project.color || '#f55036'}18`,
+                                color: project.color || '#f55036'
+                              }}
+                            >
+                              <span>{project.icon || '📁'}</span>
+                              <span className="truncate">{project.name}</span>
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    {chat.matchCount > 0 && (
+                      <span className="shrink-0 text-[10px] px-1.5 py-0.5 rounded-full bg-primary/10 text-primary font-semibold font-mono">
+                        {chat.matchCount} {chat.matchCount === 1 ? 'match' : 'matches'}
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Message match snippets */}
+                  {hasMessageMatches && (
+                    <div className="space-y-1 pt-1 border-t border-border/30">
+                      {chat.matches.slice(0, 3).map((m, idx) => (
+                        <div
+                          key={idx}
+                          onClick={() => handleChatClick(chat.id)}
+                          className="p-1.5 rounded-lg bg-background/80 hover:bg-muted cursor-pointer transition-colors text-[11px] border border-border/40 font-mono text-muted-foreground hover:text-foreground leading-relaxed"
+                        >
+                          <div className="flex items-center gap-1 text-[9px] font-sans font-semibold text-primary mb-0.5">
+                            <span>{m.role === 'user' ? t('sidebar.userLabel') : t('sidebar.assistantLabel')}</span>
+                          </div>
+                          <p className="line-clamp-2">
+                            {highlightMatch(m.snippet, searchQuery)}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
     );
   };
@@ -684,6 +763,8 @@ function ChatHistorySidebar({ onNewChat, onChatLoaded, loading }) {
   if (isSidebarCollapsed) {
     return null;
   }
+
+  const groupedUnassigned = groupChatsByDate(unassignedChats);
 
   return (
     <div 
@@ -699,24 +780,20 @@ function ChatHistorySidebar({ onNewChat, onChatLoaded, loading }) {
       }}
     >
       {/* Resize handle */}
-      {!isSidebarCollapsed && (
-        <div
-          className={cn(
-            "absolute top-0 right-0 w-1 h-full cursor-col-resize z-10 hover:bg-primary/30 active:bg-primary/50 transition-colors duration-150",
-            isResizing ? "bg-primary/50" : "bg-transparent"
-          )}
-          onMouseDown={handleResizeStart}
-          title={t('sidebar.dragToResize')}
-        />
-      )}
+      <div
+        className={cn(
+          "absolute top-0 right-0 w-1 h-full cursor-col-resize z-10 hover:bg-primary/30 active:bg-primary/50 transition-colors duration-150",
+          isResizing ? "bg-primary/50" : "bg-transparent"
+        )}
+        onMouseDown={handleResizeStart}
+        title={t('sidebar.dragToResize')}
+      />
 
       {/* Header */}
       <div className="flex items-center justify-between p-3 border-b border-border">
-        {!isSidebarCollapsed && (
-          <h2 className="font-semibold text-sm text-foreground">{t('sidebar.title')}</h2>
-        )}
-        <div className={cn("flex items-center gap-1", isSidebarCollapsed && "w-full justify-center")}>
-          {!isSidebarCollapsed && chatList.length > 0 && (
+        <h2 className="font-semibold text-sm text-foreground">{t('sidebar.title')}</h2>
+        <div className="flex items-center gap-1">
+          {chatList.length > 0 && (
             <Button
               variant="ghost"
               size="icon"
@@ -730,7 +807,16 @@ function ChatHistorySidebar({ onNewChat, onChatLoaded, loading }) {
           <Button
             variant="ghost"
             size="icon"
-            onClick={onNewChat}
+            onClick={openCreateProjectModal}
+            className="h-8 w-8 text-muted-foreground hover:text-primary hover:bg-muted"
+            title={t('projects.newProject')}
+          >
+            <FolderPlus className="h-4 w-4" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => onNewChat()}
             className="h-8 w-8 text-foreground hover:bg-muted"
             title={t('sidebar.newChat')}
           >
@@ -741,257 +827,322 @@ function ChatHistorySidebar({ onNewChat, onChatLoaded, loading }) {
             size="icon"
             onClick={toggleSidebar}
             className="h-8 w-8 text-foreground hover:bg-muted"
-            title={isSidebarCollapsed ? t('header.expandSidebar') : t('header.collapseSidebar')}
+            title={t('header.collapseSidebar')}
           >
-            {isSidebarCollapsed ? (
-              <ChevronRight className="h-4 w-4" />
-            ) : (
-              <ChevronLeft className="h-4 w-4" />
-            )}
+            <ChevronLeft className="h-4 w-4" />
           </Button>
         </div>
       </div>
 
-      {/* Navigation View Switcher (Todas vs Projetos) */}
-      {!isSidebarCollapsed && (
-        <div className="px-3 pt-2 pb-1">
-          <div className="flex items-center gap-1 bg-muted/60 p-1 rounded-lg text-xs">
+      {/* Search Input */}
+      <div className="px-3 pt-2.5 pb-2">
+        <div className="relative">
+          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder={t('sidebar.searchPlaceholder')}
+            className="w-full pl-8 pr-7 py-1.5 text-xs rounded-lg bg-muted/60 border border-border/80 text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary transition-all"
+          />
+          {searchQuery && (
             <button
-              type="button"
-              onClick={() => {
-                setActiveTab('all');
-                setActiveProjectId(null);
-              }}
-              className={cn(
-                "flex-1 py-1 px-2 rounded-md font-medium text-center transition-colors flex items-center justify-center gap-1.5",
-                activeTab === 'all' && !activeProjectId
-                  ? "bg-background text-foreground shadow-xs font-semibold"
-                  : "text-muted-foreground hover:text-foreground"
-              )}
-            >
-              <MessageSquare className="w-3.5 h-3.5" />
-              <span>{t('projects.allTab')}</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => setActiveTab('projects')}
-              className={cn(
-                "flex-1 py-1 px-2 rounded-md font-medium text-center transition-colors flex items-center justify-center gap-1.5",
-                activeTab === 'projects' || activeProjectId
-                  ? "bg-background text-foreground shadow-xs font-semibold"
-                  : "text-muted-foreground hover:text-foreground"
-              )}
-            >
-              <FolderKanban className="w-3.5 h-3.5 text-primary" />
-              <span>{t('projects.projectsTab')}</span>
-              {projects.length > 0 && (
-                <span className="text-[10px] px-1 bg-muted rounded-full text-muted-foreground">
-                  {projects.length}
-                </span>
-              )}
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* Active Project Filter Banner */}
-      {!isSidebarCollapsed && activeProject && (
-        <div className="mx-3 mt-2 p-2 rounded-xl border border-border bg-card shadow-xs flex items-center justify-between">
-          <div className="flex items-center gap-2 min-w-0 pr-2">
-            <span 
-              className="w-7 h-7 rounded-lg flex items-center justify-center text-xs flex-shrink-0"
-              style={{ backgroundColor: `${activeProject.color || '#f55036'}25`, color: activeProject.color || '#f55036' }}
-            >
-              {activeProject.icon || '📁'}
-            </span>
-            <div className="min-w-0">
-              <div className="text-xs font-semibold text-foreground truncate flex items-center gap-1">
-                <span className="truncate">{activeProject.name}</span>
-              </div>
-              <div className="text-[10px] text-muted-foreground truncate">
-                {filteredChats.length} {filteredChats.length === 1 ? 'conversa' : 'conversas'}
-              </div>
-            </div>
-          </div>
-          <div className="flex items-center gap-1 flex-shrink-0">
-            <button
-              type="button"
-              onClick={() => openEditProjectModal(activeProject)}
-              className="p-1 rounded-md hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
-              title={t('projects.editProject')}
-            >
-              <Settings2 className="w-3.5 h-3.5" />
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setActiveProjectId(null);
-                setActiveTab('all');
-              }}
-              className="p-1 rounded-md hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
-              title={t('projects.backToAll')}
+              onClick={() => setSearchQuery('')}
+              className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground p-0.5 rounded"
             >
               <X className="w-3.5 h-3.5" />
             </button>
-          </div>
+          )}
         </div>
-      )}
+      </div>
 
-      {/* Projects List View (when projects tab is open and no specific project is active) */}
-      {!isSidebarCollapsed && activeTab === 'projects' && !activeProjectId && (
-        <div className="flex-1 overflow-y-auto p-3 space-y-2">
-          <div className="flex items-center justify-between pb-1">
-            <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
-              {t('projects.title')}
-            </span>
-            <button
-              type="button"
-              onClick={openCreateProjectModal}
-              className="text-xs font-semibold text-primary hover:underline flex items-center gap-1"
-            >
-              <Plus className="w-3.5 h-3.5" /> {t('projects.newProject')}
-            </button>
+      {/* Main Content Area */}
+      <div className="flex-1 overflow-y-auto px-1 py-1 space-y-3">
+        {isLoadingChats ? (
+          <div className="flex items-center justify-center py-10">
+            <div className="loading-spinner" />
           </div>
+        ) : searchQuery.trim() ? (
+          renderSearchResults()
+        ) : (
+          <>
+            {/* --- SECTION 1: PROJETOS --- */}
+            <div className="space-y-1">
+              {/* Projects Section Header */}
+              <div className="flex items-center justify-between px-2.5 py-1 text-muted-foreground group">
+                <button
+                  type="button"
+                  onClick={() => setIsProjectsSectionOpen(prev => !prev)}
+                  className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider hover:text-foreground transition-colors"
+                >
+                  <ChevronDown className={cn("w-3 h-3 transition-transform duration-200", !isProjectsSectionOpen && "-rotate-90")} />
+                  <span>{t('projects.title')}</span>
+                  {projects.length > 0 && (
+                    <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-muted text-muted-foreground font-normal">
+                      {projects.length}
+                    </span>
+                  )}
+                </button>
+                <button
+                  type="button"
+                  onClick={openCreateProjectModal}
+                  className="opacity-0 group-hover:opacity-100 p-1 rounded hover:bg-muted text-muted-foreground hover:text-primary transition-all"
+                  title={t('projects.newProject')}
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                </button>
+              </div>
 
-          {projects.length === 0 ? (
-            <div className="py-8 px-2 text-center text-muted-foreground">
-              <FolderPlus className="w-8 h-8 mx-auto mb-2 opacity-40 text-primary" />
-              <p className="text-xs font-medium text-foreground">{t('projects.noProjects')}</p>
-              <p className="text-[11px] mt-1 text-muted-foreground/80">{t('projects.noProjectsSubtitle')}</p>
-              <button
-                type="button"
-                onClick={openCreateProjectModal}
-                className="mt-3 px-3 py-1.5 text-xs font-semibold bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors shadow-xs inline-flex items-center gap-1.5"
-              >
-                <Plus className="w-3.5 h-3.5" />
-                <span>{t('projects.createProject')}</span>
-              </button>
-            </div>
-          ) : (
-            <div className="space-y-1.5">
-              {projects.map((p) => {
-                const count = chatList.filter(c => c.projectId === p.id).length;
-                return (
-                  <div
-                    key={p.id}
-                    onClick={() => setActiveProjectId(p.id)}
-                    className="group flex items-center justify-between p-2.5 rounded-xl border border-border bg-card hover:bg-muted/70 cursor-pointer transition-all shadow-2xs hover:shadow-xs"
-                  >
-                    <div className="flex items-center gap-2.5 min-w-0 pr-2">
-                      <span 
-                        className="w-7 h-7 rounded-lg flex items-center justify-center text-sm flex-shrink-0"
-                        style={{ backgroundColor: `${p.color || '#f55036'}20`, color: p.color || '#f55036' }}
-                      >
-                        {p.icon || '📁'}
-                      </span>
-                      <div className="min-w-0">
-                        <div className="text-xs font-medium text-foreground truncate group-hover:text-primary transition-colors">
-                          {p.name}
-                        </div>
-                        <div className="text-[10px] text-muted-foreground truncate">
-                          {count} {count === 1 ? 'conversa' : 'conversas'}
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center gap-1 flex-shrink-0">
+              {/* Projects List */}
+              {isProjectsSectionOpen && (
+                <div className="space-y-0.5 px-1">
+                  {projects.length === 0 ? (
+                    <div className="px-3 py-2 text-[11px] text-muted-foreground/80 flex items-center justify-between">
+                      <span>{t('projects.noProjects')}</span>
                       <button
                         type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          openEditProjectModal(p);
-                        }}
-                        className="opacity-0 group-hover:opacity-100 p-1 rounded-md hover:bg-background text-muted-foreground hover:text-foreground transition-opacity"
-                        title={t('projects.editProject')}
+                        onClick={openCreateProjectModal}
+                        className="text-primary hover:underline font-medium flex items-center gap-0.5"
                       >
-                        <Settings2 className="w-3.5 h-3.5" />
+                        <Plus className="w-3 h-3" /> {t('projects.createProject')}
                       </button>
                     </div>
-                  </div>
-                );
-              })}
+                  ) : (
+                    projects.map((project) => {
+                      const isExpanded = expandedProjects.has(project.id);
+                      const projChats = projectChatsMap.get(project.id) || [];
+                      const isProjActive = activeProjectId === project.id;
+                      const isHovered = hoveredProjectId === project.id;
+                      const showAll = showAllInProject[project.id];
+                      const displayChats = showAll ? projChats : projChats.slice(0, 5);
+                      const hasMore = projChats.length > 5;
 
-              <button
-                type="button"
-                onClick={openCreateProjectModal}
-                className="w-full py-2 px-3 rounded-xl border border-dashed border-border hover:border-primary text-muted-foreground hover:text-primary transition-colors text-xs flex items-center justify-center gap-1.5 mt-2"
-              >
-                <Plus className="w-3.5 h-3.5" />
-                <span>{t('projects.newProject')}</span>
-              </button>
-            </div>
-          )}
-        </div>
-      )}
+                      return (
+                        <div key={project.id} className="space-y-0.5">
+                          {/* Project Header Row */}
+                          <div
+                            onMouseEnter={() => setHoveredProjectId(project.id)}
+                            onMouseLeave={() => setHoveredProjectId(null)}
+                            onClick={() => {
+                              setActiveProjectId(project.id);
+                              toggleProject(project.id);
+                            }}
+                            className={cn(
+                              "group relative flex items-center justify-between px-2.5 py-1.5 rounded-lg cursor-pointer transition-all duration-150 select-none",
+                              isProjActive 
+                                ? "bg-muted/80 text-foreground font-semibold" 
+                                : "hover:bg-muted/50 text-foreground/90 font-medium"
+                            )}
+                          >
+                            <div className="flex items-center gap-2 min-w-0 pr-12">
+                              {/* Chevron Indicator */}
+                              <ChevronRight className={cn(
+                                "w-3 h-3 text-muted-foreground/70 transition-transform duration-200 flex-shrink-0",
+                                isExpanded && "rotate-90 text-foreground"
+                              )} />
 
-      {/* Search Input (when viewing chats) */}
-      {!isSidebarCollapsed && (activeTab === 'all' || activeProjectId) && (
-        <div className="px-3 pt-2 pb-1">
-          <div className="relative">
-            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder={t('sidebar.searchPlaceholder')}
-              className="w-full pl-8 pr-7 py-1.5 text-xs rounded-md bg-muted/60 border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
-            />
-            {searchQuery && (
-              <button
-                onClick={() => setSearchQuery('')}
-                className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-              >
-                <X className="w-3.5 h-3.5" />
-              </button>
-            )}
-          </div>
-        </div>
-      )}
+                              {/* Project Icon */}
+                              <span 
+                                className="w-5 h-5 rounded-md flex items-center justify-center text-xs flex-shrink-0 shadow-2xs"
+                                style={{ backgroundColor: `${project.color || '#f55036'}20`, color: project.color || '#f55036' }}
+                              >
+                                {project.icon || '📁'}
+                              </span>
 
-      {/* Chat list (when viewing chats) */}
-      {(!isSidebarCollapsed && (activeTab === 'all' || activeProjectId)) && (
-        <div className="flex-1 overflow-y-auto py-2">
-          {isLoadingChats ? (
-            <div className="flex items-center justify-center py-8">
-              <div className="loading-spinner" />
-            </div>
-          ) : searchQuery.trim() ? (
-            renderDeepSearchResults()
-          ) : filteredChats.length === 0 ? (
-            <div className="px-4 py-8 text-center text-sm text-muted-foreground">
-              {isSidebarCollapsed ? (
-                <MessageSquare className="h-6 w-6 mx-auto opacity-50" />
-              ) : (
-                <>
-                  <MessageSquare className="h-7 w-7 mx-auto mb-2 opacity-40 text-primary" />
-                  <p className="text-xs font-medium">{t('sidebar.emptyTitle')}</p>
-                  <p className="text-[11px] mt-1 text-muted-foreground/80">
-                    {activeProject ? `Nenhuma conversa neste projeto. Clique em '+' para iniciar.` : t('sidebar.emptySubtitle')}
-                  </p>
-                  {activeProject && (
-                    <button
-                      type="button"
-                      onClick={onNewChat}
-                      className="mt-3 px-3 py-1.5 text-xs font-semibold bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors shadow-xs inline-flex items-center gap-1.5"
-                    >
-                      <Plus className="w-3.5 h-3.5" />
-                      <span>{t('sidebar.newChat')}</span>
-                    </button>
+                              {/* Project Name */}
+                              <span className="truncate text-xs font-medium">
+                                {project.name}
+                              </span>
+
+                              {/* Count badge */}
+                              {projChats.length > 0 && (
+                                <span className="text-[10px] text-muted-foreground/70 font-normal">
+                                  {projChats.length}
+                                </span>
+                              )}
+                            </div>
+
+                            {/* Project Actions on hover */}
+                            {isHovered && (
+                              <div className="absolute right-1.5 top-1/2 -translate-y-1/2 flex items-center gap-0.5 bg-background/90 backdrop-blur-xs px-1 py-0.5 rounded-md border border-border/50 shadow-2xs">
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    onNewChat(project.id);
+                                    if (!isExpanded) toggleProject(project.id);
+                                  }}
+                                  className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-primary transition-colors"
+                                  title={t('projects.newChatInProject')}
+                                >
+                                  <Plus className="h-3 w-3" />
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    openEditProjectModal(project);
+                                  }}
+                                  className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
+                                  title={t('projects.editProject')}
+                                >
+                                  <Settings2 className="h-3 w-3" />
+                                </button>
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Expanded Chats within Project */}
+                          {isExpanded && (
+                            <div className="ml-4 pl-2.5 border-l border-border/60 my-0.5 space-y-0.5">
+                              {projChats.length === 0 ? (
+                                <div className="py-2 px-2 text-[11px] text-muted-foreground/70 flex items-center justify-between">
+                                  <span>{t('projects.noChatsYet')}</span>
+                                  <button
+                                    type="button"
+                                    onClick={() => onNewChat(project.id)}
+                                    className="text-primary hover:underline font-medium flex items-center gap-0.5"
+                                  >
+                                    <Plus className="w-3 h-3" /> {t('sidebar.newChat')}
+                                  </button>
+                                </div>
+                              ) : (
+                                <>
+                                  {displayChats.map((chat) => renderChatItem(chat, true))}
+
+                                  {/* Mostrar mais / Mostrar menos toggle */}
+                                  {hasMore && (
+                                    <button
+                                      type="button"
+                                      onClick={() => setShowAllInProject(prev => ({
+                                        ...prev,
+                                        [project.id]: !prev[project.id]
+                                      }))}
+                                      className="w-full text-left py-1 px-2 text-[11px] font-medium text-muted-foreground hover:text-foreground flex items-center gap-1 transition-colors"
+                                    >
+                                      {showAll ? (
+                                        <>
+                                          <ChevronUp className="w-3 h-3" />
+                                          <span>{t('projects.showLess')}</span>
+                                        </>
+                                      ) : (
+                                        <>
+                                          <ChevronDown className="w-3 h-3" />
+                                          <span>{t('projects.showMore')} ({projChats.length - 5})</span>
+                                        </>
+                                      )}
+                                    </button>
+                                  )}
+                                </>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })
                   )}
-                </>
+                </div>
               )}
             </div>
-          ) : (
-            <>
-              {renderChatGroup(t('sidebar.today'), groupedChats.today)}
-              {renderChatGroup(t('sidebar.yesterday'), groupedChats.yesterday)}
-              {renderChatGroup(t('sidebar.thisWeek'), groupedChats.thisWeek)}
-              {renderChatGroup(t('sidebar.thisMonth'), groupedChats.thisMonth)}
-              {renderChatGroup(t('sidebar.older'), groupedChats.older)}
-            </>
-          )}
-        </div>
-      )}
+
+            {/* --- SECTION 2: CHATS (Gerais / Sem Projeto) --- */}
+            <div className="space-y-1 pt-2">
+              {/* Chats Section Header */}
+              <div className="flex items-center justify-between px-2.5 py-1 text-muted-foreground group">
+                <button
+                  type="button"
+                  onClick={() => setIsChatsSectionOpen(prev => !prev)}
+                  className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider hover:text-foreground transition-colors"
+                >
+                  <ChevronDown className={cn("w-3 h-3 transition-transform duration-200", !isChatsSectionOpen && "-rotate-90")} />
+                  <span>{t('sidebar.chatsSection')}</span>
+                  {unassignedChats.length > 0 && (
+                    <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-muted text-muted-foreground font-normal">
+                      {unassignedChats.length}
+                    </span>
+                  )}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => onNewChat(null)}
+                  className="opacity-0 group-hover:opacity-100 p-1 rounded hover:bg-muted text-muted-foreground hover:text-primary transition-all"
+                  title={t('sidebar.newChat')}
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                </button>
+              </div>
+
+              {/* Unassigned Chats List */}
+              {isChatsSectionOpen && (
+                <div>
+                  {unassignedChats.length === 0 && projects.length === 0 ? (
+                    <div className="px-4 py-8 text-center text-sm text-muted-foreground">
+                      <MessageSquare className="h-7 w-7 mx-auto mb-2 opacity-40 text-primary" />
+                      <p className="text-xs font-medium">{t('sidebar.emptyTitle')}</p>
+                      <p className="text-[11px] mt-1 text-muted-foreground/80">{t('sidebar.emptySubtitle')}</p>
+                      <button
+                        type="button"
+                        onClick={() => onNewChat(null)}
+                        className="mt-3 px-3 py-1.5 text-xs font-semibold bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors shadow-xs inline-flex items-center gap-1.5"
+                      >
+                        <Plus className="w-3.5 h-3.5" />
+                        <span>{t('sidebar.newChat')}</span>
+                      </button>
+                    </div>
+                  ) : unassignedChats.length === 0 ? (
+                    <div className="px-3 py-2 text-[11px] text-muted-foreground/70">
+                      {t('sidebar.emptySubtitle')}
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      {groupedUnassigned.today.length > 0 && (
+                        <div>
+                          <div className="px-3 py-0.5 text-[10px] font-semibold text-muted-foreground/80 uppercase">
+                            {t('sidebar.today')}
+                          </div>
+                          {groupedUnassigned.today.map(c => renderChatItem(c))}
+                        </div>
+                      )}
+                      {groupedUnassigned.yesterday.length > 0 && (
+                        <div>
+                          <div className="px-3 py-0.5 text-[10px] font-semibold text-muted-foreground/80 uppercase">
+                            {t('sidebar.yesterday')}
+                          </div>
+                          {groupedUnassigned.yesterday.map(c => renderChatItem(c))}
+                        </div>
+                      )}
+                      {groupedUnassigned.thisWeek.length > 0 && (
+                        <div>
+                          <div className="px-3 py-0.5 text-[10px] font-semibold text-muted-foreground/80 uppercase">
+                            {t('sidebar.thisWeek')}
+                          </div>
+                          {groupedUnassigned.thisWeek.map(c => renderChatItem(c))}
+                        </div>
+                      )}
+                      {groupedUnassigned.thisMonth.length > 0 && (
+                        <div>
+                          <div className="px-3 py-0.5 text-[10px] font-semibold text-muted-foreground/80 uppercase">
+                            {t('sidebar.thisMonth')}
+                          </div>
+                          {groupedUnassigned.thisMonth.map(c => renderChatItem(c))}
+                        </div>
+                      )}
+                      {groupedUnassigned.older.length > 0 && (
+                        <div>
+                          <div className="px-3 py-0.5 text-[10px] font-semibold text-muted-foreground/80 uppercase">
+                            {t('sidebar.older')}
+                          </div>
+                          {groupedUnassigned.older.map(c => renderChatItem(c))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          </>
+        )}
+      </div>
 
       {/* Delete Chat Confirmation Modal */}
       {chatToDelete && typeof document !== 'undefined' && createPortal(
