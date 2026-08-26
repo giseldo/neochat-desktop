@@ -44,6 +44,8 @@ export const translations = {
       collapseSidebar: 'Recolher barra lateral',
     },
     sidebar: {
+      chatsSection: 'Chats',
+      projectsSection: 'Projetos',
       title: 'Conversas',
       newChat: 'Nova Conversa',
       searchPlaceholder: 'Buscar histórico...',
@@ -123,6 +125,11 @@ export const translations = {
       knowledgeBaseTab: 'Base de Conhecimento (RAG)',
       linkedFolders: 'Pastas Vinculadas',
       addFolderBtn: 'Adicionar Pasta ao Projeto',
+      showMore: 'Mostrar mais',
+      showLess: 'Mostrar menos',
+      newChatInProject: 'Nova conversa no projeto',
+      noChatsYet: 'Nenhuma conversa neste projeto',
+      noChatsSubtitle: 'Clique em + para iniciar uma conversa',
     },
     rag: {
       knowledgeBase: 'Base de Conhecimento (RAG)',
@@ -1244,6 +1251,8 @@ export const translations = {
       collapseSidebar: 'Collapse sidebar',
     },
     sidebar: {
+      chatsSection: 'Chats',
+      projectsSection: 'Projects',
       title: 'Conversations',
       newChat: 'New Chat',
       searchPlaceholder: 'Search history...',
@@ -1323,6 +1332,11 @@ export const translations = {
       knowledgeBaseTab: 'Knowledge Base (RAG)',
       linkedFolders: 'Linked Folders',
       addFolderBtn: 'Add Folder to Project',
+      showMore: 'Show more',
+      showLess: 'Show less',
+      newChatInProject: 'New chat in this project',
+      noChatsYet: 'No chats in this project yet',
+      noChatsSubtitle: 'Click + to start a chat',
     },
     rag: {
       knowledgeBase: 'Knowledge Base (Local RAG)',

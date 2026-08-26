@@ -2058,7 +2058,7 @@ function App() {
   };
 
   // Handle creating a new chat
-  const handleNewChat = useCallback(async () => {
+  const handleNewChat = useCallback(async (targetProjectId = undefined) => {
     // Stop any ongoing streams before clearing
     if (loading) {
       console.log('Stopping streams before starting new chat...');
@@ -2069,12 +2069,17 @@ function App() {
       setPausedChatState(null);
     }
     
-    // Create a new chat in history with the current API mode and active project
-    await createNewChat(selectedModel, useResponsesApi, activeProjectId);
+    const projId = targetProjectId !== undefined ? targetProjectId : activeProjectId;
+    if (targetProjectId !== undefined) {
+      setActiveProjectId(targetProjectId);
+    }
+    
+    // Create a new chat in history with the current API mode and target project
+    await createNewChat(selectedModel, useResponsesApi, projId);
 
     // Signal the ChatInput to focus on the text area
     setChatFocusSignal(s => s + 1);
-  }, [loading, createNewChat, selectedModel, useResponsesApi, activeProjectId]);
+  }, [loading, createNewChat, selectedModel, useResponsesApi, activeProjectId, setActiveProjectId]);
 
   // Global Keyboard shortcuts:
   // - Ctrl/Cmd + N -> New Chat
@@ -2138,9 +2143,18 @@ function App() {
     };
   }, [handleNewChat, toggleSidebar, navigate]);
 
-  // Handle when a chat is loaded from history - switch API mode if needed
+  // Handle when a chat is loaded from history - switch API mode and sync active project if needed
   const handleChatLoaded = useCallback(async (chat) => {
-    if (chat && chat.useResponsesApi !== undefined) {
+    if (!chat) return;
+
+    // Sync activeProjectId with chat's project
+    if (chat.projectId !== undefined) {
+      setActiveProjectId(chat.projectId || null);
+    } else {
+      setActiveProjectId(null);
+    }
+
+    if (chat.useResponsesApi !== undefined) {
       const chatApiMode = chat.useResponsesApi;
       
       // If the chat's API mode differs from current setting, update it
@@ -2159,7 +2173,7 @@ function App() {
         }
       }
     }
-  }, [useResponsesApi]);
+  }, [useResponsesApi, setActiveProjectId]);
 
   const handleBranchFromMessage = useCallback(async (messageIndex) => {
     if (!currentChatId || loading) return;

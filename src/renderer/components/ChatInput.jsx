@@ -904,8 +904,8 @@ function ChatInput({
 				</div>
 
 				{/* Bottom Controls */}
-				<div className="flex items-center justify-between gap-2 px-1 sm:px-2 flex-wrap min-w-0">
-					<div className="flex items-center gap-1.5 flex-wrap min-w-0">
+				<div className="flex items-center justify-between gap-2 px-1 sm:px-2 min-w-0">
+					<div className="flex items-center gap-1 sm:gap-1.5 min-w-0 overflow-x-auto no-scrollbar py-0.5">
 						{/* File Upload Button */}
 						{files.length < 5 && (
 							<Button
@@ -913,12 +913,12 @@ function ChatInput({
 								variant="ghost"
 								size="sm"
 								onClick={() => fileInputRef.current?.click()}
-								className="text-muted-foreground hover:text-foreground hover:bg-muted/60 hover:shadow-sm transition-all duration-200 rounded-xl px-2.5 py-1.5 text-xs font-medium"
+								className="text-muted-foreground hover:text-foreground hover:bg-muted/60 hover:shadow-sm transition-all duration-200 rounded-xl px-2.5 py-1.5 text-xs font-medium flex-shrink-0"
 								title={visionSupported ? t('chat.uploadTooltipVision') : t('chat.uploadTooltipNoVision')}
 								disabled={loading}
 							>
-								<ImagePlus className="w-4 h-4 mr-1.5 flex-shrink-0 text-emerald-500" />
-								<span>{t('chat.upload')}</span>
+								<ImagePlus className={cn("w-4 h-4 flex-shrink-0 text-emerald-500", showButtonLabels && "mr-1.5")} />
+								{showButtonLabels && <span>{t('chat.upload')}</span>}
 							</Button>
 						)}
 
@@ -929,12 +929,12 @@ function ChatInput({
 								variant="ghost"
 								size="sm"
 								onClick={() => setIsSnipModalOpen(true)}
-								className="text-muted-foreground hover:text-foreground hover:bg-muted/60 hover:shadow-sm transition-all duration-200 rounded-xl px-2.5 py-1.5 text-xs font-medium"
+								className="text-muted-foreground hover:text-foreground hover:bg-muted/60 hover:shadow-sm transition-all duration-200 rounded-xl px-2.5 py-1.5 text-xs font-medium flex-shrink-0"
 								title={t('chat.snipTooltip')}
 								disabled={loading}
 							>
-								<Camera className="w-4 h-4 mr-1.5 flex-shrink-0 text-cyan-500" />
-								<span>{t('chat.snip')}</span>
+								<Camera className={cn("w-4 h-4 flex-shrink-0 text-cyan-500", showButtonLabels && "mr-1.5")} />
+								{showButtonLabels && <span>{t('chat.snip')}</span>}
 							</Button>
 						)}
 						<input
@@ -963,12 +963,12 @@ function ChatInput({
 									setIsPromptTemplatesModalOpen(true);
 								}
 							}}
-							className="text-muted-foreground hover:text-foreground hover:bg-muted/60 hover:shadow-sm transition-all duration-200 rounded-xl px-2 py-1.5 font-mono text-xs"
+							className="text-muted-foreground hover:text-foreground hover:bg-muted/60 hover:shadow-sm transition-all duration-200 rounded-xl px-2 py-1.5 font-mono text-xs flex-shrink-0"
 							title={t('slashCommands.buttonTooltip')}
 							disabled={loading}
 						>
-							<Terminal className="w-4 h-4 mr-1 text-primary flex-shrink-0" />
-							<span>/</span>
+							<Terminal className={cn("w-4 h-4 text-primary flex-shrink-0", showButtonLabels && "mr-1")} />
+							{showButtonLabels && <span>/</span>}
 						</Button>}
 
 						{/* Voice Dictation (Whisper) Button */}
@@ -979,7 +979,7 @@ function ChatInput({
 								size="sm"
 								onClick={toggleRecording}
 								className={cn(
-									"transition-all duration-200 rounded-xl px-2.5 py-1.5 text-xs font-medium",
+									"transition-all duration-200 rounded-xl px-2.5 py-1.5 text-xs font-medium flex-shrink-0",
 									isRecording
 										? "bg-red-500/20 text-red-500 animate-pulse border border-red-500/40"
 										: isTranscribing
@@ -1009,7 +1009,7 @@ function ChatInput({
 								variant="ghost"
 								size="sm"
 								onClick={onOpenMcpTools}
-								className="text-muted-foreground hover:text-foreground hover:bg-muted/60 hover:shadow-sm transition-all duration-200 rounded-xl px-2.5 py-1.5 text-xs font-medium"
+								className="text-muted-foreground hover:text-foreground hover:bg-muted/60 hover:shadow-sm transition-all duration-200 rounded-xl px-2.5 py-1.5 text-xs font-medium flex-shrink-0"
 								title={t('chat.toolsTooltip')}
 								disabled={loading}
 							>
@@ -1034,7 +1034,7 @@ function ChatInput({
 							size="sm"
 							onClick={handleToggleWebSearch}
 							className={cn(
-								"transition-all duration-200 rounded-xl px-2.5 py-1.5 text-xs font-medium flex items-center gap-1.5",
+								"transition-all duration-200 rounded-xl px-2.5 py-1.5 text-xs font-medium flex items-center gap-1.5 flex-shrink-0",
 								webSearchActive
 									? "bg-blue-500/15 text-blue-600 dark:text-blue-400 border border-blue-500/30 shadow-xs"
 									: "text-muted-foreground hover:text-foreground hover:bg-muted/60 hover:shadow-xs"
@@ -1057,7 +1057,7 @@ function ChatInput({
 								size="sm"
 								onClick={openKnowledgeBaseModal}
 								className={cn(
-									"transition-all duration-200 rounded-xl px-2.5 py-1.5 text-xs font-medium flex items-center gap-1.5",
+									"transition-all duration-200 rounded-xl px-2.5 py-1.5 text-xs font-medium flex items-center gap-1.5 flex-shrink-0",
 									(activeProject.folders?.length || 0) > 0
 										? "bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/25 shadow-xs"
 										: "text-muted-foreground hover:text-foreground hover:bg-muted/60 hover:shadow-xs"
@@ -1089,7 +1089,7 @@ function ChatInput({
 								} catch (e) {}
 							}}
 							className={cn(
-								"transition-all duration-200 rounded-xl px-2.5 py-1.5 text-xs font-medium flex items-center gap-1.5 border",
+								"transition-all duration-200 rounded-xl px-2.5 py-1.5 text-xs font-medium flex items-center gap-1.5 border flex-shrink-0",
 								agentModeActive
 									? "bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/40 shadow-xs ring-1 ring-amber-500/20 font-semibold"
 									: "text-muted-foreground hover:text-foreground hover:bg-muted/60 border-transparent"
