@@ -52,9 +52,12 @@ export default function WelcomeScreen({
   onSelectPrompt,
   showTips = false,
   showWelcomeTips,
+  showSuggestions = false,
+  showWelcomeSuggestions,
   className = ""
 }) {
   const isTipsVisible = showWelcomeTips !== undefined ? showWelcomeTips : showTips;
+  const isSuggestionsVisible = showWelcomeSuggestions !== undefined ? showWelcomeSuggestions : showSuggestions;
   const { language } = useLanguage();
   const lang = language === 'en' ? 'en' : 'pt';
 
@@ -159,19 +162,21 @@ export default function WelcomeScreen({
       )}
 
       {/* Suggestion Prompts / Quick Inspiration Chips */}
-      <div className="w-full flex flex-wrap items-center justify-center gap-2 max-w-2xl">
-        {suggestions.map((item) => (
-          <button
-            key={item.id}
-            type="button"
-            onClick={() => onSelectPrompt && onSelectPrompt(item.prompt)}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-background/80 hover:bg-accent/80 hover:border-primary/40 border border-border/80 text-xs font-medium text-foreground/85 hover:text-foreground shadow-2xs transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0"
-          >
-            <span className="text-sm">{item.icon}</span>
-            <span>{item.label}</span>
-          </button>
-        ))}
-      </div>
+      {isSuggestionsVisible && suggestions.length > 0 && (
+        <div className="w-full flex flex-wrap items-center justify-center gap-2 max-w-2xl">
+          {suggestions.map((item) => (
+            <button
+              key={item.id}
+              type="button"
+              onClick={() => onSelectPrompt && onSelectPrompt(item.prompt)}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-background/80 hover:bg-accent/80 hover:border-primary/40 border border-border/80 text-xs font-medium text-foreground/85 hover:text-foreground shadow-2xs transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0"
+            >
+              <span className="text-sm">{item.icon}</span>
+              <span>{item.label}</span>
+            </button>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

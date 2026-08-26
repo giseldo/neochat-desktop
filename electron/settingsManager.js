@@ -44,6 +44,7 @@ function loadSettings() {
             interfaceMode: 'user',
             showTrajectoryTab: true,
             showWelcomeTips: false,
+            showWelcomeSuggestions: false,
             GROQ_API_KEY: process.env.GROQ_API_KEY || "<replace me>",
             model: process.env.GROQ_DEFAULT_MODEL || "llama-3.3-70b-versatile",
             temperature: 0.7,
@@ -86,6 +87,7 @@ function loadSettings() {
         interfaceMode: 'user',
         showTrajectoryTab: true,
         showWelcomeTips: false,
+        showWelcomeSuggestions: false,
         provider: 'groq',
         apiKeys: {},
         fallbackProviders: [],
@@ -164,6 +166,7 @@ function loadSettings() {
             settings.interfaceMode = settings.interfaceMode === 'power' ? 'power' : 'user';
             settings.showTrajectoryTab = settings.showTrajectoryTab ?? defaultSettings.showTrajectoryTab;
             settings.showWelcomeTips = settings.showWelcomeTips ?? defaultSettings.showWelcomeTips;
+            settings.showWelcomeSuggestions = settings.showWelcomeSuggestions ?? defaultSettings.showWelcomeSuggestions;
             settings.model = settings.model || defaultSettings.model;
             settings.temperature = settings.temperature ?? defaultSettings.temperature; // Use nullish coalescing
             settings.top_p = settings.top_p ?? defaultSettings.top_p;

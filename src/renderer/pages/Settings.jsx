@@ -44,6 +44,7 @@ function Settings() {
     interfaceMode: 'user',
     showTrajectoryTab: true,
     showWelcomeTips: false,
+    showWelcomeSuggestions: false,
     GROQ_API_KEY: '',
     temperature: 0.7,
     top_p: 0.95,
@@ -368,6 +369,14 @@ function Settings() {
       isPowerOnly: false
     },
     {
+      id: 'welcomeSuggestions',
+      category: 'interface',
+      title: t('settings.welcomeSuggestionsTitle') || 'Sugestões de Prompts Rápidos',
+      desc: t('settings.welcomeSuggestionsDesc') || 'Exibir ou ocultar atalhos e sugestões na tela inicial',
+      keywords: 'atalhos sugestoes prompts chips botoes welcome tela inicial rapides inspiracao',
+      isPowerOnly: false
+    },
+    {
       id: 'thinkingSummaries',
       category: 'interface',
       title: t('settings.thinkingSummariesTitle') || 'Resumos de Raciocínio',
@@ -624,6 +633,9 @@ function Settings() {
         if (settingsData.showWelcomeTips === undefined) {
             settingsData.showWelcomeTips = false;
         }
+        if (settingsData.showWelcomeSuggestions === undefined) {
+            settingsData.showWelcomeSuggestions = false;
+        }
         if (settingsData.disableThinkingSummaries === undefined) {
             settingsData.disableThinkingSummaries = false;
         }
@@ -707,6 +719,7 @@ function Settings() {
             reasoning_effort: 'medium',
             showTrajectoryTab: true,
             showWelcomeTips: false,
+            showWelcomeSuggestions: false,
             modelFilter: '',
             modelFilterExclude: '',
             disableThinkingSummaries: false,
@@ -2071,6 +2084,7 @@ function Settings() {
       visibleCardIds.has('appearance') ||
       visibleCardIds.has('trajectoryTab') ||
       visibleCardIds.has('welcomeTips') ||
+      visibleCardIds.has('welcomeSuggestions') ||
       visibleCardIds.has('thinkingSummaries');
 
     if (!hasVisible) return null;
@@ -2504,6 +2518,37 @@ function Settings() {
                   id="welcome-tips-toggle"
                   checked={settings.showWelcomeTips === true}
                   onChange={(e) => handleToggleChange('showWelcomeTips', e.target.checked)}
+                />
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {visibleCardIds.has('welcomeSuggestions') && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center space-x-2">
+                <Sparkles className="h-5 w-5 text-primary" />
+                <span>{t('settings.welcomeSuggestionsTitle')}</span>
+              </CardTitle>
+              <CardDescription>
+                {t('settings.welcomeSuggestionsDesc')}
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center justify-between">
+                <div className="space-y-0.5">
+                  <Label htmlFor="welcome-suggestions-toggle" className="font-medium">
+                    {t('settings.welcomeSuggestionsLabel')}
+                  </Label>
+                  <p className="text-xs text-muted-foreground">
+                    {t('settings.welcomeSuggestionsHelp')}
+                  </p>
+                </div>
+                <Switch
+                  id="welcome-suggestions-toggle"
+                  checked={settings.showWelcomeSuggestions === true}
+                  onChange={(e) => handleToggleChange('showWelcomeSuggestions', e.target.checked)}
                 />
               </div>
             </CardContent>
