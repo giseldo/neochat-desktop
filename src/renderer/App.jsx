@@ -118,6 +118,7 @@ function App() {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('chat'); // 'chat' | 'trajectory'
   const [showTrajectoryTab, setShowTrajectoryTab] = useState(true);
+  const [showWelcomeTips, setShowWelcomeTips] = useState(false);
   const [interfaceMode, setInterfaceMode] = useState('user');
   const isPowerUser = interfaceMode === 'power';
   const [loading, setLoading] = useState(false);
@@ -500,6 +501,7 @@ function App() {
         const settings = await window.electron.getSettings(); // Await settings
         setInterfaceMode(settings.interfaceMode === 'power' ? 'power' : 'user');
         setShowTrajectoryTab(settings.showTrajectoryTab !== false);
+        setShowWelcomeTips(settings.showWelcomeTips === true);
         // Load model filter settings
         setModelFilter(settings.modelFilter || '');
         setModelFilterExclude(settings.modelFilterExclude || '');
@@ -575,6 +577,7 @@ function App() {
         setInterfaceMode(settings.interfaceMode === 'power' ? 'power' : 'user');
         const trajectoryEnabled = settings.showTrajectoryTab !== false;
         setShowTrajectoryTab(trajectoryEnabled);
+        setShowWelcomeTips(settings.showWelcomeTips === true);
         if (!trajectoryEnabled) {
           setActiveTab('chat');
         }
@@ -2412,6 +2415,7 @@ function App() {
                 /* Welcome Screen */
                 <div className="flex flex-col items-center justify-center h-full max-w-4xl lg:max-w-5xl mx-auto w-full px-4 py-6 overflow-y-auto">
                   <WelcomeScreen
+                    showTips={showWelcomeTips}
                     onSelectPrompt={(promptText) => {
                       setPresetInputMessage(promptText);
                       setChatFocusSignal(prev => prev + 1);

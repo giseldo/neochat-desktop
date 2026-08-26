@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { Link, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Search, Eye, EyeOff, Plus, Trash2, Edit3, Save, X, RefreshCw, Key, Settings as SettingsIcon, Zap, Cpu, Server, AlertCircle, CheckCircle, Sun, Moon, Laptop, Languages, Check, Terminal, Globe, Palette, Type, Sparkles, Sliders, ExternalLink, Route, User, Wrench, Download, UploadCloud, BarChart3, GitBranch, Mic, Volume2, Info, Keyboard, Folder, FolderOpen, RotateCcw } from 'lucide-react';
+import { ArrowLeft, Search, Eye, EyeOff, Plus, Trash2, Edit3, Save, X, RefreshCw, Key, Settings as SettingsIcon, Zap, Cpu, Server, AlertCircle, CheckCircle, Sun, Moon, Laptop, Languages, Check, Terminal, Globe, Palette, Type, Sparkles, Sliders, ExternalLink, Route, User, Wrench, Download, UploadCloud, BarChart3, GitBranch, Mic, Volume2, Info, Keyboard, Folder, FolderOpen, RotateCcw, Lightbulb } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
@@ -43,6 +43,7 @@ function Settings() {
     language: 'pt',
     interfaceMode: 'user',
     showTrajectoryTab: true,
+    showWelcomeTips: false,
     GROQ_API_KEY: '',
     temperature: 0.7,
     top_p: 0.95,
@@ -359,6 +360,14 @@ function Settings() {
       isPowerOnly: true
     },
     {
+      id: 'welcomeTips',
+      category: 'interface',
+      title: t('settings.welcomeTipsTitle') || 'Dicas de Boas-Vindas & Sobrevivência',
+      desc: t('settings.welcomeTipsDesc') || 'Exibir ou ocultar card de dicas e humor na tela inicial',
+      keywords: 'dica sobrevivencia regra de ouro humor frase welcome screen inicio card quotes dev tips',
+      isPowerOnly: false
+    },
+    {
       id: 'thinkingSummaries',
       category: 'interface',
       title: t('settings.thinkingSummariesTitle') || 'Resumos de Raciocínio',
@@ -612,6 +621,9 @@ function Settings() {
         if (settingsData.showTrajectoryTab === undefined) {
             settingsData.showTrajectoryTab = true;
         }
+        if (settingsData.showWelcomeTips === undefined) {
+            settingsData.showWelcomeTips = false;
+        }
         if (settingsData.disableThinkingSummaries === undefined) {
             settingsData.disableThinkingSummaries = false;
         }
@@ -694,6 +706,7 @@ function Settings() {
             },
             reasoning_effort: 'medium',
             showTrajectoryTab: true,
+            showWelcomeTips: false,
             modelFilter: '',
             modelFilterExclude: '',
             disableThinkingSummaries: false,
@@ -2057,6 +2070,7 @@ function Settings() {
       visibleCardIds.has('language') ||
       visibleCardIds.has('appearance') ||
       visibleCardIds.has('trajectoryTab') ||
+      visibleCardIds.has('welcomeTips') ||
       visibleCardIds.has('thinkingSummaries');
 
     if (!hasVisible) return null;
@@ -2463,6 +2477,37 @@ function Settings() {
                 </div>
               </CardContent>
             </Card>
+        )}
+
+        {visibleCardIds.has('welcomeTips') && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center space-x-2">
+                <Lightbulb className="h-5 w-5 text-primary" />
+                <span>{t('settings.welcomeTipsTitle')}</span>
+              </CardTitle>
+              <CardDescription>
+                {t('settings.welcomeTipsDesc')}
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center justify-between">
+                <div className="space-y-0.5">
+                  <Label htmlFor="welcome-tips-toggle" className="font-medium">
+                    {t('settings.welcomeTipsLabel')}
+                  </Label>
+                  <p className="text-xs text-muted-foreground">
+                    {t('settings.welcomeTipsHelp')}
+                  </p>
+                </div>
+                <Switch
+                  id="welcome-tips-toggle"
+                  checked={settings.showWelcomeTips === true}
+                  onChange={(e) => handleToggleChange('showWelcomeTips', e.target.checked)}
+                />
+              </div>
+            </CardContent>
+          </Card>
         )}
 
         {visibleCardIds.has('thinkingSummaries') && (

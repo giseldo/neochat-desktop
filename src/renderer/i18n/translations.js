@@ -739,6 +739,12 @@ export const translations = {
       popupShortcutFailed: 'Não foi possível registrar o atalho (combinação ocupada por outro app)',
       viewAllShortcutsBtn: 'Ver Central de Atalhos (Ctrl+/)',
 
+      // Welcome Tips / Survival Tips Card
+      welcomeTipsTitle: 'Dicas de Boas-Vindas & Sobrevivência',
+      welcomeTipsDesc: 'Exibir ou ocultar o card de dicas, regras de ouro e curiosidades na tela inicial.',
+      welcomeTipsLabel: 'Exibir Dicas de Sobrevivência',
+      welcomeTipsHelp: 'Mostra frases bem-humoradas, dicas de sobrevivência dev e atalhos úteis ao abrir uma nova conversa (desativado por padrão).',
+
       // Trajectory Tab Card
       trajectoryTabTitle: 'Aba Trajetória',
       trajectoryTabDesc: 'Ative ou desative a exibição da aba Trajetória no cabeçalho do chat.',
@@ -1896,6 +1902,12 @@ export const translations = {
       popupShortcutInactive: 'Global shortcut disabled',
       popupShortcutFailed: 'Could not register shortcut (key combination may be occupied by another app)',
       viewAllShortcutsBtn: 'View Shortcuts Central (Ctrl+/)',
+
+      // Welcome Tips / Survival Tips Card
+      welcomeTipsTitle: 'Welcome & Survival Tips',
+      welcomeTipsDesc: 'Show or hide the tips, golden rules, and humor card on the welcome screen.',
+      welcomeTipsLabel: 'Show Survival Tips',
+      welcomeTipsHelp: 'Displays witty developer quotes, survival rules, and helpful shortcuts when starting a new chat (disabled by default).',
 
       // Trajectory Tab Card
       trajectoryTabTitle: 'Trajectory Tab',

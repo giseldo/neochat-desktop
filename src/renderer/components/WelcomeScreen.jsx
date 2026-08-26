@@ -50,8 +50,11 @@ const getTipIcon = (iconName) => {
 
 export default function WelcomeScreen({ 
   onSelectPrompt,
+  showTips = false,
+  showWelcomeTips,
   className = ""
 }) {
+  const isTipsVisible = showWelcomeTips !== undefined ? showWelcomeTips : showTips;
   const { language } = useLanguage();
   const lang = language === 'en' ? 'en' : 'pt';
 
@@ -110,7 +113,7 @@ export default function WelcomeScreen({
       </div>
 
       {/* Random Tip / Joke Card */}
-      {currentTip && (
+      {isTipsVisible && currentTip && (
         <div 
           className="w-full max-w-xl mb-6 bg-card/60 hover:bg-card/90 dark:bg-card/40 dark:hover:bg-card/70 backdrop-blur-sm border border-border/70 hover:border-primary/30 rounded-2xl p-3.5 md:p-4 shadow-sm transition-all duration-300 text-left group"
         >
