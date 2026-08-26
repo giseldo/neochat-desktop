@@ -194,6 +194,8 @@ contextBridge.exposeInMainWorld('electron', {
   getModelConfigs: () => ipcRenderer.invoke('get-model-configs'),
   // List of supported providers (for the settings UI)
   getProviders: () => ipcRenderer.invoke('get-providers'),
+  // Test connection to a provider
+  testProvider: (params) => ipcRenderer.invoke('test-provider', params),
   
   // Add event listener for MCP server status changes
   onMcpServerStatusChanged: (callback) => {

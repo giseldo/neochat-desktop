@@ -145,43 +145,144 @@ const PROVIDER_LIST = Object.values(PROVIDERS).map((p) => ({
   requiresApiKey: p.requiresApiKey !== false,
 }));
 
-function getProviderById(id) {
-  return PROVIDERS[id] || PROVIDERS.groq;
+function getCustomProviders(settings) {
+  if (!settings || !Array.isArray(settings.customProviders)) {
+    return [];
+  }
+  return settings.customProviders.map(p => ({
+    id: p.id,
+    name: p.name || p.id,
+    baseUrl: p.baseUrl || '',
+    modelsUrl: p.modelsUrl || (p.baseUrl ? `${p.baseUrl.replace(/\/+$/, '')}/models` : ''),
+    defaultModel: p.defaultModel || '',
+    description: p.description || 'Provedor personalizado OpenAI-compatible',
+    icon: p.icon || 'Settings',
+    isLocal: Boolean(p.isLocal),
+    requiresApiKey: p.requiresApiKey !== false,
+    isCustom: true,
+    apiKey: p.apiKey || ''
+  }));
+}
+
+function getAllProviders(settings = {}) {
+  const custom = getCustomProviders(settings);
+  const customMap = new Map(custom.map(c => [c.id, c]));
+  
+  const presets = PROVIDER_LIST.map(p => {
+    // If a custom URL or override exists for this preset
+    const customUrl = settings?.providerUrls?.[p.id];
+    return {
+      ...p,
+      baseUrl: customUrl || p.baseUrl
+    };
+  });
+
+  return [...presets, ...custom.filter(c => !PROVIDERS[c.id])];
+}
+
+function getProviderById(id, settings = {}) {
+  if (!id) return PROVIDERS.groq;
+  if (PROVIDERS[id]) {
+    const customUrl = settings?.providerUrls?.[id];
+    if (customUrl) {
+      return { ...PROVIDERS[id], baseUrl: customUrl };
+    }
+    return PROVIDERS[id];
+  }
+  const custom = getCustomProviders(settings);
+  const found = custom.find(p => p.id === id);
+  return found || PROVIDERS.groq;
 }
 
 function getActiveProvider(settings) {
-  return getProviderById(settings && settings.provider);
+  return getProviderById(settings && settings.provider, settings);
+}
+
+function isProviderConfigured(settings = {}, providerId) {
+  if (!providerId) return false;
+  const provider = getProviderById(providerId, settings);
+
+  // Local providers are considered configured out-of-the-box
+  if (provider.isLocal) {
+    return true;
+  }
+
+  // Check stored API key in apiKeys map
+  const storedKey = settings.apiKeys && settings.apiKeys[providerId];
+  if (storedKey && storedKey.trim() && storedKey !== '<replace me>') {
+    return true;
+  }
+
+  // Check environment variable
+  if (provider.envVar && process.env[provider.envVar]) {
+    return true;
+  }
+
+  // Legacy GROQ_API_KEY
+  if (providerId === 'groq' && settings.GROQ_API_KEY && settings.GROQ_API_KEY.trim() && settings.GROQ_API_KEY !== '<replace me>') {
+    return true;
+  }
+
+  // Custom provider with inline apiKey or valid baseUrl
+  if (provider.isCustom) {
+    if (provider.apiKey && provider.apiKey.trim() && provider.apiKey !== '<replace me>') {
+      return true;
+    }
+    if (provider.baseUrl && provider.baseUrl.trim() && provider.requiresApiKey === false) {
+      return true;
+    }
+  }
+
+  // Legacy custom provider with customApiBaseUrl
+  if (providerId === 'custom' && settings.customApiBaseUrl && settings.customApiBaseUrl.trim()) {
+    return true;
+  }
+
+  return false;
+}
+
+function isProviderEnabled(settings = {}, providerId) {
+  if (!providerId) return false;
+
+  // If enabledProviders list is explicitly present
+  if (Array.isArray(settings.enabledProviders)) {
+    return settings.enabledProviders.includes(providerId);
+  }
+
+  // If disabledProviders list is present
+  if (Array.isArray(settings.disabledProviders)) {
+    if (settings.disabledProviders.includes(providerId)) {
+      return false;
+    }
+    return isProviderConfigured(settings, providerId) || providerId === (settings.provider || 'groq');
+  }
+
+  // Default: primary provider is always enabled; other providers enabled if configured
+  if (providerId === (settings.provider || 'groq')) {
+    return true;
+  }
+
+  return isProviderConfigured(settings, providerId);
+}
+
+function getActiveProviders(settings = {}) {
+  const all = getAllProviders(settings);
+  const active = all.filter(p => isProviderEnabled(settings, p.id));
+  if (active.length > 0) {
+    return active;
+  }
+  // Fallback to active provider if none marked active
+  return [getActiveProvider(settings)];
 }
 
 /**
  * Resolve the API key for the currently selected provider.
- * Priority: environment variable > settings.apiKeys[provider] > legacy GROQ_API_KEY.
+ * Priority: environment variable > settings.apiKeys[provider] > custom provider key > legacy GROQ_API_KEY.
  */
 function getActiveApiKey(settings) {
   if (!settings) return null;
-  const provider = getActiveProvider(settings);
-
-  // If local provider that doesn't require a key, return a dummy key if not set
-  if (provider.requiresApiKey === false && (!settings.apiKeys || !settings.apiKeys[provider.id])) {
-    return 'ollama-local-key';
-  }
-
-  // Environment variable takes precedence (matches legacy GROQ behavior)
-  if (provider.envVar && process.env[provider.envVar]) {
-    return process.env[provider.envVar];
-  }
-
-  const storedKey = settings.apiKeys && settings.apiKeys[provider.id];
-  if (storedKey && storedKey !== '<replace me>') {
-    return storedKey;
-  }
-
-  // Legacy top-level field for Groq
-  if (provider.id === 'groq' && settings.GROQ_API_KEY && settings.GROQ_API_KEY !== '<replace me>') {
-    return settings.GROQ_API_KEY;
-  }
-
-  return null;
+  const providerId = settings.provider || 'groq';
+  return getApiKeyForProvider(settings, providerId);
 }
 
 /**
@@ -196,13 +297,8 @@ function getProviderBaseUrl(settings) {
     return settings.customApiBaseUrl.trim();
   }
 
-  const provider = getActiveProvider(settings);
-  if (provider.id === 'custom') {
-    return settings.customApiBaseUrl && settings.customApiBaseUrl.trim()
-      ? settings.customApiBaseUrl.trim()
-      : null;
-  }
-  return provider.baseUrl || null;
+  const providerId = settings.provider || 'groq';
+  return getBaseUrlForProvider(settings, providerId);
 }
 
 function getDefaultModel(settings) {
@@ -222,9 +318,17 @@ function getModelsUrl(settings) {
   return baseUrl ? `${baseUrl.replace(/\/+$/, '')}/models` : null;
 }
 
-function getApiKeyForProvider(settings, providerId) {
-  if (!settings) return null;
-  const provider = getProviderById(providerId);
+function normalizeSettingsAndProvider(a, b) {
+  if (typeof a === 'string') {
+    return { providerId: a, settings: typeof b === 'object' && b !== null ? b : {} };
+  }
+  return { settings: typeof a === 'object' && a !== null ? a : {}, providerId: typeof b === 'string' ? b : '' };
+}
+
+function getApiKeyForProvider(arg1, arg2) {
+  const { settings, providerId } = normalizeSettingsAndProvider(arg1, arg2);
+  if (!providerId) return null;
+  const provider = getProviderById(providerId, settings);
 
   // If local provider that doesn't require a key
   if (provider.requiresApiKey === false && (!settings.apiKeys || !settings.apiKeys[provider.id])) {
@@ -237,30 +341,47 @@ function getApiKeyForProvider(settings, providerId) {
   }
 
   const storedKey = settings.apiKeys && settings.apiKeys[provider.id];
-  if (storedKey && storedKey !== '<replace me>') {
-    return storedKey;
+  if (storedKey && storedKey !== '<replace me>' && storedKey.trim()) {
+    return storedKey.trim();
+  }
+
+  if (provider.apiKey && provider.apiKey !== '<replace me>' && provider.apiKey.trim()) {
+    return provider.apiKey.trim();
   }
 
   if (provider.id === 'groq' && settings.GROQ_API_KEY && settings.GROQ_API_KEY !== '<replace me>') {
-    return settings.GROQ_API_KEY;
+    return settings.GROQ_API_KEY.trim();
   }
 
   return null;
 }
 
-function getBaseUrlForProvider(settings, providerId) {
-  if (!settings) return null;
-  const provider = getProviderById(providerId);
+function getBaseUrlForProvider(arg1, arg2) {
+  const { settings, providerId } = normalizeSettingsAndProvider(arg1, arg2);
+  if (!providerId) return null;
+
+  // Check per-provider custom URL override
+  if (settings.providerUrls && settings.providerUrls[providerId] && settings.providerUrls[providerId].trim()) {
+    return settings.providerUrls[providerId].trim();
+  }
+
+  const provider = getProviderById(providerId, settings);
   if (provider.id === 'custom') {
     return settings.customApiBaseUrl && settings.customApiBaseUrl.trim()
       ? settings.customApiBaseUrl.trim()
       : null;
   }
-  return provider.baseUrl || null;
+
+  if (provider.baseUrl && provider.baseUrl.trim()) {
+    return provider.baseUrl.trim();
+  }
+
+  return null;
 }
 
-function getModelsUrlForProvider(settings, providerId) {
-  const provider = getProviderById(providerId);
+function getModelsUrlForProvider(arg1, arg2) {
+  const { settings, providerId } = normalizeSettingsAndProvider(arg1, arg2);
+  const provider = getProviderById(providerId, settings);
   if (provider.modelsUrl) {
     return provider.modelsUrl;
   }
@@ -269,24 +390,16 @@ function getModelsUrlForProvider(settings, providerId) {
 }
 
 function getConfiguredProviders(settings = {}) {
-  const configured = [];
-  PROVIDER_LIST.forEach((p) => {
-    const key = getApiKeyForProvider(settings, p.id);
-    const isCurrent = (settings.provider || 'groq') === p.id;
-    const isFallback = Array.isArray(settings.fallbackProviders) && settings.fallbackProviders.includes(p.id);
-    
-    // Configured if it has an API key, is local, is current, or is in fallbacks
-    if (key || p.isLocal || isCurrent || isFallback) {
-      configured.push(getProviderById(p.id));
-    }
-  });
-  return configured;
+  const all = getAllProviders(settings);
+  return all.filter(p => isProviderConfigured(settings, p.id));
 }
 
 function getProviderCandidates(settings = {}) {
-  const ids = [settings.provider || 'groq', ...(Array.isArray(settings.fallbackProviders) ? settings.fallbackProviders : [])];
+  const primaryId = settings.provider || 'groq';
+  const fallbackIds = Array.isArray(settings.fallbackProviders) ? settings.fallbackProviders : [];
+  const ids = [primaryId, ...fallbackIds];
   return [...new Set(ids)].map((providerId, index) => {
-    const provider = getProviderById(providerId);
+    const provider = getProviderById(providerId, settings);
     return {
       ...settings,
       provider: provider.id,
@@ -299,6 +412,8 @@ function getProviderCandidates(settings = {}) {
 module.exports = {
   PROVIDERS,
   PROVIDER_LIST,
+  getCustomProviders,
+  getAllProviders,
   getProviderById,
   getActiveProvider,
   getActiveApiKey,
@@ -308,6 +423,9 @@ module.exports = {
   getApiKeyForProvider,
   getBaseUrlForProvider,
   getModelsUrlForProvider,
+  isProviderConfigured,
+  isProviderEnabled,
+  getActiveProviders,
   getConfiguredProviders,
   getProviderCandidates,
 };

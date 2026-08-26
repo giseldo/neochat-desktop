@@ -62,28 +62,28 @@ function applyModelHeuristics(modelId, apiModelData) {
  * @param {string} apiKey - The API key for the provider
  * @param {string} modelsUrl - Full URL to the provider's /models endpoint
  */
-async function fetchModelsFromAPI(apiKey, modelsUrl) {
-  if (!apiKey || apiKey === "<replace me>") {
-    console.warn('No valid API key provided for fetching models');
-    return null;
-  }
+async function fetchModelsFromAPI(apiKey, modelsUrl, options = {}) {
+  const effectiveKey = (apiKey && apiKey !== "<replace me>") ? apiKey : '';
+  const url = modelsUrl || 'https://api.groq.com/openai/v1/models';
 
   try {
     const http = require('http');
     const https = require('https');
-    const url = modelsUrl || 'https://api.groq.com/openai/v1/models';
     const isHttps = url.startsWith('https://');
     const client = isHttps ? https : http;
+    const timeout = options.timeout || 8000;
     
     return new Promise((resolve, reject) => {
-      const options = {
-        headers: {
-          'Authorization': `Bearer ${apiKey}`,
-          'Content-Type': 'application/json'
-        }
+      const headers = {
+        'Content-Type': 'application/json',
+        'User-Agent': 'NeoChat-Desktop/1.0'
       };
 
-      client.get(url, options, (res) => {
+      if (effectiveKey) {
+        headers['Authorization'] = `Bearer ${effectiveKey}`;
+      }
+
+      const req = client.get(url, { headers, timeout }, (res) => {
         let data = '';
 
         res.on('data', (chunk) => {
@@ -97,14 +97,21 @@ async function fetchModelsFromAPI(apiKey, modelsUrl) {
               resolve(json);
             } catch (err) {
               console.error('Error parsing models API response:', err);
-              reject(err);
+              reject(new Error('Resposta inválida do endpoint de modelos (JSON esperado)'));
             }
           } else {
             console.error('Error fetching models:', res.statusCode, data);
-            reject(new Error(`API returned status ${res.statusCode}`));
+            reject(new Error(`API retornou status ${res.statusCode}: ${data ? data.slice(0, 100) : ''}`));
           }
         });
-      }).on('error', (err) => {
+      });
+
+      req.on('timeout', () => {
+        req.destroy();
+        reject(new Error('Tempo limite esgotado ao conectar ao endpoint (timeout)'));
+      });
+
+      req.on('error', (err) => {
         console.error('Error fetching models from API:', err);
         reject(err);
       });

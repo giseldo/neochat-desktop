@@ -92,6 +92,9 @@ function loadSettings() {
         showButtonLabels: false,
         provider: 'groq',
         apiKeys: {},
+        providerUrls: {},
+        enabledProviders: ['groq'],
+        customProviders: [],
         fallbackProviders: [],
         fallbackModels: {},
         tts: { enabled: true, autoSpeak: false, voiceURI: '', rate: 1.05, pitch: 1 },
@@ -176,6 +179,21 @@ function loadSettings() {
             settings.reasoning_effort = settings.reasoning_effort || defaultSettings.reasoning_effort;
             settings.provider = settings.provider || defaultSettings.provider;
             settings.apiKeys = settings.apiKeys || {};
+            settings.providerUrls = settings.providerUrls || {};
+            settings.customProviders = Array.isArray(settings.customProviders) ? settings.customProviders : [];
+            
+            // Normalize enabledProviders
+            if (!Array.isArray(settings.enabledProviders)) {
+                // Initialize with primary provider and any providers that have configured API keys or are local
+                const initialEnabled = new Set([settings.provider || 'groq']);
+                Object.keys(settings.apiKeys).forEach(pId => {
+                    if (settings.apiKeys[pId] && settings.apiKeys[pId] !== '<replace me>') {
+                        initialEnabled.add(pId);
+                    }
+                });
+                settings.enabledProviders = Array.from(initialEnabled);
+            }
+            
             settings.fallbackProviders = Array.isArray(settings.fallbackProviders) ? settings.fallbackProviders : [];
             settings.fallbackModels = settings.fallbackModels || {};
             settings.tts = normalizeTts(settings.tts);

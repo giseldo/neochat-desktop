@@ -28,7 +28,7 @@ const { BrowserWindow, ipcMain, screen, shell, dialog, Notification } = require(
 
 // Import shared models
 const { MODEL_CONTEXT_SIZES, getModelContextSizes, getModelsFromAPIWithCache } = require('../shared/models.js');
-const { PROVIDER_LIST, getActiveApiKey, getProviderBaseUrl, getModelsUrl, getConfiguredProviders, getApiKeyForProvider, getModelsUrlForProvider } = require('../shared/providers.js');
+const { PROVIDER_LIST, getAllProviders, getActiveProvider, getActiveApiKey, getProviderBaseUrl, getModelsUrl, getActiveProviders, getConfiguredProviders, getApiKeyForProvider, getModelsUrlForProvider, getProviderById, isProviderConfigured, isProviderEnabled } = require('../shared/providers.js');
 
 // Import handlers
 const chatHandler = require('./chatHandler');
@@ -266,10 +266,10 @@ app.whenReady().then(async () => {
   ipcMain.handle('get-model-configs', async () => {
     // Return a copy to prevent accidental modification with custom models merged in
     const currentSettings = loadSettings();
-    const configuredProviders = getConfiguredProviders(currentSettings);
+    const activeProviders = getActiveProviders(currentSettings);
     let allApiModels = {};
 
-    for (const provider of configuredProviders) {
+    for (const provider of activeProviders) {
       const apiKey = getApiKeyForProvider(currentSettings, provider.id);
       const modelsUrl = getModelsUrlForProvider(currentSettings, provider.id);
       
@@ -284,7 +284,11 @@ app.whenReady().then(async () => {
           if (providerModels) {
             Object.entries(providerModels).forEach(([id, cfg]) => {
               if (id !== 'default') {
-                allApiModels[id] = cfg;
+                allApiModels[id] = {
+                  ...cfg,
+                  provider: provider.id,
+                  group: provider.name || provider.id
+                };
               }
             });
           }
@@ -302,9 +306,48 @@ app.whenReady().then(async () => {
     return JSON.parse(JSON.stringify(mergedModelContextSizes));
   });
 
-  // Return the list of supported providers (for the settings UI)
+  // Return the list of supported and custom providers (for the settings UI)
   ipcMain.handle('get-providers', async () => {
-    return JSON.parse(JSON.stringify(PROVIDER_LIST));
+    const currentSettings = loadSettings();
+    const allProviders = getAllProviders(currentSettings);
+    return JSON.parse(JSON.stringify(allProviders.map(p => ({
+      ...p,
+      isConfigured: isProviderConfigured(currentSettings, p.id),
+      isEnabled: isProviderEnabled(currentSettings, p.id),
+      isPrimary: (currentSettings.provider || 'groq') === p.id,
+      isFallback: Array.isArray(currentSettings.fallbackProviders) && currentSettings.fallbackProviders.includes(p.id),
+      apiKey: getApiKeyForProvider(currentSettings, p.id) || '',
+      baseUrl: getBaseUrlForProvider(currentSettings, p.id) || p.baseUrl || ''
+    }))));
+  });
+
+  // Test connection to a specific provider
+  ipcMain.handle('test-provider', async (event, { providerId, apiKey: overrideApiKey, baseUrl: overrideBaseUrl } = {}) => {
+    const currentSettings = loadSettings();
+    const provider = getProviderById(providerId, currentSettings);
+    const apiKey = overrideApiKey !== undefined ? overrideApiKey : getApiKeyForProvider(currentSettings, providerId);
+    let modelsUrl = getModelsUrlForProvider(currentSettings, providerId);
+    if (overrideBaseUrl && overrideBaseUrl.trim()) {
+      modelsUrl = `${overrideBaseUrl.trim().replace(/\/+$/, '')}/models`;
+    }
+
+    if (!modelsUrl) {
+      return { success: false, error: 'URL do endpoint /models não configurada.' };
+    }
+
+    const startTime = Date.now();
+    try {
+      const { fetchModelsFromAPI } = require('../shared/models.js');
+      const response = await fetchModelsFromAPI(apiKey, modelsUrl, { timeout: 8000 });
+      const latencyMs = Date.now() - startTime;
+      if (response && Array.isArray(response.data)) {
+        return { success: true, count: response.data.length, latencyMs };
+      }
+      return { success: true, count: 0, latencyMs };
+    } catch (err) {
+      const latencyMs = Date.now() - startTime;
+      return { success: false, error: err.message || String(err), latencyMs };
+    }
   });
 
   ipcMain.handle('get-captured-context', async () => {
