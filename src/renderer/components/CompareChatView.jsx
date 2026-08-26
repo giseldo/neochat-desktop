@@ -14,7 +14,8 @@ import {
   ChevronDown, 
   ChevronRight,
   AlertCircle,
-  Loader2
+  Loader2,
+  Key
 } from 'lucide-react';
 import MarkdownRenderer from './MarkdownRenderer';
 import { Button } from './ui/button';
@@ -67,6 +68,31 @@ export function CompareChatView({
       items
     }));
   }, [availableModels]);
+
+  if (availableModels.length === 0) {
+    return (
+      <div className="w-full flex-1 flex flex-col items-center justify-center p-8 text-center bg-background/50">
+        <div className="max-w-md p-6 rounded-2xl bg-amber-500/10 dark:bg-amber-500/15 border border-amber-500/30 shadow-sm flex flex-col items-center gap-3">
+          <div className="p-3 rounded-xl bg-amber-500/20 text-amber-600 dark:text-amber-400">
+            <Key className="w-6 h-6" />
+          </div>
+          <h3 className="text-sm font-semibold text-foreground">
+            {t('chat.noModelsBannerTitle')}
+          </h3>
+          <p className="text-xs text-muted-foreground leading-relaxed">
+            {t('chat.noModelsBannerDesc')}
+          </p>
+          <a
+            href="#/settings"
+            className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white dark:bg-amber-500 dark:hover:bg-amber-600 text-xs font-medium transition-colors mt-2 shadow-xs"
+          >
+            <Key className="w-3.5 h-3.5" />
+            <span>{t('common.goToSettings')}</span>
+          </a>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="w-full flex-1 grid grid-cols-1 md:grid-cols-2 divide-y md:divide-y-0 md:divide-x divide-border overflow-hidden bg-background/50">
