@@ -87,8 +87,8 @@ importers:
         specifier: ^3.3.1
         version: 3.4.0
       tailwind-scrollbar:
-        specifier: ^4.0.2
-        version: 4.0.2(react@19.0.3)(tailwindcss@3.4.18)
+        specifier: ^3.1.0
+        version: 3.1.0(tailwindcss@3.4.18)
       zod:
         specifier: ^3.24.2
         version: 3.25.76
@@ -1155,9 +1155,6 @@ packages:
 
   '@types/plist@3.0.5':
     resolution: {integrity: sha512-E6OCaRmAe4WDmWNsL/9RMqdkkzDCY1etutkflWk4c+AcjDU07Pcz1fQwTX0TQz+Pxqn9i4L1TU3UFpjnrcDgxA==}
-
-  '@types/prismjs@1.26.5':
-    resolution: {integrity: sha512-AUZTa7hQ2KY5L7AmtSiqxlhWxb4ina0yd8hNbl4TWuqnv/pFP0nDMb3YrfSBf4hJVGLh2YEIBfKaBW/9UEl6IQ==}
 
   '@types/react@19.2.7':
     resolution: {integrity: sha512-MWtvHrGZLFttgeEj28VXHxpmwYbor/ATPYbBfSFZEIRK0ecCFLl2Qo55z52Hss+UV9CRN7trSeq1zbgx7YDWWg==}
@@ -3173,11 +3170,6 @@ packages:
     engines: {node: '>=14'}
     hasBin: true
 
-  prism-react-renderer@2.4.1:
-    resolution: {integrity: sha512-ey8Ls/+Di31eqzUxC46h8MksNuGx/n0AAC8uKpwFau4RPDYLuE3EXTp8N8G2vX2N7UC/+IXeNUnlWBGGcAG+Ig==}
-    peerDependencies:
-      react: '>=16.0.0'
-
   prismjs@1.27.0:
     resolution: {integrity: sha512-t13BGPUlFDR7wRB5kQDG4jjl7XeuH6jbJGt11JHPL96qwsEHNX2+68tFXqc1/k+/jALsbSWJKUOT/hcYAZ5LkA==}
     engines: {node: '>=6'}
@@ -3667,11 +3659,11 @@ packages:
   tailwind-merge@3.4.0:
     resolution: {integrity: sha512-uSaO4gnW+b3Y2aWoWfFpX62vn2sR3skfhbjsEnaBI81WD1wBLlHZe5sWf0AqjksNdYTbGBEd0UasQMT3SNV15g==}
 
-  tailwind-scrollbar@4.0.2:
-    resolution: {integrity: sha512-wAQiIxAPqk0MNTPptVe/xoyWi27y+NRGnTwvn4PQnbvB9kp8QUBiGl/wsfoVBHnQxTmhXJSNt9NHTmcz9EivFA==}
+  tailwind-scrollbar@3.1.0:
+    resolution: {integrity: sha512-pmrtDIZeHyu2idTejfV59SbaJyvp1VRjYxAjZBH0jnyrPRo6HL1kD5Glz8VPagasqr6oAx6M05+Tuw429Z8jxg==}
     engines: {node: '>=12.13.0'}
     peerDependencies:
-      tailwindcss: 4.x
+      tailwindcss: 3.x
 
   tailwindcss@3.4.18:
     resolution: {integrity: sha512-6A2rnmW5xZMdw11LYjhcI5846rt9pbLSabY5XPxo+XWdxwZaFEn47Go4NzFiHu9sNNmr/kXivP1vStfvMaK1GQ==}
@@ -4996,8 +4988,6 @@ snapshots:
       '@types/node': 24.10.1
       xmlbuilder: 15.1.1
     optional: true
-
-  '@types/prismjs@1.26.5': {}
 
   '@types/react@19.2.7':
     dependencies:
@@ -7550,12 +7540,6 @@ snapshots:
 
   prettier@3.7.4: {}
 
-  prism-react-renderer@2.4.1(react@19.0.3):
-    dependencies:
-      '@types/prismjs': 1.26.5
-      clsx: 2.1.1
-      react: 19.0.3
-
   prismjs@1.27.0: {}
 
   prismjs@1.30.0: {}
@@ -8203,12 +8187,9 @@ snapshots:
 
   tailwind-merge@3.4.0: {}
 
-  tailwind-scrollbar@4.0.2(react@19.0.3)(tailwindcss@3.4.18):
+  tailwind-scrollbar@3.1.0(tailwindcss@3.4.18):
     dependencies:
-      prism-react-renderer: 2.4.1(react@19.0.3)
       tailwindcss: 3.4.18
-    transitivePeerDependencies:
-      - react
 
   tailwindcss@3.4.18:
     dependencies:
