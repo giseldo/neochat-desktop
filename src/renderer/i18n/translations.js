@@ -28,6 +28,9 @@ export const translations = {
       typeToFilter: 'Digite para filtrar...',
       noResults: 'Nenhum resultado encontrado',
       noModelsFound: 'Nenhum modelo encontrado',
+      noModelsConfigured: 'Nenhum modelo disponível. É necessário cadastrar uma chave de API nas configurações.',
+      configureApiKey: 'Cadastrar Chave de API',
+      goToSettings: 'Ir para Configurações',
       selectOption: 'Selecione uma opção',
     },
     header: {
@@ -215,6 +218,11 @@ export const translations = {
       micError: 'Não foi possível acessar o microfone. Verifique as permissões de áudio do sistema.',
       transcriptionError: 'Erro na transcrição: {error}',
       errorReadingFiles: 'Erro ao processar arquivos.',
+      noModelsAlert: 'Nenhum modelo disponível. É necessário cadastrar uma chave de API nas configurações para começar a conversar.',
+      noModelsInputPlaceholder: 'Cadastre uma chave de API nas configurações para começar...',
+      noModelsBannerTitle: 'Nenhum modelo disponível',
+      noModelsBannerDesc: 'É necessário cadastrar uma chave de API nas configurações para começar a usar os modelos de inteligência artificial.',
+      noModelsSelect: 'Nenhum modelo disponível',
     },
     sources: {
       title: 'Fontes Consultadas',
@@ -1235,6 +1243,9 @@ export const translations = {
       typeToFilter: 'Type to filter...',
       noResults: 'No results found',
       noModelsFound: 'No models found',
+      noModelsConfigured: 'No models available. You need to configure an API key in settings.',
+      configureApiKey: 'Configure API Key',
+      goToSettings: 'Go to Settings',
       selectOption: 'Select an option',
     },
     header: {
@@ -1422,6 +1433,11 @@ export const translations = {
       micError: 'Could not access microphone. Please check system audio permissions.',
       transcriptionError: 'Transcription error: {error}',
       errorReadingFiles: 'Error processing files.',
+      noModelsAlert: 'No models available. You need to configure an API key in settings to start chatting.',
+      noModelsInputPlaceholder: 'Configure an API key in settings to start chatting...',
+      noModelsBannerTitle: 'No models available',
+      noModelsBannerDesc: 'You need to configure an API key in settings to start using AI models.',
+      noModelsSelect: 'No models available',
     },
     sources: {
       title: 'Sources Consulted',

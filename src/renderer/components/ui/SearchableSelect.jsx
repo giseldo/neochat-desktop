@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
-import { Check, ChevronDown, Layers } from 'lucide-react';
+import { Check, ChevronDown, Layers, Key } from 'lucide-react';
 import { useLanguage } from '../../context/LanguageContext';
 import { cn } from '../../lib/utils';
 
@@ -203,7 +203,22 @@ export function SearchableSelect({
             className="max-h-[320px] overflow-y-auto p-1 space-y-0.5"
             role="listbox"
           >
-            {filteredOptions.length === 0 ? (
+            {options.length === 0 ? (
+              <div className="py-5 px-3 text-center text-xs text-muted-foreground flex flex-col items-center justify-center gap-2.5">
+                <span className="leading-relaxed text-foreground/80">{t('common.noModelsConfigured')}</span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsOpen(false);
+                    window.location.hash = '#/settings';
+                  }}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20 transition-colors"
+                >
+                  <Key className="w-3.5 h-3.5" />
+                  {t('common.goToSettings')}
+                </button>
+              </div>
+            ) : filteredOptions.length === 0 ? (
               <div className="py-6 text-center text-xs sm:text-sm text-muted-foreground">
                 {t('common.noModelsFound')}
               </div>

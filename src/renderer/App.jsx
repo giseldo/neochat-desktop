@@ -21,7 +21,7 @@ import KeyboardShortcutsModal from './components/KeyboardShortcutsModal';
 import { useChat } from './context/ChatContext';
 import { useProjects } from './context/ProjectContext';
 import { useLanguage } from './context/LanguageContext';
-import { Settings, PanelLeftClose, PanelLeft, Radio, MessagesSquare, Sparkles, Store, Columns2, X, FolderKanban, BookOpen, Scale, Bot, Workflow, ChevronDown, Keyboard } from 'lucide-react';
+import { Settings, PanelLeftClose, PanelLeft, Radio, MessagesSquare, Sparkles, Store, Columns2, X, FolderKanban, BookOpen, Scale, Bot, Workflow, ChevronDown, Keyboard, Key, AlertCircle } from 'lucide-react';
 import { Button } from './components/ui/button';
 import { cn } from './lib/utils';
 import { groupModels } from './lib/modelGrouping';
@@ -1499,6 +1499,22 @@ function App() {
     const initialMessages = [...messages, userMessage];
     setMessages(initialMessages);
 
+    // Validate that models exist before attempting API calls
+    if (sortedModels.length === 0 || !selectedModel || selectedModel === 'default') {
+      const warningMsg = {
+        role: 'assistant',
+        content: `⚠️ **${t('chat.noModelsBannerTitle')}**\n\n${t('chat.noModelsAlert')}\n\n👉 [${t('header.settings')}](#/settings)`,
+        createdAt: new Date().toISOString(),
+        timestamp: Date.now()
+      };
+      const updatedMessages = [...initialMessages, warningMsg];
+      setMessages(updatedMessages);
+      if (currentChatId) {
+        await window.electron.chatHistory.saveMessages(currentChatId, updatedMessages);
+      }
+      return;
+    }
+
     // If in Multi-Model Comparison mode, run both streams concurrently
     if (isCompareMode) {
       setStreamStateA({ isLoading: true, content: '', reasoning: '', ttft: null, metrics: null, error: null });
@@ -2440,6 +2456,7 @@ function App() {
                   <WelcomeScreen
                     showTips={showWelcomeTips}
                     showSuggestions={showWelcomeSuggestions}
+                    hasNoModels={initialLoadComplete && sortedModels.length === 0}
                     onSelectPrompt={(promptText) => {
                       setPresetInputMessage(promptText);
                       setChatFocusSignal(prev => prev + 1);
@@ -2507,6 +2524,23 @@ function App() {
               ) : (
                 /* Chat View */
                 <div className="flex flex-col h-full min-h-0 relative">
+                  {initialLoadComplete && sortedModels.length === 0 && (
+                    <div className="mb-4 p-3.5 rounded-2xl bg-amber-500/10 dark:bg-amber-500/15 border border-amber-500/30 text-foreground shadow-sm animate-in fade-in duration-300 flex items-center justify-between gap-3 shrink-0">
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <Key className="w-4 h-4 text-amber-500 shrink-0" />
+                        <span className="text-xs text-foreground/90 font-medium truncate">
+                          {t('chat.noModelsAlert')}
+                        </span>
+                      </div>
+                      <Link
+                        to="/settings"
+                        className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-amber-600 hover:bg-amber-700 text-white dark:bg-amber-500 dark:hover:bg-amber-600 text-xs font-medium transition-colors shrink-0 shadow-2xs"
+                      >
+                        <Key className="w-3 h-3" />
+                        <span>{t('common.goToSettings')}</span>
+                      </Link>
+                    </div>
+                  )}
                   <div 
                     ref={messagesContainerRef} 
                     className="flex-1 overflow-y-auto mb-6 min-h-0"

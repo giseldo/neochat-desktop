@@ -1,5 +1,6 @@
-import { ArrowRight, Loader2, ImagePlus, Hammer, Upload, Zap, ZapOff, Square, Mic, MicOff, Terminal, Globe, BookOpen, SlidersHorizontal, Camera, Bot } from "lucide-react";
+import { ArrowRight, Loader2, ImagePlus, Hammer, Upload, Zap, ZapOff, Square, Mic, MicOff, Terminal, Globe, BookOpen, SlidersHorizontal, Camera, Bot, Key } from "lucide-react";
 import React, { useContext, useEffect, useRef, useState, useMemo } from "react";
+import { Link } from "react-router-dom";
 import TextAreaAutosize from "react-textarea-autosize";
 import { SearchableSelect } from "./ui/SearchableSelect";
 import { Button } from "./ui/button";
@@ -640,6 +641,10 @@ function ChatInput({
 		const hasFiles = files.length > 0;
 
 		if ((hasText || hasFiles) && !loading) {
+			if (!models || models.length === 0 || !selectedModel || selectedModel === 'default') {
+				alert(t('chat.noModelsAlert'));
+				return;
+			}
 			let contentToSend;
 			if (hasFiles) {
 				// Format content as array with text and file parts
@@ -858,7 +863,13 @@ function ChatInput({
 							onKeyDown={handleKeyDown}
 							onPaste={handlePaste}
 							onHeightChange={handleHeightChange}
-							placeholder={isDragOver ? t('chat.dropFilesHere') : t('chat.askAnything')}
+							placeholder={
+								isDragOver 
+									? t('chat.dropFilesHere') 
+									: (!models || models.length === 0 
+										? t('chat.noModelsInputPlaceholder') 
+										: t('chat.askAnything'))
+							}
 							className={cn(
 								"w-full px-4 py-3 bg-transparent resize-none border-0 rounded-2xl text-foreground placeholder:text-muted-foreground focus:outline-none",
 								// Control overflow based on whether we're at max height
@@ -1115,32 +1126,45 @@ function ChatInput({
 						)}
 						
 						{/* Model Selector & Parameters */}
-						{powerUserMode && <div className="flex items-center gap-1">
-							<SearchableSelect
-								value={selectedModel}
-								onValueChange={onModelChange}
-								options={sortedModels}
-								placeholder={t('chat.selectModel')}
-								className="w-36 sm:w-48 max-w-[200px] min-w-[110px]"
-								disabled={loading}
-								getDisplayValue={(value) => getModelDisplayName(value)}
-								getOptionLabel={(model) => getModelDisplayName(model)}
-								getOptionValue={(model) => model}
-								groupBy={(model) => getModelGroup(model, modelConfigs[model])}
-								dropdownWidthClass="w-72 sm:w-80"
-							/>
-							<Button
-								type="button"
-								variant="ghost"
-								size="icon"
-								onClick={() => setIsModelParamsModalOpen(true)}
-								title={t('chat.modelParameters') || 'Parâmetros do Modelo'}
-								className="h-8 w-8 text-muted-foreground hover:text-foreground hover:bg-muted/80 rounded-md transition-colors flex-shrink-0"
-								disabled={loading || !selectedModel}
-							>
-								<SlidersHorizontal className="w-3.5 h-3.5" />
-							</Button>
-						</div>}
+						{powerUserMode && (
+							(!models || models.length === 0) ? (
+								<Link
+									to="/settings"
+									className="flex items-center gap-1.5 px-2.5 py-1 text-xs rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/30 transition-colors font-medium shrink-0"
+									title={t('chat.noModelsAlert')}
+								>
+									<Key className="w-3.5 h-3.5 flex-shrink-0 text-amber-500" />
+									<span className="truncate">{t('common.configureApiKey')}</span>
+								</Link>
+							) : (
+								<div className="flex items-center gap-1">
+									<SearchableSelect
+										value={selectedModel}
+										onValueChange={onModelChange}
+										options={sortedModels}
+										placeholder={t('chat.selectModel')}
+										className="w-36 sm:w-48 max-w-[200px] min-w-[110px]"
+										disabled={loading}
+										getDisplayValue={(value) => getModelDisplayName(value)}
+										getOptionLabel={(model) => getModelDisplayName(model)}
+										getOptionValue={(model) => model}
+										groupBy={(model) => getModelGroup(model, modelConfigs[model])}
+										dropdownWidthClass="w-72 sm:w-80"
+									/>
+									<Button
+										type="button"
+										variant="ghost"
+										size="icon"
+										onClick={() => setIsModelParamsModalOpen(true)}
+										title={t('chat.modelParameters') || 'Parâmetros do Modelo'}
+										className="h-8 w-8 text-muted-foreground hover:text-foreground hover:bg-muted/80 rounded-md transition-colors flex-shrink-0"
+										disabled={loading || !selectedModel}
+									>
+										<SlidersHorizontal className="w-3.5 h-3.5" />
+									</Button>
+								</div>
+							)
+						)}
 					</div>
 				</div>
 			</div>

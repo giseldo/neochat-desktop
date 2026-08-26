@@ -1,4 +1,4 @@
-﻿const fs = require('fs');
+const fs = require('fs');
 const path = require('path');
 const { execSync } = require('child_process');
 
@@ -47,12 +47,12 @@ try {
 
 if (releaseExists) {
   console.log('\nRelease ' + tag + ' already exists on ' + REPO_TARGET + '. Uploading/updating assets...');
-  execSync('gh release upload ' + tag + ' ' + quotedFiles + ' --clobber -R ' + REPO_TARGET, { stdio: 'inherit' });
+  execSync('gh release upload --repo ' + REPO_TARGET + ' ' + tag + ' ' + quotedFiles + ' --clobber', { stdio: 'inherit' });
 } else {
   console.log('\nCreating release ' + tag + ' on ' + REPO_TARGET + '...');
   const title = 'NeoChat Desktop ' + tag;
   const notes = '## NeoChat Desktop ' + tag + '\n\nAutomated release of NeoChat Desktop.';
-  execSync('gh release create ' + tag + ' ' + quotedFiles + ' --title "' + title + '" --notes "' + notes + '" -R ' + REPO_TARGET, { stdio: 'inherit' });
+  execSync('gh release create --repo ' + REPO_TARGET + ' ' + tag + ' ' + quotedFiles + ' --title "' + title + '" --notes "' + notes + '"', { stdio: 'inherit' });
 }
 
 console.log('\n✅ Release ' + tag + ' successfully published to https://github.com/' + REPO_TARGET + '/releases/tag/' + tag + '\n');

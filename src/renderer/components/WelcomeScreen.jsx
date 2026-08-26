@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { Link } from 'react-router-dom';
 import { 
   Sparkles, 
   Mic, 
@@ -17,7 +18,8 @@ import {
   Lightbulb, 
   Dices,
   RefreshCw,
-  ArrowRight
+  ArrowRight,
+  Key
 } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
 import { getRandomGreeting, getRandomTip, SUGGESTION_PROMPTS } from '../data/welcomeTips';
@@ -54,11 +56,12 @@ export default function WelcomeScreen({
   showWelcomeTips,
   showSuggestions = false,
   showWelcomeSuggestions,
+  hasNoModels = false,
   className = ""
 }) {
   const isTipsVisible = showWelcomeTips !== undefined ? showWelcomeTips : showTips;
   const isSuggestionsVisible = showWelcomeSuggestions !== undefined ? showWelcomeSuggestions : showSuggestions;
-  const { language } = useLanguage();
+  const { language, t } = useLanguage();
   const lang = language === 'en' ? 'en' : 'pt';
 
   const [greeting, setGreeting] = useState(() => getRandomGreeting(lang));
@@ -114,6 +117,32 @@ export default function WelcomeScreen({
           {greeting}
         </h2>
       </div>
+
+      {/* No Models Available Notice */}
+      {hasNoModels && (
+        <div className="w-full max-w-xl mb-6 p-4 rounded-2xl bg-amber-500/10 dark:bg-amber-500/15 border border-amber-500/30 text-foreground shadow-sm animate-in fade-in duration-300 text-left">
+          <div className="flex items-start gap-3.5">
+            <div className="p-2.5 rounded-xl bg-amber-500/20 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5">
+              <Key className="w-5 h-5" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <h3 className="text-sm font-semibold text-foreground mb-1">
+                {t('chat.noModelsBannerTitle')}
+              </h3>
+              <p className="text-xs text-muted-foreground leading-relaxed mb-3">
+                {t('chat.noModelsBannerDesc')}
+              </p>
+              <Link 
+                to="/settings"
+                className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white dark:bg-amber-500 dark:hover:bg-amber-600 text-xs font-medium transition-colors shadow-xs"
+              >
+                <Key className="w-3.5 h-3.5" />
+                <span>{t('common.configureApiKey')}</span>
+              </Link>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Random Tip / Joke Card */}
       {isTipsVisible && currentTip && (
