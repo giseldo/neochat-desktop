@@ -2,8 +2,16 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 
+let appInstance;
 let schedulePath;
 let timer;
+
+function getSchedulePath() {
+    if (appInstance && typeof appInstance.getPath === 'function') {
+        return path.join(appInstance.getPath('userData'), 'workflow-schedules.json');
+    }
+    return schedulePath;
+}
 
 function nextRun(schedule, from = new Date()) {
     if (schedule.type === 'interval') return new Date(from.getTime() + schedule.intervalMinutes * 60000).toISOString();
@@ -25,15 +33,17 @@ function normalize(input, existing = {}) {
 }
 
 function readAll() {
-    if (!fs.existsSync(schedulePath)) return [];
-    try { const data = JSON.parse(fs.readFileSync(schedulePath, 'utf8')); return Array.isArray(data) ? data : []; }
+    const currentSchedulePath = getSchedulePath();
+    if (!currentSchedulePath || !fs.existsSync(currentSchedulePath)) return [];
+    try { const data = JSON.parse(fs.readFileSync(currentSchedulePath, 'utf8')); return Array.isArray(data) ? data : []; }
     catch (error) { console.error('Unable to read schedules:', error); return []; }
 }
 
 function writeAll(items) {
-    const temporary = `${schedulePath}.tmp`;
+    const currentSchedulePath = getSchedulePath();
+    const temporary = `${currentSchedulePath}.tmp`;
     fs.writeFileSync(temporary, JSON.stringify(items, null, 2));
-    fs.renameSync(temporary, schedulePath);
+    fs.renameSync(temporary, currentSchedulePath);
 }
 
 function save(input) {
@@ -48,6 +58,7 @@ function save(input) {
 function remove(id) { const items = readAll(); const next = items.filter(item => item.id !== id); writeAll(next); return next.length !== items.length; }
 
 function initializeHandlers(ipcMain, app, getWindow, workflowManager, NotificationClass) {
+    appInstance = app;
     schedulePath = path.join(app.getPath('userData'), 'workflow-schedules.json');
     ipcMain.handle('schedules-list', () => readAll());
     ipcMain.handle('schedules-save', (_event, input) => { try { return { success: true, schedule: save(input) }; } catch (error) { return { success: false, error: error.message }; } });

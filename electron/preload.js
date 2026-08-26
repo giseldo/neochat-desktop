@@ -28,6 +28,13 @@ contextBridge.exposeInMainWorld('electron', {
   saveSettings: (settings) => ipcRenderer.invoke('save-settings', settings),
   getSettingsPath: () => ipcRenderer.invoke('get-settings-path'),
   reloadSettings: () => ipcRenderer.invoke('reload-settings'),
+  configDir: {
+    getInfo: () => ipcRenderer.invoke('config-dir-get-info'),
+    selectFolder: () => ipcRenderer.invoke('config-dir-select-folder'),
+    changeFolder: (options) => ipcRenderer.invoke('config-dir-change-folder', options),
+    resetFolder: (options) => ipcRenderer.invoke('config-dir-reset-folder', options),
+    openFolder: () => ipcRenderer.invoke('config-dir-open-folder'),
+  },
   backup: {
     export: () => ipcRenderer.invoke('backup-export'),
     import: () => ipcRenderer.invoke('backup-import')

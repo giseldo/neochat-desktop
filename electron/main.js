@@ -2,6 +2,10 @@ const { app, safeStorage } = require('electron');
 const fs   = require('fs');
 const path = require('path');
 const { globalShortcut } = require('electron');
+const configDirManager = require('./configDirManager');
+
+// Check and bootstrap custom userData path before logs or other services initialize
+configDirManager.bootstrapUserDataPath(app);
 
 // Create ~/Library/Logs/Groq Desktop if it does not exist
 app.setAppLogsPath();
@@ -347,6 +351,13 @@ app.whenReady().then(async () => {
 
   // Initialize settings handlers (needs app)
   initializeSettingsHandlers(ipcMain, app, safeStorage);
+  configDirManager.registerHandlers(ipcMain, app, dialog, shell, () => mainWindow, async (newPath, oldPath) => {
+    console.log(`[Main] UserData directory changed from ${oldPath} to ${newPath}`);
+    const { reinitialize } = require('./settingsManager');
+    if (typeof reinitialize === 'function') {
+      reinitialize(safeStorage);
+    }
+  });
   initializeToolPermissionHandlers(ipcMain, loadSettings, saveSettings);
   initializeBackupHandlers(ipcMain, app, dialog, () => mainWindow, loadSettings, saveSettings);
   workflowManager.initializeHandlers(ipcMain, app);

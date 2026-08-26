@@ -328,10 +328,20 @@ async function saveSettings(settings) {
     }
 }
 
+function reinitialize(safeStorage) {
+    if (appInstance) {
+        const userDataPath = appInstance.getPath('userData');
+        secretStore = createSecretStore({ userDataPath, safeStorage });
+        console.log('[SettingsManager] Re-initialized with userData path:', userDataPath);
+    }
+}
+
 module.exports = {
     loadSettings,
     saveSettings,
     initializeSettingsHandlers,
+    reinitialize,
     normalizeTts,
     normalizeVoiceInput
 };
+

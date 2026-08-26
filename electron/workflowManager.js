@@ -2,7 +2,15 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 
+let appInstance;
 let storagePath;
+
+function getStoragePath() {
+    if (appInstance && typeof appInstance.getPath === 'function') {
+        return path.join(appInstance.getPath('userData'), 'workflows.json');
+    }
+    return storagePath;
+}
 
 function normalizeWorkflow(input, existing = {}) {
     const name = String(input?.name || '').trim();
@@ -21,9 +29,10 @@ function normalizeWorkflow(input, existing = {}) {
 }
 
 function readAll() {
-    if (!storagePath || !fs.existsSync(storagePath)) return [];
+    const currentStoragePath = getStoragePath();
+    if (!currentStoragePath || !fs.existsSync(currentStoragePath)) return [];
     try {
-        const value = JSON.parse(fs.readFileSync(storagePath, 'utf8'));
+        const value = JSON.parse(fs.readFileSync(currentStoragePath, 'utf8'));
         return Array.isArray(value) ? value : [];
     } catch (error) {
         console.error('Unable to read workflows:', error);
@@ -32,12 +41,14 @@ function readAll() {
 }
 
 function writeAll(workflows) {
-    const temporary = `${storagePath}.tmp`;
+    const currentStoragePath = getStoragePath();
+    const temporary = `${currentStoragePath}.tmp`;
     fs.writeFileSync(temporary, JSON.stringify(workflows, null, 2));
-    fs.renameSync(temporary, storagePath);
+    fs.renameSync(temporary, currentStoragePath);
 }
 
 function initialize(app) {
+    appInstance = app;
     storagePath = path.join(app.getPath('userData'), 'workflows.json');
 }
 

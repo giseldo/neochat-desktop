@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { Link, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Eye, EyeOff, Plus, Trash2, Edit3, Save, X, RefreshCw, Key, Settings as SettingsIcon, Zap, Cpu, Server, AlertCircle, CheckCircle, Sun, Moon, Laptop, Languages, Check, Terminal, Globe, Palette, Type, Sparkles, Sliders, ExternalLink, Route, User, Wrench, Download, UploadCloud, BarChart3, GitBranch, Mic, Volume2, Info, Keyboard } from 'lucide-react';
+import { ArrowLeft, Eye, EyeOff, Plus, Trash2, Edit3, Save, X, RefreshCw, Key, Settings as SettingsIcon, Zap, Cpu, Server, AlertCircle, CheckCircle, Sun, Moon, Laptop, Languages, Check, Terminal, Globe, Palette, Type, Sparkles, Sliders, ExternalLink, Route, User, Wrench, Download, UploadCloud, BarChart3, GitBranch, Mic, Volume2, Info, Keyboard, Folder, FolderOpen, RotateCcw } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
@@ -106,6 +106,17 @@ function Settings() {
   const [jsonInput, setJsonInput] = useState('');
   const [jsonError, setJsonError] = useState(null);
   const [settingsPath, setSettingsPath] = useState('');
+  const [configDirInfo, setConfigDirInfo] = useState({
+    currentPath: '',
+    defaultPath: '',
+    isCustom: false,
+    settingsPath: ''
+  });
+  const [isChangingConfigDirModalOpen, setIsChangingConfigDirModalOpen] = useState(false);
+  const [isResetConfigDirModalOpen, setIsResetConfigDirModalOpen] = useState(false);
+  const [pendingNewConfigPath, setPendingNewConfigPath] = useState('');
+  const [copyExistingFiles, setCopyExistingFiles] = useState(true);
+  const [isConfigDirLoading, setIsConfigDirLoading] = useState(false);
   const [providers, setProviders] = useState([]);
   const [activeProvider, setActiveProvider] = useState(null);
   const [newEnvVar, setNewEnvVar] = useState({ key: '', value: '' });
@@ -275,14 +286,18 @@ function Settings() {
       if (e.key === 'Escape') {
         if (isDeletingAllModalOpen && !isDeletingAll) {
           setIsDeletingAllModalOpen(false);
-        } else if (!isDeletingAllModalOpen) {
+        } else if (isChangingConfigDirModalOpen && !isConfigDirLoading) {
+          setIsChangingConfigDirModalOpen(false);
+        } else if (isResetConfigDirModalOpen && !isConfigDirLoading) {
+          setIsResetConfigDirModalOpen(false);
+        } else if (!isDeletingAllModalOpen && !isChangingConfigDirModalOpen && !isResetConfigDirModalOpen) {
           navigate('/');
         }
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [navigate, isDeletingAllModalOpen, isDeletingAll]);
+  }, [navigate, isDeletingAllModalOpen, isDeletingAll, isChangingConfigDirModalOpen, isResetConfigDirModalOpen, isConfigDirLoading]);
 
   useEffect(() => {
     const loadProviders = async () => {
@@ -426,17 +441,25 @@ function Settings() {
       }
     };
 
-    const getSettingsPath = async () => {
+    const loadConfigDirInfo = async () => {
       try {
-        const path = await window.electron.getSettingsPath();
-        setSettingsPath(path);
+        if (window.electron?.configDir?.getInfo) {
+          const info = await window.electron.configDir.getInfo();
+          if (info) {
+            setConfigDirInfo(info);
+            setSettingsPath(info.settingsPath || info.currentPath);
+          }
+        } else if (window.electron?.getSettingsPath) {
+          const path = await window.electron.getSettingsPath();
+          setSettingsPath(path);
+        }
       } catch (error) {
-        console.error('Error getting settings path:', error);
+        console.error('Error getting config directory info:', error);
       }
     };
 
     loadSettings();
-    getSettingsPath();
+    loadConfigDirInfo();
 
     return () => {
       if (statusTimeoutRef.current) clearTimeout(statusTimeoutRef.current);
@@ -491,6 +514,99 @@ function Settings() {
     const updatedSettings = { ...settings, [name]: value };
     setSettings(updatedSettings);
     saveSettings(updatedSettings);
+  };
+
+  const handleSelectNewConfigFolder = async () => {
+    try {
+      if (!window.electron?.configDir?.selectFolder) return;
+      const selected = await window.electron.configDir.selectFolder();
+      if (selected) {
+        setPendingNewConfigPath(selected);
+        setCopyExistingFiles(true);
+        setIsChangingConfigDirModalOpen(true);
+      }
+    } catch (err) {
+      console.error('Error selecting folder:', err);
+    }
+  };
+
+  const handleConfirmChangeConfigFolder = async () => {
+    if (!pendingNewConfigPath) return;
+    setIsConfigDirLoading(true);
+    try {
+      const result = await window.electron.configDir.changeFolder({
+        newPath: pendingNewConfigPath,
+        copyExisting: copyExistingFiles
+      });
+      if (result.success) {
+        setSaveStatus({ type: 'success', message: t('settings.configDirSuccessChange') });
+        setIsChangingConfigDirModalOpen(false);
+        setPendingNewConfigPath('');
+        if (window.electron?.configDir?.getInfo) {
+          const info = await window.electron.configDir.getInfo();
+          if (info) {
+            setConfigDirInfo(info);
+            setSettingsPath(info.settingsPath || info.currentPath);
+          }
+        }
+        const reloaded = await window.electron.reloadSettings();
+        if (reloaded?.settings) {
+          setSettings(reloaded.settings);
+        }
+      } else {
+        setSaveStatus({ type: 'error', message: result.error || t('settings.configDirError') });
+      }
+    } catch (err) {
+      console.error('Error changing config folder:', err);
+      setSaveStatus({ type: 'error', message: err.message });
+    } finally {
+      setIsConfigDirLoading(false);
+      if (statusTimeoutRef.current) clearTimeout(statusTimeoutRef.current);
+      statusTimeoutRef.current = setTimeout(() => setSaveStatus(null), 3000);
+    }
+  };
+
+  const handleConfirmResetConfigFolder = async () => {
+    setIsConfigDirLoading(true);
+    try {
+      const result = await window.electron.configDir.resetFolder({
+        copyExisting: copyExistingFiles
+      });
+      if (result.success) {
+        setSaveStatus({ type: 'success', message: t('settings.configDirSuccessReset') });
+        setIsResetConfigDirModalOpen(false);
+        if (window.electron?.configDir?.getInfo) {
+          const info = await window.electron.configDir.getInfo();
+          if (info) {
+            setConfigDirInfo(info);
+            setSettingsPath(info.settingsPath || info.currentPath);
+          }
+        }
+        const reloaded = await window.electron.reloadSettings();
+        if (reloaded?.settings) {
+          setSettings(reloaded.settings);
+        }
+      } else {
+        setSaveStatus({ type: 'error', message: result.error || t('settings.configDirError') });
+      }
+    } catch (err) {
+      console.error('Error resetting config folder:', err);
+      setSaveStatus({ type: 'error', message: err.message });
+    } finally {
+      setIsConfigDirLoading(false);
+      if (statusTimeoutRef.current) clearTimeout(statusTimeoutRef.current);
+      statusTimeoutRef.current = setTimeout(() => setSaveStatus(null), 3000);
+    }
+  };
+
+  const handleOpenConfigFolder = async () => {
+    try {
+      if (window.electron?.configDir?.openFolder) {
+        await window.electron.configDir.openFolder();
+      }
+    } catch (err) {
+      console.error('Error opening config folder:', err);
+    }
   };
 
   const handleProviderChange = (value) => {
@@ -1762,13 +1878,82 @@ function Settings() {
               </CardContent>
             </Card>
             
-            {/* Settings Path Info */}
-            {settings.interfaceMode === 'power' && settingsPath && (
+            {/* Configuration and Data Folder Card */}
+            {(configDirInfo.currentPath || settingsPath) && (
               <Card>
-                <CardContent className="p-4">
-                  <div className="flex items-center space-x-2 text-sm text-muted-foreground">
-                    <Key className="h-4 w-4" />
-                    <span>{t('settings.settingsFile')} <code className="text-xs bg-muted px-1 py-0.5 rounded">{settingsPath}</code></span>
+                <CardHeader className="pb-3">
+                  <div className="flex items-center justify-between gap-2 flex-wrap">
+                    <CardTitle className="flex items-center space-x-2 text-base">
+                      <Folder className="h-5 w-5 text-primary" />
+                      <span>{t('settings.configDirTitle')}</span>
+                    </CardTitle>
+                    <Badge
+                      variant={configDirInfo.isCustom ? "secondary" : "outline"}
+                      className={configDirInfo.isCustom ? "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/30 text-[11px] font-medium" : "text-[11px] font-medium"}
+                    >
+                      {configDirInfo.isCustom ? t('settings.configDirBadgeCustom') : t('settings.configDirBadgeDefault')}
+                    </Badge>
+                  </div>
+                  <CardDescription>
+                    {t('settings.configDirDesc')}
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <div className="rounded-lg border bg-muted/40 p-3 space-y-2 text-xs">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
+                      <span className="font-medium text-muted-foreground">{t('settings.configDirCurrent')}</span>
+                      <code className="font-mono bg-background px-2 py-0.5 rounded border select-all break-all text-[11px]">
+                        {configDirInfo.currentPath || settingsPath}
+                      </code>
+                    </div>
+                    {settingsPath && (
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 pt-1.5 border-t border-border/50">
+                        <span className="font-medium text-muted-foreground">{t('settings.configDirSettingsFile')}</span>
+                        <code className="font-mono bg-background px-2 py-0.5 rounded border select-all break-all text-[11px]">
+                          {settingsPath}
+                        </code>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="flex flex-wrap items-center gap-2 pt-1">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={handleSelectNewConfigFolder}
+                      className="flex items-center gap-1.5 text-xs"
+                    >
+                      <FolderOpen className="h-4 w-4" />
+                      <span>{t('settings.configDirChangeBtn')}</span>
+                    </Button>
+
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={handleOpenConfigFolder}
+                      className="flex items-center gap-1.5 text-xs"
+                    >
+                      <ExternalLink className="h-3.5 w-3.5" />
+                      <span>{t('settings.configDirOpenBtn')}</span>
+                    </Button>
+
+                    {configDirInfo.isCustom && (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          setCopyExistingFiles(false);
+                          setIsResetConfigDirModalOpen(true);
+                        }}
+                        className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground"
+                      >
+                        <RotateCcw className="h-3.5 w-3.5" />
+                        <span>{t('settings.configDirResetBtn')}</span>
+                      </Button>
+                    )}
                   </div>
                 </CardContent>
               </Card>
@@ -4833,6 +5018,170 @@ function Settings() {
                   <>
                     <Trash2 className="w-3.5 h-3.5" />
                     <span>{t('sidebar.deleteAllConfirmButton')}</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {/* Change Configuration Folder Modal */}
+      {isChangingConfigDirModalOpen && typeof document !== 'undefined' && createPortal(
+        <div
+          className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center z-[9999] p-4 animate-in fade-in-0"
+          onClick={(e) => {
+            if (e.target === e.currentTarget && !isConfigDirLoading) {
+              setIsChangingConfigDirModalOpen(false);
+            }
+          }}
+        >
+          <div className="bg-card border border-border rounded-2xl w-full max-w-md p-5 shadow-2xl animate-in zoom-in-95 flex flex-col space-y-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center flex-shrink-0">
+                <FolderOpen className="w-5 h-5" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <h3 className="font-semibold text-sm text-foreground">
+                  {t('settings.configDirModalTitle')}
+                </h3>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  {t('settings.configDirModalDesc')}
+                </p>
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              <div>
+                <span className="block text-xs font-medium text-muted-foreground mb-1">
+                  {t('settings.configDirModalTarget')}
+                </span>
+                <code className="block p-2.5 bg-muted/60 border rounded-lg break-all text-xs font-mono select-all">
+                  {pendingNewConfigPath}
+                </code>
+              </div>
+
+              <div className="rounded-lg border p-3 bg-muted/20 space-y-1">
+                <label className="flex items-start gap-2.5 cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    checked={copyExistingFiles}
+                    onChange={(e) => setCopyExistingFiles(e.target.checked)}
+                    disabled={isConfigDirLoading}
+                    className="mt-0.5 rounded border-border text-primary focus:ring-primary h-4 w-4"
+                  />
+                  <div className="text-xs">
+                    <span className="font-medium text-foreground block">
+                      {t('settings.configDirCopyOption')}
+                    </span>
+                    <span className="text-muted-foreground block text-[11px] mt-0.5">
+                      {t('settings.configDirCopyOptionHelp')}
+                    </span>
+                  </div>
+                </label>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end gap-2 pt-2 border-t">
+              <button
+                type="button"
+                onClick={() => setIsChangingConfigDirModalOpen(false)}
+                disabled={isConfigDirLoading}
+                className="px-3.5 py-1.5 rounded-lg text-xs font-medium text-muted-foreground hover:bg-muted transition-colors disabled:opacity-50"
+              >
+                {t('settings.configDirCancelBtn')}
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmChangeConfigFolder}
+                disabled={isConfigDirLoading}
+                className="px-4 py-1.5 rounded-lg text-xs font-semibold bg-primary text-primary-foreground hover:bg-primary/90 transition-colors shadow-xs flex items-center gap-1.5 disabled:opacity-50"
+              >
+                {isConfigDirLoading ? (
+                  <>
+                    <div className="w-3 h-3 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                    <span>{t('settings.configDirChanging')}</span>
+                  </>
+                ) : (
+                  <>
+                    <Check className="w-3.5 h-3.5" />
+                    <span>{t('settings.configDirConfirmBtn')}</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {/* Reset Configuration Folder Modal */}
+      {isResetConfigDirModalOpen && typeof document !== 'undefined' && createPortal(
+        <div
+          className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center z-[9999] p-4 animate-in fade-in-0"
+          onClick={(e) => {
+            if (e.target === e.currentTarget && !isConfigDirLoading) {
+              setIsResetConfigDirModalOpen(false);
+            }
+          }}
+        >
+          <div className="bg-card border border-border rounded-2xl w-full max-w-md p-5 shadow-2xl animate-in zoom-in-95 flex flex-col space-y-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center flex-shrink-0">
+                <RotateCcw className="w-5 h-5" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <h3 className="font-semibold text-sm text-foreground">
+                  {t('settings.configDirResetConfirmTitle')}
+                </h3>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  {t('settings.configDirResetConfirmDesc', { defaultPath: configDirInfo.defaultPath })}
+                </p>
+              </div>
+            </div>
+
+            <div className="rounded-lg border p-3 bg-muted/20 space-y-1">
+              <label className="flex items-start gap-2.5 cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={copyExistingFiles}
+                  onChange={(e) => setCopyExistingFiles(e.target.checked)}
+                  disabled={isConfigDirLoading}
+                  className="mt-0.5 rounded border-border text-primary focus:ring-primary h-4 w-4"
+                />
+                <div className="text-xs">
+                  <span className="font-medium text-foreground block">
+                    {t('settings.configDirResetCopyOption')}
+                  </span>
+                </div>
+              </label>
+            </div>
+
+            <div className="flex items-center justify-end gap-2 pt-2 border-t">
+              <button
+                type="button"
+                onClick={() => setIsResetConfigDirModalOpen(false)}
+                disabled={isConfigDirLoading}
+                className="px-3.5 py-1.5 rounded-lg text-xs font-medium text-muted-foreground hover:bg-muted transition-colors disabled:opacity-50"
+              >
+                {t('settings.configDirCancelBtn')}
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmResetConfigFolder}
+                disabled={isConfigDirLoading}
+                className="px-4 py-1.5 rounded-lg text-xs font-semibold bg-primary text-primary-foreground hover:bg-primary/90 transition-colors shadow-xs flex items-center gap-1.5 disabled:opacity-50"
+              >
+                {isConfigDirLoading ? (
+                  <>
+                    <div className="w-3 h-3 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                    <span>{t('settings.configDirChanging')}</span>
+                  </>
+                ) : (
+                  <>
+                    <RotateCcw className="w-3.5 h-3.5" />
+                    <span>{t('settings.configDirResetBtn')}</span>
                   </>
                 )}
               </button>

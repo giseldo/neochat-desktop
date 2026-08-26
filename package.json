@@ -32,7 +32,8 @@
     "test:tts-settings": "node test-tts-settings.js",
     "test:update-manager": "node test-update-manager.js",
     "test:observability": "node test-observability-manager.js",
-    "test:git-manager": "node test-git-manager.js"
+    "test:git-manager": "node test-git-manager.js",
+    "test:config-dir": "node test-config-dir.js"
   },
   "keywords": [
     "electron",
