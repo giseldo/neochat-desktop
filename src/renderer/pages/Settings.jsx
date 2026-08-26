@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { Link, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Eye, EyeOff, Plus, Trash2, Edit3, Save, X, RefreshCw, Key, Settings as SettingsIcon, Zap, Cpu, Server, AlertCircle, CheckCircle, Sun, Moon, Laptop, Languages, Check, Terminal, Globe, Palette, Type, Sparkles, Sliders, ExternalLink, Route, User, Wrench, Download, UploadCloud, BarChart3, GitBranch, Mic, Volume2, Info, Keyboard, Folder, FolderOpen, RotateCcw } from 'lucide-react';
+import { ArrowLeft, Search, Eye, EyeOff, Plus, Trash2, Edit3, Save, X, RefreshCw, Key, Settings as SettingsIcon, Zap, Cpu, Server, AlertCircle, CheckCircle, Sun, Moon, Laptop, Languages, Check, Terminal, Globe, Palette, Type, Sparkles, Sliders, ExternalLink, Route, User, Wrench, Download, UploadCloud, BarChart3, GitBranch, Mic, Volume2, Info, Keyboard, Folder, FolderOpen, RotateCcw } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
@@ -33,6 +33,9 @@ function Settings() {
     isDark
   } = useTheme();
   const { language, setLanguage, t } = useLanguage();
+  const [activeCategory, setActiveCategory] = useState('all');
+  const [searchQuery, setSearchQuery] = useState('');
+  const searchInputRef = useRef(null);
   const [isPromptTemplatesModalOpen, setIsPromptTemplatesModalOpen] = useState(false);
   const [isTestingWebSearch, setIsTestingWebSearch] = useState(false);
   const [webSearchTestResult, setWebSearchTestResult] = useState(null);
@@ -280,9 +283,20 @@ function Settings() {
   const saveTimeoutRef = useRef(null);
   const navigate = useNavigate();
 
-  // Handle Escape key to dismiss settings or modal
+  // Handle Escape key to dismiss settings/modals or clear search, and / or Ctrl+K to search
   useEffect(() => {
     const handleKeyDown = (e) => {
+      if (
+        (e.key === '/' || ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k')) &&
+        document.activeElement?.tagName !== 'INPUT' &&
+        document.activeElement?.tagName !== 'TEXTAREA'
+      ) {
+        e.preventDefault();
+        searchInputRef.current?.focus();
+        searchInputRef.current?.select();
+        return;
+      }
+
       if (e.key === 'Escape') {
         if (isDeletingAllModalOpen && !isDeletingAll) {
           setIsDeletingAllModalOpen(false);
@@ -290,6 +304,9 @@ function Settings() {
           setIsChangingConfigDirModalOpen(false);
         } else if (isResetConfigDirModalOpen && !isConfigDirLoading) {
           setIsResetConfigDirModalOpen(false);
+        } else if (searchQuery) {
+          setSearchQuery('');
+          searchInputRef.current?.blur();
         } else if (!isDeletingAllModalOpen && !isChangingConfigDirModalOpen && !isResetConfigDirModalOpen) {
           navigate('/');
         }
@@ -297,7 +314,260 @@ function Settings() {
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [navigate, isDeletingAllModalOpen, isDeletingAll, isChangingConfigDirModalOpen, isResetConfigDirModalOpen, isConfigDirLoading]);
+  }, [navigate, isDeletingAllModalOpen, isDeletingAll, isChangingConfigDirModalOpen, isResetConfigDirModalOpen, isConfigDirLoading, searchQuery]);
+
+  const CATEGORIES = useMemo(() => [
+    { id: 'all', label: t('settings.navAll') || 'Todas', icon: Sliders, desc: 'Todas as configurações do aplicativo' },
+    { id: 'interface', label: t('settings.navInterface') || 'Interface & Aparência', icon: Palette, desc: 'Personalize o modo de uso, temas, cores, tipografia e abas da tela' },
+    { id: 'features', label: t('settings.navFeatures') || 'Ativar/Desativar Recursos', icon: Zap, desc: 'Controle de voz Whisper, leitura TTS, busca web, ferramentas e atalhos' },
+    { id: 'models', label: t('settings.navModels') || 'Modelos & Provedores', icon: Cpu, desc: 'Provedores de IA, chaves de API, parâmetros e catálogo de modelos' },
+    { id: 'integrations', label: t('settings.navIntegrations') || 'Integrações & MCP', icon: Server, desc: 'Servidores MCP locais e remotos, conectores Google e permissões' },
+    { id: 'system', label: t('settings.navSystem') || 'Sistema & Dados', icon: Folder, desc: 'Pasta de armazenamento, atualizações, backups e histórico' },
+  ], [t]);
+
+  const CARDS_METADATA = useMemo(() => [
+    {
+      id: 'interfaceMode',
+      category: 'interface',
+      title: t('settings.interfaceModeTitle') || 'Experiência da interface',
+      desc: t('settings.interfaceModeDesc') || 'Modo Usuário vs Power User',
+      keywords: 'modo usuario power interface experiencia layout controles tecnicos user switch',
+      isPowerOnly: false
+    },
+    {
+      id: 'language',
+      category: 'interface',
+      title: t('settings.langTitle') || 'Idioma da Interface',
+      desc: t('settings.langDesc') || 'Português e Inglês',
+      keywords: 'idioma lingua language portugues ingles english pt en brasil tradução',
+      isPowerOnly: false
+    },
+    {
+      id: 'appearance',
+      category: 'interface',
+      title: t('settings.appearanceTitle') || 'Aparência e Tema',
+      desc: t('settings.appearanceDesc') || 'Cores, modo claro/escuro, fontes e tamanhos',
+      keywords: 'tema aparencia cores modo escuro dark mode light fundo background tipografia font tamanho size preview oled slate warm zinc tinted',
+      isPowerOnly: false
+    },
+    {
+      id: 'trajectoryTab',
+      category: 'interface',
+      title: t('settings.trajectoryTabTitle') || 'Aba de Trajetória',
+      desc: t('settings.trajectoryTabDesc') || 'Exibir ou ocultar a aba de raciocínio no chat',
+      keywords: 'trajetoria trajectory aba tab raciocinio pensamento agente timeline passos ledger',
+      isPowerOnly: true
+    },
+    {
+      id: 'thinkingSummaries',
+      category: 'interface',
+      title: t('settings.thinkingSummariesTitle') || 'Resumos de Raciocínio',
+      desc: t('settings.thinkingSummariesDesc') || 'Exibir ou ocultar blocos de raciocínio',
+      keywords: 'raciocinio think thinking summaries resumo colapsavel pensamento deepseek qwen',
+      isPowerOnly: true
+    },
+    {
+      id: 'voiceInput',
+      category: 'features',
+      title: t('settings.voiceInputTitle') || 'Ditado e Entrada de Voz',
+      desc: t('settings.voiceInputDesc') || 'Groq Whisper para transcrição rápida',
+      keywords: 'voz ditado microfone whisper audio speech to text groq stt gravar falar atalho',
+      isPowerOnly: false
+    },
+    {
+      id: 'tts',
+      category: 'features',
+      title: t('settings.ttsTitle') || 'Leitura em voz alta',
+      desc: t('settings.ttsDesc') || 'Vozes, velocidade e tom para leitura de respostas',
+      keywords: 'tts leitura voz alta audio speech synthesis falar ouvir velocidade tom pitch rate vozes ler',
+      isPowerOnly: false
+    },
+    {
+      id: 'popupWindow',
+      category: 'features',
+      title: t('settings.popupWindowTitle') || 'Janela Popup & Atalhos',
+      desc: t('settings.popupWindowDesc') || 'Janela flutuante rápida e atalho global',
+      keywords: 'popup janela flutuante atalho shortcut global teclas teclado hotkey gravador recording ctrl space',
+      isPowerOnly: true
+    },
+    {
+      id: 'webSearch',
+      category: 'features',
+      title: t('settings.webSearchTitle') || 'Pesquisa Web Nativa',
+      desc: t('settings.webSearchDesc') || 'Busca na web Local, Tavily e Brave',
+      keywords: 'pesquisa busca web search google tavily brave duckduckgo internet navegar resultados api key chave teste',
+      isPowerOnly: true
+    },
+    {
+      id: 'builtInTools',
+      category: 'features',
+      title: t('settings.builtinToolsTitle') || 'Ferramentas Integradas',
+      desc: t('settings.builtinToolsDesc') || 'Code Interpreter e Browser Search',
+      keywords: 'ferramentas integradas builtin tools code interpreter python browser search executar codigo script',
+      isPowerOnly: true
+    },
+    {
+      id: 'systemPrompt',
+      category: 'features',
+      title: t('settings.systemPromptTitle') || 'Prompt de Sistema Customizado',
+      desc: t('settings.systemPromptDesc') || 'Instruções personalizadas para todas as conversas',
+      keywords: 'prompt sistema custom system prompt instrucoes comportamento persona globais mensagem inicial',
+      isPowerOnly: true
+    },
+    {
+      id: 'promptTemplates',
+      category: 'features',
+      title: t('promptTemplates.modalTitle') || 'Biblioteca de Prompts & Comandos Slash',
+      desc: t('promptTemplates.modalSubtitle') || 'Gerencie atalhos de prompt e comandos',
+      keywords: 'templates prompt comandos slash barra atalhos modelos mensagens prontas atalho /',
+      isPowerOnly: true
+    },
+    {
+      id: 'api',
+      category: 'models',
+      title: t('settings.apiTitle') || 'Configuração da API & Provedores',
+      desc: t('settings.apiDesc') || 'Provedores de IA, detecção de Ollama/LM Studio e chaves de API',
+      keywords: 'api provedores providers groq openai anthropic claude deepseek ollama lmstudio local ai chaves tokens endpoint base url',
+      isPowerOnly: true
+    },
+    {
+      id: 'generationParams',
+      category: 'models',
+      title: t('settings.generationParamsTitle') || 'Parâmetros de Geração',
+      desc: t('settings.generationParamsDesc') || 'Temperature, Top-P e Reasoning Effort',
+      keywords: 'parametros geracao temperature temperatura top p reasoning effort amostragem criatividade esforco',
+      isPowerOnly: true
+    },
+    {
+      id: 'modelsByProvider',
+      category: 'models',
+      title: t('settings.modelsByProviderTitle') || 'Modelos Ativos por Provedor',
+      desc: t('settings.modelsByProviderDesc') || 'Ativar e desativar modelos e grupos disponíveis',
+      keywords: 'modelos ativos provider models ativar desativar habilitar grupos groq llama gpt claude deepseek lista',
+      isPowerOnly: true
+    },
+    {
+      id: 'customModels',
+      category: 'models',
+      title: t('settings.customModelsTitle') || 'Modelos Customizados',
+      desc: t('settings.customModelsDesc') || 'Adicionar modelos manuais, em massa e importação JSON',
+      keywords: 'modelos customizados custom models adicionar em massa bulk json import export filtro inclusao exclusao context vision tools',
+      isPowerOnly: true
+    },
+    {
+      id: 'responses',
+      category: 'integrations',
+      title: t('settings.responsesTitle') || 'Responses API & Conectores Google',
+      desc: t('settings.responsesDesc') || 'Gmail, Calendar, Drive e MCP Remoto',
+      keywords: 'google gmail calendar agenda drive oauth conectores conectividade remote mcp servidores remotos huggingface tokens refresh',
+      isPowerOnly: true
+    },
+    {
+      id: 'mcpServers',
+      category: 'integrations',
+      title: t('settings.mcpServersTitle') || 'Servidores MCP Locais',
+      desc: t('settings.mcpServersDesc') || 'Model Context Protocol: Stdio, SSE e Streamable HTTP',
+      keywords: 'mcp servers servidores locais stdio sse streamable http ferramentas tools integracao node uvx python docker env headers',
+      isPowerOnly: true
+    },
+    {
+      id: 'toolApprovals',
+      category: 'integrations',
+      title: t('settings.toolApprovalsTitle') || 'Aprovações de Ferramentas',
+      desc: t('settings.toolApprovalsDesc') || 'Políticas de segurança para chamadas de ferramentas',
+      keywords: 'aprovacoes ferramentas tool approval permissions permissoes seguranca prompt allow deny redefinir reset',
+      isPowerOnly: true
+    },
+    {
+      id: 'observability',
+      category: 'integrations',
+      title: t('settings.observabilityTitle') || 'Observabilidade e Custos',
+      desc: t('settings.observabilityDesc', { month: usageSummary?.month || '' }) || 'Consumo de tokens, custos e orçamento',
+      keywords: 'observabilidade custos tokens metricas uso orcamento mensal budget rate exportar csv json consumo precos',
+      isPowerOnly: true
+    },
+    {
+      id: 'git',
+      category: 'integrations',
+      title: t('settings.gitTitle') || 'Integração Git',
+      desc: t('settings.gitDesc') || 'Status, diff, commits e push no repositório',
+      keywords: 'git controle versao repositorio commit push diff status filial branch pasta salvar versionamento',
+      isPowerOnly: true
+    },
+    {
+      id: 'configDir',
+      category: 'system',
+      title: t('settings.configDirTitle') || 'Pasta de Configurações e Dados',
+      desc: t('settings.configDirDesc') || 'Local onde dados e conversas são armazenados',
+      keywords: 'pasta diretorio configuracoes dados config folder dir caminho userdata storage migration arquivos',
+      isPowerOnly: false
+    },
+    {
+      id: 'updates',
+      category: 'system',
+      title: t('settings.updatesTitle') || 'Atualizações do Aplicativo',
+      desc: t('settings.updatesDesc', { version: updateStatus.currentVersion || '' }) || 'Versão e canais de atualização',
+      keywords: 'atualizacoes update versao version canal channel stable beta download instalar verificar updateStatus novidades',
+      isPowerOnly: false
+    },
+    {
+      id: 'apiLogging',
+      category: 'system',
+      title: t('settings.apiLoggingTitle') || 'Log de Requisições da API',
+      desc: t('settings.apiLoggingDesc') || 'Registrar requisições e respostas para diagnóstico',
+      keywords: 'log logs requisicoes api requests diagnostico depuracao debug inspecionar monitorar',
+      isPowerOnly: true
+    },
+    {
+      id: 'dataHistory',
+      category: 'system',
+      title: t('settings.dataHistoryTitle') || 'Dados e Histórico',
+      desc: t('settings.dataHistoryDesc') || 'Exportar/importar backup e apagar conversas',
+      keywords: 'backup exportar importar conversas historico data apagar excluir resetar limpar tudo delete chats',
+      isPowerOnly: true
+    }
+  ], [t, updateStatus.currentVersion, usageSummary?.month]);
+
+  const categoryMatchCounts = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    if (!q) return null;
+    const isPower = settings.interfaceMode === 'power';
+    const counts = { all: 0, interface: 0, features: 0, models: 0, integrations: 0, system: 0 };
+    
+    CARDS_METADATA.forEach(card => {
+      if (card.isPowerOnly && !isPower) return;
+      const searchTarget = `${card.category} ${card.title} ${card.desc} ${card.keywords}`.toLowerCase();
+      const queryWords = q.split(/\s+/).filter(Boolean);
+      if (queryWords.every(word => searchTarget.includes(word))) {
+        counts[card.category] = (counts[card.category] || 0) + 1;
+        counts.all = (counts.all || 0) + 1;
+      }
+    });
+    return counts;
+  }, [searchQuery, settings.interfaceMode, CARDS_METADATA]);
+
+  const visibleCardIds = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    const isPower = settings.interfaceMode === 'power';
+    
+    return new Set(
+      CARDS_METADATA.filter(card => {
+        if (card.isPowerOnly && !isPower) return false;
+        
+        if (q) {
+          const searchTarget = `${card.category} ${card.title} ${card.desc} ${card.keywords}`.toLowerCase();
+          const queryWords = q.split(/\s+/).filter(Boolean);
+          const matches = queryWords.every(word => searchTarget.includes(word));
+          if (!matches) return false;
+          if (activeCategory !== 'all' && card.category !== activeCategory) return false;
+          return true;
+        }
+        
+        if (activeCategory === 'all') return true;
+        return card.category === activeCategory;
+      }).map(c => c.id)
+    );
+  }, [searchQuery, activeCategory, settings.interfaceMode, CARDS_METADATA]);
 
   useEffect(() => {
     const loadProviders = async () => {
@@ -5303,7 +5573,7 @@ function Settings() {
                 <div className="flex items-center gap-2 min-w-0">
                   <Search className="w-4 h-4 text-primary shrink-0" />
                   <span className="truncate">
-                    {t('settings.searchResultsCount', { count: visibleCardIds.size })} para "{searchQuery}"
+                    {t('settings.searchResultsCount', { count: visibleCardIds.size })} para &quot;{searchQuery}&quot;
                   </span>
                 </div>
                 <Button
