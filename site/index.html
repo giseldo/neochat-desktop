@@ -5,25 +5,49 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>NeoChat Desktop — Workspace de IA Universal, Local e Multi-Provedor</title>
   <meta name="description" content="NeoChat Desktop é um cliente e workspace de IA independente para desktop. Conecte modelos locais (Ollama, LM Studio) ou APIs remotas (Groq, OpenAI, Claude, DeepSeek) compatíveis com OpenAI, com RAG local, servidores MCP e voz push-to-talk." />
-  <meta name="keywords" content="NeoChat, IA Desktop, Ollama, LM Studio, OpenAI, Groq, Claude, DeepSeek, MCP, Model Context Protocol, RAG Local, Chatbot Desktop, Electron" />
   <meta name="author" content="Giseldo da Silva Neo" />
+  <meta name="robots" content="index, follow, max-image-preview:large" />
+  <link rel="canonical" href="https://neochatdesktop.vercel.app/" />
   <meta property="og:title" content="NeoChat Desktop — Workspace de IA Universal, Local e Multi-Provedor" />
   <meta property="og:description" content="App desktop independente para modelos locais e APIs remotas OpenAI-compatíveis, com RAG offline, ferramentas MCP e voz push-to-talk." />
   <meta property="og:type" content="website" />
-  <meta property="og:image" content="./assets/img/icon.png" />
-  <meta property="og:url" content="https://neochatdesktop.vercel.app" />
+  <meta property="og:locale" content="pt_BR" />
+  <meta property="og:url" content="https://neochatdesktop.vercel.app/" />
+  <meta property="og:image" content="https://neochatdesktop.vercel.app/assets/img/icon.png" />
+  <meta property="og:image:width" content="512" />
+  <meta property="og:image:height" content="512" />
+  <meta property="og:image:alt" content="NeoChat Desktop — ícone" />
   <meta name="twitter:card" content="summary_large_image" />
   <meta name="twitter:title" content="NeoChat Desktop — Workspace de IA Universal e Multi-Provedor" />
   <meta name="twitter:description" content="App desktop independente com suporte a modelos locais (Ollama/LM Studio) e APIs remotas (Groq, OpenAI, Claude, DeepSeek), RAG local e MCP." />
-  <meta name="twitter:image" content="./assets/img/icon.png" />
+  <meta name="twitter:image" content="https://neochatdesktop.vercel.app/assets/img/icon.png" />
   <meta name="theme-color" content="#07090e" />
   <link rel="icon" type="image/png" href="./assets/img/icon.png" />
+  <link rel="apple-touch-icon" href="./assets/img/icon.png" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;700;800&family=JetBrains+Mono:wght@400;500&display=swap" />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="./assets/css/style.css" />
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    "name": "NeoChat Desktop",
+    "operatingSystem": "Windows 10/11, macOS 12+, Linux",
+    "applicationCategory": "DeveloperApplication",
+    "description": "Workspace de IA universal para desktop com modelos locais (Ollama, LM Studio) e APIs remotas OpenAI-compatíveis, RAG local, MCP e voz push-to-talk.",
+    "url": "https://neochatdesktop.vercel.app/",
+    "image": "https://neochatdesktop.vercel.app/assets/img/icon.png",
+    "author": {"@type": "Person", "name": "Giseldo da Silva Neo", "url": "https://github.com/giseldo"},
+    "offers": {"@type": "Offer", "price": "0", "priceCurrency": "BRL"},
+    "downloadUrl": "https://github.com/giseldo/neochat-releases/releases",
+    "softwareVersion": "1.1.1"
+  }
+  </script>
 </head>
 <body>
+  <a href="#download" class="skip-link">Pular para download</a>
   <!-- ===== Background decorativo ===== -->
   <div class="bg-grid" aria-hidden="true"></div>
   <div class="bg-glow bg-glow--1" aria-hidden="true"></div>
@@ -560,11 +584,12 @@
             </div>
             <h3>Windows</h3>
             <p>Windows 10 / 11 (64-bit)</p>
+            <p class="download-card__meta" id="meta-win">Buscando última versão…</p>
             <ul class="download-card__files" id="dl-win">
               <li><a href="https://github.com/giseldo/neochat-releases/releases" target="_blank" rel="noopener">.exe (Instalador NSIS)</a></li>
               <li><a href="https://github.com/giseldo/neochat-releases/releases" target="_blank" rel="noopener">.exe (Versão Portátil)</a></li>
             </ul>
-            <a href="https://github.com/giseldo/neochat-releases/releases" target="_blank" rel="noopener" class="btn btn--primary btn--block">Baixar para Windows</a>
+            <a href="https://github.com/giseldo/neochat-releases/releases" target="_blank" rel="noopener" class="btn btn--primary btn--block" id="btn-win">Baixar para Windows</a>
           </article>
 
           <!-- macOS Card -->
@@ -574,17 +599,19 @@
             </div>
             <h3>macOS</h3>
             <p>Apple Silicon (M1/M2/M3/M4) &amp; Intel</p>
+            <p class="download-card__meta" id="meta-mac">Buscando última versão…</p>
             <ul class="download-card__files" id="dl-mac">
               <li><a href="https://github.com/giseldo/neochat-releases/releases" target="_blank" rel="noopener">.dmg (Universal)</a></li>
               <li><a href="https://github.com/giseldo/neochat-releases/releases" target="_blank" rel="noopener">.zip (Arquivo compactado)</a></li>
             </ul>
-            <a href="https://github.com/giseldo/neochat-releases/releases" target="_blank" rel="noopener" class="btn btn--primary btn--block">Baixar para macOS</a>
+            <a href="https://github.com/giseldo/neochat-releases/releases" target="_blank" rel="noopener" class="btn btn--primary btn--block" id="btn-mac">Baixar para macOS</a>
             <div class="brew-command-box">
-              <small>Ou via Homebrew:</small>
+              <small>Ou via Homebrew (cask comunitário):</small>
               <div class="code-copy-row">
-                <code>brew install --cask groq-desktop</code>
-                <button class="copy-btn" data-code="brew tap ricklamers/groq-desktop-unofficial && brew install --cask groq-desktop" title="Copiar comando">Copiar</button>
+                <code>brew tap ricklamers/neochat-desktop && brew install --cask neochat-desktop</code>
+                <button class="copy-btn" data-code="brew tap ricklamers/neochat-desktop && brew install --cask neochat-desktop" title="Copiar comando">Copiar</button>
               </div>
+              <small class="brew-note">Cask herda nome anterior <code>groq-desktop</code> — use <code>neochat-desktop</code> quando disponível.</small>
             </div>
           </article>
 
@@ -595,11 +622,12 @@
             </div>
             <h3>Linux</h3>
             <p>Ubuntu, Debian, Fedora, Arch &amp; outros</p>
+            <p class="download-card__meta" id="meta-linux">Buscando última versão…</p>
             <ul class="download-card__files" id="dl-linux">
               <li><a href="https://github.com/giseldo/neochat-releases/releases" target="_blank" rel="noopener">.AppImage (Universal)</a></li>
               <li><a href="https://github.com/giseldo/neochat-releases/releases" target="_blank" rel="noopener">.deb (Debian/Ubuntu)</a> / <a href="https://github.com/giseldo/neochat-releases/releases" target="_blank" rel="noopener">.rpm (Fedora/RHEL)</a></li>
             </ul>
-            <a href="https://github.com/giseldo/neochat-releases/releases" target="_blank" rel="noopener" class="btn btn--primary btn--block">Baixar para Linux</a>
+            <a href="https://github.com/giseldo/neochat-releases/releases" target="_blank" rel="noopener" class="btn btn--primary btn--block" id="btn-linux">Baixar para Linux</a>
           </article>
         </div>
 

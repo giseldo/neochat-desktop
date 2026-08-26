@@ -13,7 +13,7 @@
 
   --text: #f0f2f8;
   --text-2: #9da3ba;
-  --text-3: #656b82;
+  --text-3: #8a90a8;
 
   /* NEO Brand Electric Blue & Cyan */
   --brand: #0052ff;
@@ -74,6 +74,29 @@ img { max-width: 100%; display: block; }
 code, pre { font-family: 'JetBrains Mono', monospace; }
 ::selection { background: var(--brand); color: #fff; }
 
+.skip-link {
+  position: absolute;
+  top: -100px; left: 16px;
+  background: var(--brand);
+  color: #fff;
+  padding: 10px 16px;
+  border-radius: var(--r-sm);
+  z-index: 999;
+  font-weight: 700;
+  font-size: 0.9rem;
+}
+.skip-link:focus { top: 12px; }
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.btn:focus-visible, a:focus-visible, button:focus-visible, summary:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
 /* ===== Layout Containers ===== */
 .container {
   width: 100%;
@@ -103,6 +126,11 @@ code, pre { font-family: 'JetBrains Mono', monospace; }
   filter: blur(140px);
   z-index: -1;
   pointer-events: none;
+  will-change: filter;
+}
+@media (prefers-reduced-motion: reduce) {
+  .bg-glow { filter: blur(60px); opacity: 0.15 !important; }
+  .reveal { transition: none !important; }
 }
 .bg-glow--1 {
   width: 650px; height: 650px;
@@ -1039,6 +1067,20 @@ code, pre { font-family: 'JetBrains Mono', monospace; }
   font-size: 0.88rem;
   margin-bottom: 20px;
 }
+.download-card__meta {
+  font-size: 0.82rem;
+  color: var(--text-2);
+  font-family: 'JetBrains Mono', monospace;
+  margin-bottom: 14px;
+  min-height: 1.2em;
+}
+.brew-note {
+  display: block;
+  margin-top: 8px;
+  color: var(--text-3);
+  line-height: 1.4;
+}
+.brew-note code { font-size: 0.75em; }
 .download-card__files {
   list-style: none;
   display: flex;

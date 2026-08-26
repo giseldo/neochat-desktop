@@ -24,12 +24,29 @@
     navToggle.addEventListener('click', function () {
       var isOpen = navMobile.classList.toggle('open');
       navToggle.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+      navMobile.setAttribute('aria-hidden', isOpen ? 'false' : 'true');
     });
     navMobile.querySelectorAll('a').forEach(function (link) {
       link.addEventListener('click', function () {
         navMobile.classList.remove('open');
         navToggle.setAttribute('aria-expanded', 'false');
+        navMobile.setAttribute('aria-hidden', 'true');
       });
+    });
+    document.addEventListener('click', function (e) {
+      if (!nav.contains(e.target) && navMobile.classList.contains('open')) {
+        navMobile.classList.remove('open');
+        navToggle.setAttribute('aria-expanded', 'false');
+        navMobile.setAttribute('aria-hidden', 'true');
+      }
+    });
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape' && navMobile.classList.contains('open')) {
+        navMobile.classList.remove('open');
+        navToggle.setAttribute('aria-expanded', 'false');
+        navMobile.setAttribute('aria-hidden', 'true');
+        navToggle.focus();
+      }
     });
   }
 
@@ -48,7 +65,7 @@
           io.unobserve(el);
         }
       });
-    }, { threshold: 0.1, rootMargin: '0px 0px -30px 0px' });
+    }, { threshold: 0.15, rootMargin: '0px 0px -30px 0px' });
     revealEls.forEach(function (el) { io.observe(el); });
   } else {
     revealEls.forEach(function (el) { el.classList.add('visible'); });
@@ -77,9 +94,10 @@
   /* ----- OS Detection & Hero Download Action ----- */
   var detectOS = function () {
     var ua = window.navigator.userAgent.toLowerCase();
-    if (ua.indexOf('win') !== -1) return 'win';
-    if (ua.indexOf('mac') !== -1) return 'mac';
-    if (ua.indexOf('linux') !== -1) return 'linux';
+    var platform = (window.navigator.platform || '').toLowerCase();
+    if (ua.indexOf('win') !== -1 || platform.indexOf('win') !== -1) return 'win';
+    if (ua.indexOf('mac') !== -1 || platform.indexOf('mac') !== -1) return 'mac';
+    if (ua.indexOf('linux') !== -1 || platform.indexOf('linux') !== -1) return 'linux';
     return 'win';
   };
 
@@ -94,18 +112,39 @@
     }
   });
 
-  if (heroDownloadText && heroPrimaryDownload) {
-    if (userOS === 'win') {
-      heroDownloadText.textContent = 'Baixar para Windows';
-      heroPrimaryDownload.setAttribute('href', '#download');
-    } else if (userOS === 'mac') {
-      heroDownloadText.textContent = 'Baixar para macOS';
-      heroPrimaryDownload.setAttribute('href', '#download');
-    } else if (userOS === 'linux') {
-      heroDownloadText.textContent = 'Baixar para Linux';
-      heroPrimaryDownload.setAttribute('href', '#download');
-    }
+  if (heroDownloadText) {
+    if (userOS === 'win') heroDownloadText.textContent = 'Baixar para Windows';
+    else if (userOS === 'mac') heroDownloadText.textContent = 'Baixar para macOS';
+    else if (userOS === 'linux') heroDownloadText.textContent = 'Baixar para Linux';
   }
+
+  /* ----- Helpers: cache with TTL ----- */
+  var CACHE_TTL_MS = 60 * 60 * 1000; // 1h
+  var cacheGet = function (key) {
+    try {
+      var raw = localStorage.getItem(key);
+      if (!raw) return null;
+      var obj = JSON.parse(raw);
+      if (!obj || !obj.t || !obj.v) return null;
+      if (Date.now() - obj.t > CACHE_TTL_MS) {
+        localStorage.removeItem(key);
+        return null;
+      }
+      return obj.v;
+    } catch (e) { return null; }
+  };
+  var cacheSet = function (key, value) {
+    try { localStorage.setItem(key, JSON.stringify({ t: Date.now(), v: value })); } catch (e) {}
+  };
+  var formatBytes = function (bytes) {
+    if (!bytes || bytes <= 0) return '';
+    var mb = bytes / (1024 * 1024);
+    if (mb >= 1024) return (mb / 1024).toFixed(2) + ' GB';
+    return mb.toFixed(0) + ' MB';
+  };
+  var formatDate = function (iso) {
+    try { return new Date(iso).toLocaleDateString('pt-BR'); } catch (e) { return iso; }
+  };
 
   /* ----- Code Copy Buttons ----- */
   document.querySelectorAll('.copy-btn').forEach(function (btn) {
@@ -114,7 +153,7 @@
       if (!code) return;
 
       var that = this;
-      navigator.clipboard.writeText(code).then(function () {
+      var done = function () {
         var oldText = that.textContent;
         that.textContent = 'Copiado!';
         that.classList.add('copied');
@@ -122,19 +161,26 @@
           that.textContent = oldText;
           that.classList.remove('copied');
         }, 2000);
-      }).catch(function () {
-        // Fallback
-        var textarea = document.createElement('textarea');
-        textarea.value = code;
-        document.body.appendChild(textarea);
-        textarea.select();
+      };
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(code).then(done).catch(function () {
+          var textarea = document.createElement('textarea');
+          textarea.value = code;
+          document.body.appendChild(textarea);
+          textarea.select();
+          document.execCommand('copy');
+          document.body.removeChild(textarea);
+          done();
+        });
+      } else {
+        var textarea2 = document.createElement('textarea');
+        textarea2.value = code;
+        document.body.appendChild(textarea2);
+        textarea2.select();
         document.execCommand('copy');
-        document.body.removeChild(textarea);
-        that.textContent = 'Copiado!';
-        setTimeout(function () {
-          that.textContent = 'Copiar';
-        }, 2000);
-      });
+        document.body.removeChild(textarea2);
+        done();
+      }
     });
   });
 
@@ -142,12 +188,17 @@
   var yearEl = document.getElementById('year');
   if (yearEl) yearEl.textContent = new Date().getFullYear();
 
-  /* ----- GitHub Stars Counter ----- */
+  /* ----- GitHub Stars Counter (cached) ----- */
   var starCount = document.getElementById('starCount');
   if (starCount) {
-    fetch('https://api.github.com/repos/giseldo/neochat-releases')
-      .then(function (r) { return r.ok ? r.json() : Promise.reject(); })
+    var cachedStars = cacheGet('neochat:stars');
+    if (cachedStars && typeof cachedStars.stargazers_count === 'number') {
+      starCount.textContent = cachedStars.stargazers_count > 0 ? '★ ' + cachedStars.stargazers_count : 'Releases';
+    }
+    fetch('https://api.github.com/repos/giseldo/neochat-releases', { headers: { 'Accept': 'application/vnd.github.v3+json' } })
+      .then(function (r) { return r.ok ? r.json() : Promise.reject(new Error('stars ' + r.status)); })
       .then(function (data) {
+        cacheSet('neochat:stars', data);
         if (data && typeof data.stargazers_count === 'number' && data.stargazers_count > 0) {
           starCount.textContent = '★ ' + data.stargazers_count;
         } else {
@@ -155,43 +206,157 @@
         }
       })
       .catch(function () {
-        starCount.textContent = 'Releases';
+        if (!cachedStars) starCount.textContent = 'Releases';
       });
   }
 
-  /* ----- Latest GitHub Release Assets Linking ----- */
-  var fileLinkMaps = {
-    'dl-win': ['.exe'],
-    'dl-mac': ['.dmg', '.zip'],
-    'dl-linux': ['.appimage', '.deb', '.rpm']
+  /* ----- Latest GitHub Release Assets Linking (cached + smart match) ----- */
+  var findAsset = function (assets, predicate) {
+    for (var i = 0; i < assets.length; i++) {
+      if (predicate(assets[i])) return assets[i];
+    }
+    return null;
   };
 
-  fetch('https://api.github.com/repos/giseldo/neochat-releases/releases/latest')
-    .then(function (r) { return r.ok ? r.json() : Promise.reject(); })
-    .then(function (release) {
-      if (!release || !release.assets || !release.assets.length) return;
+  var applyRelease = function (release) {
+    if (!release || !release.assets || !release.assets.length) return;
+    var tag = release.tag_name || release.name || '';
+    var publishedAt = release.published_at || '';
+    var versionLabel = tag ? tag + (publishedAt ? ' • ' + formatDate(publishedAt) : '') : '';
 
-      Object.keys(fileLinkMaps).forEach(function (listId) {
-        var exts = fileLinkMaps[listId];
-        var list = document.getElementById(listId);
-        if (!list) return;
+    // Meta lines per OS
+    var setMeta = function (id, text) {
+      var el = document.getElementById(id);
+      if (el) el.textContent = text;
+    };
+    if (versionLabel) {
+      setMeta('meta-win', versionLabel);
+      setMeta('meta-mac', versionLabel);
+      setMeta('meta-linux', versionLabel);
+    }
 
-        exts.forEach(function (ext, i) {
-          var asset = release.assets.find(function (a) {
-            return a.name.toLowerCase().endsWith(ext.toLowerCase());
-          });
-          if (asset && list.children[i]) {
-            var a = list.children[i].querySelector('a');
-            if (a) {
-              a.href = asset.browser_download_url;
-            }
-          }
-        });
+    // Windows: distinguish installer vs portable
+    var assets = release.assets;
+    var dlWin = document.getElementById('dl-win');
+    if (dlWin) {
+      // Installer: .exe without "portable" in name (usually setup)
+      var winSetup = findAsset(assets, function (a) {
+        var n = a.name.toLowerCase();
+        return n.endsWith('.exe') && n.indexOf('portable') === -1;
+      }) || findAsset(assets, function (a) { return a.name.toLowerCase().endsWith('.exe'); });
+      var winPortable = findAsset(assets, function (a) {
+        var n = a.name.toLowerCase();
+        return n.endsWith('.exe') && n.indexOf('portable') !== -1;
       });
+      // If only one exe exists, use same for both
+      if (winSetup && dlWin.children[0]) {
+        var a0 = dlWin.children[0].querySelector('a');
+        if (a0) {
+          a0.href = winSetup.browser_download_url;
+          var sz = formatBytes(winSetup.size);
+          a0.textContent = '.exe (Instalador NSIS)' + (sz ? ' — ' + sz : '');
+        }
+        var btnWin = document.getElementById('btn-win');
+        if (btnWin) btnWin.href = winSetup.browser_download_url;
+        if (userOS === 'win' && heroPrimaryDownload) heroPrimaryDownload.href = winSetup.browser_download_url;
+      }
+      if (winPortable && dlWin.children[1]) {
+        var a1 = dlWin.children[1].querySelector('a');
+        if (a1) {
+          a1.href = winPortable.browser_download_url;
+          var sz1 = formatBytes(winPortable.size);
+          a1.textContent = '.exe (Versão Portátil)' + (sz1 ? ' — ' + sz1 : '');
+        }
+      } else if (!winPortable && winSetup && dlWin.children[1]) {
+        // fallback: point portable line to same file if no distinct portable
+        var a1b = dlWin.children[1].querySelector('a');
+        if (a1b) a1b.href = winSetup.browser_download_url;
+      }
+    }
+
+    // macOS
+    var dlMac = document.getElementById('dl-mac');
+    if (dlMac) {
+      var macDmg = findAsset(assets, function (a) { return a.name.toLowerCase().endsWith('.dmg'); });
+      var macZip = findAsset(assets, function (a) { return a.name.toLowerCase().endsWith('.zip'); });
+      if (macDmg && dlMac.children[0]) {
+        var am0 = dlMac.children[0].querySelector('a');
+        if (am0) {
+          am0.href = macDmg.browser_download_url;
+          var szm = formatBytes(macDmg.size);
+          am0.textContent = '.dmg (Universal)' + (szm ? ' — ' + szm : '');
+        }
+        var btnMac = document.getElementById('btn-mac');
+        if (btnMac) btnMac.href = macDmg.browser_download_url;
+        if (userOS === 'mac' && heroPrimaryDownload) heroPrimaryDownload.href = macDmg.browser_download_url;
+      }
+      if (macZip && dlMac.children[1]) {
+        var am1 = dlMac.children[1].querySelector('a');
+        if (am1) {
+          am1.href = macZip.browser_download_url;
+          var szm2 = formatBytes(macZip.size);
+          am1.textContent = '.zip (Arquivo compactado)' + (szm2 ? ' — ' + szm2 : '');
+        }
+      }
+    }
+
+    // Linux
+    var dlLinux = document.getElementById('dl-linux');
+    if (dlLinux) {
+      var linuxAppImage = findAsset(assets, function (a) { return a.name.toLowerCase().endsWith('.appimage'); });
+      var linuxDeb = findAsset(assets, function (a) { return a.name.toLowerCase().endsWith('.deb'); });
+      var linuxRpm = findAsset(assets, function (a) { return a.name.toLowerCase().endsWith('.rpm'); });
+      if (linuxAppImage) {
+        var btnLinux = document.getElementById('btn-linux');
+        if (btnLinux) btnLinux.href = linuxAppImage.browser_download_url;
+        if (userOS === 'linux' && heroPrimaryDownload) heroPrimaryDownload.href = linuxAppImage.browser_download_url;
+      }
+      if (dlLinux.children[0]) {
+        var al0 = dlLinux.children[0].querySelector('a');
+        if (al0 && linuxAppImage) {
+          al0.href = linuxAppImage.browser_download_url;
+          var szl = formatBytes(linuxAppImage.size);
+          al0.textContent = '.AppImage (Universal)' + (szl ? ' — ' + szl : '');
+        }
+      }
+      if (dlLinux.children[1]) {
+        var al1Links = dlLinux.children[1].querySelectorAll('a');
+        if (al1Links[0] && linuxDeb) {
+          al1Links[0].href = linuxDeb.browser_download_url;
+          var szd = formatBytes(linuxDeb.size);
+          al1Links[0].textContent = '.deb (Debian/Ubuntu)' + (szd ? ' — ' + szd : '');
+        }
+        if (al1Links[1] && linuxRpm) {
+          al1Links[1].href = linuxRpm.browser_download_url;
+          var szr = formatBytes(linuxRpm.size);
+          al1Links[1].textContent = '.rpm (Fedora/RHEL)' + (szr ? ' — ' + szr : '');
+        } else if (al1Links[1] && linuxDeb && !linuxRpm) {
+          // if only deb exists, keep link as deb
+          al1Links[1].href = linuxDeb.browser_download_url;
+        }
+      }
+    }
+  };
+
+  var cachedRelease = cacheGet('neochat:release');
+  if (cachedRelease) {
+    try { applyRelease(cachedRelease); } catch (e) {}
+  }
+
+  fetch('https://api.github.com/repos/giseldo/neochat-releases/releases/latest', { headers: { 'Accept': 'application/vnd.github.v3+json' } })
+    .then(function (r) { return r.ok ? r.json() : Promise.reject(new Error('release ' + r.status)); })
+    .then(function (release) {
+      cacheSet('neochat:release', release);
+      applyRelease(release);
     })
     .catch(function () {
-      // Graceful fallback to github releases list
+      // keep fallback links; update meta to indicate fallback
+      ['meta-win','meta-mac','meta-linux'].forEach(function (id) {
+        var el = document.getElementById(id);
+        if (el && el.textContent.indexOf('Buscando') !== -1) {
+          el.textContent = 'Ver releases no GitHub';
+        }
+      });
     });
 
 })();
-
