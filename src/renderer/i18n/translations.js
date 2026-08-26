@@ -511,6 +511,20 @@ export const translations = {
       approvalsReset: 'Aprovações de ferramentas redefinidas',
       errorResetting: 'Erro ao redefinir: {error}',
 
+      // Categories Navigation & Search
+      navAll: 'Todas',
+      navInterface: 'Interface & Aparência',
+      navFeatures: 'Ativar/Desativar Recursos',
+      navModels: 'Modelos & Provedores',
+      navIntegrations: 'Integrações & MCP',
+      navSystem: 'Sistema & Dados',
+      searchSettingsPlaceholder: 'Buscar em todas as configurações (ex: voz, tema, mcp, api)...',
+      searchNoResultsTitle: 'Nenhuma configuração encontrada',
+      searchNoResultsDesc: 'Nenhuma opção corresponde a "{query}". Tente outro termo ou limpe a busca.',
+      searchClearBtn: 'Limpar busca',
+      searchResultsCount: '{count} resultado(s) encontrado(s)',
+      categoryBadge: 'Categoria: {category}',
+
       // Config Directory Card
       configDirTitle: 'Pasta de Configurações e Dados',
       configDirDesc: 'Localização dos arquivos de configuração, credenciais, histórico de conversas, projetos e workflows.',
@@ -1654,6 +1668,20 @@ export const translations = {
       resettingApprovals: 'Resetting approvals...',
       approvalsReset: 'Tool call approvals reset',
       errorResetting: 'Error resetting: {error}',
+
+      // Categories Navigation & Search
+      navAll: 'All Settings',
+      navInterface: 'Interface & Appearance',
+      navFeatures: 'Enable/Disable Features',
+      navModels: 'Models & Providers',
+      navIntegrations: 'Integrations & MCP',
+      navSystem: 'System & Data',
+      searchSettingsPlaceholder: 'Search all settings (e.g., voice, theme, mcp, api)...',
+      searchNoResultsTitle: 'No settings found',
+      searchNoResultsDesc: 'No options match "{query}". Try another keyword or clear the search.',
+      searchClearBtn: 'Clear search',
+      searchResultsCount: '{count} result(s) found',
+      categoryBadge: 'Category: {category}',
 
       // Config Directory Card
       configDirTitle: 'Configuration & Data Folder',

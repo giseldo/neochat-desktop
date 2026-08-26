@@ -1779,68 +1779,32 @@ function Settings() {
     }
   };
 
-  return (
-    <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="sticky top-0 z-50 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="container flex h-16 items-center justify-between px-6">
-          <div className="flex items-center space-x-4">
-            <Link to="/">
-              <Button variant="ghost" size="icon" className="text-foreground hover:text-foreground" title={t('settings.backToChat')}>
-                <ArrowLeft className="h-5 w-5" />
-              </Button>
-            </Link>
-            <div className="flex items-center space-x-2">
-              <SettingsIcon className="h-6 w-6 text-primary" />
-              <h1 className="text-2xl font-bold text-foreground">{t('settings.title')}</h1>
+
+  // --- Section Render Helpers ---
+  const renderInterfaceSection = () => {
+    const hasVisible =
+      visibleCardIds.has('interfaceMode') ||
+      visibleCardIds.has('language') ||
+      visibleCardIds.has('appearance') ||
+      visibleCardIds.has('trajectoryTab') ||
+      visibleCardIds.has('thinkingSummaries');
+
+    if (!hasVisible) return null;
+
+    return (
+      <div className="space-y-6">
+        {activeCategory === 'all' && !searchQuery && (
+          <div className="flex items-center gap-2 pb-2 border-b border-border/60">
+            <Palette className="w-5 h-5 text-primary" />
+            <div>
+              <h2 className="text-base font-bold text-foreground">{t('settings.navInterface')}</h2>
+              <p className="text-xs text-muted-foreground">Personalize o modo de uso, temas, cores, tipografia e abas da tela</p>
             </div>
           </div>
+        )}
 
-          <div className="flex items-center space-x-2">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={reloadSettingsFromDisk}
-              disabled={isSaving}
-            >
-              <RefreshCw className={`h-4 w-4 mr-2 ${isSaving ? 'animate-spin' : ''}`} />
-              {t('settings.reloadBtn')}
-            </Button>
-          </div>
-        </div>
-      </header>
-
-      {/* Status Message */}
-      {(isSaving || saveStatus) && (
-        <div className="border-b bg-background">
-          <div className="container px-6 py-3">
-            <div className={`flex items-center space-x-2 text-sm ${
-              saveStatus?.type === 'error'
-                ? 'text-destructive'
-                : saveStatus?.type === 'success'
-                ? 'text-green-600'
-                : 'text-muted-foreground'
-            }`}>
-              {saveStatus?.type === 'success' ? (
-                <CheckCircle className="h-4 w-4" />
-              ) : saveStatus?.type === 'error' ? (
-                <AlertCircle className="h-4 w-4" />
-              ) : (
-                <RefreshCw className="h-4 w-4 animate-spin" />
-              )}
-              <span>{getStatusMessage()}</span>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Main Content */}
-      <main>
-        <div className="container px-6 py-8">
-          <div className="max-w-4xl mx-auto space-y-8">
-
-            {/* Interface experience */}
-            <Card>
+        {visibleCardIds.has('interfaceMode') && (
+          <Card>
               <CardHeader>
                 <CardTitle className="flex items-center space-x-2">
                   <User className="h-5 w-5 text-primary" />
@@ -1877,90 +1841,10 @@ function Settings() {
                 </div>
               </CardContent>
             </Card>
-            
-            {/* Configuration and Data Folder Card */}
-            {(configDirInfo.currentPath || settingsPath) && (
-              <Card>
-                <CardHeader className="pb-3">
-                  <div className="flex items-center justify-between gap-2 flex-wrap">
-                    <CardTitle className="flex items-center space-x-2 text-base">
-                      <Folder className="h-5 w-5 text-primary" />
-                      <span>{t('settings.configDirTitle')}</span>
-                    </CardTitle>
-                    <Badge
-                      variant={configDirInfo.isCustom ? "secondary" : "outline"}
-                      className={configDirInfo.isCustom ? "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/30 text-[11px] font-medium" : "text-[11px] font-medium"}
-                    >
-                      {configDirInfo.isCustom ? t('settings.configDirBadgeCustom') : t('settings.configDirBadgeDefault')}
-                    </Badge>
-                  </div>
-                  <CardDescription>
-                    {t('settings.configDirDesc')}
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  <div className="rounded-lg border bg-muted/40 p-3 space-y-2 text-xs">
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
-                      <span className="font-medium text-muted-foreground">{t('settings.configDirCurrent')}</span>
-                      <code className="font-mono bg-background px-2 py-0.5 rounded border select-all break-all text-[11px]">
-                        {configDirInfo.currentPath || settingsPath}
-                      </code>
-                    </div>
-                    {settingsPath && (
-                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 pt-1.5 border-t border-border/50">
-                        <span className="font-medium text-muted-foreground">{t('settings.configDirSettingsFile')}</span>
-                        <code className="font-mono bg-background px-2 py-0.5 rounded border select-all break-all text-[11px]">
-                          {settingsPath}
-                        </code>
-                      </div>
-                    )}
-                  </div>
+        )}
 
-                  <div className="flex flex-wrap items-center gap-2 pt-1">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={handleSelectNewConfigFolder}
-                      className="flex items-center gap-1.5 text-xs"
-                    >
-                      <FolderOpen className="h-4 w-4" />
-                      <span>{t('settings.configDirChangeBtn')}</span>
-                    </Button>
-
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={handleOpenConfigFolder}
-                      className="flex items-center gap-1.5 text-xs"
-                    >
-                      <ExternalLink className="h-3.5 w-3.5" />
-                      <span>{t('settings.configDirOpenBtn')}</span>
-                    </Button>
-
-                    {configDirInfo.isCustom && (
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => {
-                          setCopyExistingFiles(false);
-                          setIsResetConfigDirModalOpen(true);
-                        }}
-                        className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground"
-                      >
-                        <RotateCcw className="h-3.5 w-3.5" />
-                        <span>{t('settings.configDirResetBtn')}</span>
-                      </Button>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-
-            {/* Interface Language Settings */}
-            <Card>
+        {visibleCardIds.has('language') && (
+          <Card>
               <CardHeader>
                 <CardTitle className="flex items-center space-x-2">
                   <Languages className="h-5 w-5 text-primary" />
@@ -1999,9 +1883,10 @@ function Settings() {
                 </div>
               </CardContent>
             </Card>
+        )}
 
-            {/* Theme & Appearance Settings */}
-            <Card>
+        {visibleCardIds.has('appearance') && (
+          <Card>
               <CardHeader>
                 <CardTitle className="flex items-center space-x-2">
                   <Palette className="h-5 w-5 text-primary" />
@@ -2277,9 +2162,94 @@ function Settings() {
                 </div>
               </CardContent>
             </Card>
+        )}
 
-            {/* Voice Input (Speech-to-Text) */}
-            <Card>
+        {visibleCardIds.has('trajectoryTab') && (
+          <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center space-x-2">
+                  <Route className="h-5 w-5 text-primary" />
+                  <span>{t('settings.trajectoryTabTitle')}</span>
+                </CardTitle>
+                <CardDescription>
+                  {t('settings.trajectoryTabDesc')}
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label htmlFor="trajectory-tab-toggle" className="font-medium">
+                      {t('settings.trajectoryTabLabel')}
+                    </Label>
+                    <p className="text-xs text-muted-foreground">
+                      {t('settings.trajectoryTabHelp')}
+                    </p>
+                  </div>
+                  <Switch
+                    id="trajectory-tab-toggle"
+                    checked={settings.showTrajectoryTab !== false}
+                    onChange={(e) => handleToggleChange('showTrajectoryTab', e.target.checked)}
+                  />
+                </div>
+              </CardContent>
+            </Card>
+        )}
+
+        {visibleCardIds.has('thinkingSummaries') && (
+          <Card>
+              <CardHeader>
+                <CardTitle>{t('settings.thinkingSummariesTitle')}</CardTitle>
+                <CardDescription>
+                  {t('settings.thinkingSummariesDesc')}
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="disable-thinking-summaries" className="font-medium">
+                    {t('settings.disableThinkingLabel')}
+                  </Label>
+                  <Switch
+                    id="disable-thinking-summaries"
+                    checked={settings.disableThinkingSummaries || false}
+                    onChange={(e) => handleToggleChange('disableThinkingSummaries', e.target.checked)}
+                  />
+                </div>
+                <p className="text-xs text-muted-foreground mt-2">
+                  {t('settings.disableThinkingHelp')}
+                </p>
+              </CardContent>
+            </Card>
+        )}
+      </div>
+    );
+  };
+
+  const renderFeaturesSection = () => {
+    const hasVisible =
+      visibleCardIds.has('voiceInput') ||
+      visibleCardIds.has('tts') ||
+      visibleCardIds.has('popupWindow') ||
+      visibleCardIds.has('webSearch') ||
+      visibleCardIds.has('builtInTools') ||
+      visibleCardIds.has('promptTemplates') ||
+      visibleCardIds.has('systemPrompt');
+
+    if (!hasVisible) return null;
+
+    return (
+      <div className="space-y-6">
+        {activeCategory === 'all' && !searchQuery && (
+          <div className="flex items-center gap-2 pb-2 border-b border-border/60 pt-4">
+            <Zap className="w-5 h-5 text-primary" />
+            <div>
+              <h2 className="text-base font-bold text-foreground">{t('settings.navFeatures')}</h2>
+              <p className="text-xs text-muted-foreground">Controle de voz Whisper, leitura TTS, busca web, ferramentas e atalhos</p>
+            </div>
+          </div>
+        )}
+
+        {visibleCardIds.has('voiceInput') && (
+          <Card>
               <CardHeader>
                 <CardTitle className="flex items-center space-x-2">
                   <Mic className="h-5 w-5 text-primary" />
@@ -2376,9 +2346,10 @@ function Settings() {
                 </div>
               </CardContent>
             </Card>
+        )}
 
-            {/* Read Aloud (TTS) */}
-            <Card>
+        {visibleCardIds.has('tts') && (
+          <Card>
               <CardHeader>
                 <CardTitle className="flex items-center space-x-2">
                   <Volume2 className="h-5 w-5 text-primary" />
@@ -2402,30 +2373,521 @@ function Settings() {
                 </div>
               </CardContent>
             </Card>
+        )}
 
-            <Card>
+        {visibleCardIds.has('popupWindow') && (
+          <Card className="border-border">
+              <CardHeader className="flex flex-row items-start justify-between space-y-0">
+                <div className="space-y-1">
+                  <CardTitle className="flex items-center gap-2">
+                    <Globe className="h-5 w-5 text-primary" />
+                    <span>{t('settings.popupWindowTitle')}</span>
+                  </CardTitle>
+                  <CardDescription>
+                    {t('settings.popupWindowDesc')}
+                  </CardDescription>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setIsShortcutsModalOpen(true)}
+                  className="text-xs flex items-center gap-1.5 border-border hover:bg-muted shrink-0"
+                >
+                  <Keyboard className="w-3.5 h-3.5 text-primary" />
+                  <span>{t('settings.viewAllShortcutsBtn')}</span>
+                </Button>
+              </CardHeader>
+              <CardContent className="space-y-5">
+                {/* Enable/Disable Toggle */}
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label htmlFor="popup-enabled" className="font-medium">
+                      {t('settings.popupWindowLabel')}
+                    </Label>
+                    <p className="text-xs text-muted-foreground">
+                      {t('settings.popupWindowHelp')}
+                    </p>
+                  </div>
+                  <Switch
+                    id="popup-enabled"
+                    checked={settings.popupEnabled !== false}
+                    onChange={(e) => {
+                      const newEnabled = e.target.checked;
+                      handleToggleChange('popupEnabled', newEnabled);
+                      if (window.electron?.updateGlobalShortcut) {
+                        window.electron.updateGlobalShortcut(settings.popupShortcut || 'CommandOrControl+Shift+Space', newEnabled)
+                          .then(res => setShortcutStatus(res));
+                      }
+                    }}
+                  />
+                </div>
+
+                {/* Shortcut Configuration Section */}
+                {settings.popupEnabled !== false && (
+                  <div className="p-4 rounded-xl bg-muted/30 border border-border/80 space-y-4">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                      <div className="space-y-1">
+                        <Label className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+                          <Keyboard className="w-3.5 h-3.5 text-primary" />
+                          <span>{t('settings.popupShortcutLabel')}</span>
+                        </Label>
+                        <p className="text-xs text-muted-foreground">
+                          {t('settings.popupShortcutHelp')}
+                        </p>
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        <KeyCombo 
+                          keys={formatAccelerator(settings.popupShortcut || 'CommandOrControl+Shift+Space', isMac)} 
+                        />
+                      </div>
+                    </div>
+
+                    {/* Presets & Custom Recorder */}
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-2.5 pt-1">
+                      <div className="w-full sm:w-64">
+                        <Select
+                          value={POPUP_SHORTCUT_PRESETS.some(p => p.value === settings.popupShortcut) ? settings.popupShortcut : 'custom'}
+                          onValueChange={(val) => {
+                            if (val === 'custom') {
+                              setIsRecordingShortcut(true);
+                            } else {
+                              const updated = { ...settings, popupShortcut: val };
+                              setSettings(updated);
+                              saveSettings(updated);
+                              if (window.electron?.updateGlobalShortcut) {
+                                window.electron.updateGlobalShortcut(val, true).then(res => setShortcutStatus(res));
+                              }
+                            }
+                          }}
+                        >
+                          <SelectTrigger className="h-8 text-xs bg-background">
+                            <SelectValue placeholder={t('settings.popupShortcutPreset')} />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {POPUP_SHORTCUT_PRESETS.map((preset) => (
+                              <SelectItem key={preset.value} value={preset.value} className="text-xs">
+                                {preset.label}
+                              </SelectItem>
+                            ))}
+                            <SelectItem value="custom" className="text-xs">
+                              {t('settings.popupShortcutCustom')}...
+                            </SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        {isRecordingShortcut ? (
+                          <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-primary/10 border border-primary/30 text-primary text-xs font-medium animate-pulse">
+                            <span className="w-2 h-2 rounded-full bg-primary animate-ping" />
+                            <span>{t('settings.popupShortcutRecording')}</span>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => setIsRecordingShortcut(false)}
+                              className="h-5 px-1.5 text-[10px] hover:bg-primary/20 text-primary rounded"
+                            >
+                              {t('common.cancel')}
+                            </Button>
+                          </div>
+                        ) : (
+                          <>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              onClick={() => setIsRecordingShortcut(true)}
+                              className="h-8 text-xs flex items-center gap-1.5 bg-background border-border hover:bg-muted"
+                            >
+                              <Keyboard className="w-3.5 h-3.5" />
+                              <span>{t('settings.popupShortcutRecordBtn')}</span>
+                            </Button>
+
+                            {settings.popupShortcut !== 'CommandOrControl+Shift+Space' && (
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => {
+                                  const updated = { ...settings, popupShortcut: 'CommandOrControl+Shift+Space' };
+                                  setSettings(updated);
+                                  saveSettings(updated);
+                                  if (window.electron?.updateGlobalShortcut) {
+                                    window.electron.updateGlobalShortcut('CommandOrControl+Shift+Space', true).then(res => setShortcutStatus(res));
+                                  }
+                                }}
+                                className="h-8 text-xs text-muted-foreground hover:text-foreground"
+                              >
+                                {t('settings.popupShortcutResetBtn')}
+                              </Button>
+                            )}
+                          </>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Status Badge */}
+                    <div className="pt-1 flex items-center gap-2">
+                      {shortcutStatus?.success !== false ? (
+                        <Badge variant="outline" className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30 text-xs py-0.5 px-2 flex items-center gap-1.5">
+                          <CheckCircle className="w-3.5 h-3.5" />
+                          <span>{t('settings.popupShortcutActive')}</span>
+                        </Badge>
+                      ) : (
+                        <Badge variant="outline" className="bg-destructive/10 text-destructive border-destructive/30 text-xs py-0.5 px-2 flex items-center gap-1.5">
+                          <AlertCircle className="w-3.5 h-3.5" />
+                          <span>{t('settings.popupShortcutFailed')}</span>
+                        </Badge>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+        )}
+
+        {visibleCardIds.has('webSearch') && (
+          <Card>
               <CardHeader>
-                <CardTitle>{t('settings.updatesTitle')}</CardTitle>
-                <CardDescription>{t('settings.updatesDesc', { version: updateStatus.currentVersion || '' })}</CardDescription>
+                <CardTitle className="flex items-center space-x-2">
+                  <Globe className="h-5 w-5 text-primary" />
+                  <span>{t('settings.webSearchTitle')}</span>
+                </CardTitle>
+                <CardDescription>
+                  {t('settings.webSearchDesc')}
+                </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="flex items-center justify-between"><Label>{t('settings.checkUpdatesStartup')}</Label><Switch checked={settings.autoUpdate?.checkOnStartup !== false} onChange={event => updateAutoUpdate({ checkOnStartup: event.target.checked })} /></div>
-                <div className="flex items-center gap-3">
-                  <Label>{t('settings.updateChannel')}</Label>
-                  <select className="h-9 rounded-md border border-input bg-background px-3 text-sm" value={settings.autoUpdate?.channel || 'stable'} onChange={event => updateAutoUpdate({ channel: event.target.value })}><option value="stable">Stable</option><option value="beta">Beta</option></select>
+                {/* Enable Switch */}
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label htmlFor="web-search-toggle" className="font-medium">
+                      {t('settings.webSearchEnableLabel')}
+                    </Label>
+                    <p className="text-xs text-muted-foreground">
+                      {t('settings.webSearchEnableHelp')}
+                    </p>
+                  </div>
+                  <Switch
+                    id="web-search-toggle"
+                    checked={settings.webSearch?.enabled !== false}
+                    onChange={(e) => handleWebSearchChange('enabled', e.target.checked)}
+                  />
                 </div>
-                <div className="flex flex-wrap items-center gap-2">
-                  <Button variant="outline" onClick={() => window.electron.updater.check()} disabled={updateStatus.status === 'checking'}><RefreshCw className={`w-4 h-4 mr-2 ${updateStatus.status === 'checking' ? 'animate-spin' : ''}`} />{t('settings.checkUpdates')}</Button>
-                  {updateStatus.status === 'available' && <Button onClick={() => window.electron.updater.download()}><Download className="w-4 h-4 mr-2" />{t('settings.downloadUpdate', { version: updateStatus.version })}</Button>}
-                  {updateStatus.status === 'downloaded' && <Button onClick={() => window.electron.updater.install()}>{t('settings.installUpdate', { version: updateStatus.version })}</Button>}
-                  <span className="text-xs text-muted-foreground">{t(`settings.updateStatus_${updateStatus.status}`, { percent: updateStatus.percent, error: updateStatus.error || '' })}</span>
+
+                {settings.webSearch?.enabled !== false && (
+                  <div className="space-y-4 pt-3 border-t border-border/60">
+                    {/* Search Provider */}
+                    <div className="space-y-1.5">
+                      <Label className="text-xs font-medium">
+                        {t('settings.webSearchProviderLabel')}
+                      </Label>
+                      <Select
+                        value={settings.webSearch?.provider || 'local'}
+                        onValueChange={(val) => handleWebSearchChange('provider', val)}
+                      >
+                        <SelectTrigger className="w-full">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="local">{t('settings.webSearchProviderLocal')}</SelectItem>
+                          <SelectItem value="tavily">{t('settings.webSearchProviderTavily')}</SelectItem>
+                          <SelectItem value="brave">{t('settings.webSearchProviderBrave')}</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    {/* Local Search Info Box */}
+                    {(!settings.webSearch?.provider || settings.webSearch?.provider === 'local') && (
+                      <div className="p-3 rounded-lg text-xs bg-primary/10 border border-primary/20 text-foreground flex items-start gap-2.5">
+                        <Globe className="w-4 h-4 text-primary shrink-0 mt-0.5" />
+                        <div className="space-y-0.5">
+                          <div className="font-semibold text-primary">{t('settings.webSearchProviderLocal')}</div>
+                          <div className="text-[11px] text-muted-foreground">
+                            {t('settings.webSearchLocalInfo')}
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* API Key for Tavily / Brave */}
+                    {(settings.webSearch?.provider === 'tavily' || settings.webSearch?.provider === 'brave') && (
+                      <div className="space-y-1.5">
+                        <div className="flex items-center justify-between">
+                          <Label className="text-xs font-medium">
+                            {t('settings.webSearchApiKeyLabel')}
+                          </Label>
+                          {settings.webSearch?.provider === 'tavily' ? (
+                            <a
+                              href="https://tavily.com"
+                              target="_blank"
+                              rel="noreferrer"
+                              className="text-[11px] text-primary hover:underline inline-flex items-center gap-1 font-medium"
+                            >
+                              tavily.com <ExternalLink className="w-3 h-3" />
+                            </a>
+                          ) : (
+                            <a
+                              href="https://brave.com/search/api"
+                              target="_blank"
+                              rel="noreferrer"
+                              className="text-[11px] text-primary hover:underline inline-flex items-center gap-1 font-medium"
+                            >
+                              brave.com/search/api <ExternalLink className="w-3 h-3" />
+                            </a>
+                          )}
+                        </div>
+                        <Input
+                          type="password"
+                          value={settings.webSearch?.apiKey || ''}
+                          onChange={(e) => handleWebSearchChange('apiKey', e.target.value)}
+                          placeholder={t('settings.webSearchApiKeyPlaceholder')}
+                        />
+                        <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] text-muted-foreground">
+                          <span>{t('settings.webSearchApiKeyHelp')}</span>
+                          <span className="text-muted-foreground/60">•</span>
+                          <span className="font-medium text-foreground/80">{t('settings.webSearchGetApiKey')}</span>
+                          <a
+                            href="https://tavily.com"
+                            target="_blank"
+                            rel="noreferrer"
+                            className="text-primary hover:underline inline-flex items-center gap-0.5 font-medium"
+                          >
+                            tavily.com <ExternalLink className="w-2.5 h-2.5" />
+                          </a>
+                          <span className="text-muted-foreground/60">•</span>
+                          <a
+                            href="https://brave.com/search/api"
+                            target="_blank"
+                            rel="noreferrer"
+                            className="text-primary hover:underline inline-flex items-center gap-0.5 font-medium"
+                          >
+                            brave.com/search/api <ExternalLink className="w-2.5 h-2.5" />
+                          </a>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Max Results */}
+                    <div className="space-y-1.5">
+                      <div className="flex items-center justify-between text-xs">
+                        <Label className="font-medium">{t('settings.webSearchMaxResultsLabel')}</Label>
+                        <span className="font-semibold text-primary">{settings.webSearch?.maxResults || 5}</span>
+                      </div>
+                      <input
+                        type="range"
+                        min="1"
+                        max="10"
+                        step="1"
+                        value={settings.webSearch?.maxResults || 5}
+                        onChange={(e) => handleWebSearchChange('maxResults', parseInt(e.target.value, 10))}
+                        className="w-full accent-primary cursor-pointer"
+                      />
+                    </div>
+
+                    {/* Test Button & Result Box */}
+                    <div className="pt-2">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={handleTestWebSearch}
+                        disabled={isTestingWebSearch}
+                        className="flex items-center gap-2"
+                      >
+                        <Globe className="w-3.5 h-3.5" />
+                        {isTestingWebSearch ? t('settings.webSearchTesting') : t('settings.webSearchTestBtn')}
+                      </Button>
+
+                      {webSearchTestResult && (
+                        <div className={`mt-2.5 p-2.5 rounded-lg text-xs border flex items-start gap-2 ${
+                          webSearchTestResult.success
+                            ? 'bg-green-500/10 border-green-500/20 text-green-600 dark:text-green-400'
+                            : 'bg-red-500/10 border-red-500/20 text-red-600 dark:text-red-400'
+                        }`}>
+                          {webSearchTestResult.success ? (
+                            <CheckCircle className="w-4 h-4 shrink-0 mt-0.5" />
+                          ) : (
+                            <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+                          )}
+                          <div className="min-w-0">
+                            <div className="font-medium">{webSearchTestResult.message}</div>
+                            {webSearchTestResult.data?.results?.[0] && (
+                              <div className="mt-1 text-[11px] opacity-90 truncate">
+                                🔗 {webSearchTestResult.data.results[0].title} ({webSearchTestResult.data.results[0].domain})
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+        )}
+
+        {visibleCardIds.has('builtInTools') && (
+          <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center space-x-2">
+                  <Zap className="h-5 w-5 text-primary" />
+                  <span>{t('settings.builtinToolsTitle')}</span>
+                </CardTitle>
+                <CardDescription>
+                  {t('settings.builtinToolsDesc')}
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-1">
+                      <Label htmlFor="code-interpreter" className="font-medium">
+                        {t('settings.codeInterpreterLabel')}
+                      </Label>
+                      <p className="text-xs text-muted-foreground">
+                        {t('settings.codeInterpreterHelp')}
+                      </p>
+                    </div>
+                    <Switch
+                      id="code-interpreter"
+                      checked={settings.builtInTools?.codeInterpreter || false}
+                      onChange={(e) => handleBuiltInToolToggle('codeInterpreter', e.target.checked)}
+                    />
+                  </div>
+                  
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-1">
+                      <Label htmlFor="browser-search" className="font-medium">
+                        {t('settings.browserSearchLabel')}
+                      </Label>
+                      <p className="text-xs text-muted-foreground">
+                        {t('settings.browserSearchHelp')}
+                      </p>
+                    </div>
+                    <Switch
+                      id="browser-search"
+                      checked={settings.builtInTools?.browserSearch || false}
+                      onChange={(e) => handleBuiltInToolToggle('browserSearch', e.target.checked)}
+                    />
+                  </div>
                 </div>
               </CardContent>
             </Card>
+        )}
 
-            {settings.interfaceMode === 'power' && <>
-            {/* API Settings */}
-            <Card>
+        {visibleCardIds.has('promptTemplates') && (
+          <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center space-x-2">
+                  <Terminal className="h-5 w-5 text-primary" />
+                  <span>{t('promptTemplates.modalTitle')}</span>
+                </CardTitle>
+                <CardDescription>
+                  {t('promptTemplates.modalSubtitle')}
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="flex items-center justify-between p-3 rounded-xl bg-muted/40 border border-border/50">
+                  <div className="space-y-0.5">
+                    <p className="text-xs font-semibold text-foreground">
+                      {t('slashCommands.title')}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {t('slashCommands.pressToSelect')}
+                    </p>
+                  </div>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setIsPromptTemplatesModalOpen(true)}
+                    className="flex items-center gap-1.5 text-xs rounded-xl shadow-xs"
+                  >
+                    <Terminal className="w-3.5 h-3.5 text-primary" />
+                    <span>{t('slashCommands.manageTemplates')}</span>
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+        )}
+
+        {visibleCardIds.has('systemPrompt') && (
+          <Card>
+              <CardHeader>
+                <CardTitle>{t('settings.systemPromptTitle')}</CardTitle>
+                <CardDescription>
+                  {t('settings.systemPromptDesc')}
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-2">
+                  <Textarea
+                    id="custom-system-prompt"
+                    name="customSystemPrompt"
+                    value={settings.customSystemPrompt || ''}
+                    onChange={handleChange}
+                    rows={4}
+                    placeholder={t('settings.systemPromptPlaceholder')}
+                    className="min-h-[100px]"
+                  />
+                </div>
+              </CardContent>
+            </Card>
+        )}
+      </div>
+    );
+  };
+
+  const renderModelsSection = () => {
+    const hasVisible =
+      visibleCardIds.has('api') ||
+      visibleCardIds.has('generationParams') ||
+      visibleCardIds.has('modelsByProvider') ||
+      visibleCardIds.has('customModels');
+
+    if (!hasVisible && activeCategory !== 'models') return null;
+
+    return (
+      <div className="space-y-6">
+        {activeCategory === 'all' && !searchQuery && (
+          <div className="flex items-center gap-2 pb-2 border-b border-border/60 pt-4">
+            <Cpu className="w-5 h-5 text-primary" />
+            <div>
+              <h2 className="text-base font-bold text-foreground">{t('settings.navModels')}</h2>
+              <p className="text-xs text-muted-foreground">Provedores de IA, chaves de API, parâmetros e catálogo de modelos</p>
+            </div>
+          </div>
+        )}
+
+        {settings.interfaceMode !== 'power' && !searchQuery && activeCategory === 'models' && (
+          <div className="p-6 rounded-2xl border border-dashed bg-muted/20 text-center space-y-3">
+            <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center mx-auto">
+              <Wrench className="w-5 h-5" />
+            </div>
+            <div className="space-y-1">
+              <h3 className="text-sm font-semibold text-foreground">
+                Recursos disponíveis no Modo Power User
+              </h3>
+              <p className="text-xs text-muted-foreground max-w-md mx-auto">
+                As configurações avançadas de modelos e provedores estão ocultas no Modo Usuário. Ative o Modo Power User para gerenciar chaves de API, parâmetros de geração e modelos customizados.
+              </p>
+            </div>
+            <Button
+              type="button"
+              size="sm"
+              onClick={() => handleSelectChange('interfaceMode', 'power')}
+              className="text-xs"
+            >
+              <Wrench className="w-3.5 h-3.5 mr-1.5" />
+              Ativar Modo Power User
+            </Button>
+          </div>
+        )}
+
+        {visibleCardIds.has('api') && (
+          <Card>
               <CardHeader>
                 <CardTitle className="flex items-center space-x-2">
                   <Key className="h-5 w-5 text-primary" />
@@ -2626,542 +3088,10 @@ function Settings() {
                 </div>
               </CardContent>
             </Card>
+        )}
 
-            {/* Responses API & Connectors */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center space-x-2">
-                  <Zap className="h-5 w-5 text-primary" />
-                  <span>{t('settings.responsesTitle')}</span>
-                </CardTitle>
-                <CardDescription>
-                  {t('settings.responsesDesc')}
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="flex items-center justify-between">
-                  <div className="space-y-1">
-                    <Label htmlFor="use-responses-api" className="font-medium">
-                      {t('settings.useResponsesApiLabel')}
-                    </Label>
-                    <p className="text-xs text-muted-foreground">
-                      {t('settings.useResponsesApiHelp')}
-                    </p>
-                  </div>
-                  <Switch
-                    id="use-responses-api"
-                    checked={settings.useResponsesApi || false}
-                    onChange={(e) => handleToggleChange('useResponsesApi', e.target.checked)}
-                  />
-                </div>
-
-                {settings.useResponsesApi && (
-                  <div className="space-y-4 pl-4 border-l-2 border-muted ml-2">
-                    {/* Google OAuth Credentials Section */}
-                    <div className="space-y-4">
-                      <div className="flex items-center justify-between">
-                        <Label className="text-sm font-medium">{t('settings.googleAuthCredentialsTitle')}</Label>
-                        {googleOAuthStatus?.hasRefreshCapability && (
-                          <div className="flex items-center gap-2">
-                            {googleOAuthStatus?.expiresInMinutes !== null && (
-                              <span className={`text-xs ${googleOAuthStatus.isExpired ? 'text-red-500' : googleOAuthStatus.expiresInMinutes < 10 ? 'text-yellow-500' : 'text-green-500'}`}>
-                                {googleOAuthStatus.isExpired 
-                                  ? t('settings.googleTokenExpired') 
-                                  : t('settings.googleExpiresIn', { minutes: googleOAuthStatus.expiresInMinutes })}
-                              </span>
-                            )}
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={handleGoogleOAuthRefresh}
-                              disabled={isRefreshingToken}
-                              className="h-7 text-xs"
-                            >
-                              {isRefreshingToken ? t('settings.btnRefreshing') : t('settings.btnRefreshToken')}
-                            </Button>
-                          </div>
-                        )}
-                      </div>
-                      
-                      {/* Refresh Token */}
-                      <div className="space-y-2">
-                        <Label htmlFor="google-refresh-token" className="text-xs text-muted-foreground">
-                          {t('settings.googleRefreshTokenLabel')}
-                        </Label>
-                        <Input
-                          type="password"
-                          id="google-refresh-token"
-                          name="googleRefreshToken"
-                          value={settings.googleRefreshToken || ''}
-                          onChange={handleChange}
-                          placeholder={t('settings.googleRefreshTokenPlaceholder')}
-                          className="font-mono text-sm"
-                        />
-                      </div>
-
-                      {/* Client ID & Secret */}
-                      <div className="grid grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                          <Label htmlFor="google-client-id" className="text-xs text-muted-foreground">
-                            {t('settings.googleClientIdLabel')}
-                          </Label>
-                          <Input
-                            type="password"
-                            id="google-client-id"
-                            name="googleClientId"
-                            value={settings.googleClientId || ''}
-                            onChange={handleChange}
-                            placeholder="xxxxx.apps.googleusercontent.com"
-                            className="font-mono text-sm"
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <Label htmlFor="google-client-secret" className="text-xs text-muted-foreground">
-                            {t('settings.googleClientSecretLabel')}
-                          </Label>
-                          <Input
-                            type="password"
-                            id="google-client-secret"
-                            name="googleClientSecret"
-                            value={settings.googleClientSecret || ''}
-                            onChange={handleChange}
-                            placeholder="GOCSPX-xxxxx"
-                            className="font-mono text-sm"
-                          />
-                        </div>
-                      </div>
-
-                      {/* Help Link */}
-                      <p className="text-xs text-muted-foreground">
-                        📖 {t('settings.googleHelpPrefix')}{' '}
-                        <a 
-                          href="https://console.cloud.google.com/apis/credentials" 
-                          target="_blank" 
-                          rel="noopener noreferrer"
-                          className="text-primary hover:underline"
-                        >
-                          {t('settings.googleHelpLink')}
-                        </a>
-                        {' '}{t('settings.googleHelpSuffix')}
-                      </p>
-
-                      {/* Status Message */}
-                      {settings.googleRefreshToken && settings.googleClientId && settings.googleClientSecret ? (
-                        <p className="text-xs text-green-600 dark:text-green-400">
-                          {t('settings.googleAutoRefreshActive')}
-                        </p>
-                      ) : (
-                        <p className="text-xs text-muted-foreground">
-                          {t('settings.googleAutoRefreshHelp')}
-                        </p>
-                      )}
-
-                      {/* Manual Access Token (fallback) */}
-                      <details className="pt-2">
-                        <summary className="text-xs text-muted-foreground cursor-pointer hover:text-foreground">
-                          {t('settings.googleManualTokenSummary')}
-                        </summary>
-                        <div className="space-y-2 pt-2">
-                          <Input
-                            type="password"
-                            id="google-oauth-token"
-                            name="googleOAuthToken"
-                            value={settings.googleOAuthToken || ''}
-                            onChange={handleChange}
-                            placeholder="ya29.xxxxx (expires in ~1 hour)"
-                            className="font-mono text-sm"
-                          />
-                          <p className="text-xs text-muted-foreground">
-                            {t('settings.googleManualTokenHelp')}
-                          </p>
-                          <p className="text-xs text-muted-foreground">
-                            💡 {t('settings.googleManualTokenPlayground')}{' '}
-                            <a 
-                              href="https://developers.google.com/oauthplayground/" 
-                              target="_blank" 
-                              rel="noopener noreferrer"
-                              className="text-primary hover:underline"
-                            >
-                              OAuth Playground
-                            </a>
-                          </p>
-                        </div>
-                      </details>
-                    </div>
-
-                    <div className="space-y-4 pt-2">
-                      <Label className="text-sm font-medium text-muted-foreground">{t('settings.googleConnectorsTitle')}</Label>
-                      
-                      <div className="space-y-3">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center space-x-3">
-                            <Switch
-                              id="connector-gmail"
-                              checked={settings.googleConnectors?.gmail || false}
-                              onChange={(e) => handleGoogleConnectorToggle('gmail', e.target.checked)}
-                            />
-                            <Label htmlFor="connector-gmail" className="font-normal">{t('settings.gmailLabel')}</Label>
-                          </div>
-                          {settings.googleConnectors?.gmail && (
-                            <Select
-                              value={settings.googleConnectorsApproval?.gmail || 'never'}
-                              onValueChange={(value) => handleGoogleConnectorApprovalChange('gmail', value)}
-                            >
-                              <SelectTrigger className="w-36 h-8">
-                                <SelectValue />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="never">{t('settings.approvalNever')}</SelectItem>
-                                <SelectItem value="always">{t('settings.approvalAlways')}</SelectItem>
-                              </SelectContent>
-                            </Select>
-                          )}
-                        </div>
-
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center space-x-3">
-                            <Switch
-                              id="connector-calendar"
-                              checked={settings.googleConnectors?.calendar || false}
-                              onChange={(e) => handleGoogleConnectorToggle('calendar', e.target.checked)}
-                            />
-                            <Label htmlFor="connector-calendar" className="font-normal">{t('settings.calendarLabel')}</Label>
-                          </div>
-                          {settings.googleConnectors?.calendar && (
-                            <Select
-                              value={settings.googleConnectorsApproval?.calendar || 'never'}
-                              onValueChange={(value) => handleGoogleConnectorApprovalChange('calendar', value)}
-                            >
-                              <SelectTrigger className="w-36 h-8">
-                                <SelectValue />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="never">{t('settings.approvalNever')}</SelectItem>
-                                <SelectItem value="always">{t('settings.approvalAlways')}</SelectItem>
-                              </SelectContent>
-                            </Select>
-                          )}
-                        </div>
-
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center space-x-3">
-                            <Switch
-                              id="connector-drive"
-                              checked={settings.googleConnectors?.drive || false}
-                              onChange={(e) => handleGoogleConnectorToggle('drive', e.target.checked)}
-                            />
-                            <Label htmlFor="connector-drive" className="font-normal">{t('settings.driveLabel')}</Label>
-                          </div>
-                          {settings.googleConnectors?.drive && (
-                            <Select
-                              value={settings.googleConnectorsApproval?.drive || 'never'}
-                              onValueChange={(value) => handleGoogleConnectorApprovalChange('drive', value)}
-                            >
-                              <SelectTrigger className="w-36 h-8">
-                                <SelectValue />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="never">{t('settings.approvalNever')}</SelectItem>
-                                <SelectItem value="always">{t('settings.approvalAlways')}</SelectItem>
-                              </SelectContent>
-                            </Select>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Remote MCP Servers Section */}
-                    <div className="space-y-4 pt-4 border-t border-muted">
-                      <div className="space-y-1">
-                        <Label className="text-sm font-medium">{t('settings.remoteMcpTitle')}</Label>
-                        <p className="text-xs text-muted-foreground">
-                          {t('settings.remoteMcpDesc')}
-                        </p>
-                      </div>
-
-                      {/* Configured Remote MCP Servers List */}
-                      {Object.keys(settings.remoteMcpServers || {}).length > 0 && (
-                        <div className="space-y-3">
-                          {Object.entries(settings.remoteMcpServers || {}).map(([id, config]) => {
-                            const isEnabled = config.enabled !== false; // Default to true if not specified
-                            return (
-                              <Card key={id} className={`border-border/50 ${!isEnabled ? 'opacity-60' : ''}`}>
-                                <CardContent className="p-3">
-                                  <div className="flex justify-between items-start">
-                                    <div className="flex items-center space-x-3">
-                                      <Switch
-                                        id={`remote-mcp-enabled-${id}`}
-                                        checked={isEnabled}
-                                        onChange={(e) => handleRemoteMcpServerToggle(id, e.target.checked)}
-                                      />
-                                      <div className="flex-1 space-y-1">
-                                        <div className="flex items-center space-x-2">
-                                          <Badge variant="secondary" className="text-xs">{config.serverLabel || id}</Badge>
-                                          {config.requireApproval === 'always' && (
-                                            <Badge variant="outline" className="text-xs bg-yellow-50 text-yellow-700">
-                                              {t('settings.approvalRequiredBadge')}
-                                            </Badge>
-                                          )}
-                                          {!isEnabled && (
-                                            <Badge variant="outline" className="text-xs bg-gray-100 text-gray-500">
-                                              {t('common.disabled')}
-                                            </Badge>
-                                          )}
-                                        </div>
-                                        
-                                        <div className="text-xs text-muted-foreground font-mono truncate max-w-[300px]">
-                                          {config.serverUrl}
-                                        </div>
-                                        
-                                        {config.serverDescription && (
-                                          <div className="text-xs text-muted-foreground truncate max-w-[300px]">
-                                            {config.serverDescription}
-                                          </div>
-                                        )}
-                                        
-                                        {config.headers && Object.keys(config.headers).length > 0 && (
-                                          <div className="text-xs text-muted-foreground">
-                                            <span>{t('settings.customHeadersCount', { count: Object.keys(config.headers).length })}</span>
-                                          </div>
-                                        )}
-                                        
-                                        {config.allowedTools && config.allowedTools.length > 0 && (
-                                          <div className="text-xs text-muted-foreground">
-                                            <span>{t('settings.allowedToolsPrefix', { tools: config.allowedTools.join(', ') })}</span>
-                                          </div>
-                                        )}
-                                      </div>
-                                    </div>
-                                    
-                                    <div className="flex space-x-1 ml-2">
-                                      <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        className="h-7 w-7 p-0"
-                                        onClick={() => startRemoteMcpEditing(id)}
-                                      >
-                                        <Edit3 className="h-3 w-3" />
-                                      </Button>
-                                      <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        className="h-7 w-7 p-0 text-destructive hover:text-destructive"
-                                        onClick={() => removeRemoteMcpServer(id)}
-                                      >
-                                        <Trash2 className="h-3 w-3" />
-                                      </Button>
-                                    </div>
-                                  </div>
-                                </CardContent>
-                              </Card>
-                            );
-                          })}
-                        </div>
-                      )}
-
-                      {/* Add New Remote MCP Server Form */}
-                      <div className="space-y-3 pt-2">
-                        <h5 className="text-xs font-medium flex items-center space-x-1">
-                          <Plus className="h-3 w-3" />
-                          <span>{editingRemoteMcpServerId ? t('settings.editRemoteMcpTitle', { id: editingRemoteMcpServerId }) : t('settings.addRemoteMcpTitle')}</span>
-                        </h5>
-                        
-                        <div className="grid grid-cols-2 gap-3">
-                          <div className="space-y-1">
-                            <Label htmlFor="remote-mcp-id" className="text-xs">{t('settings.serverIdLabel')}</Label>
-                            <Input
-                              id="remote-mcp-id"
-                              name="id"
-                              value={newRemoteMcpServer.id}
-                              onChange={handleNewRemoteMcpServerChange}
-                              placeholder="e.g., huggingface"
-                              className="h-8 text-sm"
-                              disabled={editingRemoteMcpServerId !== null}
-                            />
-                          </div>
-                          
-                          <div className="space-y-1">
-                            <Label htmlFor="remote-mcp-label" className="text-xs">{t('settings.remoteLabelLabel')}</Label>
-                            <Input
-                              id="remote-mcp-label"
-                              name="serverLabel"
-                              value={newRemoteMcpServer.serverLabel}
-                              onChange={handleNewRemoteMcpServerChange}
-                              placeholder="e.g., Hugging Face"
-                              className="h-8 text-sm"
-                            />
-                          </div>
-                        </div>
-
-                        <div className="space-y-1">
-                          <Label htmlFor="remote-mcp-url" className="text-xs">{t('settings.remoteUrlLabel')}</Label>
-                          <Input
-                            id="remote-mcp-url"
-                            name="serverUrl"
-                            value={newRemoteMcpServer.serverUrl}
-                            onChange={handleNewRemoteMcpServerChange}
-                            placeholder="https://mcp.example.com"
-                            className="h-8 text-sm"
-                          />
-                        </div>
-
-                        <div className="space-y-1">
-                          <Label htmlFor="remote-mcp-description" className="text-xs">{t('settings.remoteDescLabel')}</Label>
-                          <Textarea
-                            id="remote-mcp-description"
-                            name="serverDescription"
-                            value={newRemoteMcpServer.serverDescription}
-                            onChange={handleNewRemoteMcpServerChange}
-                            placeholder="e.g., Search and access AI models from Hugging Face"
-                            className="min-h-[60px] text-sm"
-                            rows={2}
-                          />
-                        </div>
-
-                        <div className="space-y-1">
-                          <Label htmlFor="remote-mcp-require-approval" className="text-xs">{t('settings.requireApprovalLabel')}</Label>
-                          <Select
-                            value={newRemoteMcpServer.requireApproval || 'never'}
-                            onValueChange={(value) => setNewRemoteMcpServer(prev => ({ ...prev, requireApproval: value }))}
-                          >
-                            <SelectTrigger className="h-8 text-sm">
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="never">{t('settings.approvalNever')}</SelectItem>
-                              <SelectItem value="always">{t('settings.approvalAlways')}</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
-
-                        <div className="space-y-1">
-                          <Label htmlFor="remote-mcp-allowed-tools" className="text-xs">{t('settings.allowedToolsLabel')}</Label>
-                          <Input
-                            id="remote-mcp-allowed-tools"
-                            name="allowedTools"
-                            value={newRemoteMcpServer.allowedTools}
-                            onChange={handleNewRemoteMcpServerChange}
-                            placeholder="e.g., model_search, paper_search"
-                            className="h-8 text-sm"
-                          />
-                        </div>
-
-                        {/* Headers Section */}
-                        <div className="space-y-2">
-                          <Label className="text-xs">{t('settings.headersTitle')}</Label>
-                          <p className="text-xs text-muted-foreground">
-                            {t('settings.remoteHeadersDesc')}
-                          </p>
-                          
-                          {Object.entries(newRemoteMcpServer.headers || {}).length > 0 && (
-                            <div className="space-y-1">
-                              {Object.entries(newRemoteMcpServer.headers || {}).map(([key, value]) => (
-                                <div key={key} className="flex items-center space-x-2">
-                                  <div className="flex-1 grid grid-cols-2 gap-2">
-                                    <Input value={key} disabled className="bg-muted h-7 text-xs" />
-                                    <Input 
-                                      value={
-                                        key.toLowerCase().includes('auth') || 
-                                        key.toLowerCase().includes('key') || 
-                                        key.toLowerCase().includes('token') || 
-                                        key.toLowerCase().includes('secret')
-                                          ? '*'.repeat(Math.min(value.length, 20))
-                                          : (typeof value === 'string' && value.length > 20 ? `${value.substring(0, 17)}...` : value)
-                                      } 
-                                      disabled 
-                                      className="bg-muted h-7 text-xs" 
-                                    />
-                                  </div>
-                                  <Button
-                                    type="button"
-                                    variant="ghost"
-                                    size="sm"
-                                    className="h-7 w-7 p-0"
-                                    onClick={() => removeRemoteMcpHeader(key)}
-                                  >
-                                    <Trash2 className="h-3 w-3" />
-                                  </Button>
-                                </div>
-                              ))}
-                            </div>
-                          )}
-                          
-                          <div className="flex items-center space-x-2">
-                            <Input
-                              name="key"
-                              value={newRemoteMcpHeader.key}
-                              onChange={handleRemoteMcpHeaderChange}
-                              placeholder={t('settings.headerKeyPlaceholder')}
-                              className="flex-1 h-7 text-xs"
-                            />
-                            <Input
-                              name="value"
-                              value={newRemoteMcpHeader.value}
-                              onChange={handleRemoteMcpHeaderChange}
-                              placeholder={t('settings.headerValPlaceholder')}
-                              className="flex-1 h-7 text-xs"
-                            />
-                            <Button
-                              type="button"
-                              variant="outline"
-                              size="sm"
-                              className="h-7"
-                              onClick={addRemoteMcpHeader}
-                              disabled={!newRemoteMcpHeader.key}
-                            >
-                              <Plus className="h-3 w-3" />
-                            </Button>
-                          </div>
-                        </div>
-
-                        <div className="flex justify-end space-x-2 pt-2">
-                          {editingRemoteMcpServerId && (
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={cancelRemoteMcpEditing}
-                            >
-                              <X className="h-3 w-3 mr-1" />
-                              {t('common.cancel')}
-                            </Button>
-                          )}
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => {
-                              setNewRemoteMcpServer({
-                                id: '',
-                                serverUrl: '',
-                                serverLabel: '',
-                                serverDescription: '',
-                                requireApproval: 'never',
-                                allowedTools: '',
-                                headers: {}
-                              });
-                              setEditingRemoteMcpServerId(null);
-                            }}
-                          >
-                            <X className="h-3 w-3 mr-1" />
-                            {t('common.clear')}
-                          </Button>
-                          <Button
-                            size="sm"
-                            onClick={handleSaveRemoteMcpServer}
-                            disabled={!newRemoteMcpServer.id || !newRemoteMcpServer.serverUrl}
-                          >
-                            <Save className="h-3 w-3 mr-1" />
-                            {editingRemoteMcpServerId ? t('common.edit') : t('common.save')}
-                          </Button>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-
-            {/* Generation Parameters */}
-            <Card>
+        {visibleCardIds.has('generationParams') && (
+          <Card>
               <CardHeader>
                 <CardTitle className="flex items-center space-x-2">
                   <Cpu className="h-5 w-5 text-primary" />
@@ -3239,983 +3169,10 @@ function Settings() {
                 </div>
               </CardContent>
             </Card>
+        )}
 
-            {/* Popup Window & Global Shortcuts Settings */}
-            <Card className="border-border">
-              <CardHeader className="flex flex-row items-start justify-between space-y-0">
-                <div className="space-y-1">
-                  <CardTitle className="flex items-center gap-2">
-                    <Globe className="h-5 w-5 text-primary" />
-                    <span>{t('settings.popupWindowTitle')}</span>
-                  </CardTitle>
-                  <CardDescription>
-                    {t('settings.popupWindowDesc')}
-                  </CardDescription>
-                </div>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setIsShortcutsModalOpen(true)}
-                  className="text-xs flex items-center gap-1.5 border-border hover:bg-muted shrink-0"
-                >
-                  <Keyboard className="w-3.5 h-3.5 text-primary" />
-                  <span>{t('settings.viewAllShortcutsBtn')}</span>
-                </Button>
-              </CardHeader>
-              <CardContent className="space-y-5">
-                {/* Enable/Disable Toggle */}
-                <div className="flex items-center justify-between">
-                  <div className="space-y-0.5">
-                    <Label htmlFor="popup-enabled" className="font-medium">
-                      {t('settings.popupWindowLabel')}
-                    </Label>
-                    <p className="text-xs text-muted-foreground">
-                      {t('settings.popupWindowHelp')}
-                    </p>
-                  </div>
-                  <Switch
-                    id="popup-enabled"
-                    checked={settings.popupEnabled !== false}
-                    onChange={(e) => {
-                      const newEnabled = e.target.checked;
-                      handleToggleChange('popupEnabled', newEnabled);
-                      if (window.electron?.updateGlobalShortcut) {
-                        window.electron.updateGlobalShortcut(settings.popupShortcut || 'CommandOrControl+Shift+Space', newEnabled)
-                          .then(res => setShortcutStatus(res));
-                      }
-                    }}
-                  />
-                </div>
-
-                {/* Shortcut Configuration Section */}
-                {settings.popupEnabled !== false && (
-                  <div className="p-4 rounded-xl bg-muted/30 border border-border/80 space-y-4">
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                      <div className="space-y-1">
-                        <Label className="text-xs font-semibold text-foreground flex items-center gap-1.5">
-                          <Keyboard className="w-3.5 h-3.5 text-primary" />
-                          <span>{t('settings.popupShortcutLabel')}</span>
-                        </Label>
-                        <p className="text-xs text-muted-foreground">
-                          {t('settings.popupShortcutHelp')}
-                        </p>
-                      </div>
-
-                      <div className="flex items-center gap-2">
-                        <KeyCombo 
-                          keys={formatAccelerator(settings.popupShortcut || 'CommandOrControl+Shift+Space', isMac)} 
-                        />
-                      </div>
-                    </div>
-
-                    {/* Presets & Custom Recorder */}
-                    <div className="flex flex-col sm:flex-row sm:items-center gap-2.5 pt-1">
-                      <div className="w-full sm:w-64">
-                        <Select
-                          value={POPUP_SHORTCUT_PRESETS.some(p => p.value === settings.popupShortcut) ? settings.popupShortcut : 'custom'}
-                          onValueChange={(val) => {
-                            if (val === 'custom') {
-                              setIsRecordingShortcut(true);
-                            } else {
-                              const updated = { ...settings, popupShortcut: val };
-                              setSettings(updated);
-                              saveSettings(updated);
-                              if (window.electron?.updateGlobalShortcut) {
-                                window.electron.updateGlobalShortcut(val, true).then(res => setShortcutStatus(res));
-                              }
-                            }
-                          }}
-                        >
-                          <SelectTrigger className="h-8 text-xs bg-background">
-                            <SelectValue placeholder={t('settings.popupShortcutPreset')} />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {POPUP_SHORTCUT_PRESETS.map((preset) => (
-                              <SelectItem key={preset.value} value={preset.value} className="text-xs">
-                                {preset.label}
-                              </SelectItem>
-                            ))}
-                            <SelectItem value="custom" className="text-xs">
-                              {t('settings.popupShortcutCustom')}...
-                            </SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-
-                      <div className="flex items-center gap-2">
-                        {isRecordingShortcut ? (
-                          <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-primary/10 border border-primary/30 text-primary text-xs font-medium animate-pulse">
-                            <span className="w-2 h-2 rounded-full bg-primary animate-ping" />
-                            <span>{t('settings.popupShortcutRecording')}</span>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => setIsRecordingShortcut(false)}
-                              className="h-5 px-1.5 text-[10px] hover:bg-primary/20 text-primary rounded"
-                            >
-                              {t('common.cancel')}
-                            </Button>
-                          </div>
-                        ) : (
-                          <>
-                            <Button
-                              type="button"
-                              variant="outline"
-                              size="sm"
-                              onClick={() => setIsRecordingShortcut(true)}
-                              className="h-8 text-xs flex items-center gap-1.5 bg-background border-border hover:bg-muted"
-                            >
-                              <Keyboard className="w-3.5 h-3.5" />
-                              <span>{t('settings.popupShortcutRecordBtn')}</span>
-                            </Button>
-
-                            {settings.popupShortcut !== 'CommandOrControl+Shift+Space' && (
-                              <Button
-                                type="button"
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => {
-                                  const updated = { ...settings, popupShortcut: 'CommandOrControl+Shift+Space' };
-                                  setSettings(updated);
-                                  saveSettings(updated);
-                                  if (window.electron?.updateGlobalShortcut) {
-                                    window.electron.updateGlobalShortcut('CommandOrControl+Shift+Space', true).then(res => setShortcutStatus(res));
-                                  }
-                                }}
-                                className="h-8 text-xs text-muted-foreground hover:text-foreground"
-                              >
-                                {t('settings.popupShortcutResetBtn')}
-                              </Button>
-                            )}
-                          </>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* Status Badge */}
-                    <div className="pt-1 flex items-center gap-2">
-                      {shortcutStatus?.success !== false ? (
-                        <Badge variant="outline" className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30 text-xs py-0.5 px-2 flex items-center gap-1.5">
-                          <CheckCircle className="w-3.5 h-3.5" />
-                          <span>{t('settings.popupShortcutActive')}</span>
-                        </Badge>
-                      ) : (
-                        <Badge variant="outline" className="bg-destructive/10 text-destructive border-destructive/30 text-xs py-0.5 px-2 flex items-center gap-1.5">
-                          <AlertCircle className="w-3.5 h-3.5" />
-                          <span>{t('settings.popupShortcutFailed')}</span>
-                        </Badge>
-                      )}
-                    </div>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-
-            {/* Trajectory Tab Settings */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center space-x-2">
-                  <Route className="h-5 w-5 text-primary" />
-                  <span>{t('settings.trajectoryTabTitle')}</span>
-                </CardTitle>
-                <CardDescription>
-                  {t('settings.trajectoryTabDesc')}
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="flex items-center justify-between">
-                  <div className="space-y-0.5">
-                    <Label htmlFor="trajectory-tab-toggle" className="font-medium">
-                      {t('settings.trajectoryTabLabel')}
-                    </Label>
-                    <p className="text-xs text-muted-foreground">
-                      {t('settings.trajectoryTabHelp')}
-                    </p>
-                  </div>
-                  <Switch
-                    id="trajectory-tab-toggle"
-                    checked={settings.showTrajectoryTab !== false}
-                    onChange={(e) => handleToggleChange('showTrajectoryTab', e.target.checked)}
-                  />
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Thinking Summaries Settings */}
-            <Card>
-              <CardHeader>
-                <CardTitle>{t('settings.thinkingSummariesTitle')}</CardTitle>
-                <CardDescription>
-                  {t('settings.thinkingSummariesDesc')}
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="flex items-center justify-between">
-                  <Label htmlFor="disable-thinking-summaries" className="font-medium">
-                    {t('settings.disableThinkingLabel')}
-                  </Label>
-                  <Switch
-                    id="disable-thinking-summaries"
-                    checked={settings.disableThinkingSummaries || false}
-                    onChange={(e) => handleToggleChange('disableThinkingSummaries', e.target.checked)}
-                  />
-                </div>
-                <p className="text-xs text-muted-foreground mt-2">
-                  {t('settings.disableThinkingHelp')}
-                </p>
-              </CardContent>
-            </Card>
-
-            {/* API Request Logging */}
-            <Card>
-              <CardHeader>
-                <CardTitle>{t('settings.apiLoggingTitle')}</CardTitle>
-                <CardDescription>
-                  {t('settings.apiLoggingDesc')}
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="flex items-center justify-between">
-                  <Label htmlFor="log-api-requests" className="font-medium">
-                    {t('settings.apiLoggingLabel')}
-                  </Label>
-                  <Switch
-                    id="log-api-requests"
-                    checked={settings.logApiRequests || false}
-                    onChange={(e) => handleToggleChange('logApiRequests', e.target.checked)}
-                  />
-                </div>
-                <p className="text-xs text-muted-foreground mt-2">
-                  {t('settings.apiLoggingHelp')}
-                </p>
-              </CardContent>
-            </Card>
-
-            {/* Native Web Search Settings */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center space-x-2">
-                  <Globe className="h-5 w-5 text-primary" />
-                  <span>{t('settings.webSearchTitle')}</span>
-                </CardTitle>
-                <CardDescription>
-                  {t('settings.webSearchDesc')}
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {/* Enable Switch */}
-                <div className="flex items-center justify-between">
-                  <div className="space-y-0.5">
-                    <Label htmlFor="web-search-toggle" className="font-medium">
-                      {t('settings.webSearchEnableLabel')}
-                    </Label>
-                    <p className="text-xs text-muted-foreground">
-                      {t('settings.webSearchEnableHelp')}
-                    </p>
-                  </div>
-                  <Switch
-                    id="web-search-toggle"
-                    checked={settings.webSearch?.enabled !== false}
-                    onChange={(e) => handleWebSearchChange('enabled', e.target.checked)}
-                  />
-                </div>
-
-                {settings.webSearch?.enabled !== false && (
-                  <div className="space-y-4 pt-3 border-t border-border/60">
-                    {/* Search Provider */}
-                    <div className="space-y-1.5">
-                      <Label className="text-xs font-medium">
-                        {t('settings.webSearchProviderLabel')}
-                      </Label>
-                      <Select
-                        value={settings.webSearch?.provider || 'local'}
-                        onValueChange={(val) => handleWebSearchChange('provider', val)}
-                      >
-                        <SelectTrigger className="w-full">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="local">{t('settings.webSearchProviderLocal')}</SelectItem>
-                          <SelectItem value="tavily">{t('settings.webSearchProviderTavily')}</SelectItem>
-                          <SelectItem value="brave">{t('settings.webSearchProviderBrave')}</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    {/* Local Search Info Box */}
-                    {(!settings.webSearch?.provider || settings.webSearch?.provider === 'local') && (
-                      <div className="p-3 rounded-lg text-xs bg-primary/10 border border-primary/20 text-foreground flex items-start gap-2.5">
-                        <Globe className="w-4 h-4 text-primary shrink-0 mt-0.5" />
-                        <div className="space-y-0.5">
-                          <div className="font-semibold text-primary">{t('settings.webSearchProviderLocal')}</div>
-                          <div className="text-[11px] text-muted-foreground">
-                            {t('settings.webSearchLocalInfo')}
-                          </div>
-                        </div>
-                      </div>
-                    )}
-
-                    {/* API Key for Tavily / Brave */}
-                    {(settings.webSearch?.provider === 'tavily' || settings.webSearch?.provider === 'brave') && (
-                      <div className="space-y-1.5">
-                        <div className="flex items-center justify-between">
-                          <Label className="text-xs font-medium">
-                            {t('settings.webSearchApiKeyLabel')}
-                          </Label>
-                          {settings.webSearch?.provider === 'tavily' ? (
-                            <a
-                              href="https://tavily.com"
-                              target="_blank"
-                              rel="noreferrer"
-                              className="text-[11px] text-primary hover:underline inline-flex items-center gap-1 font-medium"
-                            >
-                              tavily.com <ExternalLink className="w-3 h-3" />
-                            </a>
-                          ) : (
-                            <a
-                              href="https://brave.com/search/api"
-                              target="_blank"
-                              rel="noreferrer"
-                              className="text-[11px] text-primary hover:underline inline-flex items-center gap-1 font-medium"
-                            >
-                              brave.com/search/api <ExternalLink className="w-3 h-3" />
-                            </a>
-                          )}
-                        </div>
-                        <Input
-                          type="password"
-                          value={settings.webSearch?.apiKey || ''}
-                          onChange={(e) => handleWebSearchChange('apiKey', e.target.value)}
-                          placeholder={t('settings.webSearchApiKeyPlaceholder')}
-                        />
-                        <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] text-muted-foreground">
-                          <span>{t('settings.webSearchApiKeyHelp')}</span>
-                          <span className="text-muted-foreground/60">•</span>
-                          <span className="font-medium text-foreground/80">{t('settings.webSearchGetApiKey')}</span>
-                          <a
-                            href="https://tavily.com"
-                            target="_blank"
-                            rel="noreferrer"
-                            className="text-primary hover:underline inline-flex items-center gap-0.5 font-medium"
-                          >
-                            tavily.com <ExternalLink className="w-2.5 h-2.5" />
-                          </a>
-                          <span className="text-muted-foreground/60">•</span>
-                          <a
-                            href="https://brave.com/search/api"
-                            target="_blank"
-                            rel="noreferrer"
-                            className="text-primary hover:underline inline-flex items-center gap-0.5 font-medium"
-                          >
-                            brave.com/search/api <ExternalLink className="w-2.5 h-2.5" />
-                          </a>
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Max Results */}
-                    <div className="space-y-1.5">
-                      <div className="flex items-center justify-between text-xs">
-                        <Label className="font-medium">{t('settings.webSearchMaxResultsLabel')}</Label>
-                        <span className="font-semibold text-primary">{settings.webSearch?.maxResults || 5}</span>
-                      </div>
-                      <input
-                        type="range"
-                        min="1"
-                        max="10"
-                        step="1"
-                        value={settings.webSearch?.maxResults || 5}
-                        onChange={(e) => handleWebSearchChange('maxResults', parseInt(e.target.value, 10))}
-                        className="w-full accent-primary cursor-pointer"
-                      />
-                    </div>
-
-                    {/* Test Button & Result Box */}
-                    <div className="pt-2">
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={handleTestWebSearch}
-                        disabled={isTestingWebSearch}
-                        className="flex items-center gap-2"
-                      >
-                        <Globe className="w-3.5 h-3.5" />
-                        {isTestingWebSearch ? t('settings.webSearchTesting') : t('settings.webSearchTestBtn')}
-                      </Button>
-
-                      {webSearchTestResult && (
-                        <div className={`mt-2.5 p-2.5 rounded-lg text-xs border flex items-start gap-2 ${
-                          webSearchTestResult.success
-                            ? 'bg-green-500/10 border-green-500/20 text-green-600 dark:text-green-400'
-                            : 'bg-red-500/10 border-red-500/20 text-red-600 dark:text-red-400'
-                        }`}>
-                          {webSearchTestResult.success ? (
-                            <CheckCircle className="w-4 h-4 shrink-0 mt-0.5" />
-                          ) : (
-                            <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
-                          )}
-                          <div className="min-w-0">
-                            <div className="font-medium">{webSearchTestResult.message}</div>
-                            {webSearchTestResult.data?.results?.[0] && (
-                              <div className="mt-1 text-[11px] opacity-90 truncate">
-                                🔗 {webSearchTestResult.data.results[0].title} ({webSearchTestResult.data.results[0].domain})
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-
-            {/* Built-in Tools Settings */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center space-x-2">
-                  <Zap className="h-5 w-5 text-primary" />
-                  <span>{t('settings.builtinToolsTitle')}</span>
-                </CardTitle>
-                <CardDescription>
-                  {t('settings.builtinToolsDesc')}
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-1">
-                      <Label htmlFor="code-interpreter" className="font-medium">
-                        {t('settings.codeInterpreterLabel')}
-                      </Label>
-                      <p className="text-xs text-muted-foreground">
-                        {t('settings.codeInterpreterHelp')}
-                      </p>
-                    </div>
-                    <Switch
-                      id="code-interpreter"
-                      checked={settings.builtInTools?.codeInterpreter || false}
-                      onChange={(e) => handleBuiltInToolToggle('codeInterpreter', e.target.checked)}
-                    />
-                  </div>
-                  
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-1">
-                      <Label htmlFor="browser-search" className="font-medium">
-                        {t('settings.browserSearchLabel')}
-                      </Label>
-                      <p className="text-xs text-muted-foreground">
-                        {t('settings.browserSearchHelp')}
-                      </p>
-                    </div>
-                    <Switch
-                      id="browser-search"
-                      checked={settings.builtInTools?.browserSearch || false}
-                      onChange={(e) => handleBuiltInToolToggle('browserSearch', e.target.checked)}
-                    />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Custom System Prompt */}
-            <Card>
-              <CardHeader>
-                <CardTitle>{t('settings.systemPromptTitle')}</CardTitle>
-                <CardDescription>
-                  {t('settings.systemPromptDesc')}
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-2">
-                  <Textarea
-                    id="custom-system-prompt"
-                    name="customSystemPrompt"
-                    value={settings.customSystemPrompt || ''}
-                    onChange={handleChange}
-                    rows={4}
-                    placeholder={t('settings.systemPromptPlaceholder')}
-                    className="min-h-[100px]"
-                  />
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Prompt Templates Library & Slash Shortcuts */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center space-x-2">
-                  <Terminal className="h-5 w-5 text-primary" />
-                  <span>{t('promptTemplates.modalTitle')}</span>
-                </CardTitle>
-                <CardDescription>
-                  {t('promptTemplates.modalSubtitle')}
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="flex items-center justify-between p-3 rounded-xl bg-muted/40 border border-border/50">
-                  <div className="space-y-0.5">
-                    <p className="text-xs font-semibold text-foreground">
-                      {t('slashCommands.title')}
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      {t('slashCommands.pressToSelect')}
-                    </p>
-                  </div>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setIsPromptTemplatesModalOpen(true)}
-                    className="flex items-center gap-1.5 text-xs rounded-xl shadow-xs"
-                  >
-                    <Terminal className="w-3.5 h-3.5 text-primary" />
-                    <span>{t('slashCommands.manageTemplates')}</span>
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* MCP Servers */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center space-x-2">
-                  <Server className="h-5 w-5 text-primary" />
-                  <span>{t('settings.mcpServersTitle')}</span>
-                </CardTitle>
-                <CardDescription>
-                  {t('settings.mcpServersDesc')}
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {/* Configured Servers List */}
-                {Object.keys(settings.mcpServers || {}).length > 0 ? (
-                  <div className="space-y-4">
-                    <h4 className="font-medium text-sm">{t('settings.configuredServersListTitle', { count: Object.keys(settings.mcpServers || {}).length })}</h4>
-                    <div className="space-y-3">
-                      {Object.entries(settings.mcpServers || {}).map(([id, config]) => (
-                        <Card key={id} className="border-border/50">
-                          <CardContent className="p-4">
-                            <div className="flex justify-between items-start">
-                              <div className="flex-1 space-y-2">
-                                <div className="flex items-center space-x-2">
-                                  <Badge variant="secondary">{id}</Badge>
-                                  <Badge variant="outline" className="text-xs">
-                                    {config.transport === 'sse' ? 'SSE' : 
-                                     config.transport === 'streamableHttp' ? 'Streamable HTTP' : 'Stdio'}
-                                  </Badge>
-                                </div>
-                                
-                                <div className="text-sm text-muted-foreground font-mono">
-                                  {config.transport === 'sse' || config.transport === 'streamableHttp' ? (
-                                    <span>URL: {config.url}</span>
-                                  ) : (
-                                    <span>$ {config.command} {(config.args || []).join(' ')}</span>
-                                  )}
-                                </div>
-                                
-                                {config.env && Object.keys(config.env).length > 0 && (
-                                  <div className="text-xs text-muted-foreground">
-                                    <span>{t('settings.envVarsConfigured', { count: Object.keys(config.env).length })}</span>
-                                  </div>
-                                )}
-                                
-                                {config.headers && Object.keys(config.headers).length > 0 && (
-                                  <div className="text-xs text-muted-foreground">
-                                    <span>{t('settings.customHeadersConfigured', { count: Object.keys(config.headers).length })}</span>
-                                  </div>
-                                )}
-                              </div>
-                              
-                              <div className="flex space-x-2 ml-4">
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={() => startEditing(id)}
-                                >
-                                  <Edit3 className="h-3 w-3" />
-                                </Button>
-                                <Button
-                                  variant="destructive"
-                                  size="sm"
-                                  onClick={() => removeMcpServer(id)}
-                                >
-                                  <Trash2 className="h-3 w-3" />
-                                </Button>
-                              </div>
-                            </div>
-                          </CardContent>
-                        </Card>
-                      ))}
-                    </div>
-                  </div>
-                ) : (
-                  <div className="text-center py-8 text-muted-foreground">
-                    <Server className="h-12 w-12 mx-auto mb-3 opacity-50" />
-                    <p>{t('settings.noServersConfigured')}</p>
-                    <p className="text-sm">{t('settings.addServerGetStarted')}</p>
-                  </div>
-                )}
-
-                {/* Add New Server Section */}
-                <div className="border-t pt-6 space-y-4">
-                  <h4 className="font-medium text-sm flex items-center space-x-2">
-                    <Plus className="h-4 w-4" />
-                    <span>{editingServerId ? t('settings.editMcpServerTitle', { id: editingServerId }) : t('settings.addMcpServerTitle')}</span>
-                  </h4>
-                  
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="server-id">{t('settings.serverIdLabel')}</Label>
-                      <Input
-                        id="server-id"
-                        name="id"
-                        value={newMcpServer.id}
-                        onChange={handleNewMcpServerChange}
-                        placeholder={t('settings.serverIdPlaceholder')}
-                      />
-                    </div>
-                    
-                    <div className="space-y-2">
-                      <Label htmlFor="transport">{t('settings.transportLabel')}</Label>
-                      <Select
-                        value={newMcpServer.transport}
-                        onValueChange={handleTransportChange}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder={t('settings.selectTransportPlaceholder')} />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="stdio">Stdio</SelectItem>
-                          <SelectItem value="sse">SSE</SelectItem>
-                          <SelectItem value="streamableHttp">Streamable HTTP</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-
-                  {newMcpServer.transport === 'stdio' ? (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="command">{t('settings.commandLabel')}</Label>
-                        <Input
-                          id="command"
-                          name="command"
-                          value={newMcpServer.command}
-                          onChange={handleNewMcpServerChange}
-                          placeholder={t('settings.commandPlaceholder')}
-                        />
-                      </div>
-                      
-                      <div className="space-y-2">
-                        <Label htmlFor="args">{t('settings.argsLabel')}</Label>
-                        <Input
-                          id="args"
-                          name="args"
-                          value={newMcpServer.args}
-                          onChange={handleNewMcpServerChange}
-                          placeholder={t('settings.argsPlaceholder')}
-                        />
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="space-y-2">
-                      <Label htmlFor="url">{t('settings.urlLabel')}</Label>
-                      <Input
-                        id="url"
-                        name="url"
-                        value={newMcpServer.url}
-                        onChange={handleNewMcpServerChange}
-                        placeholder={t('settings.urlPlaceholder')}
-                      />
-                    </div>
-                  )}
-
-                  {/* Headers Section for Remote Transports */}
-                  {(newMcpServer.transport === 'sse' || newMcpServer.transport === 'streamableHttp') && (
-                    <div className="space-y-4">
-                      <div>
-                        <Label>{t('settings.headersTitle')}</Label>
-                        <p className="text-xs text-muted-foreground mb-2">
-                          {t('settings.headersDesc')}
-                        </p>
-                        <div className="mt-2 space-y-2">
-                          {Object.entries(newMcpServer.headers || {}).map(([key, value]) => (
-                            <div key={key} className="flex items-center space-x-2">
-                              <div className="flex-1 grid grid-cols-2 gap-2">
-                                <Input value={key} disabled className="bg-muted" />
-                                <Input 
-                                  value={
-                                    key.toLowerCase().includes('auth') || 
-                                    key.toLowerCase().includes('key') || 
-                                    key.toLowerCase().includes('token') || 
-                                    key.toLowerCase().includes('secret')
-                                      ? '*'.repeat(Math.min(value.length, 20))
-                                      : (typeof value === 'string' && value.length > 30 ? `${value.substring(0, 27)}...` : value)
-                                  } 
-                                  disabled 
-                                  className="bg-muted" 
-                                />
-                              </div>
-                              <Button
-                                type="button"
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => removeHeader(key)}
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            </div>
-                          ))}
-                          
-                          <div className="flex items-center space-x-2">
-                            <Input
-                              name="key"
-                              value={newHeader.key}
-                              onChange={handleHeaderChange}
-                              placeholder={t('settings.headerKeyPlaceholder')}
-                              className="flex-1"
-                            />
-                            <Input
-                              name="value"
-                              value={newHeader.value}
-                              onChange={handleHeaderChange}
-                              placeholder={t('settings.headerValPlaceholder')}
-                              className="flex-1"
-                            />
-                            <Button
-                              type="button"
-                              variant="outline"
-                              size="sm"
-                              onClick={addHeader}
-                              disabled={!newHeader.key}
-                            >
-                              <Plus className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Environment Variables Section */}
-                  {newMcpServer.transport === 'stdio' && (
-                    <div className="space-y-4">
-                      <div>
-                        <Label>{t('settings.envVarsTitle')}</Label>
-                        <div className="mt-2 space-y-2">
-                          {Object.entries(newMcpServer.env || {}).map(([key, value]) => (
-                            <div key={key} className="flex items-center space-x-2">
-                              <div className="flex-1 grid grid-cols-2 gap-2">
-                                <Input value={key} disabled className="bg-muted" />
-                                <Input 
-                                  value={
-                                    key.toLowerCase().includes('key') || 
-                                    key.toLowerCase().includes('token') || 
-                                    key.toLowerCase().includes('secret')
-                                      ? '*'.repeat(key.length)
-                                      : (typeof value === 'string' && value.length > 30 ? `${value.substring(0, 27)}...` : value)
-                                  } 
-                                  disabled 
-                                  className="bg-muted" 
-                                />
-                              </div>
-                              <Button
-                                type="button"
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => removeEnvVar(key)}
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            </div>
-                          ))}
-                          
-                          <div className="flex items-center space-x-2">
-                            <Input
-                              name="key"
-                              value={newEnvVar.key}
-                              onChange={handleEnvVarChange}
-                              placeholder={t('settings.envKeyPlaceholder')}
-                              className="flex-1"
-                            />
-                            <Input
-                              name="value"
-                              value={newEnvVar.value}
-                              onChange={handleEnvVarChange}
-                              placeholder={t('settings.envValPlaceholder')}
-                              className="flex-1"
-                            />
-                            <Button
-                              type="button"
-                              variant="outline"
-                              size="sm"
-                              onClick={addEnvVar}
-                              disabled={!newEnvVar.key}
-                            >
-                              <Plus className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
-                  <div className="flex justify-end space-x-2">
-                    <Button
-                      variant="outline"
-                      onClick={() => {
-                        setNewMcpServer({
-                          id: '', transport: 'stdio', command: '', args: '', env: {}, url: '', headers: {}
-                        });
-                        setJsonInput('');
-                        setJsonError(null);
-                      }}
-                    >
-                      <X className="h-4 w-4 mr-2" />
-                      {t('common.clear')}
-                    </Button>
-                    <Button
-                      onClick={handleSaveMcpServer}
-                      disabled={!newMcpServer.id || (newMcpServer.transport === 'stdio' && !newMcpServer.command) || ((newMcpServer.transport === 'sse' || newMcpServer.transport === 'streamableHttp') && !newMcpServer.url)}
-                    >
-                      <Save className="h-4 w-4 mr-2" />
-                      {editingServerId ? t('settings.updateServerBtn') : t('settings.addServerBtn')}
-                    </Button>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Tool Approvals */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center space-x-2">
-                  <Zap className="h-5 w-5 text-primary" />
-                  <span>{t('settings.toolApprovalsTitle')}</span>
-                </CardTitle>
-                <CardDescription>
-                  {t('settings.toolApprovalsDesc')}
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <Label>{t('settings.defaultToolPolicy')}</Label>
-                  <Select
-                    value={settings.toolPermissions?.defaultPolicy || 'prompt'}
-                    onValueChange={async (value) => {
-                      const toolPermissions = { ...(settings.toolPermissions || {}), defaultPolicy: value, allowAll: false };
-                      setSettings(prev => ({ ...prev, toolPermissions }));
-                      await window.electron?.toolPermissions?.setGlobal?.(toolPermissions);
-                    }}
-                  >
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="prompt">{t('settings.policyPrompt')}</SelectItem>
-                      <SelectItem value="allow">{t('settings.policyAllow')}</SelectItem>
-                      <SelectItem value="deny">{t('settings.policyDeny')}</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <Button
-                  variant="destructive"
-                  onClick={handleResetToolApprovals}
-                  disabled={isSaving}
-                >
-                  <Trash2 className="h-4 w-4 mr-2" />
-                  {t('settings.resetToolApprovalsBtn')}
-                </Button>
-                <p className="text-xs text-muted-foreground mt-2">
-                  {t('settings.resetToolApprovalsHelp')}
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center space-x-2"><BarChart3 className="h-5 w-5 text-primary" /><span>{t('settings.observabilityTitle')}</span></CardTitle>
-                <CardDescription>{t('settings.observabilityDesc', { month: usageSummary?.month || '' })}</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                  <div className="rounded-lg border p-3"><p className="text-xs text-muted-foreground">{t('settings.usageChats')}</p><p className="text-lg font-semibold">{usageSummary?.chats || 0}</p></div>
-                  <div className="rounded-lg border p-3"><p className="text-xs text-muted-foreground">{t('settings.usageMessages')}</p><p className="text-lg font-semibold">{usageSummary?.messages || 0}</p></div>
-                  <div className="rounded-lg border p-3"><p className="text-xs text-muted-foreground">{t('settings.usageTokens')}</p><p className="text-lg font-semibold">{(usageSummary?.totalTokens || 0).toLocaleString()}</p></div>
-                  <div className="rounded-lg border p-3"><p className="text-xs text-muted-foreground">{t('settings.usageCost')}</p><p className="text-lg font-semibold">${(usageSummary?.estimatedCostUsd || 0).toFixed(4)}</p></div>
-                </div>
-                {usageSummary?.monthlyBudgetUsd > 0 && <div className="space-y-1"><div className="flex justify-between text-xs"><span>{t('settings.monthlyBudget')}</span><span className={usageSummary.budgetExceeded ? 'text-destructive font-semibold' : ''}>{usageSummary.budgetPercent}%</span></div><div className="h-2 rounded-full bg-muted overflow-hidden"><div className={usageSummary.budgetExceeded ? 'h-full bg-destructive' : 'h-full bg-primary'} style={{ width: `${Math.min(100, usageSummary.budgetPercent)}%` }} /></div></div>}
-                <div className="grid sm:grid-cols-3 gap-3">
-                  <div className="space-y-2"><Label>{t('settings.monthlyBudgetUsd')}</Label><Input type="number" min="0" step="0.01" value={settings.observability?.monthlyBudgetUsd || 0} onChange={event => updateObservability({ monthlyBudgetUsd: Number(event.target.value) })} /></div>
-                  <div className="space-y-2"><Label>{t('settings.inputRate')}</Label><Input type="number" min="0" step="0.01" value={settings.observability?.defaultRate?.input || 0} onChange={event => updateObservability({ defaultRate: { ...(settings.observability?.defaultRate || {}), input: Number(event.target.value) } })} /></div>
-                  <div className="space-y-2"><Label>{t('settings.outputRate')}</Label><Input type="number" min="0" step="0.01" value={settings.observability?.defaultRate?.output || 0} onChange={event => updateObservability({ defaultRate: { ...(settings.observability?.defaultRate || {}), output: Number(event.target.value) } })} /></div>
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  <Button variant="outline" onClick={refreshUsageSummary}><RefreshCw className="h-4 w-4 mr-2" />{t('settings.refreshUsage')}</Button>
-                  <Button variant="outline" onClick={() => window.electron.observability.export('json')}><Download className="h-4 w-4 mr-2" />JSON</Button>
-                  <Button variant="outline" onClick={() => window.electron.observability.export('csv')}><Download className="h-4 w-4 mr-2" />CSV</Button>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center space-x-2"><GitBranch className="h-5 w-5 text-primary" /><span>{t('settings.gitTitle')}</span></CardTitle>
-                <CardDescription>{t('settings.gitDesc')}</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex gap-2"><Input readOnly value={settings.gitIntegration?.repositoryPath || ''} placeholder={t('settings.gitRepository')} /><Button variant="outline" onClick={async () => { const result = await window.electron.git.selectRepository(); if (result?.success) updateGitRepository(result.path); }}>{t('settings.selectFolder')}</Button></div>
-                <div className="flex flex-wrap gap-2">
-                  <Button variant="outline" disabled={isGitBusy || !settings.gitIntegration?.repositoryPath} onClick={() => runGitAction(() => window.electron.git.status(settings.gitIntegration.repositoryPath))}>{t('settings.gitStatus')}</Button>
-                  <Button variant="outline" disabled={isGitBusy || !settings.gitIntegration?.repositoryPath} onClick={() => runGitAction(() => window.electron.git.diff(settings.gitIntegration.repositoryPath))}>{t('settings.gitDiff')}</Button>
-                </div>
-                <div className="flex gap-2"><Input value={gitCommitMessage} onChange={event => setGitCommitMessage(event.target.value)} placeholder={t('settings.gitCommitMessage')} /><Button disabled={isGitBusy || !gitCommitMessage.trim() || !settings.gitIntegration?.repositoryPath} onClick={() => runGitAction(() => window.electron.git.commit(settings.gitIntegration.repositoryPath, gitCommitMessage))}>{t('settings.gitCommit')}</Button></div>
-                <Button disabled={isGitBusy || !settings.gitIntegration?.repositoryPath} onClick={() => { if (window.confirm(t('settings.gitPushConfirm'))) runGitAction(() => window.electron.git.push(settings.gitIntegration.repositoryPath)); }}>{t('settings.gitPush')}</Button>
-                {gitOutput && <pre className="max-h-48 overflow-auto whitespace-pre-wrap rounded-lg border bg-muted/40 p-3 text-xs">{gitOutput}</pre>}
-              </CardContent>
-            </Card>
-
-            {/* Data & History */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center space-x-2">
-                  <Trash2 className="h-5 w-5 text-destructive" />
-                  <span>{t('settings.dataHistoryTitle')}</span>
-                </CardTitle>
-                <CardDescription>
-                  {t('settings.dataHistoryDesc')}
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-5">
-                <div className="flex flex-wrap gap-2">
-                  <Button variant="outline" onClick={handleExportBackup}>
-                    <Download className="h-4 w-4 mr-2" />
-                    {t('settings.exportBackup')}
-                  </Button>
-                  <Button variant="outline" onClick={handleImportBackup}>
-                    <UploadCloud className="h-4 w-4 mr-2" />
-                    {t('settings.importBackup')}
-                  </Button>
-                </div>
-                <p className="text-xs text-muted-foreground">{t('settings.backupSecurityHelp')}</p>
-                <div className="border-t border-border pt-5">
-                <Button
-                  variant="destructive"
-                  onClick={() => setIsDeletingAllModalOpen(true)}
-                  disabled={isSaving || isDeletingAll}
-                >
-                  <Trash2 className="h-4 w-4 mr-2" />
-                  {t('settings.deleteAllChatsBtn')}
-                </Button>
-                <p className="text-xs text-muted-foreground mt-2">
-                  {t('settings.deleteAllChatsHelp')}
-                </p>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Active Models by Provider */}
-            <Card>
+        {visibleCardIds.has('modelsByProvider') && (
+          <Card>
               <CardHeader>
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                   <div>
@@ -4407,9 +3364,10 @@ function Settings() {
                 )}
               </CardContent>
             </Card>
+        )}
 
-            {/* Custom Models */}
-            <Card>
+        {visibleCardIds.has('customModels') && (
+          <Card>
               <CardHeader>
                 <CardTitle className="flex items-center space-x-2">
                   <Cpu className="h-5 w-5 text-primary" />
@@ -4960,10 +3918,1458 @@ function Settings() {
                 </div>
               </CardContent>
             </Card>
-            </>}
+        )}
+      </div>
+    );
+  };
+
+  const renderIntegrationsSection = () => {
+    const hasVisible =
+      visibleCardIds.has('responses') ||
+      visibleCardIds.has('mcpServers') ||
+      visibleCardIds.has('toolApprovals') ||
+      visibleCardIds.has('observability') ||
+      visibleCardIds.has('git');
+
+    if (!hasVisible && activeCategory !== 'integrations') return null;
+
+    return (
+      <div className="space-y-6">
+        {activeCategory === 'all' && !searchQuery && (
+          <div className="flex items-center gap-2 pb-2 border-b border-border/60 pt-4">
+            <Server className="w-5 h-5 text-primary" />
+            <div>
+              <h2 className="text-base font-bold text-foreground">{t('settings.navIntegrations')}</h2>
+              <p className="text-xs text-muted-foreground">Servidores MCP locais e remotos, conectores Google, permissões e Git</p>
+            </div>
+          </div>
+        )}
+
+        {settings.interfaceMode !== 'power' && !searchQuery && activeCategory === 'integrations' && (
+          <div className="p-6 rounded-2xl border border-dashed bg-muted/20 text-center space-y-3">
+            <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center mx-auto">
+              <Wrench className="w-5 h-5" />
+            </div>
+            <div className="space-y-1">
+              <h3 className="text-sm font-semibold text-foreground">
+                Recursos disponíveis no Modo Power User
+              </h3>
+              <p className="text-xs text-muted-foreground max-w-md mx-auto">
+                As configurações avançadas de integração MCP, Google OAuth e Git estão ocultas no Modo Usuário. Ative o Modo Power User para configurá-las.
+              </p>
+            </div>
+            <Button
+              type="button"
+              size="sm"
+              onClick={() => handleSelectChange('interfaceMode', 'power')}
+              className="text-xs"
+            >
+              <Wrench className="w-3.5 h-3.5 mr-1.5" />
+              Ativar Modo Power User
+            </Button>
+          </div>
+        )}
+
+        {visibleCardIds.has('responses') && (
+          <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center space-x-2">
+                  <Zap className="h-5 w-5 text-primary" />
+                  <span>{t('settings.responsesTitle')}</span>
+                </CardTitle>
+                <CardDescription>
+                  {t('settings.responsesDesc')}
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="flex items-center justify-between">
+                  <div className="space-y-1">
+                    <Label htmlFor="use-responses-api" className="font-medium">
+                      {t('settings.useResponsesApiLabel')}
+                    </Label>
+                    <p className="text-xs text-muted-foreground">
+                      {t('settings.useResponsesApiHelp')}
+                    </p>
+                  </div>
+                  <Switch
+                    id="use-responses-api"
+                    checked={settings.useResponsesApi || false}
+                    onChange={(e) => handleToggleChange('useResponsesApi', e.target.checked)}
+                  />
+                </div>
+
+                {settings.useResponsesApi && (
+                  <div className="space-y-4 pl-4 border-l-2 border-muted ml-2">
+                    {/* Google OAuth Credentials Section */}
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between">
+                        <Label className="text-sm font-medium">{t('settings.googleAuthCredentialsTitle')}</Label>
+                        {googleOAuthStatus?.hasRefreshCapability && (
+                          <div className="flex items-center gap-2">
+                            {googleOAuthStatus?.expiresInMinutes !== null && (
+                              <span className={`text-xs ${googleOAuthStatus.isExpired ? 'text-red-500' : googleOAuthStatus.expiresInMinutes < 10 ? 'text-yellow-500' : 'text-green-500'}`}>
+                                {googleOAuthStatus.isExpired 
+                                  ? t('settings.googleTokenExpired') 
+                                  : t('settings.googleExpiresIn', { minutes: googleOAuthStatus.expiresInMinutes })}
+                              </span>
+                            )}
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={handleGoogleOAuthRefresh}
+                              disabled={isRefreshingToken}
+                              className="h-7 text-xs"
+                            >
+                              {isRefreshingToken ? t('settings.btnRefreshing') : t('settings.btnRefreshToken')}
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+                      
+                      {/* Refresh Token */}
+                      <div className="space-y-2">
+                        <Label htmlFor="google-refresh-token" className="text-xs text-muted-foreground">
+                          {t('settings.googleRefreshTokenLabel')}
+                        </Label>
+                        <Input
+                          type="password"
+                          id="google-refresh-token"
+                          name="googleRefreshToken"
+                          value={settings.googleRefreshToken || ''}
+                          onChange={handleChange}
+                          placeholder={t('settings.googleRefreshTokenPlaceholder')}
+                          className="font-mono text-sm"
+                        />
+                      </div>
+
+                      {/* Client ID & Secret */}
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="google-client-id" className="text-xs text-muted-foreground">
+                            {t('settings.googleClientIdLabel')}
+                          </Label>
+                          <Input
+                            type="password"
+                            id="google-client-id"
+                            name="googleClientId"
+                            value={settings.googleClientId || ''}
+                            onChange={handleChange}
+                            placeholder="xxxxx.apps.googleusercontent.com"
+                            className="font-mono text-sm"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="google-client-secret" className="text-xs text-muted-foreground">
+                            {t('settings.googleClientSecretLabel')}
+                          </Label>
+                          <Input
+                            type="password"
+                            id="google-client-secret"
+                            name="googleClientSecret"
+                            value={settings.googleClientSecret || ''}
+                            onChange={handleChange}
+                            placeholder="GOCSPX-xxxxx"
+                            className="font-mono text-sm"
+                          />
+                        </div>
+                      </div>
+
+                      {/* Help Link */}
+                      <p className="text-xs text-muted-foreground">
+                        📖 {t('settings.googleHelpPrefix')}{' '}
+                        <a 
+                          href="https://console.cloud.google.com/apis/credentials" 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          className="text-primary hover:underline"
+                        >
+                          {t('settings.googleHelpLink')}
+                        </a>
+                        {' '}{t('settings.googleHelpSuffix')}
+                      </p>
+
+                      {/* Status Message */}
+                      {settings.googleRefreshToken && settings.googleClientId && settings.googleClientSecret ? (
+                        <p className="text-xs text-green-600 dark:text-green-400">
+                          {t('settings.googleAutoRefreshActive')}
+                        </p>
+                      ) : (
+                        <p className="text-xs text-muted-foreground">
+                          {t('settings.googleAutoRefreshHelp')}
+                        </p>
+                      )}
+
+                      {/* Manual Access Token (fallback) */}
+                      <details className="pt-2">
+                        <summary className="text-xs text-muted-foreground cursor-pointer hover:text-foreground">
+                          {t('settings.googleManualTokenSummary')}
+                        </summary>
+                        <div className="space-y-2 pt-2">
+                          <Input
+                            type="password"
+                            id="google-oauth-token"
+                            name="googleOAuthToken"
+                            value={settings.googleOAuthToken || ''}
+                            onChange={handleChange}
+                            placeholder="ya29.xxxxx (expires in ~1 hour)"
+                            className="font-mono text-sm"
+                          />
+                          <p className="text-xs text-muted-foreground">
+                            {t('settings.googleManualTokenHelp')}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            💡 {t('settings.googleManualTokenPlayground')}{' '}
+                            <a 
+                              href="https://developers.google.com/oauthplayground/" 
+                              target="_blank" 
+                              rel="noopener noreferrer"
+                              className="text-primary hover:underline"
+                            >
+                              OAuth Playground
+                            </a>
+                          </p>
+                        </div>
+                      </details>
+                    </div>
+
+                    <div className="space-y-4 pt-2">
+                      <Label className="text-sm font-medium text-muted-foreground">{t('settings.googleConnectorsTitle')}</Label>
+                      
+                      <div className="space-y-3">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center space-x-3">
+                            <Switch
+                              id="connector-gmail"
+                              checked={settings.googleConnectors?.gmail || false}
+                              onChange={(e) => handleGoogleConnectorToggle('gmail', e.target.checked)}
+                            />
+                            <Label htmlFor="connector-gmail" className="font-normal">{t('settings.gmailLabel')}</Label>
+                          </div>
+                          {settings.googleConnectors?.gmail && (
+                            <Select
+                              value={settings.googleConnectorsApproval?.gmail || 'never'}
+                              onValueChange={(value) => handleGoogleConnectorApprovalChange('gmail', value)}
+                            >
+                              <SelectTrigger className="w-36 h-8">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="never">{t('settings.approvalNever')}</SelectItem>
+                                <SelectItem value="always">{t('settings.approvalAlways')}</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          )}
+                        </div>
+
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center space-x-3">
+                            <Switch
+                              id="connector-calendar"
+                              checked={settings.googleConnectors?.calendar || false}
+                              onChange={(e) => handleGoogleConnectorToggle('calendar', e.target.checked)}
+                            />
+                            <Label htmlFor="connector-calendar" className="font-normal">{t('settings.calendarLabel')}</Label>
+                          </div>
+                          {settings.googleConnectors?.calendar && (
+                            <Select
+                              value={settings.googleConnectorsApproval?.calendar || 'never'}
+                              onValueChange={(value) => handleGoogleConnectorApprovalChange('calendar', value)}
+                            >
+                              <SelectTrigger className="w-36 h-8">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="never">{t('settings.approvalNever')}</SelectItem>
+                                <SelectItem value="always">{t('settings.approvalAlways')}</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          )}
+                        </div>
+
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center space-x-3">
+                            <Switch
+                              id="connector-drive"
+                              checked={settings.googleConnectors?.drive || false}
+                              onChange={(e) => handleGoogleConnectorToggle('drive', e.target.checked)}
+                            />
+                            <Label htmlFor="connector-drive" className="font-normal">{t('settings.driveLabel')}</Label>
+                          </div>
+                          {settings.googleConnectors?.drive && (
+                            <Select
+                              value={settings.googleConnectorsApproval?.drive || 'never'}
+                              onValueChange={(value) => handleGoogleConnectorApprovalChange('drive', value)}
+                            >
+                              <SelectTrigger className="w-36 h-8">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="never">{t('settings.approvalNever')}</SelectItem>
+                                <SelectItem value="always">{t('settings.approvalAlways')}</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Remote MCP Servers Section */}
+                    <div className="space-y-4 pt-4 border-t border-muted">
+                      <div className="space-y-1">
+                        <Label className="text-sm font-medium">{t('settings.remoteMcpTitle')}</Label>
+                        <p className="text-xs text-muted-foreground">
+                          {t('settings.remoteMcpDesc')}
+                        </p>
+                      </div>
+
+                      {/* Configured Remote MCP Servers List */}
+                      {Object.keys(settings.remoteMcpServers || {}).length > 0 && (
+                        <div className="space-y-3">
+                          {Object.entries(settings.remoteMcpServers || {}).map(([id, config]) => {
+                            const isEnabled = config.enabled !== false; // Default to true if not specified
+                            return (
+                              <Card key={id} className={`border-border/50 ${!isEnabled ? 'opacity-60' : ''}`}>
+                                <CardContent className="p-3">
+                                  <div className="flex justify-between items-start">
+                                    <div className="flex items-center space-x-3">
+                                      <Switch
+                                        id={`remote-mcp-enabled-${id}`}
+                                        checked={isEnabled}
+                                        onChange={(e) => handleRemoteMcpServerToggle(id, e.target.checked)}
+                                      />
+                                      <div className="flex-1 space-y-1">
+                                        <div className="flex items-center space-x-2">
+                                          <Badge variant="secondary" className="text-xs">{config.serverLabel || id}</Badge>
+                                          {config.requireApproval === 'always' && (
+                                            <Badge variant="outline" className="text-xs bg-yellow-50 text-yellow-700">
+                                              {t('settings.approvalRequiredBadge')}
+                                            </Badge>
+                                          )}
+                                          {!isEnabled && (
+                                            <Badge variant="outline" className="text-xs bg-gray-100 text-gray-500">
+                                              {t('common.disabled')}
+                                            </Badge>
+                                          )}
+                                        </div>
+                                        
+                                        <div className="text-xs text-muted-foreground font-mono truncate max-w-[300px]">
+                                          {config.serverUrl}
+                                        </div>
+                                        
+                                        {config.serverDescription && (
+                                          <div className="text-xs text-muted-foreground truncate max-w-[300px]">
+                                            {config.serverDescription}
+                                          </div>
+                                        )}
+                                        
+                                        {config.headers && Object.keys(config.headers).length > 0 && (
+                                          <div className="text-xs text-muted-foreground">
+                                            <span>{t('settings.customHeadersCount', { count: Object.keys(config.headers).length })}</span>
+                                          </div>
+                                        )}
+                                        
+                                        {config.allowedTools && config.allowedTools.length > 0 && (
+                                          <div className="text-xs text-muted-foreground">
+                                            <span>{t('settings.allowedToolsPrefix', { tools: config.allowedTools.join(', ') })}</span>
+                                          </div>
+                                        )}
+                                      </div>
+                                    </div>
+                                    
+                                    <div className="flex space-x-1 ml-2">
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        className="h-7 w-7 p-0"
+                                        onClick={() => startRemoteMcpEditing(id)}
+                                      >
+                                        <Edit3 className="h-3 w-3" />
+                                      </Button>
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        className="h-7 w-7 p-0 text-destructive hover:text-destructive"
+                                        onClick={() => removeRemoteMcpServer(id)}
+                                      >
+                                        <Trash2 className="h-3 w-3" />
+                                      </Button>
+                                    </div>
+                                  </div>
+                                </CardContent>
+                              </Card>
+                            );
+                          })}
+                        </div>
+                      )}
+
+                      {/* Add New Remote MCP Server Form */}
+                      <div className="space-y-3 pt-2">
+                        <h5 className="text-xs font-medium flex items-center space-x-1">
+                          <Plus className="h-3 w-3" />
+                          <span>{editingRemoteMcpServerId ? t('settings.editRemoteMcpTitle', { id: editingRemoteMcpServerId }) : t('settings.addRemoteMcpTitle')}</span>
+                        </h5>
+                        
+                        <div className="grid grid-cols-2 gap-3">
+                          <div className="space-y-1">
+                            <Label htmlFor="remote-mcp-id" className="text-xs">{t('settings.serverIdLabel')}</Label>
+                            <Input
+                              id="remote-mcp-id"
+                              name="id"
+                              value={newRemoteMcpServer.id}
+                              onChange={handleNewRemoteMcpServerChange}
+                              placeholder="e.g., huggingface"
+                              className="h-8 text-sm"
+                              disabled={editingRemoteMcpServerId !== null}
+                            />
+                          </div>
+                          
+                          <div className="space-y-1">
+                            <Label htmlFor="remote-mcp-label" className="text-xs">{t('settings.remoteLabelLabel')}</Label>
+                            <Input
+                              id="remote-mcp-label"
+                              name="serverLabel"
+                              value={newRemoteMcpServer.serverLabel}
+                              onChange={handleNewRemoteMcpServerChange}
+                              placeholder="e.g., Hugging Face"
+                              className="h-8 text-sm"
+                            />
+                          </div>
+                        </div>
+
+                        <div className="space-y-1">
+                          <Label htmlFor="remote-mcp-url" className="text-xs">{t('settings.remoteUrlLabel')}</Label>
+                          <Input
+                            id="remote-mcp-url"
+                            name="serverUrl"
+                            value={newRemoteMcpServer.serverUrl}
+                            onChange={handleNewRemoteMcpServerChange}
+                            placeholder="https://mcp.example.com"
+                            className="h-8 text-sm"
+                          />
+                        </div>
+
+                        <div className="space-y-1">
+                          <Label htmlFor="remote-mcp-description" className="text-xs">{t('settings.remoteDescLabel')}</Label>
+                          <Textarea
+                            id="remote-mcp-description"
+                            name="serverDescription"
+                            value={newRemoteMcpServer.serverDescription}
+                            onChange={handleNewRemoteMcpServerChange}
+                            placeholder="e.g., Search and access AI models from Hugging Face"
+                            className="min-h-[60px] text-sm"
+                            rows={2}
+                          />
+                        </div>
+
+                        <div className="space-y-1">
+                          <Label htmlFor="remote-mcp-require-approval" className="text-xs">{t('settings.requireApprovalLabel')}</Label>
+                          <Select
+                            value={newRemoteMcpServer.requireApproval || 'never'}
+                            onValueChange={(value) => setNewRemoteMcpServer(prev => ({ ...prev, requireApproval: value }))}
+                          >
+                            <SelectTrigger className="h-8 text-sm">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="never">{t('settings.approvalNever')}</SelectItem>
+                              <SelectItem value="always">{t('settings.approvalAlways')}</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+
+                        <div className="space-y-1">
+                          <Label htmlFor="remote-mcp-allowed-tools" className="text-xs">{t('settings.allowedToolsLabel')}</Label>
+                          <Input
+                            id="remote-mcp-allowed-tools"
+                            name="allowedTools"
+                            value={newRemoteMcpServer.allowedTools}
+                            onChange={handleNewRemoteMcpServerChange}
+                            placeholder="e.g., model_search, paper_search"
+                            className="h-8 text-sm"
+                          />
+                        </div>
+
+                        {/* Headers Section */}
+                        <div className="space-y-2">
+                          <Label className="text-xs">{t('settings.headersTitle')}</Label>
+                          <p className="text-xs text-muted-foreground">
+                            {t('settings.remoteHeadersDesc')}
+                          </p>
+                          
+                          {Object.entries(newRemoteMcpServer.headers || {}).length > 0 && (
+                            <div className="space-y-1">
+                              {Object.entries(newRemoteMcpServer.headers || {}).map(([key, value]) => (
+                                <div key={key} className="flex items-center space-x-2">
+                                  <div className="flex-1 grid grid-cols-2 gap-2">
+                                    <Input value={key} disabled className="bg-muted h-7 text-xs" />
+                                    <Input 
+                                      value={
+                                        key.toLowerCase().includes('auth') || 
+                                        key.toLowerCase().includes('key') || 
+                                        key.toLowerCase().includes('token') || 
+                                        key.toLowerCase().includes('secret')
+                                          ? '*'.repeat(Math.min(value.length, 20))
+                                          : (typeof value === 'string' && value.length > 20 ? `${value.substring(0, 17)}...` : value)
+                                      } 
+                                      disabled 
+                                      className="bg-muted h-7 text-xs" 
+                                    />
+                                  </div>
+                                  <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-7 w-7 p-0"
+                                    onClick={() => removeRemoteMcpHeader(key)}
+                                  >
+                                    <Trash2 className="h-3 w-3" />
+                                  </Button>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                          
+                          <div className="flex items-center space-x-2">
+                            <Input
+                              name="key"
+                              value={newRemoteMcpHeader.key}
+                              onChange={handleRemoteMcpHeaderChange}
+                              placeholder={t('settings.headerKeyPlaceholder')}
+                              className="flex-1 h-7 text-xs"
+                            />
+                            <Input
+                              name="value"
+                              value={newRemoteMcpHeader.value}
+                              onChange={handleRemoteMcpHeaderChange}
+                              placeholder={t('settings.headerValPlaceholder')}
+                              className="flex-1 h-7 text-xs"
+                            />
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              className="h-7"
+                              onClick={addRemoteMcpHeader}
+                              disabled={!newRemoteMcpHeader.key}
+                            >
+                              <Plus className="h-3 w-3" />
+                            </Button>
+                          </div>
+                        </div>
+
+                        <div className="flex justify-end space-x-2 pt-2">
+                          {editingRemoteMcpServerId && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={cancelRemoteMcpEditing}
+                            >
+                              <X className="h-3 w-3 mr-1" />
+                              {t('common.cancel')}
+                            </Button>
+                          )}
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              setNewRemoteMcpServer({
+                                id: '',
+                                serverUrl: '',
+                                serverLabel: '',
+                                serverDescription: '',
+                                requireApproval: 'never',
+                                allowedTools: '',
+                                headers: {}
+                              });
+                              setEditingRemoteMcpServerId(null);
+                            }}
+                          >
+                            <X className="h-3 w-3 mr-1" />
+                            {t('common.clear')}
+                          </Button>
+                          <Button
+                            size="sm"
+                            onClick={handleSaveRemoteMcpServer}
+                            disabled={!newRemoteMcpServer.id || !newRemoteMcpServer.serverUrl}
+                          >
+                            <Save className="h-3 w-3 mr-1" />
+                            {editingRemoteMcpServerId ? t('common.edit') : t('common.save')}
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+        )}
+
+        {visibleCardIds.has('mcpServers') && (
+          <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center space-x-2">
+                  <Server className="h-5 w-5 text-primary" />
+                  <span>{t('settings.mcpServersTitle')}</span>
+                </CardTitle>
+                <CardDescription>
+                  {t('settings.mcpServersDesc')}
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {/* Configured Servers List */}
+                {Object.keys(settings.mcpServers || {}).length > 0 ? (
+                  <div className="space-y-4">
+                    <h4 className="font-medium text-sm">{t('settings.configuredServersListTitle', { count: Object.keys(settings.mcpServers || {}).length })}</h4>
+                    <div className="space-y-3">
+                      {Object.entries(settings.mcpServers || {}).map(([id, config]) => (
+                        <Card key={id} className="border-border/50">
+                          <CardContent className="p-4">
+                            <div className="flex justify-between items-start">
+                              <div className="flex-1 space-y-2">
+                                <div className="flex items-center space-x-2">
+                                  <Badge variant="secondary">{id}</Badge>
+                                  <Badge variant="outline" className="text-xs">
+                                    {config.transport === 'sse' ? 'SSE' : 
+                                     config.transport === 'streamableHttp' ? 'Streamable HTTP' : 'Stdio'}
+                                  </Badge>
+                                </div>
+                                
+                                <div className="text-sm text-muted-foreground font-mono">
+                                  {config.transport === 'sse' || config.transport === 'streamableHttp' ? (
+                                    <span>URL: {config.url}</span>
+                                  ) : (
+                                    <span>$ {config.command} {(config.args || []).join(' ')}</span>
+                                  )}
+                                </div>
+                                
+                                {config.env && Object.keys(config.env).length > 0 && (
+                                  <div className="text-xs text-muted-foreground">
+                                    <span>{t('settings.envVarsConfigured', { count: Object.keys(config.env).length })}</span>
+                                  </div>
+                                )}
+                                
+                                {config.headers && Object.keys(config.headers).length > 0 && (
+                                  <div className="text-xs text-muted-foreground">
+                                    <span>{t('settings.customHeadersConfigured', { count: Object.keys(config.headers).length })}</span>
+                                  </div>
+                                )}
+                              </div>
+                              
+                              <div className="flex space-x-2 ml-4">
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => startEditing(id)}
+                                >
+                                  <Edit3 className="h-3 w-3" />
+                                </Button>
+                                <Button
+                                  variant="destructive"
+                                  size="sm"
+                                  onClick={() => removeMcpServer(id)}
+                                >
+                                  <Trash2 className="h-3 w-3" />
+                                </Button>
+                              </div>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      ))}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="text-center py-8 text-muted-foreground">
+                    <Server className="h-12 w-12 mx-auto mb-3 opacity-50" />
+                    <p>{t('settings.noServersConfigured')}</p>
+                    <p className="text-sm">{t('settings.addServerGetStarted')}</p>
+                  </div>
+                )}
+
+                {/* Add New Server Section */}
+                <div className="border-t pt-6 space-y-4">
+                  <h4 className="font-medium text-sm flex items-center space-x-2">
+                    <Plus className="h-4 w-4" />
+                    <span>{editingServerId ? t('settings.editMcpServerTitle', { id: editingServerId }) : t('settings.addMcpServerTitle')}</span>
+                  </h4>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="server-id">{t('settings.serverIdLabel')}</Label>
+                      <Input
+                        id="server-id"
+                        name="id"
+                        value={newMcpServer.id}
+                        onChange={handleNewMcpServerChange}
+                        placeholder={t('settings.serverIdPlaceholder')}
+                      />
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label htmlFor="transport">{t('settings.transportLabel')}</Label>
+                      <Select
+                        value={newMcpServer.transport}
+                        onValueChange={handleTransportChange}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder={t('settings.selectTransportPlaceholder')} />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="stdio">Stdio</SelectItem>
+                          <SelectItem value="sse">SSE</SelectItem>
+                          <SelectItem value="streamableHttp">Streamable HTTP</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+
+                  {newMcpServer.transport === 'stdio' ? (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="command">{t('settings.commandLabel')}</Label>
+                        <Input
+                          id="command"
+                          name="command"
+                          value={newMcpServer.command}
+                          onChange={handleNewMcpServerChange}
+                          placeholder={t('settings.commandPlaceholder')}
+                        />
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <Label htmlFor="args">{t('settings.argsLabel')}</Label>
+                        <Input
+                          id="args"
+                          name="args"
+                          value={newMcpServer.args}
+                          onChange={handleNewMcpServerChange}
+                          placeholder={t('settings.argsPlaceholder')}
+                        />
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      <Label htmlFor="url">{t('settings.urlLabel')}</Label>
+                      <Input
+                        id="url"
+                        name="url"
+                        value={newMcpServer.url}
+                        onChange={handleNewMcpServerChange}
+                        placeholder={t('settings.urlPlaceholder')}
+                      />
+                    </div>
+                  )}
+
+                  {/* Headers Section for Remote Transports */}
+                  {(newMcpServer.transport === 'sse' || newMcpServer.transport === 'streamableHttp') && (
+                    <div className="space-y-4">
+                      <div>
+                        <Label>{t('settings.headersTitle')}</Label>
+                        <p className="text-xs text-muted-foreground mb-2">
+                          {t('settings.headersDesc')}
+                        </p>
+                        <div className="mt-2 space-y-2">
+                          {Object.entries(newMcpServer.headers || {}).map(([key, value]) => (
+                            <div key={key} className="flex items-center space-x-2">
+                              <div className="flex-1 grid grid-cols-2 gap-2">
+                                <Input value={key} disabled className="bg-muted" />
+                                <Input 
+                                  value={
+                                    key.toLowerCase().includes('auth') || 
+                                    key.toLowerCase().includes('key') || 
+                                    key.toLowerCase().includes('token') || 
+                                    key.toLowerCase().includes('secret')
+                                      ? '*'.repeat(Math.min(value.length, 20))
+                                      : (typeof value === 'string' && value.length > 30 ? `${value.substring(0, 27)}...` : value)
+                                  } 
+                                  disabled 
+                                  className="bg-muted" 
+                                />
+                              </div>
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => removeHeader(key)}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          ))}
+                          
+                          <div className="flex items-center space-x-2">
+                            <Input
+                              name="key"
+                              value={newHeader.key}
+                              onChange={handleHeaderChange}
+                              placeholder={t('settings.headerKeyPlaceholder')}
+                              className="flex-1"
+                            />
+                            <Input
+                              name="value"
+                              value={newHeader.value}
+                              onChange={handleHeaderChange}
+                              placeholder={t('settings.headerValPlaceholder')}
+                              className="flex-1"
+                            />
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              onClick={addHeader}
+                              disabled={!newHeader.key}
+                            >
+                              <Plus className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Environment Variables Section */}
+                  {newMcpServer.transport === 'stdio' && (
+                    <div className="space-y-4">
+                      <div>
+                        <Label>{t('settings.envVarsTitle')}</Label>
+                        <div className="mt-2 space-y-2">
+                          {Object.entries(newMcpServer.env || {}).map(([key, value]) => (
+                            <div key={key} className="flex items-center space-x-2">
+                              <div className="flex-1 grid grid-cols-2 gap-2">
+                                <Input value={key} disabled className="bg-muted" />
+                                <Input 
+                                  value={
+                                    key.toLowerCase().includes('key') || 
+                                    key.toLowerCase().includes('token') || 
+                                    key.toLowerCase().includes('secret')
+                                      ? '*'.repeat(key.length)
+                                      : (typeof value === 'string' && value.length > 30 ? `${value.substring(0, 27)}...` : value)
+                                  } 
+                                  disabled 
+                                  className="bg-muted" 
+                                />
+                              </div>
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => removeEnvVar(key)}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          ))}
+                          
+                          <div className="flex items-center space-x-2">
+                            <Input
+                              name="key"
+                              value={newEnvVar.key}
+                              onChange={handleEnvVarChange}
+                              placeholder={t('settings.envKeyPlaceholder')}
+                              className="flex-1"
+                            />
+                            <Input
+                              name="value"
+                              value={newEnvVar.value}
+                              onChange={handleEnvVarChange}
+                              placeholder={t('settings.envValPlaceholder')}
+                              className="flex-1"
+                            />
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              onClick={addEnvVar}
+                              disabled={!newEnvVar.key}
+                            >
+                              <Plus className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="flex justify-end space-x-2">
+                    <Button
+                      variant="outline"
+                      onClick={() => {
+                        setNewMcpServer({
+                          id: '', transport: 'stdio', command: '', args: '', env: {}, url: '', headers: {}
+                        });
+                        setJsonInput('');
+                        setJsonError(null);
+                      }}
+                    >
+                      <X className="h-4 w-4 mr-2" />
+                      {t('common.clear')}
+                    </Button>
+                    <Button
+                      onClick={handleSaveMcpServer}
+                      disabled={!newMcpServer.id || (newMcpServer.transport === 'stdio' && !newMcpServer.command) || ((newMcpServer.transport === 'sse' || newMcpServer.transport === 'streamableHttp') && !newMcpServer.url)}
+                    >
+                      <Save className="h-4 w-4 mr-2" />
+                      {editingServerId ? t('settings.updateServerBtn') : t('settings.addServerBtn')}
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+        )}
+
+        {visibleCardIds.has('toolApprovals') && (
+          <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center space-x-2">
+                  <Zap className="h-5 w-5 text-primary" />
+                  <span>{t('settings.toolApprovalsTitle')}</span>
+                </CardTitle>
+                <CardDescription>
+                  {t('settings.toolApprovalsDesc')}
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <Label>{t('settings.defaultToolPolicy')}</Label>
+                  <Select
+                    value={settings.toolPermissions?.defaultPolicy || 'prompt'}
+                    onValueChange={async (value) => {
+                      const toolPermissions = { ...(settings.toolPermissions || {}), defaultPolicy: value, allowAll: false };
+                      setSettings(prev => ({ ...prev, toolPermissions }));
+                      await window.electron?.toolPermissions?.setGlobal?.(toolPermissions);
+                    }}
+                  >
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="prompt">{t('settings.policyPrompt')}</SelectItem>
+                      <SelectItem value="allow">{t('settings.policyAllow')}</SelectItem>
+                      <SelectItem value="deny">{t('settings.policyDeny')}</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <Button
+                  variant="destructive"
+                  onClick={handleResetToolApprovals}
+                  disabled={isSaving}
+                >
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  {t('settings.resetToolApprovalsBtn')}
+                </Button>
+                <p className="text-xs text-muted-foreground mt-2">
+                  {t('settings.resetToolApprovalsHelp')}
+                </p>
+              </CardContent>
+            </Card>
+        )}
+
+        {visibleCardIds.has('observability') && (
+          <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center space-x-2"><BarChart3 className="h-5 w-5 text-primary" /><span>{t('settings.observabilityTitle')}</span></CardTitle>
+                <CardDescription>{t('settings.observabilityDesc', { month: usageSummary?.month || '' })}</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                  <div className="rounded-lg border p-3"><p className="text-xs text-muted-foreground">{t('settings.usageChats')}</p><p className="text-lg font-semibold">{usageSummary?.chats || 0}</p></div>
+                  <div className="rounded-lg border p-3"><p className="text-xs text-muted-foreground">{t('settings.usageMessages')}</p><p className="text-lg font-semibold">{usageSummary?.messages || 0}</p></div>
+                  <div className="rounded-lg border p-3"><p className="text-xs text-muted-foreground">{t('settings.usageTokens')}</p><p className="text-lg font-semibold">{(usageSummary?.totalTokens || 0).toLocaleString()}</p></div>
+                  <div className="rounded-lg border p-3"><p className="text-xs text-muted-foreground">{t('settings.usageCost')}</p><p className="text-lg font-semibold">${(usageSummary?.estimatedCostUsd || 0).toFixed(4)}</p></div>
+                </div>
+                {usageSummary?.monthlyBudgetUsd > 0 && <div className="space-y-1"><div className="flex justify-between text-xs"><span>{t('settings.monthlyBudget')}</span><span className={usageSummary.budgetExceeded ? 'text-destructive font-semibold' : ''}>{usageSummary.budgetPercent}%</span></div><div className="h-2 rounded-full bg-muted overflow-hidden"><div className={usageSummary.budgetExceeded ? 'h-full bg-destructive' : 'h-full bg-primary'} style={{ width: `${Math.min(100, usageSummary.budgetPercent)}%` }} /></div></div>}
+                <div className="grid sm:grid-cols-3 gap-3">
+                  <div className="space-y-2"><Label>{t('settings.monthlyBudgetUsd')}</Label><Input type="number" min="0" step="0.01" value={settings.observability?.monthlyBudgetUsd || 0} onChange={event => updateObservability({ monthlyBudgetUsd: Number(event.target.value) })} /></div>
+                  <div className="space-y-2"><Label>{t('settings.inputRate')}</Label><Input type="number" min="0" step="0.01" value={settings.observability?.defaultRate?.input || 0} onChange={event => updateObservability({ defaultRate: { ...(settings.observability?.defaultRate || {}), input: Number(event.target.value) } })} /></div>
+                  <div className="space-y-2"><Label>{t('settings.outputRate')}</Label><Input type="number" min="0" step="0.01" value={settings.observability?.defaultRate?.output || 0} onChange={event => updateObservability({ defaultRate: { ...(settings.observability?.defaultRate || {}), output: Number(event.target.value) } })} /></div>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <Button variant="outline" onClick={refreshUsageSummary}><RefreshCw className="h-4 w-4 mr-2" />{t('settings.refreshUsage')}</Button>
+                  <Button variant="outline" onClick={() => window.electron.observability.export('json')}><Download className="h-4 w-4 mr-2" />JSON</Button>
+                  <Button variant="outline" onClick={() => window.electron.observability.export('csv')}><Download className="h-4 w-4 mr-2" />CSV</Button>
+                </div>
+              </CardContent>
+            </Card>
+        )}
+
+        {visibleCardIds.has('git') && (
+          <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center space-x-2"><GitBranch className="h-5 w-5 text-primary" /><span>{t('settings.gitTitle')}</span></CardTitle>
+                <CardDescription>{t('settings.gitDesc')}</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex gap-2"><Input readOnly value={settings.gitIntegration?.repositoryPath || ''} placeholder={t('settings.gitRepository')} /><Button variant="outline" onClick={async () => { const result = await window.electron.git.selectRepository(); if (result?.success) updateGitRepository(result.path); }}>{t('settings.selectFolder')}</Button></div>
+                <div className="flex flex-wrap gap-2">
+                  <Button variant="outline" disabled={isGitBusy || !settings.gitIntegration?.repositoryPath} onClick={() => runGitAction(() => window.electron.git.status(settings.gitIntegration.repositoryPath))}>{t('settings.gitStatus')}</Button>
+                  <Button variant="outline" disabled={isGitBusy || !settings.gitIntegration?.repositoryPath} onClick={() => runGitAction(() => window.electron.git.diff(settings.gitIntegration.repositoryPath))}>{t('settings.gitDiff')}</Button>
+                </div>
+                <div className="flex gap-2"><Input value={gitCommitMessage} onChange={event => setGitCommitMessage(event.target.value)} placeholder={t('settings.gitCommitMessage')} /><Button disabled={isGitBusy || !gitCommitMessage.trim() || !settings.gitIntegration?.repositoryPath} onClick={() => runGitAction(() => window.electron.git.commit(settings.gitIntegration.repositoryPath, gitCommitMessage))}>{t('settings.gitCommit')}</Button></div>
+                <Button disabled={isGitBusy || !settings.gitIntegration?.repositoryPath} onClick={() => { if (window.confirm(t('settings.gitPushConfirm'))) runGitAction(() => window.electron.git.push(settings.gitIntegration.repositoryPath)); }}>{t('settings.gitPush')}</Button>
+                {gitOutput && <pre className="max-h-48 overflow-auto whitespace-pre-wrap rounded-lg border bg-muted/40 p-3 text-xs">{gitOutput}</pre>}
+              </CardContent>
+            </Card>
+        )}
+      </div>
+    );
+  };
+
+  const renderSystemSection = () => {
+    const hasVisible =
+      (visibleCardIds.has('configDir') && (configDirInfo.currentPath || settingsPath)) ||
+      visibleCardIds.has('updates') ||
+      visibleCardIds.has('apiLogging') ||
+      visibleCardIds.has('dataHistory');
+
+    if (!hasVisible) return null;
+
+    return (
+      <div className="space-y-6">
+        {activeCategory === 'all' && !searchQuery && (
+          <div className="flex items-center gap-2 pb-2 border-b border-border/60 pt-4">
+            <Folder className="w-5 h-5 text-primary" />
+            <div>
+              <h2 className="text-base font-bold text-foreground">{t('settings.navSystem')}</h2>
+              <p className="text-xs text-muted-foreground">Pasta de armazenamento, atualizações, backups e histórico</p>
+            </div>
+          </div>
+        )}
+
+        {visibleCardIds.has('configDir') && (configDirInfo.currentPath || settingsPath) && (
+          <Card>
+                <CardHeader className="pb-3">
+                  <div className="flex items-center justify-between gap-2 flex-wrap">
+                    <CardTitle className="flex items-center space-x-2 text-base">
+                      <Folder className="h-5 w-5 text-primary" />
+                      <span>{t('settings.configDirTitle')}</span>
+                    </CardTitle>
+                    <Badge
+                      variant={configDirInfo.isCustom ? "secondary" : "outline"}
+                      className={configDirInfo.isCustom ? "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/30 text-[11px] font-medium" : "text-[11px] font-medium"}
+                    >
+                      {configDirInfo.isCustom ? t('settings.configDirBadgeCustom') : t('settings.configDirBadgeDefault')}
+                    </Badge>
+                  </div>
+                  <CardDescription>
+                    {t('settings.configDirDesc')}
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <div className="rounded-lg border bg-muted/40 p-3 space-y-2 text-xs">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
+                      <span className="font-medium text-muted-foreground">{t('settings.configDirCurrent')}</span>
+                      <code className="font-mono bg-background px-2 py-0.5 rounded border select-all break-all text-[11px]">
+                        {configDirInfo.currentPath || settingsPath}
+                      </code>
+                    </div>
+                    {settingsPath && (
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 pt-1.5 border-t border-border/50">
+                        <span className="font-medium text-muted-foreground">{t('settings.configDirSettingsFile')}</span>
+                        <code className="font-mono bg-background px-2 py-0.5 rounded border select-all break-all text-[11px]">
+                          {settingsPath}
+                        </code>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="flex flex-wrap items-center gap-2 pt-1">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={handleSelectNewConfigFolder}
+                      className="flex items-center gap-1.5 text-xs"
+                    >
+                      <FolderOpen className="h-4 w-4" />
+                      <span>{t('settings.configDirChangeBtn')}</span>
+                    </Button>
+
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={handleOpenConfigFolder}
+                      className="flex items-center gap-1.5 text-xs"
+                    >
+                      <ExternalLink className="h-3.5 w-3.5" />
+                      <span>{t('settings.configDirOpenBtn')}</span>
+                    </Button>
+
+                    {configDirInfo.isCustom && (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          setCopyExistingFiles(false);
+                          setIsResetConfigDirModalOpen(true);
+                        }}
+                        className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground"
+                      >
+                        <RotateCcw className="h-3.5 w-3.5" />
+                        <span>{t('settings.configDirResetBtn')}</span>
+                      </Button>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+        )}
+
+        {visibleCardIds.has('updates') && (
+          <Card>
+              <CardHeader>
+                <CardTitle>{t('settings.updatesTitle')}</CardTitle>
+                <CardDescription>{t('settings.updatesDesc', { version: updateStatus.currentVersion || '' })}</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex items-center justify-between"><Label>{t('settings.checkUpdatesStartup')}</Label><Switch checked={settings.autoUpdate?.checkOnStartup !== false} onChange={event => updateAutoUpdate({ checkOnStartup: event.target.checked })} /></div>
+                <div className="flex items-center gap-3">
+                  <Label>{t('settings.updateChannel')}</Label>
+                  <select className="h-9 rounded-md border border-input bg-background px-3 text-sm" value={settings.autoUpdate?.channel || 'stable'} onChange={event => updateAutoUpdate({ channel: event.target.value })}><option value="stable">Stable</option><option value="beta">Beta</option></select>
+                </div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <Button variant="outline" onClick={() => window.electron.updater.check()} disabled={updateStatus.status === 'checking'}><RefreshCw className={`w-4 h-4 mr-2 ${updateStatus.status === 'checking' ? 'animate-spin' : ''}`} />{t('settings.checkUpdates')}</Button>
+                  {updateStatus.status === 'available' && <Button onClick={() => window.electron.updater.download()}><Download className="w-4 h-4 mr-2" />{t('settings.downloadUpdate', { version: updateStatus.version })}</Button>}
+                  {updateStatus.status === 'downloaded' && <Button onClick={() => window.electron.updater.install()}>{t('settings.installUpdate', { version: updateStatus.version })}</Button>}
+                  <span className="text-xs text-muted-foreground">{t(`settings.updateStatus_${updateStatus.status}`, { percent: updateStatus.percent, error: updateStatus.error || '' })}</span>
+                </div>
+              </CardContent>
+            </Card>
+        )}
+
+        {visibleCardIds.has('apiLogging') && (
+          <Card>
+              <CardHeader>
+                <CardTitle>{t('settings.apiLoggingTitle')}</CardTitle>
+                <CardDescription>
+                  {t('settings.apiLoggingDesc')}
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="log-api-requests" className="font-medium">
+                    {t('settings.apiLoggingLabel')}
+                  </Label>
+                  <Switch
+                    id="log-api-requests"
+                    checked={settings.logApiRequests || false}
+                    onChange={(e) => handleToggleChange('logApiRequests', e.target.checked)}
+                  />
+                </div>
+                <p className="text-xs text-muted-foreground mt-2">
+                  {t('settings.apiLoggingHelp')}
+                </p>
+              </CardContent>
+            </Card>
+        )}
+
+        {visibleCardIds.has('dataHistory') && (
+          <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center space-x-2">
+                  <Trash2 className="h-5 w-5 text-destructive" />
+                  <span>{t('settings.dataHistoryTitle')}</span>
+                </CardTitle>
+                <CardDescription>
+                  {t('settings.dataHistoryDesc')}
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-5">
+                <div className="flex flex-wrap gap-2">
+                  <Button variant="outline" onClick={handleExportBackup}>
+                    <Download className="h-4 w-4 mr-2" />
+                    {t('settings.exportBackup')}
+                  </Button>
+                  <Button variant="outline" onClick={handleImportBackup}>
+                    <UploadCloud className="h-4 w-4 mr-2" />
+                    {t('settings.importBackup')}
+                  </Button>
+                </div>
+                <p className="text-xs text-muted-foreground">{t('settings.backupSecurityHelp')}</p>
+                <div className="border-t border-border pt-5">
+                <Button
+                  variant="destructive"
+                  onClick={() => setIsDeletingAllModalOpen(true)}
+                  disabled={isSaving || isDeletingAll}
+                >
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  {t('settings.deleteAllChatsBtn')}
+                </Button>
+                <p className="text-xs text-muted-foreground mt-2">
+                  {t('settings.deleteAllChatsHelp')}
+                </p>
+                </div>
+              </CardContent>
+            </Card>
+        )}
+      </div>
+    );
+  };
+
+
+  return (
+    <div className="min-h-screen bg-background">
+      {/* Header */}
+      <header className="sticky top-0 z-50 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+        <div className="container max-w-7xl mx-auto flex h-16 items-center justify-between px-4 sm:px-6 gap-3">
+          <div className="flex items-center space-x-3 shrink-0">
+            <Link to="/">
+              <Button variant="ghost" size="icon" className="text-foreground hover:text-foreground" title={t('settings.backToChat')}>
+                <ArrowLeft className="h-5 w-5" />
+              </Button>
+            </Link>
+            <div className="flex items-center space-x-2">
+              <SettingsIcon className="h-5 w-5 text-primary" />
+              <h1 className="text-xl font-bold text-foreground hidden sm:block">{t('settings.title')}</h1>
+            </div>
+          </div>
+
+          {/* Search Bar */}
+          <div className="relative flex-1 max-w-md mx-2">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+            <Input
+              ref={searchInputRef}
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder={t('settings.searchSettingsPlaceholder')}
+              className="pl-9 pr-14 h-9 text-xs sm:text-sm bg-muted/40 border-border/80 focus:bg-background rounded-xl transition-all"
+            />
+            {searchQuery ? (
+              <button
+                type="button"
+                onClick={() => {
+                  setSearchQuery('');
+                  searchInputRef.current?.focus();
+                }}
+                className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground text-xs p-1 rounded-md hover:bg-muted"
+                title={t('settings.searchClearBtn')}
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            ) : (
+              <div className="absolute right-2.5 top-1/2 -translate-y-1/2 hidden sm:flex items-center pointer-events-none">
+                <kbd className="px-1.5 py-0.5 text-[10px] font-mono rounded bg-muted border border-border/60 text-muted-foreground shadow-2xs">
+                  /
+                </kbd>
+              </div>
+            )}
+          </div>
+
+          <div className="flex items-center space-x-2 shrink-0">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={reloadSettingsFromDisk}
+              disabled={isSaving}
+              className="text-xs"
+            >
+              <RefreshCw className={`h-4 w-4 mr-1.5 ${isSaving ? 'animate-spin' : ''}`} />
+              <span className="hidden sm:inline">{t('settings.reloadBtn')}</span>
+            </Button>
+          </div>
+        </div>
+      </header>
+
+      {/* Status Message */}
+      {(isSaving || saveStatus) && (
+        <div className="border-b bg-background">
+          <div className="container max-w-7xl mx-auto px-4 sm:px-6 py-2.5">
+            <div className={`flex items-center space-x-2 text-xs ${
+              saveStatus?.type === 'error'
+                ? 'text-destructive'
+                : saveStatus?.type === 'success'
+                ? 'text-green-600'
+                : 'text-muted-foreground'
+            }`}>
+              {saveStatus?.type === 'success' ? (
+                <CheckCircle className="h-4 w-4" />
+              ) : saveStatus?.type === 'error' ? (
+                <AlertCircle className="h-4 w-4" />
+              ) : (
+                <RefreshCw className="h-4 w-4 animate-spin" />
+              )}
+              <span>{getStatusMessage()}</span>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Main Content */}
+      <main className="container max-w-7xl mx-auto px-4 sm:px-6 py-6">
+        <div className="flex flex-col lg:flex-row gap-8 items-start">
+          
+          {/* Sidebar Navigation (Desktop) */}
+          <aside className="hidden lg:block w-64 shrink-0 sticky top-24 space-y-3">
+            <div className="p-2.5 bg-card rounded-2xl border border-border/80 shadow-xs space-y-1">
+              <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider px-3 py-1.5">
+                Categorias
+              </p>
+              {CATEGORIES.map(cat => {
+                const Icon = cat.icon;
+                const isSelected = activeCategory === cat.id;
+                const count = categoryMatchCounts ? categoryMatchCounts[cat.id] : null;
+
+                return (
+                  <button
+                    key={cat.id}
+                    type="button"
+                    onClick={() => setActiveCategory(cat.id)}
+                    className={cn(
+                      "w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-medium transition-all text-left group",
+                      isSelected
+                        ? "bg-primary text-primary-foreground shadow-xs"
+                        : "text-foreground hover:bg-muted"
+                    )}
+                  >
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <Icon className={cn("w-4 h-4 shrink-0", isSelected ? "text-primary-foreground" : "text-primary group-hover:scale-110 transition-transform")} />
+                      <span className="truncate">{cat.label}</span>
+                    </div>
+                    {count !== null && (
+                      <Badge
+                        variant={isSelected ? "outline" : "secondary"}
+                        className={cn(
+                          "text-[10px] px-1.5 py-0 h-4 min-w-4 flex items-center justify-center font-mono shrink-0 ml-1.5",
+                          isSelected ? "border-primary-foreground/40 text-primary-foreground" : count > 0 ? "bg-primary/15 text-primary font-semibold" : "opacity-40"
+                        )}
+                      >
+                        {count}
+                      </Badge>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Quick Mode Switcher Widget */}
+            <div className="p-3.5 bg-muted/20 rounded-2xl border border-border/60 text-xs space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="font-semibold text-foreground flex items-center gap-1.5">
+                  <User className="w-3.5 h-3.5 text-primary" />
+                  {settings.interfaceMode === 'power' ? t('settings.powerMode') : t('settings.userMode')}
+                </span>
+                <Badge variant="outline" className="text-[10px] px-1.5">
+                  {settings.interfaceMode === 'power' ? 'Power' : 'User'}
+                </Badge>
+              </div>
+              <p className="text-[11px] text-muted-foreground leading-relaxed">
+                {settings.interfaceMode === 'power'
+                  ? 'Acesso completo a modelos, MCP, conectores e configurações técnicas.'
+                  : 'Interface limpa. Alterne para Power User para acessar configurações avançadas.'}
+              </p>
+            </div>
+          </aside>
+
+          {/* Mobile Horizontal Tabs */}
+          <div className="lg:hidden w-full overflow-x-auto pb-2 -mt-2 flex items-center gap-1.5 no-scrollbar border-b border-border/60">
+            {CATEGORIES.map(cat => {
+              const Icon = cat.icon;
+              const isSelected = activeCategory === cat.id;
+              const count = categoryMatchCounts ? categoryMatchCounts[cat.id] : null;
+
+              return (
+                <button
+                  key={cat.id}
+                  type="button"
+                  onClick={() => setActiveCategory(cat.id)}
+                  className={cn(
+                    "flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-medium whitespace-nowrap shrink-0 transition-all border",
+                    isSelected
+                      ? "bg-primary text-primary-foreground border-primary shadow-xs"
+                      : "bg-background border-border text-foreground hover:bg-muted"
+                  )}
+                >
+                  <Icon className="w-3.5 h-3.5" />
+                  <span>{cat.label}</span>
+                  {count !== null && (
+                    <Badge
+                      variant={isSelected ? "outline" : "secondary"}
+                      className={cn(
+                        "text-[9px] px-1 py-0 h-3.5 min-w-3.5 flex items-center justify-center font-mono ml-0.5",
+                        isSelected ? "border-primary-foreground/40 text-primary-foreground" : "bg-primary/10 text-primary"
+                      )}
+                    >
+                      {count}
+                    </Badge>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Right Column: Active Cards */}
+          <div className="flex-1 min-w-0 max-w-4xl space-y-6">
+            {/* Search feedback banner */}
+            {searchQuery && (
+              <div className="flex items-center justify-between p-3.5 rounded-xl bg-primary/10 border border-primary/20 text-foreground text-xs">
+                <div className="flex items-center gap-2 min-w-0">
+                  <Search className="w-4 h-4 text-primary shrink-0" />
+                  <span className="truncate">
+                    {t('settings.searchResultsCount', { count: visibleCardIds.size })} para "{searchQuery}"
+                  </span>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setSearchQuery('')}
+                  className="h-7 text-xs text-primary hover:bg-primary/20 shrink-0"
+                >
+                  <X className="w-3.5 h-3.5 mr-1" />
+                  {t('settings.searchClearBtn')}
+                </Button>
+              </div>
+            )}
+
+            {/* Category header for specific category view */}
+            {activeCategory !== 'all' && !searchQuery && (() => {
+              const currentCat = CATEGORIES.find(c => c.id === activeCategory);
+              if (!currentCat) return null;
+              const Icon = currentCat.icon;
+              return (
+                <div className="space-y-1 pb-3 border-b border-border/60">
+                  <div className="flex items-center gap-2">
+                    <Icon className="w-5 h-5 text-primary" />
+                    <h2 className="text-lg font-bold text-foreground">{currentCat.label}</h2>
+                  </div>
+                  <p className="text-xs text-muted-foreground">{currentCat.desc}</p>
+                </div>
+              );
+            })()}
+
+            {/* Empty State when search returns 0 results */}
+            {searchQuery && visibleCardIds.size === 0 && (
+              <div className="text-center py-16 px-4 border border-dashed rounded-2xl bg-muted/10 space-y-3">
+                <div className="w-12 h-12 rounded-full bg-muted/60 flex items-center justify-center mx-auto text-muted-foreground">
+                  <Search className="w-6 h-6 opacity-60" />
+                </div>
+                <div className="space-y-1 max-w-sm mx-auto">
+                  <h3 className="font-semibold text-sm text-foreground">
+                    {t('settings.searchNoResultsTitle')}
+                  </h3>
+                  <p className="text-xs text-muted-foreground leading-relaxed">
+                    {t('settings.searchNoResultsDesc', { query: searchQuery })}
+                  </p>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setSearchQuery('')}
+                  className="text-xs mt-2"
+                >
+                  <X className="w-3.5 h-3.5 mr-1.5" />
+                  {t('settings.searchClearBtn')}
+                </Button>
+              </div>
+            )}
+
+            {/* Render sections according to active filter / category */}
+            {(activeCategory === 'all' || activeCategory === 'interface' || searchQuery) && renderInterfaceSection()}
+            {(activeCategory === 'all' || activeCategory === 'features' || searchQuery) && renderFeaturesSection()}
+            {(activeCategory === 'all' || activeCategory === 'models' || searchQuery) && renderModelsSection()}
+            {(activeCategory === 'all' || activeCategory === 'integrations' || searchQuery) && renderIntegrationsSection()}
+            {(activeCategory === 'all' || activeCategory === 'system' || searchQuery) && renderSystemSection()}
           </div>
         </div>
       </main>
+
 
       {/* Delete All Chats Confirmation Modal */}
       {isDeletingAllModalOpen && typeof document !== 'undefined' && createPortal(
@@ -5207,3 +5613,4 @@ function Settings() {
 }
 
 export default Settings;
+
