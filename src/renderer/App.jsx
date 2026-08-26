@@ -120,6 +120,7 @@ function App() {
   const [showTrajectoryTab, setShowTrajectoryTab] = useState(true);
   const [showWelcomeTips, setShowWelcomeTips] = useState(false);
   const [showWelcomeSuggestions, setShowWelcomeSuggestions] = useState(false);
+  const [showButtonLabels, setShowButtonLabels] = useState(false);
   const [interfaceMode, setInterfaceMode] = useState('user');
   const isPowerUser = interfaceMode === 'power';
   const [loading, setLoading] = useState(false);
@@ -504,6 +505,7 @@ function App() {
         setShowTrajectoryTab(settings.showTrajectoryTab !== false);
         setShowWelcomeTips(settings.showWelcomeTips === true);
         setShowWelcomeSuggestions(settings.showWelcomeSuggestions === true);
+        setShowButtonLabels(settings.showButtonLabels === true);
         // Load model filter settings
         setModelFilter(settings.modelFilter || '');
         setModelFilterExclude(settings.modelFilterExclude || '');
@@ -581,6 +583,7 @@ function App() {
         setShowTrajectoryTab(trajectoryEnabled);
         setShowWelcomeTips(settings.showWelcomeTips === true);
         setShowWelcomeSuggestions(settings.showWelcomeSuggestions === true);
+        setShowButtonLabels(settings.showButtonLabels === true);
         if (!trajectoryEnabled) {
           setActiveTab('chat');
         }
@@ -2278,11 +2281,13 @@ function App() {
                   title={t('rag.viewKnowledge')}
                 >
                   <BookOpen className="w-3.5 h-3.5" />
-                  <span className="hidden sm:inline font-medium">
-                    {activeProject.folders?.length > 0
-                      ? `${activeProject.folders.length} ${activeProject.folders.length === 1 ? 'pasta' : 'pastas'}`
-                      : t('rag.knowledgeBase')}
-                  </span>
+                  {showButtonLabels && (
+                    <span className="hidden sm:inline font-medium">
+                      {activeProject.folders?.length > 0
+                        ? `${activeProject.folders.length} ${activeProject.folders.length === 1 ? 'pasta' : 'pastas'}`
+                        : t('rag.knowledgeBase')}
+                    </span>
+                  )}
                 </Button>
               )}
 
@@ -2298,8 +2303,8 @@ function App() {
                 className="text-xs text-foreground border-border hover:bg-muted"
                 title={t('workflows.title')}
               >
-                <Workflow className="h-3.5 w-3.5 mr-1.5 text-primary" />
-                <span className="hidden lg:inline">{t('workflows.title')}</span>
+                <Workflow className={cn("h-3.5 w-3.5 text-primary", showButtonLabels && "mr-1.5")} />
+                {showButtonLabels && <span className="hidden lg:inline">{t('workflows.title')}</span>}
               </Button>}
               {/* MCP Catalog Button */}
               {isPowerUser && <Button
@@ -2309,8 +2314,8 @@ function App() {
                 className="text-xs text-foreground border-border hover:bg-muted"
                 title={t('mcpCatalog.title')}
               >
-                <Store className="h-3.5 w-3.5 mr-1.5 text-primary" />
-                <span className="hidden md:inline">{t('header.mcpStore')}</span>
+                <Store className={cn("h-3.5 w-3.5 text-primary", showButtonLabels && "mr-1.5")} />
+                {showButtonLabels && <span className="hidden md:inline">{t('header.mcpStore')}</span>}
               </Button>}
 
               {/* Compare Mode Toggle Button */}
@@ -2326,8 +2331,8 @@ function App() {
                 )}
                 title={t('header.compareModels')}
               >
-                <Scale className="h-3.5 w-3.5 mr-1.5 text-purple-400" />
-                <span className="hidden md:inline">{t('header.compareModels')}</span>
+                <Scale className={cn("h-3.5 w-3.5 text-purple-400", showButtonLabels && "mr-1.5")} />
+                {showButtonLabels && <span className="hidden md:inline">{t('header.compareModels')}</span>}
               </Button>}
 
               {/* Theme & Quick Appearance / Mode Toggle */}
@@ -2411,6 +2416,7 @@ function App() {
                       focusSignal={chatFocusSignal}
                       onModelConfigUpdated={handleModelConfigUpdated}
                       powerUserMode={isPowerUser}
+                      showButtonLabels={showButtonLabels}
                     />
                   </div>
                 </div>
@@ -2444,6 +2450,7 @@ function App() {
                       focusSignal={chatFocusSignal}
                       onModelConfigUpdated={handleModelConfigUpdated}
                       powerUserMode={isPowerUser}
+                      showButtonLabels={showButtonLabels}
                       presetMessage={presetInputMessage}
                     />
                   </div>
@@ -2479,6 +2486,7 @@ function App() {
                       focusSignal={chatFocusSignal}
                       onModelConfigUpdated={handleModelConfigUpdated}
                       powerUserMode={isPowerUser}
+                      showButtonLabels={showButtonLabels}
                     />
                   </div>
                 </div>
@@ -2534,6 +2542,7 @@ function App() {
                       focusSignal={chatFocusSignal}
                       onModelConfigUpdated={handleModelConfigUpdated}
                       powerUserMode={isPowerUser}
+                      showButtonLabels={showButtonLabels}
                     />
                   </div>
                 </div>

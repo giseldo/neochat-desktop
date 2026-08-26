@@ -45,6 +45,7 @@ function Settings() {
     showTrajectoryTab: true,
     showWelcomeTips: false,
     showWelcomeSuggestions: false,
+    showButtonLabels: false,
     GROQ_API_KEY: '',
     temperature: 0.7,
     top_p: 0.95,
@@ -377,6 +378,14 @@ function Settings() {
       isPowerOnly: false
     },
     {
+      id: 'buttonLabels',
+      category: 'interface',
+      title: t('settings.buttonLabelsTitle') || 'Rótulos dos Botões',
+      desc: t('settings.buttonLabelsDesc') || 'Exibir ou ocultar os textos nos botões',
+      keywords: 'rotulos labels botoes texto icons icones toolbar barra cabecalho user power',
+      isPowerOnly: false
+    },
+    {
       id: 'thinkingSummaries',
       category: 'interface',
       title: t('settings.thinkingSummariesTitle') || 'Resumos de Raciocínio',
@@ -636,6 +645,9 @@ function Settings() {
         if (settingsData.showWelcomeSuggestions === undefined) {
             settingsData.showWelcomeSuggestions = false;
         }
+        if (settingsData.showButtonLabels === undefined) {
+            settingsData.showButtonLabels = false;
+        }
         if (settingsData.disableThinkingSummaries === undefined) {
             settingsData.disableThinkingSummaries = false;
         }
@@ -720,6 +732,7 @@ function Settings() {
             showTrajectoryTab: true,
             showWelcomeTips: false,
             showWelcomeSuggestions: false,
+            showButtonLabels: false,
             modelFilter: '',
             modelFilterExclude: '',
             disableThinkingSummaries: false,
@@ -2085,6 +2098,7 @@ function Settings() {
       visibleCardIds.has('trajectoryTab') ||
       visibleCardIds.has('welcomeTips') ||
       visibleCardIds.has('welcomeSuggestions') ||
+      visibleCardIds.has('buttonLabels') ||
       visibleCardIds.has('thinkingSummaries');
 
     if (!hasVisible) return null;
@@ -2549,6 +2563,37 @@ function Settings() {
                   id="welcome-suggestions-toggle"
                   checked={settings.showWelcomeSuggestions === true}
                   onChange={(e) => handleToggleChange('showWelcomeSuggestions', e.target.checked)}
+                />
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {visibleCardIds.has('buttonLabels') && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center space-x-2">
+                <Type className="h-5 w-5 text-primary" />
+                <span>{t('settings.buttonLabelsTitle')}</span>
+              </CardTitle>
+              <CardDescription>
+                {t('settings.buttonLabelsDesc')}
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center justify-between">
+                <div className="space-y-0.5">
+                  <Label htmlFor="button-labels-toggle" className="font-medium">
+                    {t('settings.buttonLabelsLabel')}
+                  </Label>
+                  <p className="text-xs text-muted-foreground">
+                    {t('settings.buttonLabelsHelp')}
+                  </p>
+                </div>
+                <Switch
+                  id="button-labels-toggle"
+                  checked={settings.showButtonLabels === true}
+                  onChange={(e) => handleToggleChange('showButtonLabels', e.target.checked)}
                 />
               </div>
             </CardContent>

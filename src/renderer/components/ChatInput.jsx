@@ -29,6 +29,7 @@ function ChatInput({
 	focusSignal = 0,
 	onModelConfigUpdated,
 	powerUserMode = false,
+	showButtonLabels = false,
 	presetMessage = "",
 }) {
 	const effectiveToolsCount = typeof toolsCount === 'number' && toolsCount > 0
@@ -989,13 +990,15 @@ function ChatInput({
 								disabled={loading || isTranscribing}
 							>
 								{isTranscribing ? (
-									<Loader2 className="w-4 h-4 mr-1.5 animate-spin flex-shrink-0 text-primary" />
+									<Loader2 className={cn("w-4 h-4 animate-spin flex-shrink-0 text-primary", showButtonLabels && "mr-1.5")} />
 								) : isRecording ? (
-									<MicOff className="w-4 h-4 mr-1.5 text-red-500 flex-shrink-0" />
+									<MicOff className={cn("w-4 h-4 text-red-500 flex-shrink-0", showButtonLabels && "mr-1.5")} />
 								) : (
-									<Mic className="w-4 h-4 mr-1.5 flex-shrink-0 text-rose-500" />
+									<Mic className={cn("w-4 h-4 flex-shrink-0 text-rose-500", showButtonLabels && "mr-1.5")} />
 								)}
-								<span>{isRecording ? t('chat.recording') : isTranscribing ? t('chat.transcribing') : t('chat.voice')}</span>
+								{showButtonLabels && (
+									<span>{isRecording ? t('chat.recording') : isTranscribing ? t('chat.transcribing') : t('chat.voice')}</span>
+								)}
 							</Button>
 						)}
 
@@ -1010,11 +1013,17 @@ function ChatInput({
 								title={t('chat.toolsTooltip')}
 								disabled={loading}
 							>
-								<Hammer className="w-4 h-4 mr-1.5 flex-shrink-0 text-amber-500" />
-								<span>
-									{t('chat.tools')}
-									{effectiveToolsCount > 0 ? ` (${effectiveToolsCount})` : ''}
-								</span>
+								<Hammer className={cn("w-4 h-4 flex-shrink-0 text-amber-500", showButtonLabels && "mr-1.5")} />
+								{showButtonLabels ? (
+									<span>
+										{t('chat.tools')}
+										{effectiveToolsCount > 0 ? ` (${effectiveToolsCount})` : ''}
+									</span>
+								) : effectiveToolsCount > 0 ? (
+									<span className="text-[10px] font-semibold text-muted-foreground ml-0.5">
+										{effectiveToolsCount}
+									</span>
+								) : null}
 							</Button>
 						)}
 
@@ -1034,7 +1043,7 @@ function ChatInput({
 							disabled={loading}
 						>
 							<Globe className={cn("w-4 h-4 flex-shrink-0 text-blue-500", webSearchActive && "animate-pulse")} />
-							<span>{t('chat.webSearch')}</span>
+							{showButtonLabels && <span>{t('chat.webSearch')}</span>}
 							{webSearchActive && (
 								<span className="w-1.5 h-1.5 rounded-full bg-blue-500 flex-shrink-0"></span>
 							)}
@@ -1056,12 +1065,14 @@ function ChatInput({
 								title={t('rag.viewKnowledge')}
 								disabled={loading}
 							>
-								<BookOpen className="w-4 h-4 flex-shrink-0 text-indigo-500" />
-								<span>
-									{activeProject.folders?.length > 0
-										? `${activeProject.folders.length} ${activeProject.folders.length === 1 ? 'pasta' : 'pastas'}`
-										: t('rag.knowledgeBase')}
-								</span>
+								<BookOpen className={cn("w-4 h-4 flex-shrink-0 text-indigo-500")} />
+								{showButtonLabels && (
+									<span>
+										{activeProject.folders?.length > 0
+											? `${activeProject.folders.length} ${activeProject.folders.length === 1 ? 'pasta' : 'pastas'}`
+											: t('rag.knowledgeBase')}
+									</span>
+								)}
 							</Button>
 						)}
 
@@ -1087,7 +1098,7 @@ function ChatInput({
 							disabled={loading}
 						>
 							<Bot className={cn("w-4 h-4 flex-shrink-0 text-purple-500", agentModeActive && "text-amber-500 animate-bounce")} />
-							<span>{t('chat.agentMode')}</span>
+							{showButtonLabels && <span>{t('chat.agentMode')}</span>}
 							{agentModeActive && (
 								<span className="w-1.5 h-1.5 rounded-full bg-amber-500 flex-shrink-0 animate-pulse"></span>
 							)}

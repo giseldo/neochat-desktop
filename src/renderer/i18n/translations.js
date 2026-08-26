@@ -751,6 +751,12 @@ export const translations = {
       welcomeSuggestionsLabel: 'Exibir Atalhos de Prompts Rápidos',
       welcomeSuggestionsHelp: 'Mostra botões de sugestões rápidas de prompts (ex: Explicar conceito, Debugar código, Redigir e-mail) ao iniciar uma nova conversa (desativado por padrão).',
 
+      // Button Labels Card
+      buttonLabelsTitle: 'Rótulos dos Botões (Labels)',
+      buttonLabelsDesc: 'Exibir ou ocultar os textos descritivos ao lado dos ícones nos botões da barra inferior e cabeçalho.',
+      buttonLabelsLabel: 'Exibir Rótulo dos Botões',
+      buttonLabelsHelp: 'Quando desativado, os botões mostram apenas ícones minimalistas com dicas ao passar o mouse, economizando espaço em ambos os modos (Usuário e Power User). Desativado por padrão.',
+
       // Trajectory Tab Card
       trajectoryTabTitle: 'Aba Trajetória',
       trajectoryTabDesc: 'Ative ou desative a exibição da aba Trajetória no cabeçalho do chat.',
@@ -1944,6 +1950,12 @@ export const translations = {
       welcomeSuggestionsDesc: 'Show or hide the quick prompt suggestion chips on the welcome screen.',
       welcomeSuggestionsLabel: 'Show Quick Prompt Suggestions',
       welcomeSuggestionsHelp: 'Displays quick inspiration buttons for common prompts (e.g. Explain concept, Debug code, Draft email) on the welcome screen (disabled by default).',
+
+      // Button Labels Card
+      buttonLabelsTitle: 'Button Text Labels',
+      buttonLabelsDesc: 'Show or hide descriptive text next to icons on header and toolbar buttons.',
+      buttonLabelsLabel: 'Show Button Labels',
+      buttonLabelsHelp: 'When disabled, buttons display only minimalist icons with tooltips on hover, saving space across both User and Power User modes. Disabled by default.',
 
       // Trajectory Tab Card
       trajectoryTabTitle: 'Trajectory Tab',
