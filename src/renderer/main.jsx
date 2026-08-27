@@ -6,6 +6,7 @@ import App from './App';
 import Settings from './pages/Settings';
 import PopupPage from './pages/PopupPage';
 import { ChatProvider } from './context/ChatContext';
+import { CanvasProvider } from './context/CanvasContext';
 import { ProjectProvider } from './context/ProjectContext';
 import { ThemeProvider } from './context/ThemeContext';
 import { LanguageProvider } from './context/LanguageContext';
@@ -33,7 +34,9 @@ ReactDOM.createRoot(document.getElementById('root')).render(
         <ThemeProvider>
           <ProjectProvider>
             <ChatProvider>
-              <RouterProvider router={router} />
+              <CanvasProvider>
+                <RouterProvider router={router} />
+              </CanvasProvider>
             </ChatProvider>
           </ProjectProvider>
         </ThemeProvider>

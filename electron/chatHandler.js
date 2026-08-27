@@ -8,6 +8,7 @@ const { getActiveApiKey, getProviderBaseUrl, getProviderCandidates, getDefaultMo
 const googleOAuthManager = require('./googleOAuthManager');
 const { getWebSearchToolDefinition } = require('./webSearchService');
 const { getRagToolDefinitions } = require('./ragService');
+const { getActiveCanvasDocument } = require('./canvasManager');
 
 // Track active streams to allow cancellation
 const activeStreams = new Map();
@@ -170,7 +171,123 @@ function prepareTools(discoveredTools, isResponsesApi = false, settings = {}) {
         }
     }
 
+    // Add native Canvas tools
+    const canvasTools = getCanvasTools(isResponsesApi);
+    for (const ct of canvasTools) {
+        const toolName = isResponsesApi ? ct.name : ct.function?.name;
+        const hasAlready = tools.some(t => t.name === toolName || t.function?.name === toolName);
+        if (!hasAlready) {
+            tools.push(ct);
+        }
+    }
+
     return tools;
+}
+
+function getCanvasTools(isResponsesApi = false) {
+    const rawTools = [
+        {
+            name: "canvas_create_document",
+            description: "Create a new document in the interactive Canvas workspace. Use this when the user asks to draft, write, or generate a document, article, guide, essay, script, component, notes, report, or long-form content.",
+            parameters: {
+                type: "object",
+                properties: {
+                    title: {
+                        type: "string",
+                        description: "Clear, concise title for the document (e.g. 'Guia Completo de TypeScript', 'Proposta Comercial')."
+                    },
+                    content: {
+                        type: "string",
+                        description: "The full initial text, markdown, or code content for the document."
+                    },
+                    language: {
+                        type: "string",
+                        description: "The language or format of the document: 'markdown', 'javascript', 'python', 'html', 'react', 'css', 'json', 'sql', or 'text'."
+                    },
+                    summary: {
+                        type: "string",
+                        description: "Brief summary of what was created (e.g. 'Documento inicial com estrutura e introdução')."
+                    }
+                },
+                required: ["title", "content"]
+            }
+        },
+        {
+            name: "canvas_update_document",
+            description: "Update, rewrite, expand, or alter the entire active Canvas document. Use this when making broad changes, rewrites, adding entire sections, fixing overall style/tone, or translating the document.",
+            parameters: {
+                type: "object",
+                properties: {
+                    content: {
+                        type: "string",
+                        description: "The complete updated content of the document."
+                    },
+                    summary: {
+                        type: "string",
+                        description: "Brief explanation of the changes made (e.g. 'Adicionados 3 novos exemplos práticos e conclusão')."
+                    },
+                    title: {
+                        type: "string",
+                        description: "Optional updated title if the title changed."
+                    },
+                    language: {
+                        type: "string",
+                        description: "Optional updated language/format if changed."
+                    }
+                },
+                required: ["content", "summary"]
+            }
+        },
+        {
+            name: "canvas_edit_selection",
+            description: "Perform a targeted edit/replacement of a specific snippet or section within the active Canvas document. Use this for specific edits, fixing typos, updating a single paragraph, or replacing a function.",
+            parameters: {
+                type: "object",
+                properties: {
+                    targetText: {
+                        type: "string",
+                        description: "The exact text snippet currently in the document that should be replaced."
+                    },
+                    replacementText: {
+                        type: "string",
+                        description: "The new replacement text that should take its place."
+                    },
+                    summary: {
+                        type: "string",
+                        description: "Brief description of the edit made."
+                    }
+                },
+                required: ["targetText", "replacementText", "summary"]
+            }
+        },
+        {
+            name: "canvas_get_document",
+            description: "Retrieve the current content, version, and stats of the active Canvas document.",
+            parameters: {
+                type: "object",
+                properties: {}
+            }
+        }
+    ];
+
+    return rawTools.map(t => {
+        if (isResponsesApi) {
+            return {
+                type: "function",
+                name: t.name,
+                description: t.description,
+                parameters: t.parameters
+            };
+        }
+        return {
+            type: "function",
+            function: {
+                name: t.name,
+                description: t.description,
+                parameters: t.parameters
+            }
+        };
+    });
 }
 
 function cleanMessages(messages) {
@@ -199,6 +316,24 @@ function buildApiParams(prunedMessages, modelToUse, settings, tools, modelContex
     }
 
     systemPrompt += `\n\n- Project Knowledge Base (Local RAG): You have access to 'query_project_knowledge' and 'read_project_file'. When answering questions about local project files, code, architecture, or documentation, use 'query_project_knowledge' to search relevant snippets and 'read_project_file' to view detailed file content. Always cite relevant file paths and line ranges (e.g. \`path/file.ext:L10-L40\`) in your response.`;
+
+    // Canvas Workspace System Instructions
+    systemPrompt += `\n\n- CANVAS WORKSPACE (Interactive Document Editor):
+You have access to interactive Canvas tools: 'canvas_create_document', 'canvas_update_document', 'canvas_edit_selection', and 'canvas_get_document'.
+When the user asks you to create, draft, write, edit, rewrite, improve, format, code, or alter a document or code file in the Canvas, ALWAYS invoke the appropriate Canvas tool to update the document directly.
+- Use 'canvas_create_document' when starting a new document or when no document is active.
+- Use 'canvas_update_document' when making extensive revisions, rewriting, restructuring, translating, or updating the full document.
+- Use 'canvas_edit_selection' when making targeted corrections, rewriting a specific paragraph, or replacing a specific section/snippet.`;
+
+    // Inject active Canvas document context if present
+    const activeCanvas = settings.activeCanvasDoc || getActiveCanvasDocument(settings.currentChatId || 'default');
+    if (activeCanvas && activeCanvas.content) {
+        systemPrompt += `\n\n=== ACTIVE CANVAS DOCUMENT ===\nDocument ID: ${activeCanvas.id}\nTitle: ${activeCanvas.title}\nLanguage: ${activeCanvas.language || 'markdown'}\nVersion: ${activeCanvas.version || 1}\nWords: ${activeCanvas.stats?.words || 0}\n`;
+        if (settings.selectedCanvasText) {
+            systemPrompt += `User Selected Text in Canvas:\n"""\n${settings.selectedCanvasText}\n"""\n`;
+        }
+        systemPrompt += `Current Content:\n\`\`\`${activeCanvas.language || ''}\n${activeCanvas.content}\n\`\`\`\n==============================\n`;
+    }
 
     if (settings.isAgentMode || settings.agentMode) {
         systemPrompt += `\n\n- AUTONOMOUS AGENT MODE: You are currently executing in Autonomous Multi-Step Agent Mode. Break down complex requests into logical sequential steps. Proactively invoke the necessary tools (web search, project knowledge, code execution, MCP tools) one after another to research, implement, and verify the user's objective without stopping prematurely. Once all steps are completed, provide a concise, high-quality final summary of your actions and findings.`;

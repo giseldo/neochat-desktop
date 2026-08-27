@@ -1256,6 +1256,32 @@ export const translations = {
         runCode: 'Executar Bloco de Código',
         runCodeDesc: 'Executa o código selecionado no painel de artefatos'
       }
+    },
+    canvas: {
+      label: 'Canvas',
+      openCanvas: 'Abrir Canvas',
+      hideCanvas: 'Ocultar Canvas',
+      openInCanvas: 'Abrir no Canvas',
+      clickToEdit: 'Clique para editar no Canvas',
+      clickToRename: 'Clique para renomear',
+      tabEditor: 'Editor',
+      tabPreview: 'Visualizar',
+      tabSplit: 'Dividido',
+      tabHistory: 'Versões',
+      words: 'palavras',
+      chars: 'caracteres',
+      readTime: 'leitura',
+      versions: 'versões',
+      revisionsHistory: 'Histórico de Versões',
+      exportDocument: 'Exportar Documento',
+      fullscreen: 'Tela Cheia',
+      exitFullscreen: 'Sair da Tela Cheia',
+      aiWriting: 'IA editando...',
+      editorPlaceholder: 'Escreva seu documento em Markdown aqui...',
+      aiPromptPlaceholder: 'Peça ao chatbot para alterar ou editar o documento...',
+      sendToAi: 'Pedir alteração à IA',
+      textSelected: 'Trecho selecionado',
+      clearSelection: 'Limpar seleção'
     }
   },
   en: {
@@ -2515,6 +2541,32 @@ export const translations = {
         runCode: 'Run Code Block',
         runCodeDesc: 'Executes the selected code block in the artifacts runner'
       }
+    },
+    canvas: {
+      label: 'Canvas',
+      openCanvas: 'Open Canvas',
+      hideCanvas: 'Hide Canvas',
+      openInCanvas: 'Open in Canvas',
+      clickToEdit: 'Click to edit in Canvas',
+      clickToRename: 'Click to rename',
+      tabEditor: 'Editor',
+      tabPreview: 'Preview',
+      tabSplit: 'Split',
+      tabHistory: 'Versions',
+      words: 'words',
+      chars: 'characters',
+      readTime: 'read',
+      versions: 'versions',
+      revisionsHistory: 'Version History',
+      exportDocument: 'Export Document',
+      fullscreen: 'Fullscreen',
+      exitFullscreen: 'Exit Fullscreen',
+      aiWriting: 'AI editing...',
+      editorPlaceholder: 'Write your document in Markdown here...',
+      aiPromptPlaceholder: 'Ask the chatbot to alter or edit the document...',
+      sendToAi: 'Ask AI for changes',
+      textSelected: 'Selected snippet',
+      clearSelection: 'Clear selection'
     }
   }
 };

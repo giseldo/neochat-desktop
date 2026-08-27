@@ -264,6 +264,24 @@ function updateChatProject(chatId, projectId) {
 }
 
 /**
+ * Update a chat's Canvas document
+ * @param {string} chatId - The chat ID
+ * @param {Object|null} canvasDoc - The Canvas document object
+ * @returns {Object|null} The updated chat object
+ */
+function updateChatCanvasDoc(chatId, canvasDoc) {
+    const chat = loadChat(chatId);
+    if (!chat) {
+        console.error(`Chat ${chatId} not found for canvas update`);
+        return null;
+    }
+
+    chat.canvasDoc = canvasDoc || null;
+    saveChat(chat);
+    return chat;
+}
+
+/**
  * Unassign a project from all chats that currently reference it
  * @param {string} projectId - The project ID being deleted
  */
@@ -413,6 +431,11 @@ function initializeChatHistoryHandlers(ipcMain) {
     // Update chat project
     ipcMain.handle('chat-history-update-project', async (event, chatId, projectId) => {
         return updateChatProject(chatId, projectId);
+    });
+
+    // Update chat canvas document
+    ipcMain.handle('chat-history-update-canvas', async (event, chatId, canvasDoc) => {
+        return updateChatCanvasDoc(chatId, canvasDoc);
     });
     
     // Delete a chat
@@ -633,6 +656,7 @@ module.exports = {
     updateChatMessages,
     updateChatTitle,
     updateChatProject,
+    updateChatCanvasDoc,
     unassignProjectFromChats,
     generateChatTitle,
     searchChatsContent,

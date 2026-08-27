@@ -1,4 +1,4 @@
-import { ArrowRight, Loader2, ImagePlus, Hammer, Upload, Zap, ZapOff, Square, Mic, MicOff, Terminal, Globe, BookOpen, SlidersHorizontal, Camera, Bot, Key } from "lucide-react";
+import { ArrowRight, Loader2, ImagePlus, Hammer, Upload, Zap, ZapOff, Square, Mic, MicOff, Terminal, Globe, BookOpen, SlidersHorizontal, Camera, Bot, Key, Layout } from "lucide-react";
 import React, { useContext, useEffect, useRef, useState, useMemo } from "react";
 import { Link } from "react-router-dom";
 import TextAreaAutosize from "react-textarea-autosize";
@@ -6,6 +6,7 @@ import { SearchableSelect } from "./ui/SearchableSelect";
 import { Button } from "./ui/button";
 import { cn } from "../lib/utils";
 import { ChatContext } from "../context/ChatContext";
+import { useCanvas } from "../context/CanvasContext";
 import { useLanguage } from "../context/LanguageContext";
 import { useProjects } from "../context/ProjectContext";
 import SlashCommandsPopover from "./SlashCommandsPopover";
@@ -38,6 +39,7 @@ function ChatInput({
 		: (Array.isArray(mcpTools) ? mcpTools.length : 0);
 	const { t, language } = useLanguage();
 	const { activeProject, openKnowledgeBaseModal } = useProjects();
+	const { canvasDoc, isOpen: isCanvasOpen, toggleCanvas, selectedText, setSelectedText } = useCanvas();
 	const [message, setMessage] = useState("");
 	const [suggestion, setSuggestion] = useState("");
 	const [autocompleteEnabled, setAutocompleteEnabled] = useState(true);
@@ -837,6 +839,36 @@ function ChatInput({
 				</div>
 			)}
 
+			{/* Active Canvas Document Chip */}
+			{canvasDoc && (
+				<div className="flex items-center gap-1.5 px-4 pt-1 select-none animate-in fade-in duration-200">
+					<div 
+						onClick={toggleCanvas}
+						className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 text-xs font-medium cursor-pointer hover:bg-emerald-500/20 transition-all shadow-2xs group"
+						title={isCanvasOpen ? (t('canvas.hideCanvas') || "Ocultar Canvas") : (t('canvas.openCanvas') || "Abrir Canvas")}
+					>
+						<Layout className="w-3.5 h-3.5 text-emerald-500 shrink-0 group-hover:scale-110 transition-transform" />
+						<span className="font-semibold">{t('canvas.label') || 'Canvas'}:</span>
+						<span className="truncate max-w-[220px] text-foreground font-normal">{canvasDoc.title || 'Documento'} (v{canvasDoc.version || 1})</span>
+						{selectedText && (
+							<span className="bg-amber-500/20 text-amber-700 dark:text-amber-300 px-1.5 py-0.2 rounded text-[10px] font-mono font-medium">
+								{t('canvas.textSelected') || 'Trecho selecionado'}
+							</span>
+						)}
+					</div>
+					{selectedText && (
+						<button
+							type="button"
+							onClick={() => setSelectedText('')}
+							className="text-[10px] text-muted-foreground hover:text-foreground px-1.5 py-0.5 rounded hover:bg-muted transition-colors"
+							title={t('canvas.clearSelection') || "Limpar seleção"}
+						>
+							✕
+						</button>
+					)}
+				</div>
+			)}
+
 			<div className="flex flex-col gap-3">
 				{/* Input Area with Submit Button */}
 				<div className="flex items-center gap-3">
@@ -1057,6 +1089,30 @@ function ChatInput({
 							{showButtonLabels && <span>{t('chat.webSearch')}</span>}
 							{webSearchActive && (
 								<span className="w-1.5 h-1.5 rounded-full bg-blue-500 flex-shrink-0"></span>
+							)}
+						</Button>
+
+						{/* Canvas Toggle Button */}
+						<Button
+							type="button"
+							variant="ghost"
+							size="sm"
+							onClick={toggleCanvas}
+							className={cn(
+								"transition-all duration-200 rounded-xl px-2.5 py-1.5 text-xs font-medium flex items-center gap-1.5 flex-shrink-0",
+								isCanvasOpen
+									? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 shadow-xs ring-1 ring-emerald-500/20"
+									: canvasDoc
+									? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 shadow-2xs"
+									: "text-muted-foreground hover:text-foreground hover:bg-muted/60 hover:shadow-xs"
+							)}
+							title={isCanvasOpen ? (t('canvas.hideCanvas') || 'Ocultar Canvas') : (t('canvas.openCanvas') || 'Abrir Canvas')}
+							disabled={loading}
+						>
+							<Layout className={cn("w-4 h-4 flex-shrink-0 text-emerald-500", isCanvasOpen && "animate-pulse")} />
+							{showButtonLabels && <span>{t('canvas.label') || 'Canvas'}</span>}
+							{canvasDoc && (
+								<span className="w-1.5 h-1.5 rounded-full bg-emerald-500 flex-shrink-0"></span>
 							)}
 						</Button>
 

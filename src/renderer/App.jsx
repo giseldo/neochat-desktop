@@ -8,6 +8,7 @@ import ChatHistorySidebar from './components/ChatHistorySidebar';
 import ThemeToggle from './components/ThemeToggle';
 import PersonaSelector, { DEFAULT_PERSONAS, getStoredActivePersona, ACTIVE_PERSONA_STORAGE_KEY } from './components/PersonaSelector';
 import ArtifactsPanel from './components/ArtifactsPanel';
+import CanvasPanel from './components/CanvasPanel';
 import McpCatalogModal from './components/McpCatalogModal';
 import ConversationStats from './components/ConversationStats';
 import TrajectoryView from './components/TrajectoryView';
@@ -19,9 +20,10 @@ import WorkflowsModal from './components/WorkflowsModal';
 import WelcomeScreen from './components/WelcomeScreen';
 import KeyboardShortcutsModal from './components/KeyboardShortcutsModal';
 import { useChat } from './context/ChatContext';
+import { useCanvas } from './context/CanvasContext';
 import { useProjects } from './context/ProjectContext';
 import { useLanguage } from './context/LanguageContext';
-import { Settings, PanelLeftClose, PanelLeft, Radio, MessagesSquare, Sparkles, Store, Columns2, X, FolderKanban, BookOpen, Scale, Bot, Workflow, ChevronDown, Keyboard, Key, AlertCircle } from 'lucide-react';
+import { Settings, PanelLeftClose, PanelLeft, Radio, MessagesSquare, Sparkles, Store, Columns2, X, FolderKanban, BookOpen, Scale, Bot, Workflow, ChevronDown, Keyboard, Key, AlertCircle, Layout } from 'lucide-react';
 import { Button } from './components/ui/button';
 import { cn } from './lib/utils';
 import { groupModels } from './lib/modelGrouping';
@@ -105,6 +107,15 @@ function App() {
     toggleSidebar,
     needsTitleGeneration
   } = useChat(); // Use context state
+  const {
+    canvasDoc,
+    isOpen: isCanvasOpen,
+    toggleCanvas,
+    openCanvas,
+    loadChatCanvas,
+    clearCanvas,
+    selectedText
+  } = useCanvas();
   const {
     activeProject,
     activeProjectId,
@@ -851,6 +862,18 @@ function App() {
       const response = await window.electron.executeToolCall(toolCall);
       const durationMs = Date.now() - startTime;
       
+      // If a canvas document was created or updated, synchronize CanvasContext and open panel
+      if (response.canvasData?.document) {
+        openCanvas(response.canvasData.document);
+      } else if (response.result && toolCall.function?.name?.startsWith('canvas_')) {
+        try {
+          const parsed = JSON.parse(response.result);
+          if (parsed.document) {
+            openCanvas(parsed.document);
+          }
+        } catch (e) {}
+      }
+
       // Return the tool response message in the correct format
       return {
         role: 'tool',
@@ -1034,6 +1057,14 @@ function App() {
         }
         if (activePersona?.systemPrompt && activePersona.systemPrompt.trim()) {
             systemParts.push(activePersona.systemPrompt.trim());
+        }
+        if (canvasDoc && canvasDoc.content) {
+            let canvasContextPrompt = `[Documento Canvas Ativo no Espaço de Trabalho]:\nTítulo: "${canvasDoc.title}" (v${canvasDoc.version || 1}, formato: ${canvasDoc.language || 'markdown'})\nTotal de Palavras: ${canvasDoc.stats?.words || 0}\n`;
+            if (selectedText) {
+                canvasContextPrompt += `Trecho Selecionado pelo Usuário no Canvas:\n"""\n${selectedText}\n"""\n`;
+            }
+            canvasContextPrompt += `Conteúdo do Documento no Canvas:\n\`\`\`${canvasDoc.language || ''}\n${canvasDoc.content}\n\`\`\``;
+            systemParts.push(canvasContextPrompt);
         }
         if (systemParts.length > 0 && !messagesToSend.some(m => m.role === 'system')) {
             messagesToSend = [{ role: 'system', content: systemParts.join('\n\n') }, ...messagesToSend];
@@ -2090,12 +2121,15 @@ function App() {
       setActiveProjectId(targetProjectId);
     }
     
+    // Clear canvas when creating a new chat
+    clearCanvas();
+
     // Create a new chat in history with the current API mode and target project
     await createNewChat(selectedModel, useResponsesApi, projId);
 
     // Signal the ChatInput to focus on the text area
     setChatFocusSignal(s => s + 1);
-  }, [loading, createNewChat, selectedModel, useResponsesApi, activeProjectId, setActiveProjectId]);
+  }, [loading, createNewChat, selectedModel, useResponsesApi, activeProjectId, setActiveProjectId, clearCanvas]);
 
   // Global Keyboard shortcuts:
   // - Ctrl/Cmd + N -> New Chat
@@ -2163,6 +2197,13 @@ function App() {
   const handleChatLoaded = useCallback(async (chat) => {
     if (!chat) return;
 
+    // Load canvas document if this chat has one
+    if (chat.canvasDoc) {
+      loadChatCanvas(chat.canvasDoc);
+    } else {
+      loadChatCanvas(null);
+    }
+
     // Sync activeProjectId with chat's project
     if (chat.projectId !== undefined) {
       setActiveProjectId(chat.projectId || null);
@@ -2189,7 +2230,7 @@ function App() {
         }
       }
     }
-  }, [useResponsesApi, setActiveProjectId]);
+  }, [useResponsesApi, setActiveProjectId, loadChatCanvas]);
 
   const handleBranchFromMessage = useCallback(async (messageIndex) => {
     if (!currentChatId || loading) return;
@@ -2364,6 +2405,30 @@ function App() {
                 <Scale className={cn("h-3.5 w-3.5 text-purple-400", showButtonLabels && "mr-1.5")} />
                 {showButtonLabels && <span className="hidden md:inline">{t('header.compareModels')}</span>}
               </Button>}
+
+              {/* Canvas Workspace Header Button */}
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={toggleCanvas}
+                className={cn(
+                  "text-xs border-border transition-all",
+                  isCanvasOpen
+                    ? "bg-emerald-500/15 border-emerald-500/40 text-emerald-600 dark:text-emerald-400 font-semibold shadow-xs ring-1 ring-emerald-500/20"
+                    : canvasDoc
+                    ? "bg-emerald-500/10 border-emerald-500/25 text-emerald-600 dark:text-emerald-400"
+                    : "text-foreground hover:bg-muted"
+                )}
+                title={canvasDoc ? `Canvas: ${canvasDoc.title} (v${canvasDoc.version || 1})` : (t('canvas.openCanvas') || 'Abrir Canvas')}
+              >
+                <Layout className={cn("h-3.5 w-3.5 text-emerald-500", showButtonLabels && "mr-1.5")} />
+                <span className="hidden sm:inline">
+                  {canvasDoc ? `Canvas (v${canvasDoc.version || 1})` : 'Canvas'}
+                </span>
+                {canvasDoc && (
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 ml-1 shrink-0 animate-pulse"></span>
+                )}
+              </Button>
 
               {/* Theme & Quick Appearance / Mode Toggle */}
               <ThemeToggle
@@ -2601,13 +2666,20 @@ function App() {
         </div>
 
         {/* Side-by-side Artifacts Panel */}
-        {activeArtifact && (
+        {activeArtifact && !isCanvasOpen && (
           <div className="w-full md:w-[480px] lg:w-[580px] flex-shrink-0 h-full border-l border-border">
             <ArtifactsPanel
               artifact={activeArtifact}
               onClose={() => setActiveArtifact(null)}
             />
           </div>
+        )}
+
+        {/* Side-by-side Canvas Panel */}
+        {isCanvasOpen && canvasDoc && (
+          <CanvasPanel
+            onSendPrompt={(prompt) => handleSendMessage(prompt)}
+          />
         )}
       </div>
 

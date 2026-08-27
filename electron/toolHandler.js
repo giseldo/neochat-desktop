@@ -1,6 +1,7 @@
 const { limitContentLength } = require('./utils');
 const { executeWebSearch } = require('./webSearchService');
 const { queryKnowledge, readFileContent } = require('./ragService');
+const { handleCanvasToolCall } = require('./canvasManager');
 
 /**
  * Handles the 'execute-tool-call' IPC event.
@@ -38,6 +39,25 @@ async function handleExecuteToolCall(event, toolCall, discoveredTools, mcpClient
       error: `Failed to parse arguments for ${toolName}. Error: ${parseError.message}`,
       tool_call_id: toolCallId
     };
+  }
+
+  // Handle Native Built-in Canvas Tools (canvas_create_document, canvas_update_document, canvas_edit_selection, canvas_get_document)
+  if (toolName.startsWith('canvas_')) {
+    try {
+      const chatId = settings?.currentChatId || args?.chatId || 'default';
+      const canvasResponse = handleCanvasToolCall(toolName, args, chatId);
+      return {
+        result: limitContentLength(JSON.stringify(canvasResponse, null, 2), settings?.toolOutputLimit || 16000),
+        tool_call_id: toolCallId,
+        canvasData: canvasResponse
+      };
+    } catch (canvasError) {
+      console.error(`Error executing native Canvas tool "${toolName}":`, canvasError);
+      return {
+        error: limitContentLength(`Canvas tool error: ${canvasError.message}`, settings?.toolOutputLimit || 8000),
+        tool_call_id: toolCallId
+      };
+    }
   }
 
   // Handle Native Built-in Web Search Tool

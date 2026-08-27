@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
-import { Globe, BookOpen, FileText, Wrench, ChevronDown, Loader2 } from 'lucide-react';
+import { Globe, BookOpen, FileText, Wrench, ChevronDown, Loader2, Sparkles, Layout } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
+import { CanvasCard } from './CanvasCard';
 import { cn } from '../lib/utils';
 
 function ToolCall({ toolCall, toolResult }) {
@@ -10,18 +11,21 @@ function ToolCall({ toolCall, toolResult }) {
   const [isExpanded, setIsExpanded] = useState(false);
   const [result, setResult] = useState(null);
   const [error, setError] = useState(null);
+  const [parsedData, setParsedData] = useState(null);
 
   useEffect(() => {
     setResult(null);
     setError(null);
+    setParsedData(null);
 
     if (toolResult) {
       try {
-        const parsedResult = JSON.parse(toolResult);
-        if (parsedResult.error) {
-          setError(parsedResult.error);
+        const parsed = JSON.parse(toolResult);
+        if (parsed.error) {
+          setError(parsed.error);
         } else {
-          setResult(JSON.stringify(parsedResult, null, 2));
+          setParsedData(parsed);
+          setResult(JSON.stringify(parsed, null, 2));
         }
       } catch (e) {
         setResult(toolResult);
@@ -57,6 +61,7 @@ function ToolCall({ toolCall, toolResult }) {
   const isWebSearch = functionName === 'web_search';
   const isKnowledgeSearch = functionName === 'query_project_knowledge';
   const isReadFile = functionName === 'read_project_file';
+  const isCanvasTool = functionName.startsWith('canvas_');
   const searchQuery = args?.query || args?.q || '';
   const filePathArg = args?.filePath || args?.path || '';
 
@@ -67,6 +72,17 @@ function ToolCall({ toolCall, toolResult }) {
     labelText = searchQuery ? `"${searchQuery}"` : t('toolCall.knowledgeBase');
   } else if (isReadFile) {
     labelText = filePathArg ? `${filePathArg}` : t('toolCall.readFile');
+  } else if (isCanvasTool) {
+    labelText = args?.title ? `"${args.title}"` : (args?.summary || formattedName);
+  }
+
+  // If this is a completed Canvas document creation/update, render CanvasCard directly!
+  if (isCanvasTool && parsedData && parsedData.document) {
+    return (
+      <div className="w-full max-w-2xl my-2">
+        <CanvasCard canvasData={parsedData} />
+      </div>
+    );
   }
 
   return (
@@ -77,7 +93,12 @@ function ToolCall({ toolCall, toolResult }) {
           onClick={() => setIsExpanded(!isExpanded)}
         >
           <div className="flex items-center gap-1.5 min-w-0">
-            {isWebSearch ? (
+            {isCanvasTool ? (
+              <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-primary bg-primary/10 border border-primary/20 px-1.5 py-0.5 rounded shrink-0">
+                <Layout className="w-3 h-3 shrink-0" />
+                <span>Canvas</span>
+              </span>
+            ) : isWebSearch ? (
               <span className="inline-flex items-center gap-1 text-[11px] font-medium text-blue-600 dark:text-blue-400 bg-blue-500/10 border border-blue-500/20 px-1.5 py-0.5 rounded shrink-0">
                 <Globe className="w-3 h-3 shrink-0" />
                 <span>{t('toolCall.webSearch')}</span>

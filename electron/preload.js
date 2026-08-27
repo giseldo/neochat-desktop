@@ -292,11 +292,18 @@ contextBridge.exposeInMainWorld('electron', {
     updateMessages: (chatId, messages) => ipcRenderer.invoke('chat-history-update-messages', chatId, messages),
     updateTitle: (chatId, title) => ipcRenderer.invoke('chat-history-update-title', chatId, title),
     updateProject: (chatId, projectId) => ipcRenderer.invoke('chat-history-update-project', chatId, projectId),
+    updateCanvas: (chatId, canvasDoc) => ipcRenderer.invoke('chat-history-update-canvas', chatId, canvasDoc),
     delete: (chatId) => ipcRenderer.invoke('chat-history-delete', chatId),
     deleteAll: () => ipcRenderer.invoke('chat-history-delete-all'),
     clearMessages: (chatId) => ipcRenderer.invoke('chat-history-clear-messages', chatId),
     generateTitle: (userMessage) => ipcRenderer.invoke('chat-history-generate-title', userMessage),
     searchContent: (query) => ipcRenderer.invoke('chat-history-search-content', query),
+  },
+
+  // --- Canvas Functions ---
+  canvas: {
+    computeDiff: (oldText, newText) => ipcRenderer.invoke('canvas-compute-diff', { oldText, newText }),
+    calculateStats: (content) => ipcRenderer.invoke('canvas-calculate-stats', { content }),
   },
 
   // --- Projects Functions ---

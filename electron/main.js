@@ -66,6 +66,9 @@ const codeRunner = require('./codeRunner');
 // Import RAG / Knowledge Base service
 const ragService = require('./ragService');
 
+// Import Canvas manager
+const canvasManager = require('./canvasManager');
+
 // Global variable to hold the main window instance
 let mainWindow;
 
@@ -457,6 +460,23 @@ app.whenReady().then(async () => {
   ipcMain.handle('google-oauth-validate', async () => {
     const currentSettings = loadSettings();
     return googleOAuthManager.validateCredentials(currentSettings);
+  });
+
+  // --- Canvas IPC Handlers --- //
+  ipcMain.handle('canvas-compute-diff', async (_event, { oldText, newText }) => {
+    return canvasManager.computeLineDiff(oldText, newText);
+  });
+
+  ipcMain.handle('canvas-calculate-stats', async (_event, { content }) => {
+    return canvasManager.calculateDocStats(content);
+  });
+
+  ipcMain.handle('canvas-get-active', async (_event, chatId) => {
+    return canvasManager.getActiveCanvasDocument(chatId);
+  });
+
+  ipcMain.handle('canvas-set-active', async (_event, { chatId, doc }) => {
+    return canvasManager.setActiveCanvasDocument(chatId, doc);
   });
 
   // --- Register Core App IPC Handlers --- //
