@@ -23,7 +23,7 @@ import { useChat } from './context/ChatContext';
 import { useCanvas } from './context/CanvasContext';
 import { useProjects } from './context/ProjectContext';
 import { useLanguage } from './context/LanguageContext';
-import { Settings, PanelLeftClose, PanelLeft, Radio, MessagesSquare, Sparkles, Store, Columns2, X, FolderKanban, BookOpen, Scale, Bot, Workflow, ChevronDown, Keyboard, Key, AlertCircle, Layout } from 'lucide-react';
+import { Settings, PanelLeftClose, PanelLeft, Radio, MessagesSquare, Sparkles, Store, Columns2, X, FolderKanban, BookOpen, Scale, Bot, Workflow, ChevronDown, Keyboard, Key, AlertCircle } from 'lucide-react';
 import { Button } from './components/ui/button';
 import { cn } from './lib/utils';
 import { groupModels } from './lib/modelGrouping';
@@ -110,7 +110,6 @@ function App() {
   const {
     canvasDoc,
     isOpen: isCanvasOpen,
-    toggleCanvas,
     openCanvas,
     loadChatCanvas,
     clearCanvas,
@@ -2405,30 +2404,6 @@ function App() {
                 <Scale className={cn("h-3.5 w-3.5 text-purple-400", showButtonLabels && "mr-1.5")} />
                 {showButtonLabels && <span className="hidden md:inline">{t('header.compareModels')}</span>}
               </Button>}
-
-              {/* Canvas Workspace Header Button */}
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={toggleCanvas}
-                className={cn(
-                  "text-xs border-border transition-all",
-                  isCanvasOpen
-                    ? "bg-emerald-500/15 border-emerald-500/40 text-emerald-600 dark:text-emerald-400 font-semibold shadow-xs ring-1 ring-emerald-500/20"
-                    : canvasDoc
-                    ? "bg-emerald-500/10 border-emerald-500/25 text-emerald-600 dark:text-emerald-400"
-                    : "text-foreground hover:bg-muted"
-                )}
-                title={canvasDoc ? `Canvas: ${canvasDoc.title} (v${canvasDoc.version || 1})` : (t('canvas.openCanvas') || 'Abrir Canvas')}
-              >
-                <Layout className={cn("h-3.5 w-3.5 text-emerald-500", showButtonLabels && "mr-1.5")} />
-                <span className="hidden sm:inline">
-                  {canvasDoc ? `Canvas (v${canvasDoc.version || 1})` : 'Canvas'}
-                </span>
-                {canvasDoc && (
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 ml-1 shrink-0 animate-pulse"></span>
-                )}
-              </Button>
 
               {/* Theme & Quick Appearance / Mode Toggle */}
               <ThemeToggle

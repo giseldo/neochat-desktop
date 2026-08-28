@@ -349,7 +349,7 @@ export default function KeyboardShortcutsModal({ isOpen, onClose }) {
           </div>
 
           {/* Category Tabs */}
-          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none">
+          <div className="flex flex-wrap items-center gap-1.5">
             {categories.map((cat) => {
               const Icon = cat.icon;
               const isActive = activeCategory === cat.id;

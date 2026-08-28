@@ -96,8 +96,8 @@ export function ThemeToggle({ className, interfaceMode: propInterfaceMode, onInt
       {isOpen && (
         <div className="absolute right-0 mt-2 w-[370px] max-w-[calc(100vw-1.5rem)] rounded-2xl border border-border bg-popover text-popover-foreground p-3.5 shadow-2xl z-50 animate-in fade-in-0 zoom-in-95 backdrop-blur-md">
           {/* Header */}
-          <div className="flex items-center justify-between pb-2.5 mb-2.5 border-b border-border/70 gap-2">
-            <div className="flex items-center gap-1.5 shrink-0">
+          <div className="flex items-center justify-between pb-2 mb-2.5 border-b border-border/70">
+            <div className="flex items-center gap-1.5">
               <div
                 className="w-4 h-4 rounded-full flex items-center justify-center text-white shrink-0"
                 style={{ backgroundColor: activeColorObj.hex }}
@@ -106,52 +106,52 @@ export function ThemeToggle({ className, interfaceMode: propInterfaceMode, onInt
               </div>
               <span className="text-xs font-semibold">{t('theme.quickMenuTitle')}</span>
             </div>
-            
-            {/* Tabs */}
-            <div className="flex items-center bg-muted/60 p-0.5 rounded-lg border border-border/50 shrink-0">
-              <button
-                type="button"
-                onClick={() => setActiveTab('colors')}
-                className={cn(
-                  "px-2 py-0.5 text-[11px] font-medium rounded-md transition-colors flex items-center gap-1",
-                  activeTab === 'colors'
-                    ? "bg-background text-foreground shadow-2xs font-semibold"
-                    : "text-muted-foreground hover:text-foreground"
-                )}
-                title={t('theme.tabs.colors', 'Cores')}
-              >
-                <Palette className="w-3 h-3 shrink-0" />
-                <span>{t('theme.tabs.colors', 'Cores')}</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => setActiveTab('fonts')}
-                className={cn(
-                  "px-2 py-0.5 text-[11px] font-medium rounded-md transition-colors flex items-center gap-1",
-                  activeTab === 'fonts'
-                    ? "bg-background text-foreground shadow-2xs font-semibold"
-                    : "text-muted-foreground hover:text-foreground"
-                )}
-                title={t('theme.tabs.fonts', 'Tipografia')}
-              >
-                <Type className="w-3 h-3 shrink-0" />
-                <span>{t('theme.tabs.fonts', 'Tipografia')}</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => setActiveTab('experience')}
-                className={cn(
-                  "px-2 py-0.5 text-[11px] font-medium rounded-md transition-colors flex items-center gap-1",
-                  activeTab === 'experience'
-                    ? "bg-background text-foreground shadow-2xs font-semibold"
-                    : "text-muted-foreground hover:text-foreground"
-                )}
-                title={t('theme.tabs.experience', 'Experiência')}
-              >
-                <SlidersHorizontal className="w-3 h-3 shrink-0" />
-                <span>{t('theme.tabs.experience', 'Experiência')}</span>
-              </button>
-            </div>
+          </div>
+
+          {/* Tabs */}
+          <div className="grid grid-cols-3 bg-muted/60 p-0.5 rounded-lg border border-border/50 mb-3 gap-0.5">
+            <button
+              type="button"
+              onClick={() => setActiveTab('colors')}
+              className={cn(
+                "px-2 py-1 text-[11px] font-medium rounded-md transition-colors flex items-center justify-center gap-1.5 min-w-0",
+                activeTab === 'colors'
+                  ? "bg-background text-foreground shadow-2xs font-semibold"
+                  : "text-muted-foreground hover:text-foreground"
+              )}
+              title={t('theme.tabs.colors', 'Cores')}
+            >
+              <Palette className="w-3.5 h-3.5 shrink-0" />
+              <span className="truncate">{t('theme.tabs.colors', 'Cores')}</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab('fonts')}
+              className={cn(
+                "px-2 py-1 text-[11px] font-medium rounded-md transition-colors flex items-center justify-center gap-1.5 min-w-0",
+                activeTab === 'fonts'
+                  ? "bg-background text-foreground shadow-2xs font-semibold"
+                  : "text-muted-foreground hover:text-foreground"
+              )}
+              title={t('theme.tabs.fonts', 'Tipografia')}
+            >
+              <Type className="w-3.5 h-3.5 shrink-0" />
+              <span className="truncate">{t('theme.tabs.fonts', 'Tipografia')}</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab('experience')}
+              className={cn(
+                "px-2 py-1 text-[11px] font-medium rounded-md transition-colors flex items-center justify-center gap-1.5 min-w-0",
+                activeTab === 'experience'
+                  ? "bg-background text-foreground shadow-2xs font-semibold"
+                  : "text-muted-foreground hover:text-foreground"
+              )}
+              title={t('theme.tabs.experience', 'Experiência')}
+            >
+              <SlidersHorizontal className="w-3.5 h-3.5 shrink-0" />
+              <span className="truncate">{t('theme.tabs.experience', 'Experiência')}</span>
+            </button>
           </div>
 
           {activeTab === 'colors' && (
