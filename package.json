@@ -34,7 +34,8 @@
     "test:observability": "node test-observability-manager.js",
     "test:git-manager": "node test-git-manager.js",
     "test:config-dir": "node test-config-dir.js",
-    "test:canvas": "node test-canvas.js"
+    "test:canvas": "node test-canvas.js",
+    "test:canvas-tts": "node test-canvas-tts.js"
   },
   "keywords": [
     "electron",

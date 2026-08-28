@@ -1281,7 +1281,14 @@ export const translations = {
       aiPromptPlaceholder: 'Peça ao chatbot para alterar ou editar o documento...',
       sendToAi: 'Pedir alteração à IA',
       textSelected: 'Trecho selecionado',
-      clearSelection: 'Limpar seleção'
+      clearSelection: 'Limpar seleção',
+      ttsPlay: 'Ouvir Documento (TTS)',
+      ttsStop: 'Parar Leitura',
+      ttsPause: 'Pausar Leitura',
+      ttsResume: 'Continuar Leitura',
+      ttsPlaying: 'Lendo Documento...',
+      ttsListenSnippet: 'Ouvir Trecho',
+      ttsSpeed: 'Velocidade de Leitura'
     }
   },
   en: {
@@ -2566,7 +2573,14 @@ export const translations = {
       aiPromptPlaceholder: 'Ask the chatbot to alter or edit the document...',
       sendToAi: 'Ask AI for changes',
       textSelected: 'Selected snippet',
-      clearSelection: 'Clear selection'
+      clearSelection: 'Clear selection',
+      ttsPlay: 'Listen to Document (TTS)',
+      ttsStop: 'Stop Reading',
+      ttsPause: 'Pause Reading',
+      ttsResume: 'Resume Reading',
+      ttsPlaying: 'Reading Document...',
+      ttsListenSnippet: 'Listen to Snippet',
+      ttsSpeed: 'Reading Speed'
     }
   }
 };

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   FileText, 
   Sparkles, 
@@ -8,16 +8,20 @@ import {
   History, 
   FileCode, 
   ArrowRight,
-  Pencil
+  Pencil,
+  Volume2,
+  Square
 } from 'lucide-react';
 import { useCanvas } from '../context/CanvasContext';
 import { useLanguage } from '../context/LanguageContext';
+import { playSpeech, stopSpeech } from '../lib/ttsUtils';
 import { cn } from '../lib/utils';
 
 export function CanvasCard({ canvasData, document: propDoc, className }) {
   const { openCanvas } = useCanvas();
-  const { t } = useLanguage();
+  const { t, language: appLanguage } = useLanguage();
   const [copied, setCopied] = useState(false);
+  const [isSpeaking, setIsSpeaking] = useState(false);
 
   const doc = propDoc || canvasData?.document;
   const title = canvasData?.title || doc?.title || 'Documento Canvas';
@@ -27,6 +31,31 @@ export function CanvasCard({ canvasData, document: propDoc, className }) {
   const summary = canvasData?.summary || (version > 1 ? `Versão ${version} gerada` : 'Documento criado no Canvas');
   const action = canvasData?.action || (version > 1 ? 'updated' : 'created');
   const previewContent = (doc?.content || canvasData?.content || '').slice(0, 160).trim();
+
+  useEffect(() => {
+    return () => {
+      if (isSpeaking) stopSpeech();
+    };
+  }, [isSpeaking]);
+
+  const handleToggleSpeech = (e) => {
+    e.stopPropagation();
+    if (isSpeaking) {
+      stopSpeech();
+      setIsSpeaking(false);
+    } else {
+      const textToSpeak = doc?.content || canvasData?.content || summary;
+      if (!textToSpeak) return;
+
+      playSpeech({
+        text: textToSpeak,
+        language: appLanguage === 'pt' ? 'pt' : 'en',
+        onStart: () => setIsSpeaking(true),
+        onEnd: () => setIsSpeaking(false),
+        onError: () => setIsSpeaking(false)
+      });
+    }
+  };
 
   const handleCopy = async (e) => {
     e.stopPropagation();
@@ -87,6 +116,20 @@ export function CanvasCard({ canvasData, document: propDoc, className }) {
 
         {/* Action buttons */}
         <div className="flex items-center gap-1 shrink-0">
+          <button
+            type="button"
+            onClick={handleToggleSpeech}
+            className={cn(
+              "p-1.5 rounded-lg hover:bg-muted transition-colors",
+              isSpeaking
+                ? "text-primary bg-primary/10 animate-pulse ring-1 ring-primary/30"
+                : "text-muted-foreground hover:text-foreground"
+            )}
+            title={isSpeaking ? (t('canvas.ttsStop') || 'Parar Leitura') : (t('canvas.ttsPlay') || 'Ouvir')}
+          >
+            {isSpeaking ? <Square className="w-3.5 h-3.5 fill-current" /> : <Volume2 className="w-3.5 h-3.5" />}
+          </button>
+
           <button
             type="button"
             onClick={handleCopy}

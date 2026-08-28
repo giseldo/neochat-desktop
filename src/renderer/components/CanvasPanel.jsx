@@ -35,9 +35,13 @@ import {
   Type,
   FileCheck,
   Scissors,
-  Maximize,
   HelpCircle,
-  Undo2
+  Undo2,
+  Volume2,
+  VolumeX,
+  Pause,
+  Square,
+  AudioLines
 } from 'lucide-react';
 import { useCanvas } from '../context/CanvasContext';
 import { useLanguage } from '../context/LanguageContext';
@@ -45,6 +49,7 @@ import { useTheme } from '../context/ThemeContext';
 import MarkdownRenderer from './MarkdownRenderer';
 import { cn } from '../lib/utils';
 import { computeLineDiff } from '../lib/diffUtils';
+import { playSpeech, stopSpeech, pauseSpeech, resumeSpeech } from '../lib/ttsUtils';
 
 const SUPPORTED_LANGUAGES = [
   { id: 'markdown', label: 'Markdown (.md)', icon: FileText },
@@ -94,10 +99,42 @@ export function CanvasPanel({ onSendPrompt, className }) {
   // Floating selection menu state
   const [floatingMenuPos, setFloatingMenuPos] = useState(null);
 
+  // TTS Speech Synthesis State
+  const [isSpeaking, setIsSpeaking] = useState(false);
+  const [isPaused, setIsPaused] = useState(false);
+  const [ttsRate, setTtsRate] = useState(1.05);
+  const [ttsVoiceURI, setTtsVoiceURI] = useState('');
+  const [isTtsSpeedMenuOpen, setIsTtsSpeedMenuOpen] = useState(false);
+
   const editorTextareaRef = useRef(null);
   const monacoEditorRef = useRef(null);
   const previewScrollRef = useRef(null);
   const editorScrollRef = useRef(null);
+
+  // Load global TTS settings from electron storage
+  useEffect(() => {
+    window.electron?.getSettings?.().then((settings) => {
+      if (settings?.tts) {
+        if (settings.tts.rate) setTtsRate(Number(settings.tts.rate) || 1.05);
+        if (settings.tts.voiceURI) setTtsVoiceURI(settings.tts.voiceURI);
+      }
+    }).catch(() => {});
+  }, []);
+
+  // Cleanup speech synthesis on unmount or when document ID changes
+  useEffect(() => {
+    return () => {
+      stopSpeech();
+    };
+  }, []);
+
+  useEffect(() => {
+    if (isSpeaking) {
+      stopSpeech();
+      setIsSpeaking(false);
+      setIsPaused(false);
+    }
+  }, [canvasDoc?.id]);
 
   // Sync canvasDoc content to local content
   useEffect(() => {
@@ -157,6 +194,61 @@ export function CanvasPanel({ onSendPrompt, className }) {
       setTimeout(() => setCopied(false), 2000);
     } catch (err) {
       console.error('Failed to copy canvas content:', err);
+    }
+  };
+
+  // TTS Speech Synthesis Toggle & Playback
+  const handleToggleSpeech = (targetText = null) => {
+    if (isSpeaking) {
+      stopSpeech();
+      setIsSpeaking(false);
+      setIsPaused(false);
+    } else {
+      const textToSpeak = targetText || localContent || canvasDoc?.content || '';
+      if (!textToSpeak.trim()) return;
+
+      playSpeech({
+        text: textToSpeak,
+        language: (canvasDoc?.language === 'en' || language === 'en') ? 'en' : 'pt',
+        voiceURI: ttsVoiceURI,
+        rate: ttsRate,
+        onStart: () => {
+          setIsSpeaking(true);
+          setIsPaused(false);
+        },
+        onEnd: () => {
+          setIsSpeaking(false);
+          setIsPaused(false);
+        },
+        onError: () => {
+          setIsSpeaking(false);
+          setIsPaused(false);
+        },
+        onPause: () => setIsPaused(true),
+        onResume: () => setIsPaused(false)
+      });
+    }
+  };
+
+  const handleTogglePause = () => {
+    if (!isSpeaking) return;
+    if (isPaused) {
+      resumeSpeech();
+      setIsPaused(false);
+    } else {
+      pauseSpeech();
+      setIsPaused(true);
+    }
+  };
+
+  const handleSpeedChange = (newRate) => {
+    setTtsRate(newRate);
+    setIsTtsSpeedMenuOpen(false);
+    if (isSpeaking) {
+      stopSpeech();
+      setTimeout(() => {
+        handleToggleSpeech(localContent);
+      }, 60);
     }
   };
 
@@ -401,7 +493,75 @@ export function CanvasPanel({ onSendPrompt, className }) {
         </div>
 
         {/* Action Controls */}
-        <div className="flex items-center gap-1 shrink-0">
+        <div className="flex items-center gap-1.5 shrink-0">
+          {/* TTS Audio Controls */}
+          <div className="flex items-center gap-0.5 bg-muted/70 rounded-lg p-0.5 border border-border/60">
+            <button
+              type="button"
+              onClick={() => handleToggleSpeech()}
+              className={cn(
+                "flex items-center gap-1.5 px-2 py-1 rounded-md text-xs font-medium transition-all",
+                isSpeaking
+                  ? "bg-primary text-primary-foreground shadow-xs animate-pulse"
+                  : "text-muted-foreground hover:text-foreground hover:bg-muted"
+              )}
+              title={isSpeaking ? (t('canvas.ttsStop') || 'Parar Leitura') : (t('canvas.ttsPlay') || 'Ouvir Documento (TTS)')}
+            >
+              {isSpeaking ? (
+                <>
+                  <Square className="w-3.5 h-3.5 fill-current" />
+                  <span className="hidden sm:inline text-[11px] font-semibold">{t('canvas.ttsStop') || 'Parar'}</span>
+                </>
+              ) : (
+                <>
+                  <Volume2 className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline text-[11px]">{t('canvas.ttsPlay') || 'Ouvir'}</span>
+                </>
+              )}
+            </button>
+
+            {isSpeaking && (
+              <button
+                type="button"
+                onClick={handleTogglePause}
+                className="p-1 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+                title={isPaused ? (t('canvas.ttsResume') || 'Continuar') : (t('canvas.ttsPause') || 'Pausar')}
+              >
+                {isPaused ? <Play className="w-3.5 h-3.5 text-primary fill-primary" /> : <Pause className="w-3.5 h-3.5" />}
+              </button>
+            )}
+
+            {/* Speed selection dropdown */}
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => setIsTtsSpeedMenuOpen(!isTtsSpeedMenuOpen)}
+                className="px-1.5 py-0.5 text-[10px] font-mono text-muted-foreground hover:text-foreground hover:bg-muted rounded transition-colors"
+                title={t('canvas.ttsSpeed') || 'Velocidade de Leitura'}
+              >
+                {ttsRate}x
+              </button>
+
+              {isTtsSpeedMenuOpen && (
+                <div className="absolute right-0 mt-1 w-24 rounded-lg bg-popover border border-border shadow-lg py-1 z-50 animate-in fade-in zoom-in-95 text-xs">
+                  {[0.75, 1.0, 1.25, 1.5, 1.75, 2.0].map((rate) => (
+                    <button
+                      key={rate}
+                      type="button"
+                      onClick={() => handleSpeedChange(rate)}
+                      className={cn(
+                        "w-full text-left px-3 py-1 text-xs hover:bg-muted font-mono transition-colors",
+                        ttsRate === rate && "font-bold text-primary bg-primary/10"
+                      )}
+                    >
+                      {rate}x {rate === 1.0 ? '(Normal)' : ''}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+
           <button
             type="button"
             onClick={handleCopy}
@@ -803,11 +963,26 @@ export function CanvasPanel({ onSendPrompt, className }) {
               </button>
               <button
                 type="button"
-                onClick={() => handleSendQuickAction('Explicar detalhadamente este trecho')}
-                className="flex items-center gap-1 px-2 py-1 rounded-lg hover:bg-primary hover:text-primary-foreground text-foreground text-[11px] font-medium transition-colors"
+                onClick={() => handleToggleSpeech(selectedText)}
+                className={cn(
+                  "flex items-center gap-1 px-2 py-1 rounded-lg text-[11px] font-medium transition-colors",
+                  isSpeaking
+                    ? "bg-primary text-primary-foreground"
+                    : "hover:bg-primary hover:text-primary-foreground text-foreground"
+                )}
+                title={isSpeaking ? (t('canvas.ttsStop') || 'Parar Leitura') : (t('canvas.ttsListenSnippet') || 'Ouvir Trecho')}
               >
-                <HelpCircle className="w-3 h-3 text-emerald-500" />
-                <span>Explicar</span>
+                {isSpeaking ? (
+                  <>
+                    <Square className="w-3 h-3 fill-current text-white" />
+                    <span>{t('canvas.ttsStop') || 'Parar'}</span>
+                  </>
+                ) : (
+                  <>
+                    <Volume2 className="w-3 h-3 text-cyan-500" />
+                    <span>{t('canvas.ttsListenSnippet') || 'Ouvir'}</span>
+                  </>
+                )}
               </button>
             </div>
           </div>
