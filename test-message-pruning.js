@@ -137,7 +137,8 @@ const dirtyMessage = {
   executed_tools: [3],
   usage: { total_tokens: 100 },
   timestamp: 123456789,
-  createdAt: '2026-08-25T00:00:00.000Z'
+  createdAt: '2026-08-25T00:00:00.000Z',
+  injectedContext: { systemPrompt: 'Test system' }
 };
 
 const cleaned = sanitizeMessageHistory([dirtyMessage]);
@@ -152,6 +153,7 @@ assert.strictEqual(cleanedAsst.executed_tools, undefined);
 assert.strictEqual(cleanedAsst.usage, undefined);
 assert.strictEqual(cleanedAsst.timestamp, undefined);
 assert.strictEqual(cleanedAsst.createdAt, undefined);
+assert.strictEqual(cleanedAsst.injectedContext, undefined);
 assert.strictEqual(cleanedAsst.content, 'Hello');
 console.log('✅ Test 4 passed: Internal fields properly stripped.');
 

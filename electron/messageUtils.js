@@ -90,6 +90,10 @@ function sanitizeMessageHistory(messages) {
     delete cleanMsg.mcp_approval_requests;
     delete cleanMsg.status;
     delete cleanMsg.error;
+    delete cleanMsg.injectedContext;
+    delete cleanMsg.canvasData;
+    delete cleanMsg.search_results;
+    delete cleanMsg.server_label;
 
     // Normalize user content
     if (cleanMsg.role === 'user') {
@@ -149,7 +153,20 @@ function sanitizeMessageHistory(messages) {
       }
     }
 
-    return cleanMsg;
+    // Return strictly sanitized object containing only standard provider fields
+    const validMsg = {
+      role: cleanMsg.role,
+      content: cleanMsg.content
+    };
+    if (cleanMsg.name) validMsg.name = cleanMsg.name;
+    if (cleanMsg.role === 'assistant' && cleanMsg.tool_calls) {
+      validMsg.tool_calls = cleanMsg.tool_calls;
+    }
+    if (cleanMsg.role === 'tool' && cleanMsg.tool_call_id) {
+      validMsg.tool_call_id = cleanMsg.tool_call_id;
+    }
+
+    return validMsg;
   }).filter(Boolean);
 
   // Step 2: Enforce structural invariants (tool call / tool response pairings)
