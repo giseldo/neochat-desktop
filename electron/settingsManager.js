@@ -1,6 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 const { createSecretStore } = require('./secretStore');
+const { invalidateModelsCache } = require('../shared/models.js');
 
 // Load environment variables from .env file
 require('dotenv').config();
@@ -314,6 +315,7 @@ function initializeSettingsHandlers(ipcMain, app, safeStorage) {
             }
             // Optionally add more validation here
             const protectedStorage = persistSettings(settings, settingsPath);
+            invalidateModelsCache();
             return { success: true, protectedStorage };
         } catch (error) {
             console.error('Error saving settings:', error);
@@ -348,6 +350,7 @@ async function saveSettings(settings) {
             settings.apiKeys.groq = settings.GROQ_API_KEY;
         }
         const protectedStorage = persistSettings(settings, settingsPath);
+        invalidateModelsCache();
         return { success: true, protectedStorage };
     } catch (error) {
         console.error('Error saving settings:', error);

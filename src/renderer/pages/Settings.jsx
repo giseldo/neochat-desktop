@@ -1394,7 +1394,10 @@ function Settings() {
       return;
     }
 
-    const isBuiltIn = Boolean(providers.find(p => p.id === finalId && !p.isCustom));
+    const isBuiltIn = Boolean(
+      POPULAR_PROVIDER_PRESETS.find(p => p.id === finalId && p.id !== 'custom') ||
+      providers.find(p => p.id === finalId && !p.isCustom)
+    );
     const customList = Array.isArray(settings.customProviders) ? [...settings.customProviders] : [];
     const isEdit = Boolean(editingCustomProvider);
     
@@ -1444,8 +1447,18 @@ function Settings() {
       currentProviderUrls[finalId] = customProviderForm.baseUrl.trim();
     }
 
+    let primaryProvider = settings.provider || 'groq';
+    const isGroqConfigured = Boolean(
+      (currentApiKeys.groq && currentApiKeys.groq !== '<replace me>') ||
+      (settings.GROQ_API_KEY && settings.GROQ_API_KEY !== '<replace me>')
+    );
+    if (customProviderForm.enabled && (!settings.provider || (primaryProvider === 'groq' && !isGroqConfigured))) {
+      primaryProvider = finalId;
+    }
+
     const updatedSettings = {
       ...settings,
+      provider: primaryProvider,
       customProviders: customList,
       enabledProviders: currentEnabled,
       apiKeys: currentApiKeys,
@@ -1456,6 +1469,7 @@ function Settings() {
     await saveSettings(updatedSettings);
     setIsAddProviderModalOpen(false);
     await refreshProvidersAndModels();
+    await fetchAndSetModelConfigs();
   };
 
   const handleDeleteCustomProviderConfirm = async () => {

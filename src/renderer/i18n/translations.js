@@ -32,6 +32,7 @@ export const translations = {
       configureApiKey: 'Cadastrar Chave de API',
       goToSettings: 'Ir para Configurações',
       selectOption: 'Selecione uma opção',
+      refresh: 'Atualizar',
     },
     header: {
       statusTools: '{count} ferramentas',
@@ -1335,6 +1336,7 @@ export const translations = {
       configureApiKey: 'Configure API Key',
       goToSettings: 'Go to Settings',
       selectOption: 'Select an option',
+      refresh: 'Refresh',
     },
     header: {
       statusTools: '{count} tools',

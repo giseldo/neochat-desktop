@@ -28,7 +28,7 @@ const { BrowserWindow, ipcMain, screen, shell, dialog, Notification } = require(
 
 // Import shared models
 const { MODEL_CONTEXT_SIZES, getModelContextSizes, getModelsFromAPIWithCache } = require('../shared/models.js');
-const { PROVIDER_LIST, getAllProviders, getActiveProvider, getActiveApiKey, getProviderBaseUrl, getModelsUrl, getActiveProviders, getConfiguredProviders, getApiKeyForProvider, getModelsUrlForProvider, getProviderById, isProviderConfigured, isProviderEnabled } = require('../shared/providers.js');
+const { PROVIDER_LIST, getAllProviders, getActiveProvider, getActiveApiKey, getProviderBaseUrl, getModelsUrl, getActiveProviders, getConfiguredProviders, getApiKeyForProvider, getBaseUrlForProvider, getModelsUrlForProvider, getProviderById, isProviderConfigured, isProviderEnabled } = require('../shared/providers.js');
 
 // Import handlers
 const chatHandler = require('./chatHandler');
