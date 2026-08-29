@@ -158,7 +158,16 @@ export default function TrajectoryLedger({
       };
     });
 
-    const nativeItems = NATIVE_TOOLS.map(t => {
+    const hasCanvasEvent = turn?.events?.some(e => e.type === 'canvas' || e.parts?.some(p => p.type === 'canvas') || e.name?.startsWith('canvas_'));
+    const hasRagEvent = turn?.events?.some(e => e.type === 'project' || e.parts?.some(p => p.type === 'project') || e.name?.includes('project_'));
+    const hasWebSearchEvent = turn?.events?.some(e => e.name === 'web_search');
+
+    const nativeItems = NATIVE_TOOLS.filter(t => {
+      if (t.name.startsWith('canvas_')) return hasCanvasEvent;
+      if (t.name.includes('project_')) return hasRagEvent;
+      if (t.name === 'web_search') return hasWebSearchEvent;
+      return false;
+    }).map(t => {
       const fullDef = {
         type: 'function',
         function: {

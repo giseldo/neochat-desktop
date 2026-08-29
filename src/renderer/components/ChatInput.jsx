@@ -138,7 +138,7 @@ function ChatInput({
 					const settings = await window.electron.getSettings();
 					if (isMounted) {
 						if (settings?.webSearch) {
-							setWebSearchActive(settings.webSearch.enabled !== false);
+							setWebSearchActive(Boolean(settings.webSearch.enabled));
 						}
 						if (settings?.voiceInput) {
 							setVoiceInputEnabled(settings.voiceInput.enabled !== false);

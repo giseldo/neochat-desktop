@@ -1123,8 +1123,14 @@ function App() {
         };
         setMessages(prev => [...prev, assistantPlaceholder]);
 
-        // Start streaming chat
-        const streamHandler = window.electron.startChatStream(messagesToSend, selectedModel);
+        // Start streaming chat with active runtime context (Canvas, Project, etc.)
+        const streamOptions = {
+            isCanvasOpen: Boolean(isCanvasOpen),
+            canvasDoc: isCanvasOpen && canvasDoc ? canvasDoc : null,
+            selectedCanvasText: isCanvasOpen ? selectedText : '',
+            activeProject: activeProject ? { id: activeProject.id, name: activeProject.name, folders: activeProject.folders } : null,
+        };
+        const streamHandler = window.electron.startChatStream(messagesToSend, selectedModel, streamOptions);
 
         // Collect the final message data
         let finalAssistantData = {

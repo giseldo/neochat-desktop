@@ -76,7 +76,7 @@ function loadSettings() {
             voiceInput: { enabled: true, apiKey: '' },
             providerFilterTab: 'active',
             webSearch: {
-                enabled: true,
+                enabled: false,
                 provider: 'local',
                 apiKey: '',
                 maxResults: 5
@@ -133,7 +133,7 @@ function loadSettings() {
         customPromptTemplates: [],
         providerFilterTab: 'active',
         webSearch: {
-            enabled: true,
+            enabled: false,
             provider: 'local',
             apiKey: '',
             maxResults: 5

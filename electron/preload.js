@@ -91,13 +91,13 @@ contextBridge.exposeInMainWorld('electron', {
   // NOTE: sendMcpApprovalResponse removed - Groq does not yet support mcp_approval_response
   
   // Streaming API events
-  startChatStream: (messages, model) => {
+  startChatStream: (messages, model, options = {}) => {
     // CRITICAL: Clean up any existing listeners BEFORE setting up new ones
     // This prevents duplicate responses when HMR reloads the renderer
     cleanupChatStreamListeners();
     
     // Start a new chat stream
-    ipcRenderer.send('chat-stream', messages, model);
+    ipcRenderer.send('chat-stream', messages, model, options);
     
     // Track registered listeners so we can properly clean them up
     const registeredListeners = new Map();

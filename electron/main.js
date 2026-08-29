@@ -491,8 +491,21 @@ app.whenReady().then(async () => {
 
   // --- Register Core App IPC Handlers --- //
   // Chat completion (use module object)
-  ipcMain.on('chat-stream', async (event, messages, model) => {
-    const currentSettings = loadSettings();
+  ipcMain.on('chat-stream', async (event, messages, model, options = {}) => {
+    const loadedSettings = loadSettings();
+    const currentSettings = {
+      ...loadedSettings,
+      ...options,
+      webSearch: {
+        ...(loadedSettings.webSearch || {}),
+        enabled: options.webSearchActive !== undefined ? Boolean(options.webSearchActive) : (loadedSettings.webSearch?.enabled === true)
+      },
+      isCanvasOpen: Boolean(options.isCanvasOpen),
+      activeCanvasDoc: options.canvasDoc || null,
+      selectedCanvasText: options.selectedCanvasText || '',
+      activeProject: options.activeProject || null,
+      agentMode: Boolean(options.agentModeActive)
+    };
     const { discoveredTools } = mcpManager.getMcpState(); // Use module object
     
     // Load fresh merged models across all active providers

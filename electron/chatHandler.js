@@ -161,8 +161,8 @@ function prepareTools(discoveredTools, isResponsesApi = false, settings = {}) {
         }
     });
 
-    // Add native web_search tool if enabled
-    const webSearchEnabled = settings.webSearch?.enabled !== false;
+    // Add native web_search tool ONLY if explicitly enabled
+    const webSearchEnabled = settings.webSearch?.enabled === true;
     const hasWebSearchAlready = tools.some(t => (t.name === 'web_search' || t.function?.name === 'web_search'));
 
     if (webSearchEnabled && !hasWebSearchAlready) {
@@ -187,31 +187,47 @@ function prepareTools(discoveredTools, isResponsesApi = false, settings = {}) {
         }
     }
 
-    // Add native RAG / Knowledge base tools
-    const ragTools = getRagToolDefinitions();
-    for (const rt of ragTools) {
-        const hasAlready = tools.some(t => t.name === rt.function.name || t.function?.name === rt.function.name);
-        if (!hasAlready) {
-            if (isResponsesApi) {
-                tools.push({
-                    type: "function",
-                    name: rt.function.name,
-                    description: rt.function.description,
-                    parameters: rt.function.parameters
-                });
-            } else {
-                tools.push(rt);
+    // Add native RAG / Knowledge base tools ONLY if an active project is present
+    const hasActiveProject = Boolean(
+        (settings.activeProject && (settings.activeProject.id || settings.activeProject.name || (settings.activeProject.folders && settings.activeProject.folders.length > 0))) ||
+        settings.projectId ||
+        (settings.projectKnowledgeEnabled && settings.currentProject)
+    );
+    if (hasActiveProject) {
+        const ragTools = getRagToolDefinitions();
+        for (const rt of ragTools) {
+            const hasAlready = tools.some(t => t.name === rt.function.name || t.function?.name === rt.function.name);
+            if (!hasAlready) {
+                if (isResponsesApi) {
+                    tools.push({
+                        type: "function",
+                        name: rt.function.name,
+                        description: rt.function.description,
+                        parameters: rt.function.parameters
+                    });
+                } else {
+                    tools.push(rt);
+                }
             }
         }
     }
 
-    // Add native Canvas tools
-    const canvasTools = getCanvasTools(isResponsesApi);
-    for (const ct of canvasTools) {
-        const toolName = isResponsesApi ? ct.name : ct.function?.name;
-        const hasAlready = tools.some(t => t.name === toolName || t.function?.name === toolName);
-        if (!hasAlready) {
-            tools.push(ct);
+    // Add native Canvas tools ONLY if Canvas is active/open or has document
+    const isCanvasActive = Boolean(
+        settings.isCanvasOpen ||
+        settings.activeCanvasDoc ||
+        settings.canvasDoc ||
+        settings.canvasEnabled ||
+        settings.selectedCanvasText
+    );
+    if (isCanvasActive) {
+        const canvasTools = getCanvasTools(isResponsesApi);
+        for (const ct of canvasTools) {
+            const toolName = isResponsesApi ? ct.name : ct.function?.name;
+            const hasAlready = tools.some(t => t.name === toolName || t.function?.name === toolName);
+            if (!hasAlready) {
+                tools.push(ct);
+            }
         }
     }
 
@@ -342,31 +358,51 @@ function buildApiParams(prunedMessages, modelToUse, settings, tools, modelContex
         timeZoneName: 'long',
         hour12: false
     });
+
+    const webSearchEnabled = settings.webSearch?.enabled === true;
+    const hasActiveProject = Boolean(
+        (settings.activeProject && (settings.activeProject.id || settings.activeProject.name || (settings.activeProject.folders && settings.activeProject.folders.length > 0))) ||
+        settings.projectId ||
+        (settings.projectKnowledgeEnabled && settings.currentProject)
+    );
+    const isCanvasActive = Boolean(
+        settings.isCanvasOpen ||
+        settings.activeCanvasDoc ||
+        settings.canvasDoc ||
+        settings.canvasEnabled ||
+        settings.selectedCanvasText
+    );
     
-    let systemPrompt = `You are a helpful assistant capable of using tools. Use tools only when necessary and relevant to the user's request. Format responses using Markdown.\n\nCurrent date and time: ${dateTimeString}`;
+    let systemPrompt = tools.length > 0
+        ? `You are a helpful assistant capable of using tools. Use tools only when necessary and relevant to the user's request. Format responses using Markdown.\n\nCurrent date and time: ${dateTimeString}`
+        : `You are a helpful assistant. Format responses using Markdown.`;
     
-    if (settings.webSearch?.enabled !== false) {
+    if (webSearchEnabled) {
         systemPrompt += `\n\n- Web Search: You have access to the 'web_search' tool. When answering questions that require current information, recent facts, live news, documentation, or when the user asks to search the web, execute 'web_search'. Always cite consulted sources in your response using markdown links [Source Title](URL) or citation markers [1], [2].`;
     }
 
-    systemPrompt += `\n\n- Project Knowledge Base (Local RAG): You have access to 'query_project_knowledge' and 'read_project_file'. When answering questions about local project files, code, architecture, or documentation, use 'query_project_knowledge' to search relevant snippets and 'read_project_file' to view detailed file content. Always cite relevant file paths and line ranges (e.g. \`path/file.ext:L10-L40\`) in your response.`;
+    if (hasActiveProject) {
+        systemPrompt += `\n\n- Project Knowledge Base (Local RAG): You have access to 'query_project_knowledge' and 'read_project_file'. When answering questions about local project files, code, architecture, or documentation, use 'query_project_knowledge' to search relevant snippets and 'read_project_file' to view detailed file content. Always cite relevant file paths and line ranges (e.g. \`path/file.ext:L10-L40\`) in your response.`;
+    }
 
-    // Canvas Workspace System Instructions
-    systemPrompt += `\n\n- CANVAS WORKSPACE (Interactive Document Editor):
+    // Canvas Workspace System Instructions (only when Canvas is active)
+    if (isCanvasActive) {
+        systemPrompt += `\n\n- CANVAS WORKSPACE (Interactive Document Editor):
 You have access to interactive Canvas tools: 'canvas_create_document', 'canvas_update_document', 'canvas_edit_selection', and 'canvas_get_document'.
 When the user asks you to create, draft, write, edit, rewrite, improve, format, code, or alter a document or code file in the Canvas, ALWAYS invoke the appropriate Canvas tool to update the document directly.
 - Use 'canvas_create_document' when starting a new document or when no document is active.
 - Use 'canvas_update_document' when making extensive revisions, rewriting, restructuring, translating, or updating the full document.
 - Use 'canvas_edit_selection' when making targeted corrections, rewriting a specific paragraph, or replacing a specific section/snippet.`;
 
-    // Inject active Canvas document context if present
-    const activeCanvas = settings.activeCanvasDoc || getActiveCanvasDocument(settings.currentChatId || 'default');
-    if (activeCanvas && activeCanvas.content) {
-        systemPrompt += `\n\n=== ACTIVE CANVAS DOCUMENT ===\nDocument ID: ${activeCanvas.id}\nTitle: ${activeCanvas.title}\nLanguage: ${activeCanvas.language || 'markdown'}\nVersion: ${activeCanvas.version || 1}\nWords: ${activeCanvas.stats?.words || 0}\n`;
-        if (settings.selectedCanvasText) {
-            systemPrompt += `User Selected Text in Canvas:\n"""\n${settings.selectedCanvasText}\n"""\n`;
+        // Inject active Canvas document context if present
+        const activeCanvas = settings.activeCanvasDoc || settings.canvasDoc || getActiveCanvasDocument(settings.currentChatId || 'default');
+        if (activeCanvas && activeCanvas.content) {
+            systemPrompt += `\n\n=== ACTIVE CANVAS DOCUMENT ===\nDocument ID: ${activeCanvas.id}\nTitle: ${activeCanvas.title}\nLanguage: ${activeCanvas.language || 'markdown'}\nVersion: ${activeCanvas.version || 1}\nWords: ${activeCanvas.stats?.words || 0}\n`;
+            if (settings.selectedCanvasText) {
+                systemPrompt += `User Selected Text in Canvas:\n"""\n${settings.selectedCanvasText}\n"""\n`;
+            }
+            systemPrompt += `Current Content:\n\`\`\`${activeCanvas.language || ''}\n${activeCanvas.content}\n\`\`\`\n==============================\n`;
         }
-        systemPrompt += `Current Content:\n\`\`\`${activeCanvas.language || ''}\n${activeCanvas.content}\n\`\`\`\n==============================\n`;
     }
 
     if (settings.isAgentMode || settings.agentMode) {
