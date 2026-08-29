@@ -15,7 +15,7 @@ import { useLanguage } from '../context/LanguageContext';
 import PromptTemplatesModal from '../components/PromptTemplatesModal';
 import KeyboardShortcutsModal, { formatAccelerator, KeyCombo, KeyBadge } from '../components/KeyboardShortcutsModal';
 import { cn } from '../lib/utils';
-import { getModelGroup, groupModels, parseBulkModelsInput } from '../lib/modelGrouping';
+import { getModelGroup, getModelDisplayName, groupModels, parseBulkModelsInput } from '../lib/modelGrouping';
 
 const POPULAR_PROVIDER_PRESETS = [
   {
@@ -2219,10 +2219,18 @@ function Settings() {
 
   const handleToggleModelEnabled = (modelId) => {
     const currentDisabled = Array.isArray(settings.disabledModels) ? settings.disabledModels : [];
-    const isCurrentlyDisabled = currentDisabled.includes(modelId);
-    const updatedDisabled = isCurrentlyDisabled
-      ? currentDisabled.filter(id => id !== modelId)
-      : [...currentDisabled, modelId];
+    const cfg = modelConfigs[modelId];
+    const rawId = cfg?.rawModelId;
+    const isCurrentlyDisabled = currentDisabled.includes(modelId) || (rawId && currentDisabled.includes(rawId));
+    
+    let updatedDisabled;
+    if (isCurrentlyDisabled) {
+      // Re-enable: remove both modelId and rawId
+      updatedDisabled = currentDisabled.filter(id => id !== modelId && id !== rawId);
+    } else {
+      // Disable: add modelId
+      updatedDisabled = [...currentDisabled.filter(id => id !== rawId), modelId];
+    }
 
     const updatedSettings = {
       ...settings,
@@ -2235,7 +2243,12 @@ function Settings() {
 
   const handleEnableAllInGroup = (modelIds) => {
     const currentDisabled = Array.isArray(settings.disabledModels) ? settings.disabledModels : [];
-    const updatedDisabled = currentDisabled.filter(id => !modelIds.includes(id));
+    const rawIdsToRemove = new Set(modelIds);
+    modelIds.forEach(id => {
+      const raw = modelConfigs[id]?.rawModelId;
+      if (raw) rawIdsToRemove.add(raw);
+    });
+    const updatedDisabled = currentDisabled.filter(id => !rawIdsToRemove.has(id));
     const updatedSettings = {
       ...settings,
       disabledModels: updatedDisabled
@@ -4647,9 +4660,10 @@ function Settings() {
                       const filteredModelIds = query
                         ? allLoadedModels.filter(id => {
                             const cfg = modelConfigs[id] || {};
-                            const name = (cfg.displayName || id).toLowerCase();
+                            const rawId = cfg.rawModelId || (id.includes('::') ? id.split('::')[1] : id);
+                            const name = (cfg.displayName || rawId).toLowerCase();
                             const grp = (cfg.group || cfg.provider || getModelGroup(id, cfg)).toLowerCase();
-                            return id.toLowerCase().includes(query) || name.includes(query) || grp.includes(query);
+                            return id.toLowerCase().includes(query) || rawId.toLowerCase().includes(query) || name.includes(query) || grp.includes(query);
                           })
                         : allLoadedModels;
 
@@ -4665,7 +4679,12 @@ function Settings() {
                       const disabledList = Array.isArray(settings.disabledModels) ? settings.disabledModels : [];
 
                       return groups.map(({ group, models: groupModelIds }) => {
-                        const activeCount = groupModelIds.filter(id => !disabledList.includes(id)).length;
+                        const isModelActive = (id) => {
+                          const cfg = modelConfigs[id];
+                          const rawId = cfg?.rawModelId;
+                          return !disabledList.includes(id) && (!rawId || !disabledList.includes(rawId));
+                        };
+                        const activeCount = groupModelIds.filter(isModelActive).length;
                         const totalCount = groupModelIds.length;
 
                         return (
@@ -4707,7 +4726,9 @@ function Settings() {
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5 pt-1">
                               {groupModelIds.map(modelId => {
                                 const config = modelConfigs[modelId] || {};
-                                const isEnabled = !disabledList.includes(modelId);
+                                const rawId = config.rawModelId || (modelId.includes('::') ? modelId.split('::')[1] : modelId);
+                                const displayName = config.displayName || rawId;
+                                const isEnabled = !disabledList.includes(modelId) && (!config.rawModelId || !disabledList.includes(config.rawModelId));
 
                                 return (
                                   <div
@@ -4724,12 +4745,12 @@ function Settings() {
                                         id={`toggle-${modelId}`}
                                         checked={isEnabled}
                                         onChange={() => handleToggleModelEnabled(modelId)}
-                                        aria-label={`Toggle ${config.displayName || modelId}`}
+                                        aria-label={`Toggle ${displayName}`}
                                       />
                                       <div className="min-w-0 space-y-0.5">
                                         <div className="flex items-center gap-1.5 truncate">
                                           <span className="font-medium text-xs text-foreground truncate">
-                                            {config.displayName || modelId}
+                                            {displayName}
                                           </span>
                                           {config.vision_supported && (
                                             <Badge variant="outline" className="text-[9px] px-1 py-0 bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/30">
@@ -4743,7 +4764,7 @@ function Settings() {
                                           )}
                                         </div>
                                         <div className="text-[10.5px] text-muted-foreground font-mono truncate">
-                                          {modelId} {config.context ? `(${Number(config.context).toLocaleString()} tokens)` : ''}
+                                          {rawId} {config.context ? `(${Number(config.context).toLocaleString()} tokens)` : ''}
                                         </div>
                                       </div>
                                     </div>

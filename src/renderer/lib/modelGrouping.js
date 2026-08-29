@@ -52,6 +52,23 @@ export function formatNamespaceName(namespace) {
 }
 
 /**
+ * Get clean human-friendly display name for any model
+ */
+export function getModelDisplayName(modelId, config = null) {
+  if (!modelId || typeof modelId !== 'string') return '';
+  if (config && config.displayName && config.displayName.trim()) {
+    return config.displayName.trim();
+  }
+  if (config && config.rawModelId && config.rawModelId.trim()) {
+    return config.rawModelId.trim();
+  }
+  if (modelId.includes('::')) {
+    return modelId.split('::')[1];
+  }
+  return modelId;
+}
+
+/**
  * Infer group/provider for any model ID based on custom config, namespace, or model heuristics.
  */
 export function getModelGroup(modelId, config = null) {
@@ -67,9 +84,15 @@ export function getModelGroup(modelId, config = null) {
     return formatNamespaceName(config.provider.trim());
   }
 
+  // 3. Provider prefix in modelId (e.g. groq::openai/gpt-4o)
+  if (modelId.includes('::')) {
+    const [p] = modelId.split('::');
+    return formatNamespaceName(p);
+  }
+
   const trimmed = modelId.trim();
 
-  // 2. Namespaced model (e.g., openai/gpt-4o, canopylabs/orpheus-v1-english, accounts/fireworks/...)
+  // 4. Namespaced model (e.g., openai/gpt-4o, canopylabs/orpheus-v1-english, accounts/fireworks/...)
   if (trimmed.includes('/')) {
     const parts = trimmed.split('/');
     if (parts[0] === 'accounts' && parts.length > 2) {
@@ -79,7 +102,7 @@ export function getModelGroup(modelId, config = null) {
     return formatNamespaceName(namespace);
   }
 
-  // 3. Name-based heuristics for non-namespaced model IDs
+  // 5. Name-based heuristics for non-namespaced model IDs
   const lower = trimmed.toLowerCase();
 
   if (lower.startsWith('deepseek') || lower.includes('deepseek')) {
@@ -139,7 +162,7 @@ export function getModelGroup(modelId, config = null) {
     return 'Audio (Whisper)';
   }
 
-  // 4. Custom models fallback
+  // 6. Custom models fallback
   if (config && config.isCustom) {
     return 'Personalizados';
   }
@@ -196,11 +219,11 @@ export function groupModels(modelList = [], modelConfigs = {}) {
     groupsMap.get(groupName).push(modelId);
   });
 
-  // Sort models within each group by displayName or ID
+  // Sort models within each group by displayName or raw ID
   groupsMap.forEach((models, groupName) => {
     models.sort((a, b) => {
-      const nameA = (modelConfigs[a]?.displayName || a).toLowerCase();
-      const nameB = (modelConfigs[b]?.displayName || b).toLowerCase();
+      const nameA = getModelDisplayName(a, modelConfigs[a]).toLowerCase();
+      const nameB = getModelDisplayName(b, modelConfigs[b]).toLowerCase();
       return nameA.localeCompare(nameB);
     });
   });

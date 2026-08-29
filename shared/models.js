@@ -163,6 +163,9 @@ function convertAPIModelsToContextSizes(apiResponse, providerMeta = null) {
     
     // Apply heuristics to determine model capabilities
     const capabilities = applyModelHeuristics(modelId, model);
+    capabilities.id = modelId;
+    capabilities.rawModelId = modelId;
+    capabilities.displayName = model.name || modelId;
     if (providerMeta) {
       capabilities.provider = providerMeta.providerId || 'groq';
       capabilities.group = providerMeta.providerName || providerMeta.providerId || 'Groq';
@@ -223,9 +226,20 @@ const BASE_MODEL_CONTEXT_SIZES = {
 
 // Function to check if a model supports built-in tools
 function supportsBuiltInTools(modelName, modelContextSizes) {
-  // Check explicit configuration instead of name-based heuristic
-  const modelInfo = modelContextSizes[modelName] || modelContextSizes['default'];
-  return modelInfo?.builtin_tools_supported || false;
+  if (!modelName || !modelContextSizes) return false;
+  // Check explicit configuration by exact key, rawModelId, or fallback
+  const directInfo = modelContextSizes[modelName];
+  if (directInfo) {
+    return directInfo.builtin_tools_supported || false;
+  }
+  const found = Object.values(modelContextSizes).find(cfg =>
+    cfg && (cfg.rawModelId === modelName || cfg.id === modelName)
+  );
+  if (found) {
+    return found.builtin_tools_supported || false;
+  }
+  const defaultInfo = modelContextSizes['default'];
+  return defaultInfo?.builtin_tools_supported || false;
 }
 
 // Function to merge base models with custom models from settings
@@ -236,15 +250,21 @@ function getModelContextSizes(customModels = {}, apiModels = null) {
   // Add custom models to the merged object
   Object.entries(customModels).forEach(([modelId, config]) => {
     // Use explicit configuration only - no name-based heuristic
-    mergedModels[modelId] = {
+    const key = modelId.includes('::') ? modelId : `custom::${modelId}`;
+    mergedModels[key] = {
       context: config.context || 8192,
       vision_supported: config.vision_supported || false,
       builtin_tools_supported: config.builtin_tools_supported || false,
       displayName: config.displayName || modelId,
       group: config.group || 'Personalizados',
       provider: config.provider || 'custom',
+      rawModelId: config.rawModelId || modelId,
+      modelKey: key,
       isCustom: true
     };
+    if (key !== modelId && !mergedModels[modelId]) {
+      mergedModels[modelId] = mergedModels[key];
+    }
   });
   
   return mergedModels;

@@ -8,7 +8,7 @@ import { cn } from '../lib/utils';
 import MessageList from '../components/MessageList';
 import { SearchableSelect } from '../components/ui/SearchableSelect';
 import { extractThinking } from '../lib/messageUtils';
-import { getModelGroup, groupModels } from '../lib/modelGrouping';
+import { getModelGroup, getModelDisplayName, groupModels } from '../lib/modelGrouping';
 
 const ContextPill = ({ title, onRemove }) => (
   <Badge variant="outline" className="inline-flex items-center gap-2 bg-background/50 backdrop-blur-sm border-border/50 text-foreground shadow-sm">
@@ -30,36 +30,29 @@ const filterModels = (modelList, filterText, excludeText, configs, disabledList 
   let filteredModels = modelList;
 
   if (Array.isArray(disabledList) && disabledList.length > 0) {
-    filteredModels = filteredModels.filter(m => !disabledList.includes(m));
+    filteredModels = filteredModels.filter(m => {
+      const config = configs[m];
+      const rawId = config?.rawModelId;
+      return !disabledList.includes(m) && (!rawId || !disabledList.includes(rawId));
+    });
   }
 
   // First, apply inclusion filter if specified
   if (filterText && filterText.trim()) {
-    // Split filter text into lines and filter out empty lines
     const filterTerms = filterText
       .split('\n')
       .map(term => term.trim())
       .filter(term => term.length > 0);
 
     if (filterTerms.length > 0) {
-      // Helper to get display name for a model
-      const getDisplayName = (modelId) => {
-        const modelInfo = configs[modelId];
-        if (modelInfo && modelInfo.displayName) {
-          return modelInfo.displayName;
-        }
-        return modelId;
-      };
-
-      // Filter models that match any filter term (case-insensitive)
-      filteredModels = modelList.filter(modelId => {
-        const displayName = getDisplayName(modelId).toLowerCase();
+      filteredModels = filteredModels.filter(modelId => {
+        const displayName = getModelDisplayName(modelId, configs[modelId]).toLowerCase();
         const modelIdLower = modelId.toLowerCase();
+        const rawId = (configs[modelId]?.rawModelId || '').toLowerCase();
         
-        // Check if any filter term matches either the model ID or display name
         return filterTerms.some(term => {
           const termLower = term.toLowerCase();
-          return modelIdLower.includes(termLower) || displayName.includes(termLower);
+          return modelIdLower.includes(termLower) || displayName.includes(termLower) || rawId.includes(termLower);
         });
       });
     }
@@ -67,34 +60,22 @@ const filterModels = (modelList, filterText, excludeText, configs, disabledList 
 
   // Then, apply exclude filter (applies regardless of inclusion filter)
   if (excludeText && excludeText.trim()) {
-    // Split exclude text into lines and filter out empty lines
     const excludeTerms = excludeText
       .split('\n')
       .map(term => term.trim())
       .filter(term => term.length > 0);
 
     if (excludeTerms.length > 0) {
-      // Helper to get display name for a model
-      const getDisplayName = (modelId) => {
-        const modelInfo = configs[modelId];
-        if (modelInfo && modelInfo.displayName) {
-          return modelInfo.displayName;
-        }
-        return modelId;
-      };
-
-      // Filter out models that match any exclude term (case-insensitive)
       filteredModels = filteredModels.filter(modelId => {
-        const displayName = getDisplayName(modelId).toLowerCase();
+        const displayName = getModelDisplayName(modelId, configs[modelId]).toLowerCase();
         const modelIdLower = modelId.toLowerCase();
+        const rawId = (configs[modelId]?.rawModelId || '').toLowerCase();
         
-        // Check if any exclude term matches either the model ID or display name
         const matchesExclude = excludeTerms.some(term => {
           const termLower = term.toLowerCase();
-          return modelIdLower.includes(termLower) || displayName.includes(termLower);
+          return modelIdLower.includes(termLower) || displayName.includes(termLower) || rawId.includes(termLower);
         });
         
-        // Return false (exclude) if it matches, true (keep) if it doesn't
         return !matchesExclude;
       });
     }
@@ -105,19 +86,8 @@ const filterModels = (modelList, filterText, excludeText, configs, disabledList 
 
 const CustomModelSelector = ({ selectedModel, models, onModelChange, isCompact = false, modelConfigs = {}, placeholder = "Select model" }) => {
   const getDisplayName = (model) => {
-    const modelInfo = modelConfigs[model];
-    let displayName = model;
-    
-    // Use custom display name if available
-    if (modelInfo && modelInfo.displayName) {
-      displayName = modelInfo.displayName;
-    } else {
-      // If no explicit displayName is configured, return the raw model name without auto-capitalization
-      displayName = model;
-    }
-    
+    const displayName = getModelDisplayName(model, modelConfigs[model]);
     if (isCompact) {
-      // For compact view, show a shortened version
       const words = displayName.split(' ');
       return words.slice(0, 2).join(' ');
     }

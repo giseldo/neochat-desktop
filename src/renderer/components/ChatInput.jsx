@@ -14,7 +14,7 @@ import PromptTemplatesModal from "./PromptTemplatesModal";
 import ModelParametersModal from "./ModelParametersModal";
 import SnipModal from "./SnipModal";
 import { getAllPromptCommands, PROMPT_TEMPLATES_STORAGE_KEY } from "../lib/defaultPromptCommands";
-import { getModelGroup, groupModels } from "../lib/modelGrouping";
+import { getModelGroup, getModelDisplayName as getModelDisplayNameLib, groupModels } from "../lib/modelGrouping";
 
 function ChatInput({
 	onSendMessage,
@@ -450,12 +450,7 @@ function ChatInput({
 	// Helper function to get display name for a model
 	const getModelDisplayName = (modelId) => {
 		const modelInfo = modelConfigs[modelId];
-		if (modelInfo && modelInfo.displayName) {
-			return modelInfo.displayName;
-		}
-		
-		// If no explicit displayName is configured, return the raw modelId without auto-capitalization
-		return modelId;
+		return getModelDisplayNameLib(modelId, modelInfo);
 	};
 
 	// Sort and group models by provider/category and display name

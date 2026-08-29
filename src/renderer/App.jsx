@@ -337,38 +337,46 @@ function App() {
   const filterModels = (modelList, filterText, excludeText, configs, disabledList = []) => {
     let filteredModels = modelList;
 
-    // Filter out disabled models
+    // Filter out disabled models (checks exact key and rawModelId)
     if (Array.isArray(disabledList) && disabledList.length > 0) {
-      filteredModels = filteredModels.filter(modelId => !disabledList.includes(modelId));
+      filteredModels = filteredModels.filter(modelId => {
+        const config = configs[modelId];
+        const rawId = config?.rawModelId;
+        return !disabledList.includes(modelId) && (!rawId || !disabledList.includes(rawId));
+      });
     }
+
+    // Helper to get display name for a model
+    const getDisplayName = (modelId) => {
+      const modelInfo = configs[modelId];
+      if (modelInfo && modelInfo.displayName) {
+        return modelInfo.displayName;
+      }
+      if (modelInfo && modelInfo.rawModelId) {
+        return modelInfo.rawModelId;
+      }
+      if (typeof modelId === 'string' && modelId.includes('::')) {
+        return modelId.split('::')[1];
+      }
+      return modelId;
+    };
 
     // First, apply inclusion filter if specified
     if (filterText && filterText.trim()) {
-      // Split filter text into lines and filter out empty lines
       const filterTerms = filterText
         .split('\n')
         .map(term => term.trim())
         .filter(term => term.length > 0);
 
       if (filterTerms.length > 0) {
-        // Helper to get display name for a model
-        const getDisplayName = (modelId) => {
-          const modelInfo = configs[modelId];
-          if (modelInfo && modelInfo.displayName) {
-            return modelInfo.displayName;
-          }
-          return modelId;
-        };
-
-        // Filter models that match any filter term (case-insensitive)
         filteredModels = filteredModels.filter(modelId => {
           const displayName = getDisplayName(modelId).toLowerCase();
           const modelIdLower = modelId.toLowerCase();
+          const rawId = (configs[modelId]?.rawModelId || '').toLowerCase();
           
-          // Check if any filter term matches either the model ID or display name
           return filterTerms.some(term => {
             const termLower = term.toLowerCase();
-            return modelIdLower.includes(termLower) || displayName.includes(termLower);
+            return modelIdLower.includes(termLower) || displayName.includes(termLower) || rawId.includes(termLower);
           });
         });
       }
@@ -376,34 +384,22 @@ function App() {
 
     // Then, apply exclude filter (applies regardless of inclusion filter)
     if (excludeText && excludeText.trim()) {
-      // Split exclude text into lines and filter out empty lines
       const excludeTerms = excludeText
         .split('\n')
         .map(term => term.trim())
         .filter(term => term.length > 0);
 
       if (excludeTerms.length > 0) {
-        // Helper to get display name for a model
-        const getDisplayName = (modelId) => {
-          const modelInfo = configs[modelId];
-          if (modelInfo && modelInfo.displayName) {
-            return modelInfo.displayName;
-          }
-          return modelId;
-        };
-
-        // Filter out models that match any exclude term (case-insensitive)
         filteredModels = filteredModels.filter(modelId => {
           const displayName = getDisplayName(modelId).toLowerCase();
           const modelIdLower = modelId.toLowerCase();
+          const rawId = (configs[modelId]?.rawModelId || '').toLowerCase();
           
-          // Check if any exclude term matches either the model ID or display name
           const matchesExclude = excludeTerms.some(term => {
             const termLower = term.toLowerCase();
-            return modelIdLower.includes(termLower) || displayName.includes(termLower);
+            return modelIdLower.includes(termLower) || displayName.includes(termLower) || rawId.includes(termLower);
           });
           
-          // Return false (exclude) if it matches, true (keep) if it doesn't
           return !matchesExclude;
         });
       }
@@ -527,13 +523,21 @@ function App() {
         if (settings && settings.model) {
             // Ensure the saved model is still valid against the loaded configs
             if (configs[settings.model]) {
-                effectiveModel = settings.model; // Use saved model if valid
+                effectiveModel = settings.model;
             } else {
-                // If saved model is invalid, keep the default fallback (first available model)
-                console.warn(`Saved model "${settings.model}" not found in loaded configs. Falling back to ${effectiveModel}.`);
+                // Try finding by rawModelId or suffix
+                const matchingKey = availableModels.find(k =>
+                  k === settings.model ||
+                  configs[k]?.rawModelId === settings.model ||
+                  k.endsWith(`::${settings.model}`)
+                );
+                if (matchingKey) {
+                  effectiveModel = matchingKey;
+                } else if (availableModels.length > 0) {
+                  console.warn(`Saved model "${settings.model}" not found in loaded configs. Falling back to ${effectiveModel}.`);
+                }
             }
         } else if (availableModels.length > 0) {
-             // If no model saved in settings, but models are available, use the first one
             effectiveModel = availableModels[0];
         }
         // If no model in settings and no available models, effectiveModel remains 'default'
@@ -609,10 +613,18 @@ function App() {
         const availableModels = Object.keys(configs).filter(key => key !== 'default');
         setModels(availableModels);
 
-        // If the currently selected model no longer exists (provider switched),
-        // fall back to the first available model.
+        // If the currently selected model no longer exists, try matching by rawModelId or fallback
         if (availableModels.length > 0 && selectedModel && !configs[selectedModel]) {
-          setSelectedModel(availableModels[0]);
+          const matchingKey = availableModels.find(k =>
+            k === selectedModel ||
+            configs[k]?.rawModelId === selectedModel ||
+            k.endsWith(`::${selectedModel}`)
+          );
+          if (matchingKey) {
+            setSelectedModel(matchingKey);
+          } else {
+            setSelectedModel(availableModels[0]);
+          }
         }
       } catch (error) {
         console.error('Error reloading settings:', error);

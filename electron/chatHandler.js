@@ -48,9 +48,43 @@ function validateApiKey(settings) {
 }
 
 function determineModel(model, settings, modelContextSizes) {
-    const modelToUse = model || settings.model || "llama-3.3-70b-versatile";
-    const modelInfo = modelContextSizes[modelToUse] || modelContextSizes['default'] || { context: 8192, vision_supported: false };
-    return { modelToUse, modelInfo };
+    const rawInput = model || settings?.model || "llama-3.3-70b-versatile";
+    
+    // 1. Direct match in modelContextSizes
+    let modelInfo = modelContextSizes ? modelContextSizes[rawInput] : null;
+
+    // 2. If not found directly, look up with heuristics for prefix / suffix / rawModelId
+    if (!modelInfo && modelContextSizes && typeof rawInput === 'string') {
+        if (rawInput.includes('::')) {
+            const [pId, rawId] = rawInput.split('::');
+            // Try matching rawId directly
+            modelInfo = modelContextSizes[rawId];
+            if (!modelInfo) {
+                const found = Object.values(modelContextSizes).find(cfg =>
+                    cfg && (cfg.rawModelId === rawId || cfg.id === rawId) && (!cfg.provider || cfg.provider === pId)
+                );
+                if (found) modelInfo = found;
+            }
+        } else {
+            // Raw string like "openai/gpt-oss-120b"
+            // Prefer current settings provider if it matches
+            const preferredProvider = settings?.provider || 'groq';
+            const found = Object.values(modelContextSizes).find(cfg =>
+                cfg && (cfg.rawModelId === rawInput || cfg.id === rawInput) && cfg.provider === preferredProvider
+            ) || Object.values(modelContextSizes).find(cfg =>
+                cfg && (cfg.rawModelId === rawInput || cfg.id === rawInput)
+            );
+            if (found) modelInfo = found;
+        }
+    }
+
+    modelInfo = modelInfo || (modelContextSizes ? modelContextSizes['default'] : null) || { context: 8192, vision_supported: false };
+
+    // The actual raw model name for the provider API request
+    const modelToUse = modelInfo?.rawModelId || modelInfo?.id || (typeof rawInput === 'string' && rawInput.includes('::') ? rawInput.split('::')[1] : rawInput);
+    const modelProvider = modelInfo?.provider || (typeof rawInput === 'string' && rawInput.includes('::') ? rawInput.split('::')[0] : settings?.provider) || 'groq';
+
+    return { modelToUse, modelInfo, selectedModelKey: rawInput, modelProvider };
 }
 
 function checkVisionSupport(messages, modelInfo, modelToUse, event) {
@@ -1040,9 +1074,15 @@ async function handleResponsesApiStream(event, messages, model, settings, modelC
             summaryInterval: null
         });
 
-        validateApiKey(settings);
-        const providerApiKey = getActiveApiKey(settings);
-        const { modelToUse } = determineModel(model, settings, modelContextSizes);
+        const { modelToUse, modelInfo, modelProvider } = determineModel(model, settings, modelContextSizes);
+        const resolvedProvider = modelProvider || modelInfo?.provider || (model && model.includes('::') ? model.split('::')[0] : settings.provider) || 'groq';
+        const streamSettings = {
+            ...settings,
+            provider: resolvedProvider,
+            model: modelToUse
+        };
+        validateApiKey(streamSettings);
+        const providerApiKey = getActiveApiKey(streamSettings);
 
         // Check if we need to refresh Google OAuth token before using connectors
         let currentSettings = settings;
@@ -1801,7 +1841,7 @@ async function handleChatStream(event, messages, model, settings, modelContextSi
             summaryInterval: null
         });
 
-        const { modelToUse, modelInfo } = determineModel(model, settings, modelContextSizes);
+        const { modelToUse, modelInfo, modelProvider } = determineModel(model, settings, modelContextSizes);
         const visionCheckPassed = checkVisionSupport(messages, modelInfo, modelToUse, event);
         
         // If vision check failed, return early
@@ -1812,10 +1852,10 @@ async function handleChatStream(event, messages, model, settings, modelContextSi
 
         const tools = prepareTools(discoveredTools, false, settings);
         const cleanedMessages = cleanMessages(messages);
-        const modelProvider = modelInfo?.provider || settings.provider || 'groq';
+        const resolvedProvider = modelProvider || modelInfo?.provider || (model && model.includes('::') ? model.split('::')[0] : settings.provider) || 'groq';
         const primarySettings = {
             ...settings,
-            provider: modelProvider,
+            provider: resolvedProvider,
             model: modelToUse
         };
         const candidates = getProviderCandidates(primarySettings);
@@ -1881,11 +1921,11 @@ async function runSingleStreamForCompare(event, messages, model, settings, model
     activeStreams.set(streamId, { cancelled: false, stream: null, event });
 
     try {
-        const { modelToUse, modelInfo } = determineModel(model, settings, modelContextSizes);
-        const modelProvider = modelInfo?.provider || settings.provider || 'groq';
+        const { modelToUse, modelInfo, modelProvider } = determineModel(model, settings, modelContextSizes);
+        const resolvedProvider = modelProvider || modelInfo?.provider || (model && model.includes('::') ? model.split('::')[0] : settings.provider) || 'groq';
         const modelSettings = {
             ...settings,
-            provider: modelProvider,
+            provider: resolvedProvider,
             model: modelToUse
         };
         validateApiKey(modelSettings);

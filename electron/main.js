@@ -265,10 +265,8 @@ app.whenReady().then(async () => {
     modelContextSizes = MODEL_CONTEXT_SIZES; // Fallback
   }
 
-  // --- Early IPC Handlers required by popup and renderer before other init --- //
-  ipcMain.handle('get-model-configs', async () => {
-    // Return a copy to prevent accidental modification with custom models merged in
-    const currentSettings = loadSettings();
+  // Helper to fetch and merge all models across active providers with unique keys
+  async function getMergedModelConfigs(currentSettings) {
     const activeProviders = getActiveProviders(currentSettings);
     let allApiModels = {};
 
@@ -287,10 +285,15 @@ app.whenReady().then(async () => {
           if (providerModels) {
             Object.entries(providerModels).forEach(([id, cfg]) => {
               if (id !== 'default') {
-                allApiModels[id] = {
+                const modelKey = `${provider.id}::${id}`;
+                allApiModels[modelKey] = {
                   ...cfg,
+                  id: id,
+                  rawModelId: id,
+                  modelKey: modelKey,
                   provider: provider.id,
-                  group: provider.name || provider.id
+                  group: provider.name || provider.id,
+                  displayName: cfg.displayName || id
                 };
               }
             });
@@ -305,7 +308,14 @@ app.whenReady().then(async () => {
       allApiModels = modelContextSizes;
     }
     
-    const mergedModelContextSizes = getModelContextSizes(currentSettings.customModels || {}, allApiModels);
+    return getModelContextSizes(currentSettings.customModels || {}, allApiModels);
+  }
+
+  // --- Early IPC Handlers required by popup and renderer before other init --- //
+  ipcMain.handle('get-model-configs', async () => {
+    // Return a copy to prevent accidental modification with custom models merged in
+    const currentSettings = loadSettings();
+    const mergedModelContextSizes = await getMergedModelConfigs(currentSettings);
     return JSON.parse(JSON.stringify(mergedModelContextSizes));
   });
 
@@ -485,21 +495,8 @@ app.whenReady().then(async () => {
     const currentSettings = loadSettings();
     const { discoveredTools } = mcpManager.getMcpState(); // Use module object
     
-    // Try to get fresh models from the active provider
-    let apiModels = modelContextSizes;
-    const apiKey = getActiveApiKey(currentSettings);
-    const modelsUrl = getModelsUrl(currentSettings);
-    if (apiKey && apiKey !== "<replace me>" && modelsUrl) {
-      try {
-        apiModels = await getModelsFromAPIWithCache(apiKey, modelsUrl);
-      } catch (error) {
-        console.error('Error fetching models in chat-stream:', error);
-        // Fall back to cached modelContextSizes
-      }
-    }
-    
-    // Merge API models with custom models from settings
-    const mergedModelContextSizes = getModelContextSizes(currentSettings.customModels || {}, apiModels);
+    // Load fresh merged models across all active providers
+    const mergedModelContextSizes = await getMergedModelConfigs(currentSettings);
     
     chatHandler.handleChatStream(event, messages, model, currentSettings, mergedModelContextSizes, discoveredTools);
   });
@@ -507,17 +504,7 @@ app.whenReady().then(async () => {
   // Compare chat stream for side-by-side multi-model comparison
   ipcMain.on('compare-chat-stream', async (event, messages, modelA, modelB) => {
     const currentSettings = loadSettings();
-    let apiModels = modelContextSizes;
-    const apiKey = getActiveApiKey(currentSettings);
-    const modelsUrl = getModelsUrl(currentSettings);
-    if (apiKey && apiKey !== "<replace me>" && modelsUrl) {
-      try {
-        apiModels = await getModelsFromAPIWithCache(apiKey, modelsUrl);
-      } catch (error) {
-        console.error('Error fetching models in compare-chat-stream:', error);
-      }
-    }
-    const mergedModelContextSizes = getModelContextSizes(currentSettings.customModels || {}, apiModels);
+    const mergedModelContextSizes = await getMergedModelConfigs(currentSettings);
     chatHandler.handleCompareChatStream(event, messages, modelA, modelB, currentSettings, mergedModelContextSizes);
   });
 

@@ -6,6 +6,7 @@ import { Input } from './ui/input';
 import { Label } from './ui/label';
 import { Badge } from './ui/badge';
 import { useLanguage } from '../context/LanguageContext';
+import { getModelDisplayName } from '../lib/modelGrouping';
 
 const CONTEXT_PRESETS = [
   { label: '8k', value: 8192 },
@@ -121,6 +122,8 @@ export function ModelParametersModal({
   };
 
   const pruningThreshold = Math.floor((Number(contextSize) || 64000) * 0.5);
+  const displayName = getModelDisplayName(selectedModel, modelConfigs[selectedModel]);
+  const rawId = modelConfigs[selectedModel]?.rawModelId || (selectedModel?.includes('::') ? selectedModel.split('::')[1] : selectedModel);
 
   return createPortal(
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-150">
@@ -139,7 +142,7 @@ export function ModelParametersModal({
                 {t('chat.modelParameters') || 'Parâmetros do Modelo'}
               </h3>
               <p className="text-xs text-muted-foreground font-mono mt-0.5 truncate max-w-[280px]">
-                {selectedModel}
+                {rawId}
               </p>
             </div>
           </div>
@@ -159,7 +162,7 @@ export function ModelParametersModal({
           <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50 border border-border/60 text-xs">
             <div className="flex items-center gap-2">
               <Cpu className="h-4 w-4 text-primary" />
-              <span className="font-medium text-foreground">{selectedModel}</span>
+              <span className="font-medium text-foreground">{displayName}</span>
             </div>
             <Badge variant="secondary" className="font-mono">
               {(Number(contextSize) || 0).toLocaleString()} tokens

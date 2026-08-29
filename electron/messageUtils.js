@@ -262,7 +262,10 @@ function pruneMessageHistory(messages, model, modelContextSizes) {
   }
 
   // Get context window size for the selected model
-  const modelInfo = modelContextSizes[model] || modelContextSizes['default'] || { context: 8192 };
+  const modelInfo = (modelContextSizes && modelContextSizes[model]) ||
+                    (modelContextSizes && Object.values(modelContextSizes).find(cfg => cfg && (cfg.rawModelId === model || cfg.id === model))) ||
+                    (modelContextSizes && modelContextSizes['default']) ||
+                    { context: 8192 };
   const contextWindow = modelInfo.context || 8192;
   const targetTokenCount = Math.floor(contextWindow * 0.5); // Use 50% of context window
 
