@@ -1,6 +1,6 @@
 // Default fallback model configuration
 const DEFAULT_MODEL_CONFIG = {
-  context: 8192,
+  context: 1000000,
   vision_supported: false,
   builtin_tools_supported: false,
 };
@@ -252,7 +252,7 @@ function getModelContextSizes(customModels = {}, apiModels = null) {
     // Use explicit configuration only - no name-based heuristic
     const key = modelId.includes('::') ? modelId : `custom::${modelId}`;
     mergedModels[key] = {
-      context: config.context || 8192,
+      context: config.context || 1000000,
       vision_supported: config.vision_supported || false,
       builtin_tools_supported: config.builtin_tools_supported || false,
       displayName: config.displayName || modelId,

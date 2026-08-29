@@ -27,7 +27,7 @@ export function ModelParametersModal({
 }) {
   const { t } = useLanguage();
 
-  const [contextSize, setContextSize] = useState(64000);
+  const [contextSize, setContextSize] = useState(1000000);
   const [temperature, setTemperature] = useState(0.7);
   const [topP, setTopP] = useState(0.95);
   const [reasoningEffort, setReasoningEffort] = useState('medium');
@@ -49,7 +49,7 @@ export function ModelParametersModal({
 
         const customConfig = settings.customModels?.[selectedModel];
         const apiConfig = modelConfigs[selectedModel];
-        const effectiveContext = customConfig?.context || apiConfig?.context || 64000;
+        const effectiveContext = customConfig?.context || apiConfig?.context || 1000000;
 
         setContextSize(effectiveContext);
         setTemperature(settings.temperature ?? 0.7);
@@ -77,7 +77,7 @@ export function ModelParametersModal({
         ...(settings.customModels || {}),
         [selectedModel]: {
           ...existingCustom,
-          context: Number(contextSize) || 64000,
+          context: Number(contextSize) || 1000000,
           displayName: existingCustom.displayName || apiConfig.displayName || selectedModel,
           vision_supported: existingCustom.vision_supported ?? apiConfig.vision_supported ?? false,
           builtin_tools_supported: existingCustom.builtin_tools_supported ?? apiConfig.builtin_tools_supported ?? false,
@@ -114,14 +114,14 @@ export function ModelParametersModal({
 
   const handleResetToDefault = () => {
     const apiConfig = modelConfigs[selectedModel];
-    const defaultContext = apiConfig?.context || (selectedModel?.toLowerCase().includes('deepseek') ? 64000 : 8192);
+    const defaultContext = apiConfig?.context || (selectedModel?.toLowerCase().includes('deepseek') ? 64000 : 1000000);
     setContextSize(defaultContext);
     setTemperature(0.7);
     setTopP(0.95);
     setReasoningEffort('medium');
   };
 
-  const pruningThreshold = Math.floor((Number(contextSize) || 64000) * 0.5);
+  const pruningThreshold = Math.floor((Number(contextSize) || 1000000) * 0.5);
   const displayName = getModelDisplayName(selectedModel, modelConfigs[selectedModel]);
   const rawId = modelConfigs[selectedModel]?.rawModelId || (selectedModel?.includes('::') ? selectedModel.split('::')[1] : selectedModel);
 
@@ -193,9 +193,9 @@ export function ModelParametersModal({
             <input
               type="range"
               min="4096"
-              max="256000"
+              max="2000000"
               step="1024"
-              value={Math.min(256000, Number(contextSize) || 64000)}
+              value={Math.min(2000000, Number(contextSize) || 1000000)}
               onChange={(e) => setContextSize(Number(e.target.value))}
               className="w-full h-2 bg-muted rounded-lg appearance-none cursor-pointer accent-primary"
             />

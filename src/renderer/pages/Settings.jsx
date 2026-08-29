@@ -356,14 +356,14 @@ function Settings() {
     id: '',
     displayName: '',
     group: '',
-    context: 8192,
+    context: 1000000,
     vision_supported: false,
     builtin_tools_supported: false
   });
   const [editingModelId, setEditingModelId] = useState(null);
   const [customModelTab, setCustomModelTab] = useState('single'); // 'single' | 'bulk' | 'json'
   const [bulkModelsInput, setBulkModelsInput] = useState('');
-  const [bulkDefaultContext, setBulkDefaultContext] = useState(8192);
+  const [bulkDefaultContext, setBulkDefaultContext] = useState(1000000);
   const [bulkDefaultGroup, setBulkDefaultGroup] = useState('');
   const [bulkVisionSupported, setBulkVisionSupported] = useState(false);
   const [bulkToolsSupported, setBulkToolsSupported] = useState(false);
@@ -2274,7 +2274,7 @@ function Settings() {
     const { name, value, type, checked } = e.target;
     setNewCustomModel(prev => ({
       ...prev,
-      [name]: type === 'checkbox' ? checked : (name === 'context' ? parseInt(value) || 8192 : value)
+      [name]: type === 'checkbox' ? checked : (name === 'context' ? parseInt(value) || 1000000 : value)
     }));
   };
 
@@ -2315,7 +2315,7 @@ function Settings() {
     saveSettings(updatedSettings);
     
     // Clear the form
-    setNewCustomModel({ id: '', displayName: '', group: '', context: 8192, vision_supported: false, builtin_tools_supported: false });
+    setNewCustomModel({ id: '', displayName: '', group: '', context: 1000000, vision_supported: false, builtin_tools_supported: false });
     setEditingModelId(null);
     setSaveStatus({ type: 'success', message: t('settings.savedSuccess') });
     fetchAndSetModelConfigs();
@@ -2339,7 +2339,7 @@ function Settings() {
     parsedModels.forEach(m => {
       updatedCustomModels[m.id] = {
         displayName: m.displayName || m.id,
-        context: m.context || 8192,
+        context: m.context || 1000000,
         vision_supported: !!m.vision_supported,
         builtin_tools_supported: !!m.builtin_tools_supported,
         group: m.group || getModelGroup(m.id)
@@ -2373,7 +2373,7 @@ function Settings() {
       parsedModels.forEach(m => {
         updatedCustomModels[m.id] = {
           displayName: m.displayName || m.id,
-          context: m.context || 8192,
+          context: m.context || 1000000,
           vision_supported: !!m.vision_supported,
           builtin_tools_supported: !!m.builtin_tools_supported,
           group: m.group || getModelGroup(m.id)
@@ -2451,7 +2451,7 @@ function Settings() {
       id: modelId,
       displayName: modelToEdit.displayName || '',
       group: modelToEdit.group || getModelGroup(modelId),
-      context: modelToEdit.context || 8192,
+      context: modelToEdit.context || 1000000,
       vision_supported: modelToEdit.vision_supported || false,
       builtin_tools_supported: modelToEdit.builtin_tools_supported || false
     });
@@ -2459,7 +2459,7 @@ function Settings() {
 
   const cancelModelEditing = () => {
     setEditingModelId(null);
-    setNewCustomModel({ id: '', displayName: '', group: '', context: 8192, vision_supported: false, builtin_tools_supported: false });
+    setNewCustomModel({ id: '', displayName: '', group: '', context: 1000000, vision_supported: false, builtin_tools_supported: false });
   };
 
   // Remote MCP Server Management Functions
@@ -5083,9 +5083,9 @@ function Settings() {
                             type="number"
                             value={newCustomModel.context}
                             onChange={handleNewCustomModelChange}
-                            placeholder="8192"
+                            placeholder="1000000"
                             min="1024"
-                            max="1000000"
+                            max="2000000"
                             className="text-xs sm:text-sm"
                           />
                           <p className="text-[11px] text-muted-foreground">
@@ -5142,7 +5142,7 @@ function Settings() {
                           size="sm"
                           onClick={() => {
                             setNewCustomModel({
-                              id: '', displayName: '', group: '', context: 8192, vision_supported: false, builtin_tools_supported: false
+                              id: '', displayName: '', group: '', context: 1000000, vision_supported: false, builtin_tools_supported: false
                             });
                             setEditingModelId(null);
                           }}
@@ -5186,8 +5186,8 @@ function Settings() {
                             id="bulk-context"
                             type="number"
                             value={bulkDefaultContext}
-                            onChange={(e) => setBulkDefaultContext(parseInt(e.target.value) || 8192)}
-                            placeholder="8192"
+                            onChange={(e) => setBulkDefaultContext(parseInt(e.target.value) || 1000000)}
+                            placeholder="1000000"
                             className="text-xs"
                           />
                         </div>

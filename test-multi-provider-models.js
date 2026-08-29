@@ -120,7 +120,7 @@ function determineModel(model, settings, modelContextSizes) {
         }
     }
 
-    modelInfo = modelInfo || (modelContextSizes ? modelContextSizes['default'] : null) || { context: 8192, vision_supported: false };
+    modelInfo = modelInfo || (modelContextSizes ? modelContextSizes['default'] : null) || { context: 1000000, vision_supported: false };
     const modelToUse = modelInfo?.rawModelId || modelInfo?.id || (typeof rawInput === 'string' && rawInput.includes('::') ? rawInput.split('::')[1] : rawInput);
     const modelProvider = modelInfo?.provider || (typeof rawInput === 'string' && rawInput.includes('::') ? rawInput.split('::')[0] : settings?.provider) || 'groq';
 

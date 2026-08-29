@@ -78,7 +78,7 @@ function determineModel(model, settings, modelContextSizes) {
         }
     }
 
-    modelInfo = modelInfo || (modelContextSizes ? modelContextSizes['default'] : null) || { context: 8192, vision_supported: false };
+    modelInfo = modelInfo || (modelContextSizes ? modelContextSizes['default'] : null) || { context: 1000000, vision_supported: false };
 
     // The actual raw model name for the provider API request
     const modelToUse = modelInfo?.rawModelId || modelInfo?.id || (typeof rawInput === 'string' && rawInput.includes('::') ? rawInput.split('::')[1] : rawInput);

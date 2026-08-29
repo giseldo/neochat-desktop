@@ -261,7 +261,7 @@ export function parseBulkModelsInput(rawInput, defaultOptions = {}) {
   const text = rawInput.trim();
   if (!text) return [];
 
-  const defaultContext = Number(defaultOptions.context) || 8192;
+  const defaultContext = Number(defaultOptions.context) || 1000000;
   const defaultVision = !!defaultOptions.vision_supported;
   const defaultTools = !!defaultOptions.builtin_tools_supported;
   const defaultGroup = defaultOptions.group ? defaultOptions.group.trim() : '';
