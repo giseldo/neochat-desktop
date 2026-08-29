@@ -12,30 +12,24 @@ const PROVIDERS = {
     description: 'Inferência LPU ultra-rápida com modelos Llama, Gemma e DeepSeek',
     icon: 'Zap',
     isLocal: false,
+    keyUrl: 'https://console.groq.com/keys',
+    keyPlaceholder: 'gsk_...',
+    popularModels: ['llama-3.3-70b-versatile', 'deepseek-r1-distill-llama-70b', 'llama-3.1-8b-instant'],
   },
-  ollama: {
-    id: 'ollama',
-    name: 'Ollama (Local)',
-    baseUrl: 'http://localhost:11434/v1',
-    modelsUrl: 'http://localhost:11434/v1/models',
-    envVar: 'OLLAMA_API_KEY',
-    defaultModel: 'llama3.2',
-    description: 'Modelos locais rodando no Ollama (http://localhost:11434)',
-    icon: 'HardDrive',
-    isLocal: true,
-    requiresApiKey: false,
-  },
-  lmstudio: {
-    id: 'lmstudio',
-    name: 'LM Studio (Local)',
-    baseUrl: 'http://localhost:1234/v1',
-    modelsUrl: 'http://localhost:1234/v1/models',
-    envVar: 'LM_STUDIO_API_KEY',
-    defaultModel: 'local-model',
-    description: 'Modelos locais rodando no LM Studio (http://localhost:1234)',
-    icon: 'Cpu',
-    isLocal: true,
-    requiresApiKey: false,
+  gemini: {
+    id: 'gemini',
+    name: 'Google Gemini',
+    baseUrl: 'https://generativelanguage.googleapis.com/v1beta/openai/',
+    modelsUrl: 'https://generativelanguage.googleapis.com/v1beta/openai/models',
+    envVar: 'GEMINI_API_KEY',
+    defaultModel: 'gemini-2.0-flash',
+    description: 'Modelos Gemini 2.5, 2.0 Flash e 1.5 Pro via API OpenAI-compatible',
+    icon: 'Sparkles',
+    isLocal: false,
+    requiresApiKey: true,
+    keyUrl: 'https://aistudio.google.com/app/apikey',
+    keyPlaceholder: 'AIzaSy...',
+    popularModels: ['gemini-2.0-flash', 'gemini-2.5-flash', 'gemini-1.5-pro'],
   },
   openai: {
     id: 'openai',
@@ -48,18 +42,39 @@ const PROVIDERS = {
     icon: 'Sparkles',
     isLocal: false,
     requiresApiKey: true,
+    keyUrl: 'https://platform.openai.com/api-keys',
+    keyPlaceholder: 'sk-proj-...',
+    popularModels: ['gpt-4o-mini', 'gpt-4o', 'o3-mini', 'o1'],
   },
-  openrouter: {
-    id: 'openrouter',
-    name: 'OpenRouter',
+  anthropic: {
+    id: 'anthropic',
+    name: 'Anthropic (Claude)',
     baseUrl: 'https://openrouter.ai/api/v1',
     modelsUrl: 'https://openrouter.ai/api/v1/models',
-    envVar: 'OPENROUTER_API_KEY',
-    defaultModel: 'openai/gpt-4o-mini',
-    description: 'Acesso unificado a centenas de modelos através da OpenRouter',
+    envVar: 'ANTHROPIC_API_KEY',
+    defaultModel: 'anthropic/claude-3.7-sonnet',
+    description: 'Claude 3.7 Sonnet (com raciocínio híbrido) e Claude 3.5 via OpenRouter',
+    icon: 'Brain',
+    isLocal: false,
+    requiresApiKey: true,
+    keyUrl: 'https://openrouter.ai/keys',
+    keyPlaceholder: 'sk-or-v1-...',
+    popularModels: ['anthropic/claude-3.7-sonnet', 'anthropic/claude-3.5-sonnet', 'anthropic/claude-3.5-haiku'],
+  },
+  perplexity: {
+    id: 'perplexity',
+    name: 'Perplexity AI',
+    baseUrl: 'https://api.perplexity.ai',
+    modelsUrl: 'https://api.perplexity.ai/models',
+    envVar: 'PERPLEXITY_API_KEY',
+    defaultModel: 'sonar-pro',
+    description: 'Modelos Sonar, Sonar Pro e Sonar Reasoning com busca em tempo real',
     icon: 'Globe',
     isLocal: false,
     requiresApiKey: true,
+    keyUrl: 'https://www.perplexity.ai/settings/api',
+    keyPlaceholder: 'pplx-...',
+    popularModels: ['sonar-pro', 'sonar', 'sonar-reasoning-pro', 'sonar-reasoning'],
   },
   deepseek: {
     id: 'deepseek',
@@ -72,42 +87,9 @@ const PROVIDERS = {
     icon: 'Brain',
     isLocal: false,
     requiresApiKey: true,
-  },
-  together: {
-    id: 'together',
-    name: 'Together AI',
-    baseUrl: 'https://api.together.xyz/v1',
-    modelsUrl: 'https://api.together.xyz/v1/models',
-    envVar: 'TOGETHER_API_KEY',
-    defaultModel: 'meta-llama/Llama-3.3-70B-Instruct-Turbo',
-    description: 'Inferência em nuvem de código aberto via Together AI',
-    icon: 'Cloud',
-    isLocal: false,
-    requiresApiKey: true,
-  },
-  fireworks: {
-    id: 'fireworks',
-    name: 'Fireworks AI',
-    baseUrl: 'https://api.fireworks.ai/inference/v1',
-    modelsUrl: 'https://api.fireworks.ai/inference/v1/models',
-    envVar: 'FIREWORKS_API_KEY',
-    defaultModel: 'accounts/fireworks/models/llama-v3p3-70b-instruct',
-    description: 'Inferência acelerada na nuvem via Fireworks AI',
-    icon: 'Flame',
-    isLocal: false,
-    requiresApiKey: true,
-  },
-  mistral: {
-    id: 'mistral',
-    name: 'Mistral AI',
-    baseUrl: 'https://api.mistral.ai/v1',
-    modelsUrl: 'https://api.mistral.ai/v1/models',
-    envVar: 'MISTRAL_API_KEY',
-    defaultModel: 'mistral-small-latest',
-    description: 'Modelos abertos e comerciais da Mistral AI',
-    icon: 'Wind',
-    isLocal: false,
-    requiresApiKey: true,
+    keyUrl: 'https://platform.deepseek.com/api_keys',
+    keyPlaceholder: 'sk-...',
+    popularModels: ['deepseek-chat', 'deepseek-reasoner'],
   },
   grok: {
     id: 'grok',
@@ -120,6 +102,157 @@ const PROVIDERS = {
     icon: 'Bot',
     isLocal: false,
     requiresApiKey: true,
+    keyUrl: 'https://console.x.ai/',
+    keyPlaceholder: 'xai-...',
+    popularModels: ['grok-2-latest', 'grok-2-vision-latest', 'grok-beta'],
+  },
+  cerebras: {
+    id: 'cerebras',
+    name: 'Cerebras',
+    baseUrl: 'https://api.cerebras.ai/v1',
+    modelsUrl: 'https://api.cerebras.ai/v1/models',
+    envVar: 'CEREBRAS_API_KEY',
+    defaultModel: 'llama-3.3-70b',
+    description: 'Inferência em velocidade recorde via Cerebras Wafer-Scale Engine',
+    icon: 'Zap',
+    isLocal: false,
+    requiresApiKey: true,
+    keyUrl: 'https://cloud.cerebras.ai/',
+    keyPlaceholder: 'csk-...',
+    popularModels: ['llama-3.3-70b', 'llama3.1-8b'],
+  },
+  mistral: {
+    id: 'mistral',
+    name: 'Mistral AI',
+    baseUrl: 'https://api.mistral.ai/v1',
+    modelsUrl: 'https://api.mistral.ai/v1/models',
+    envVar: 'MISTRAL_API_KEY',
+    defaultModel: 'mistral-small-latest',
+    description: 'Modelos abertos e comerciais da Mistral AI',
+    icon: 'Wind',
+    isLocal: false,
+    requiresApiKey: true,
+    keyUrl: 'https://console.mistral.ai/api-keys/',
+    keyPlaceholder: '...',
+    popularModels: ['mistral-small-latest', 'mistral-large-latest', 'codestral-latest', 'pixtral-12b'],
+  },
+  together: {
+    id: 'together',
+    name: 'Together AI',
+    baseUrl: 'https://api.together.xyz/v1',
+    modelsUrl: 'https://api.together.xyz/v1/models',
+    envVar: 'TOGETHER_API_KEY',
+    defaultModel: 'meta-llama/Llama-3.3-70B-Instruct-Turbo',
+    description: 'Inferência em nuvem de código aberto via Together AI',
+    icon: 'Cloud',
+    isLocal: false,
+    requiresApiKey: true,
+    keyUrl: 'https://api.together.xyz/settings/api-keys',
+    keyPlaceholder: '...',
+    popularModels: ['meta-llama/Llama-3.3-70B-Instruct-Turbo', 'deepseek-ai/DeepSeek-R1', 'Qwen/Qwen2.5-72B-Instruct-Turbo'],
+  },
+  sambanova: {
+    id: 'sambanova',
+    name: 'SambaNova Cloud',
+    baseUrl: 'https://api.sambanova.ai/v1',
+    modelsUrl: 'https://api.sambanova.ai/v1/models',
+    envVar: 'SAMBANOVA_API_KEY',
+    defaultModel: 'Meta-Llama-3.3-70B-Instruct',
+    description: 'Modelos de ponta em precisão total (DeepSeek R1 e Llama 3.3 70B)',
+    icon: 'Cpu',
+    isLocal: false,
+    requiresApiKey: true,
+    keyUrl: 'https://cloud.sambanova.ai/',
+    keyPlaceholder: '...',
+    popularModels: ['Meta-Llama-3.3-70B-Instruct', 'DeepSeek-R1', 'DeepSeek-R1-Distill-Llama-70B'],
+  },
+  deepinfra: {
+    id: 'deepinfra',
+    name: 'DeepInfra',
+    baseUrl: 'https://api.deepinfra.com/v1/openai',
+    modelsUrl: 'https://api.deepinfra.com/v1/openai/models',
+    envVar: 'DEEPINFRA_API_KEY',
+    defaultModel: 'meta-llama/Llama-3.3-70B-Instruct',
+    description: 'Infraestrutura econômica para Llama 3.3, Qwen 2.5 e DeepSeek V3/R1',
+    icon: 'Server',
+    isLocal: false,
+    requiresApiKey: true,
+    keyUrl: 'https://deepinfra.com/dash/api_keys',
+    keyPlaceholder: '...',
+    popularModels: ['meta-llama/Llama-3.3-70B-Instruct', 'deepseek-ai/DeepSeek-R1', 'Qwen/Qwen2.5-72B-Instruct'],
+  },
+  cohere: {
+    id: 'cohere',
+    name: 'Cohere',
+    baseUrl: 'https://api.cohere.com/v2',
+    modelsUrl: 'https://api.cohere.com/v2/models',
+    envVar: 'COHERE_API_KEY',
+    defaultModel: 'command-r-plus-08-2024',
+    description: 'Modelos Command R+ e Command R para raciocínio e RAG',
+    icon: 'Sparkles',
+    isLocal: false,
+    requiresApiKey: true,
+    keyUrl: 'https://dashboard.cohere.com/api-keys',
+    keyPlaceholder: '...',
+    popularModels: ['command-r-plus-08-2024', 'command-r-08-2024'],
+  },
+  fireworks: {
+    id: 'fireworks',
+    name: 'Fireworks AI',
+    baseUrl: 'https://api.fireworks.ai/inference/v1',
+    modelsUrl: 'https://api.fireworks.ai/inference/v1/models',
+    envVar: 'FIREWORKS_API_KEY',
+    defaultModel: 'accounts/fireworks/models/llama-v3p3-70b-instruct',
+    description: 'Inferência acelerada na nuvem via Fireworks AI',
+    icon: 'Flame',
+    isLocal: false,
+    requiresApiKey: true,
+    keyUrl: 'https://fireworks.ai/api-keys',
+    keyPlaceholder: '...',
+    popularModels: ['accounts/fireworks/models/llama-v3p3-70b-instruct', 'accounts/fireworks/models/deepseek-r1'],
+  },
+  openrouter: {
+    id: 'openrouter',
+    name: 'OpenRouter',
+    baseUrl: 'https://openrouter.ai/api/v1',
+    modelsUrl: 'https://openrouter.ai/api/v1/models',
+    envVar: 'OPENROUTER_API_KEY',
+    defaultModel: 'openai/gpt-4o-mini',
+    description: 'Acesso unificado a centenas de modelos através da OpenRouter',
+    icon: 'Globe',
+    isLocal: false,
+    requiresApiKey: true,
+    keyUrl: 'https://openrouter.ai/keys',
+    keyPlaceholder: 'sk-or-v1-...',
+    popularModels: ['anthropic/claude-3.7-sonnet', 'openai/gpt-4o', 'deepseek/deepseek-r1', 'google/gemini-2.0-flash-001'],
+  },
+  ollama: {
+    id: 'ollama',
+    name: 'Ollama (Local)',
+    baseUrl: 'http://localhost:11434/v1',
+    modelsUrl: 'http://localhost:11434/v1/models',
+    envVar: 'OLLAMA_API_KEY',
+    defaultModel: 'llama3.2',
+    description: 'Modelos locais rodando no Ollama (http://localhost:11434)',
+    icon: 'HardDrive',
+    isLocal: true,
+    requiresApiKey: false,
+    keyPlaceholder: 'Não requer chave (Local)',
+    popularModels: ['llama3.2', 'deepseek-r1', 'mistral', 'qwen2.5'],
+  },
+  lmstudio: {
+    id: 'lmstudio',
+    name: 'LM Studio (Local)',
+    baseUrl: 'http://localhost:1234/v1',
+    modelsUrl: 'http://localhost:1234/v1/models',
+    envVar: 'LM_STUDIO_API_KEY',
+    defaultModel: 'local-model',
+    description: 'Modelos locais rodando no LM Studio (http://localhost:1234)',
+    icon: 'Cpu',
+    isLocal: true,
+    requiresApiKey: false,
+    keyPlaceholder: 'Não requer chave (Local)',
+    popularModels: ['local-model'],
   },
   custom: {
     id: 'custom',
@@ -132,6 +265,8 @@ const PROVIDERS = {
     icon: 'Settings',
     isLocal: false,
     requiresApiKey: false,
+    keyPlaceholder: 'sk-...',
+    popularModels: [],
   },
 };
 
@@ -141,8 +276,12 @@ const PROVIDER_LIST = Object.values(PROVIDERS).map((p) => ({
   baseUrl: p.baseUrl,
   defaultModel: p.defaultModel,
   description: p.description,
+  icon: p.icon || 'Server',
   isLocal: !!p.isLocal,
   requiresApiKey: p.requiresApiKey !== false,
+  keyUrl: p.keyUrl || '',
+  keyPlaceholder: p.keyPlaceholder || 'sk-...',
+  popularModels: p.popularModels || [],
 }));
 
 function getCustomProviders(settings) {
@@ -170,10 +309,13 @@ function getAllProviders(settings = {}) {
   
   const presets = PROVIDER_LIST.map(p => {
     // If a custom URL or override exists for this preset
-    const customUrl = settings?.providerUrls?.[p.id];
+    const customMatch = customMap.get(p.id);
+    const customUrl = settings?.providerUrls?.[p.id] || customMatch?.baseUrl;
+    const customKey = customMatch?.apiKey;
     return {
       ...p,
-      baseUrl: customUrl || p.baseUrl
+      baseUrl: customUrl || p.baseUrl,
+      apiKey: customKey || p.apiKey || ''
     };
   });
 
@@ -182,16 +324,22 @@ function getAllProviders(settings = {}) {
 
 function getProviderById(id, settings = {}) {
   if (!id) return PROVIDERS.groq;
-  if (PROVIDERS[id]) {
-    const customUrl = settings?.providerUrls?.[id];
-    if (customUrl) {
-      return { ...PROVIDERS[id], baseUrl: customUrl };
-    }
-    return PROVIDERS[id];
-  }
   const custom = getCustomProviders(settings);
-  const found = custom.find(p => p.id === id);
-  return found || PROVIDERS.groq;
+  const customMatch = custom.find(p => p.id === id);
+
+  if (PROVIDERS[id]) {
+    const customUrl = settings?.providerUrls?.[id] || customMatch?.baseUrl;
+    const customKey = customMatch?.apiKey;
+    const modelsUrl = customMatch?.modelsUrl || (customUrl ? `${customUrl.replace(/\/+$/, '')}/models` : PROVIDERS[id].modelsUrl);
+    return {
+      ...PROVIDERS[id],
+      baseUrl: customUrl || PROVIDERS[id].baseUrl,
+      modelsUrl,
+      apiKey: customKey || PROVIDERS[id].apiKey || ''
+    };
+  }
+
+  return customMatch || PROVIDERS.groq;
 }
 
 function getActiveProvider(settings) {
@@ -207,27 +355,14 @@ function isProviderConfigured(settings = {}, providerId) {
     return true;
   }
 
-  // Check stored API key in apiKeys map
-  const storedKey = settings.apiKeys && settings.apiKeys[providerId];
-  if (storedKey && storedKey.trim() && storedKey !== '<replace me>') {
-    return true;
-  }
-
-  // Check environment variable
-  if (provider.envVar && process.env[provider.envVar]) {
-    return true;
-  }
-
-  // Legacy GROQ_API_KEY
-  if (providerId === 'groq' && settings.GROQ_API_KEY && settings.GROQ_API_KEY.trim() && settings.GROQ_API_KEY !== '<replace me>') {
+  // Resolved API key
+  const resolvedKey = getApiKeyForProvider(settings, providerId);
+  if (resolvedKey && resolvedKey !== '<replace me>' && resolvedKey.trim()) {
     return true;
   }
 
   // Custom provider with inline apiKey or valid baseUrl
   if (provider.isCustom) {
-    if (provider.apiKey && provider.apiKey.trim() && provider.apiKey !== '<replace me>') {
-      return true;
-    }
     if (provider.baseUrl && provider.baseUrl.trim() && provider.requiresApiKey === false) {
       return true;
     }
@@ -343,6 +478,13 @@ function getApiKeyForProvider(arg1, arg2) {
   const storedKey = settings.apiKeys && settings.apiKeys[provider.id];
   if (storedKey && storedKey !== '<replace me>' && storedKey.trim()) {
     return storedKey.trim();
+  }
+
+  // Check custom provider inline key or custom override
+  const custom = getCustomProviders(settings);
+  const customMatch = custom.find(p => p.id === providerId);
+  if (customMatch && customMatch.apiKey && customMatch.apiKey !== '<replace me>' && customMatch.apiKey.trim()) {
+    return customMatch.apiKey.trim();
   }
 
   if (provider.apiKey && provider.apiKey !== '<replace me>' && provider.apiKey.trim()) {

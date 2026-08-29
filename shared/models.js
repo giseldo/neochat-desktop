@@ -23,32 +23,47 @@ function applyModelHeuristics(modelId, apiModelData) {
                 apiModelData?.max_tokens;
 
   if (!context || typeof context !== 'number') {
-    if (modelName.includes('deepseek')) {
+    if (modelName.includes('gemini')) {
+      context = 1000000;
+    } else if (modelName.includes('claude')) {
+      context = 200000;
+    } else if (modelName.includes('sonar') || modelName.includes('perplexity')) {
+      context = 128000;
+    } else if (modelName.includes('deepseek')) {
       context = 64000;
     } else if (modelName.includes('llama-3.3') || modelName.includes('llama-3.1') || modelName.includes('llama-3.2')) {
       context = 128000;
     } else if (modelName.includes('llama-3')) {
       context = 8192;
+    } else if (modelName.includes('qwen-2.5') || modelName.includes('qwen2.5')) {
+      context = 128000;
     } else if (modelName.includes('qwen')) {
       context = 32768;
     } else if (modelName.includes('gpt-4') || modelName.includes('o1') || modelName.includes('o3') || modelName.includes('o4')) {
       context = 128000;
-    } else if (modelName.includes('claude')) {
-      context = 200000;
-    } else if (modelName.includes('gemini')) {
-      context = 1000000;
-    } else if (modelName.includes('mistral') || modelName.includes('mixtral')) {
+    } else if (modelName.includes('grok')) {
+      context = 131072;
+    } else if (modelName.includes('command-r')) {
+      context = 128000;
+    } else if (modelName.includes('mistral') || modelName.includes('mixtral') || modelName.includes('codestral')) {
       context = 32768;
     } else {
       context = DEFAULT_MODEL_CONFIG.context;
     }
   }
   
-  // Heuristic: 'gpt-oss' in name = supports builtin tools
+  // Heuristic: 'gpt-oss' or modern models in name = supports builtin tools
   const builtin_tools_supported = modelName.includes('gpt-oss');
   
-  // Heuristic: 'llama-4' in name = supports vision
-  const vision_supported = modelName.includes('llama-4');
+  // Heuristic: models supporting vision input
+  const vision_supported = modelName.includes('llama-4') ||
+                           modelName.includes('vision') ||
+                           modelName.includes('gemini') ||
+                           modelName.includes('gpt-4o') ||
+                           modelName.includes('gpt-4-turbo') ||
+                           modelName.includes('claude-3') ||
+                           modelName.includes('pixtral') ||
+                           modelName.includes('vl');
   
   return {
     context,

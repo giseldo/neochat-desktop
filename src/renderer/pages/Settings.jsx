@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { Link, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Search, Eye, EyeOff, Plus, Trash2, Edit3, Save, X, RefreshCw, Key, Settings as SettingsIcon, Zap, Cpu, Server, AlertCircle, CheckCircle, Sun, Moon, Laptop, Languages, Check, Terminal, Globe, Palette, Type, Sparkles, Sliders, ExternalLink, Route, User, Wrench, Download, UploadCloud, BarChart3, GitBranch, Mic, Volume2, Info, Keyboard, Folder, FolderOpen, RotateCcw, Lightbulb, Star, ChevronDown, ChevronUp, HardDrive } from 'lucide-react';
+import { ArrowLeft, Search, Eye, EyeOff, Plus, Trash2, Edit3, Save, X, RefreshCw, Key, Settings as SettingsIcon, Zap, Cpu, Server, AlertCircle, CheckCircle, Sun, Moon, Laptop, Languages, Check, Terminal, Globe, Palette, Type, Sparkles, Sliders, ExternalLink, Route, User, Wrench, Download, UploadCloud, BarChart3, GitBranch, Mic, Volume2, Info, Keyboard, Folder, FolderOpen, RotateCcw, Lightbulb, Star, ChevronDown, ChevronUp, HardDrive, Brain, Flame } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
@@ -16,6 +16,191 @@ import PromptTemplatesModal from '../components/PromptTemplatesModal';
 import KeyboardShortcutsModal, { formatAccelerator, KeyCombo, KeyBadge } from '../components/KeyboardShortcutsModal';
 import { cn } from '../lib/utils';
 import { getModelGroup, groupModels, parseBulkModelsInput } from '../lib/modelGrouping';
+
+const POPULAR_PROVIDER_PRESETS = [
+  {
+    id: 'gemini',
+    name: 'Google Gemini',
+    badge: 'Gemini 2.5 Flash / 2.0 Flash / 1.5 Pro',
+    defaultModel: 'gemini-2.0-flash',
+    baseUrl: 'https://generativelanguage.googleapis.com/v1beta/openai/',
+    description: 'Modelos Gemini 2.5, 2.0 Flash e 1.5 Pro via endpoint OpenAI-compatible',
+    icon: Sparkles,
+    color: 'from-blue-500/10 to-indigo-500/10 border-blue-500/30 text-blue-500',
+    keyPlaceholder: 'AIzaSy...',
+    keyUrl: 'https://aistudio.google.com/app/apikey',
+    keyUrlLabel: 'Google AI Studio',
+  },
+  {
+    id: 'openai',
+    name: 'OpenAI',
+    badge: 'GPT-4o, o1, o3-mini',
+    defaultModel: 'gpt-4o-mini',
+    baseUrl: 'https://api.openai.com/v1',
+    description: 'GPT-4o, GPT-4o-mini, o1, o3-mini e catálogo oficial da OpenAI',
+    icon: Sparkles,
+    color: 'from-emerald-500/10 to-teal-500/10 border-emerald-500/30 text-emerald-500',
+    keyPlaceholder: 'sk-proj-...',
+    keyUrl: 'https://platform.openai.com/api-keys',
+    keyUrlLabel: 'OpenAI Platform',
+  },
+  {
+    id: 'anthropic',
+    name: 'Anthropic (Claude)',
+    badge: 'Claude 3.7 Sonnet / 3.5',
+    defaultModel: 'anthropic/claude-3.7-sonnet',
+    baseUrl: 'https://openrouter.ai/api/v1',
+    description: 'Claude 3.7 Sonnet (com raciocínio híbrido) e Claude 3.5 via OpenRouter',
+    icon: Brain,
+    color: 'from-amber-500/10 to-orange-500/10 border-amber-500/30 text-amber-500',
+    keyPlaceholder: 'sk-or-v1-...',
+    keyUrl: 'https://openrouter.ai/keys',
+    keyUrlLabel: 'OpenRouter Console',
+  },
+  {
+    id: 'perplexity',
+    name: 'Perplexity AI',
+    badge: 'Sonar Pro & Reasoning',
+    defaultModel: 'sonar-pro',
+    baseUrl: 'https://api.perplexity.ai',
+    description: 'Modelos Sonar, Sonar Pro e Sonar Reasoning com pesquisa web em tempo real',
+    icon: Globe,
+    color: 'from-cyan-500/10 to-blue-500/10 border-cyan-500/30 text-cyan-500',
+    keyPlaceholder: 'pplx-...',
+    keyUrl: 'https://www.perplexity.ai/settings/api',
+    keyUrlLabel: 'Perplexity Settings',
+  },
+  {
+    id: 'deepseek',
+    name: 'DeepSeek',
+    badge: 'DeepSeek-V3 & DeepSeek-R1',
+    defaultModel: 'deepseek-chat',
+    baseUrl: 'https://api.deepseek.com/v1',
+    description: 'DeepSeek-V3 e DeepSeek-R1 (raciocínio avançado de alto desempenho)',
+    icon: Brain,
+    color: 'from-blue-600/10 to-indigo-600/10 border-blue-600/30 text-blue-600 dark:text-blue-400',
+    keyPlaceholder: 'sk-...',
+    keyUrl: 'https://platform.deepseek.com/api_keys',
+    keyUrlLabel: 'DeepSeek Platform',
+  },
+  {
+    id: 'grok',
+    name: 'xAI (Grok)',
+    badge: 'Grok 2 & Grok Vision',
+    defaultModel: 'grok-2-latest',
+    baseUrl: 'https://api.x.ai/v1',
+    description: 'Modelos Grok desenvolvidos pela xAI',
+    icon: Sparkles,
+    color: 'from-zinc-500/10 to-neutral-500/10 border-zinc-500/30 text-zinc-400',
+    keyPlaceholder: 'xai-...',
+    keyUrl: 'https://console.x.ai/',
+    keyUrlLabel: 'xAI Console',
+  },
+  {
+    id: 'cerebras',
+    name: 'Cerebras',
+    badge: 'Llama 3.3 (>1800 tok/s)',
+    defaultModel: 'llama-3.3-70b',
+    baseUrl: 'https://api.cerebras.ai/v1',
+    description: 'Inferência em velocidade recorde com Llama 3.3 e DeepSeek R1',
+    icon: Zap,
+    color: 'from-amber-400/10 to-yellow-500/10 border-yellow-500/30 text-yellow-500',
+    keyPlaceholder: 'csk-...',
+    keyUrl: 'https://cloud.cerebras.ai/',
+    keyUrlLabel: 'Cerebras Cloud',
+  },
+  {
+    id: 'mistral',
+    name: 'Mistral AI',
+    badge: 'Mistral Large & Codestral',
+    defaultModel: 'mistral-small-latest',
+    baseUrl: 'https://api.mistral.ai/v1',
+    description: 'Modelos abertos e comerciais da Mistral AI (Large, Small, Codestral, Pixtral)',
+    icon: Sparkles,
+    color: 'from-orange-500/10 to-red-500/10 border-orange-500/30 text-orange-500',
+    keyPlaceholder: '...',
+    keyUrl: 'https://console.mistral.ai/api-keys/',
+    keyUrlLabel: 'Mistral Console',
+  },
+  {
+    id: 'together',
+    name: 'Together AI',
+    badge: 'Llama 3.3 & Qwen 2.5',
+    defaultModel: 'meta-llama/Llama-3.3-70B-Instruct-Turbo',
+    baseUrl: 'https://api.together.xyz/v1',
+    description: 'Inferência em nuvem de código aberto com dezenas de modelos',
+    icon: Sparkles,
+    color: 'from-blue-500/10 to-cyan-500/10 border-blue-500/30 text-blue-400',
+    keyPlaceholder: '...',
+    keyUrl: 'https://api.together.xyz/settings/api-keys',
+    keyUrlLabel: 'Together Settings',
+  },
+  {
+    id: 'sambanova',
+    name: 'SambaNova Cloud',
+    badge: 'DeepSeek R1 671B Full',
+    defaultModel: 'Meta-Llama-3.3-70B-Instruct',
+    baseUrl: 'https://api.sambanova.ai/v1',
+    description: 'Modelos de ponta em precisão total (DeepSeek R1 e Llama 3.3 70B)',
+    icon: Cpu,
+    color: 'from-purple-500/10 to-pink-500/10 border-purple-500/30 text-purple-400',
+    keyPlaceholder: '...',
+    keyUrl: 'https://cloud.sambanova.ai/',
+    keyUrlLabel: 'SambaNova Cloud',
+  },
+  {
+    id: 'deepinfra',
+    name: 'DeepInfra',
+    badge: 'Llama 3.3 & Qwen 2.5',
+    defaultModel: 'meta-llama/Llama-3.3-70B-Instruct',
+    baseUrl: 'https://api.deepinfra.com/v1/openai',
+    description: 'Infraestrutura econômica para Llama 3.3, Qwen 2.5 e DeepSeek V3/R1',
+    icon: Server,
+    color: 'from-indigo-500/10 to-blue-500/10 border-indigo-500/30 text-indigo-400',
+    keyPlaceholder: '...',
+    keyUrl: 'https://deepinfra.com/dash/api_keys',
+    keyUrlLabel: 'DeepInfra Dashboard',
+  },
+  {
+    id: 'cohere',
+    name: 'Cohere',
+    badge: 'Command R+ & RAG',
+    defaultModel: 'command-r-plus-08-2024',
+    baseUrl: 'https://api.cohere.com/v2',
+    description: 'Modelos Command R+ e Command R para raciocínio e RAG',
+    icon: Sparkles,
+    color: 'from-emerald-500/10 to-green-500/10 border-emerald-500/30 text-emerald-400',
+    keyPlaceholder: '...',
+    keyUrl: 'https://dashboard.cohere.com/api-keys',
+    keyUrlLabel: 'Cohere Dashboard',
+  },
+  {
+    id: 'openrouter',
+    name: 'OpenRouter',
+    badge: 'Centenas de Modelos',
+    defaultModel: 'openai/gpt-4o-mini',
+    baseUrl: 'https://openrouter.ai/api/v1',
+    description: 'Acesso unificado a centenas de modelos através de uma única chave',
+    icon: Globe,
+    color: 'from-teal-500/10 to-cyan-500/10 border-teal-500/30 text-teal-400',
+    keyPlaceholder: 'sk-or-v1-...',
+    keyUrl: 'https://openrouter.ai/keys',
+    keyUrlLabel: 'OpenRouter Keys',
+  },
+  {
+    id: 'custom',
+    name: 'Personalizado',
+    badge: 'vLLM, LiteLLM, Ollama Remoto',
+    defaultModel: '',
+    baseUrl: '',
+    description: 'Qualquer endpoint compatível com a API da OpenAI (vLLM, LocalAI, etc.)',
+    icon: SettingsIcon,
+    color: 'from-muted/30 to-muted/10 border-border text-foreground',
+    keyPlaceholder: 'sk-...',
+    keyUrl: '',
+    keyUrlLabel: '',
+  }
+];
 
 function Settings() {
   const {
@@ -129,6 +314,11 @@ function Settings() {
   const [providerSearchTerm, setProviderSearchTerm] = useState('');
   const [isAddProviderModalOpen, setIsAddProviderModalOpen] = useState(false);
   const [editingCustomProvider, setEditingCustomProvider] = useState(null);
+  const [selectedPresetId, setSelectedPresetId] = useState(null);
+  const [isAdvancedOptionsOpen, setIsAdvancedOptionsOpen] = useState(false);
+  const [modalTestResult, setModalTestResult] = useState(null);
+  const [showModalApiKey, setShowModalApiKey] = useState(false);
+  const modalApiKeyInputRef = useRef(null);
   const [customProviderForm, setCustomProviderForm] = useState({
     id: '',
     name: '',
@@ -1071,8 +1261,12 @@ function Settings() {
   };
 
   const handleOpenAddProviderModal = (providerToEdit = null) => {
+    setModalTestResult(null);
+    setShowModalApiKey(false);
     if (providerToEdit) {
       setEditingCustomProvider(providerToEdit);
+      setSelectedPresetId(providerToEdit.id || 'custom');
+      setIsAdvancedOptionsOpen(true);
       setCustomProviderForm({
         id: providerToEdit.id || '',
         name: providerToEdit.name || '',
@@ -1088,6 +1282,8 @@ function Settings() {
       });
     } else {
       setEditingCustomProvider(null);
+      setSelectedPresetId(null);
+      setIsAdvancedOptionsOpen(false);
       setCustomProviderForm({
         id: '',
         name: '',
@@ -1104,12 +1300,83 @@ function Settings() {
     setIsAddProviderModalOpen(true);
   };
 
+  const handleSelectPreset = (preset) => {
+    setSelectedPresetId(preset.id);
+    setModalTestResult(null);
+    const existingApiKey = settings.apiKeys?.[preset.id] || (preset.id === 'groq' ? settings.GROQ_API_KEY : '') || '';
+    if (preset.id === 'custom') {
+      setIsAdvancedOptionsOpen(true);
+      setCustomProviderForm({
+        id: '',
+        name: '',
+        baseUrl: '',
+        apiKey: '',
+        defaultModel: '',
+        description: '',
+        isLocal: false,
+        requiresApiKey: true,
+        enabled: true
+      });
+    } else {
+      setIsAdvancedOptionsOpen(false);
+      setCustomProviderForm({
+        id: preset.id,
+        name: preset.name,
+        baseUrl: preset.baseUrl,
+        apiKey: existingApiKey,
+        defaultModel: preset.defaultModel,
+        description: preset.description,
+        isLocal: false,
+        requiresApiKey: true,
+        enabled: true
+      });
+    }
+    setCustomProviderFormErrors({});
+    setTimeout(() => {
+      modalApiKeyInputRef.current?.focus();
+    }, 120);
+  };
+
+  const handleTestModalConnection = async () => {
+    const finalId = customProviderForm.id || 'custom';
+    const baseUrl = customProviderForm.baseUrl;
+    const apiKey = customProviderForm.apiKey;
+
+    if (!baseUrl) {
+      setModalTestResult({ testing: false, success: false, error: 'URL Base é obrigatória para testar conexão.' });
+      return;
+    }
+
+    setModalTestResult({ testing: true });
+    try {
+      const result = await window.electron.testProvider({
+        providerId: finalId,
+        apiKey: apiKey || '',
+        baseUrl: baseUrl || ''
+      });
+
+      setModalTestResult({
+        testing: false,
+        success: result.success,
+        count: result.count || 0,
+        latencyMs: result.latencyMs || 0,
+        error: result.error || null
+      });
+    } catch (err) {
+      setModalTestResult({
+        testing: false,
+        success: false,
+        error: err.message || String(err)
+      });
+    }
+  };
+
   const handleSaveCustomProvider = async () => {
     const errors = {};
     if (!customProviderForm.name.trim()) {
       errors.name = 'Nome é obrigatório';
     }
-    if (!customProviderForm.baseUrl.trim()) {
+    if (!customProviderForm.baseUrl.trim() && customProviderForm.requiresApiKey !== false) {
       errors.baseUrl = 'URL Base é obrigatória';
     }
 
@@ -1123,32 +1390,37 @@ function Settings() {
 
     if (Object.keys(errors).length > 0) {
       setCustomProviderFormErrors(errors);
+      setIsAdvancedOptionsOpen(true);
       return;
     }
 
+    const isBuiltIn = Boolean(providers.find(p => p.id === finalId && !p.isCustom));
     const customList = Array.isArray(settings.customProviders) ? [...settings.customProviders] : [];
     const isEdit = Boolean(editingCustomProvider);
-    const existingIndex = isEdit
-      ? customList.findIndex(p => p.id === editingCustomProvider.id)
-      : customList.findIndex(p => p.id === finalId);
+    
+    if (!isBuiltIn || isEdit) {
+      const existingIndex = isEdit
+        ? customList.findIndex(p => p.id === editingCustomProvider.id)
+        : customList.findIndex(p => p.id === finalId);
 
-    const providerObj = {
-      id: finalId,
-      name: customProviderForm.name.trim(),
-      baseUrl: customProviderForm.baseUrl.trim(),
-      apiKey: customProviderForm.apiKey.trim(),
-      defaultModel: customProviderForm.defaultModel.trim(),
-      description: customProviderForm.description.trim() || 'Provedor personalizado OpenAI-compatible',
-      isLocal: Boolean(customProviderForm.isLocal),
-      requiresApiKey: customProviderForm.requiresApiKey !== false,
-      isCustom: true,
-      icon: 'Server'
-    };
+      const providerObj = {
+        id: finalId,
+        name: customProviderForm.name.trim(),
+        baseUrl: customProviderForm.baseUrl.trim(),
+        apiKey: customProviderForm.apiKey.trim(),
+        defaultModel: customProviderForm.defaultModel.trim(),
+        description: customProviderForm.description.trim() || 'Provedor personalizado OpenAI-compatible',
+        isLocal: Boolean(customProviderForm.isLocal),
+        requiresApiKey: customProviderForm.requiresApiKey !== false,
+        isCustom: !isBuiltIn,
+        icon: 'Server'
+      };
 
-    if (existingIndex >= 0) {
-      customList[existingIndex] = providerObj;
-    } else {
-      customList.push(providerObj);
+      if (existingIndex >= 0) {
+        customList[existingIndex] = providerObj;
+      } else if (!isBuiltIn) {
+        customList.push(providerObj);
+      }
     }
 
     const currentEnabled = Array.isArray(settings.enabledProviders)
@@ -1167,11 +1439,17 @@ function Settings() {
       currentApiKeys[finalId] = customProviderForm.apiKey.trim();
     }
 
+    const currentProviderUrls = { ...(settings.providerUrls || {}) };
+    if (customProviderForm.baseUrl.trim()) {
+      currentProviderUrls[finalId] = customProviderForm.baseUrl.trim();
+    }
+
     const updatedSettings = {
       ...settings,
       customProviders: customList,
       enabledProviders: currentEnabled,
-      apiKeys: currentApiKeys
+      apiKeys: currentApiKeys,
+      providerUrls: currentProviderUrls
     };
 
     setSettings(updatedSettings);
@@ -1224,15 +1502,22 @@ function Settings() {
     if (provider.isLocal) return Laptop;
     switch (provider.id) {
       case 'groq': return Zap;
+      case 'gemini': return Sparkles;
       case 'openai': return Sparkles;
+      case 'anthropic': return Brain;
+      case 'perplexity': return Globe;
+      case 'deepseek': return Brain;
+      case 'grok': return Sparkles;
+      case 'cerebras': return Zap;
+      case 'mistral': return Sparkles;
+      case 'together': return Sparkles;
+      case 'sambanova': return Cpu;
+      case 'deepinfra': return Server;
+      case 'cohere': return Sparkles;
+      case 'fireworks': return Flame;
+      case 'openrouter': return Globe;
       case 'ollama': return HardDrive;
       case 'lmstudio': return Laptop;
-      case 'openrouter': return Globe;
-      case 'deepseek': return Cpu;
-      case 'together': return Sparkles;
-      case 'fireworks': return Zap;
-      case 'mistral': return Sparkles;
-      case 'grok': return Sparkles;
       default: return Server;
     }
   };
@@ -6654,162 +6939,372 @@ function Settings() {
             }
           }}
         >
-          <div className="bg-card border border-border rounded-2xl w-full max-w-lg p-5 shadow-2xl animate-in zoom-in-95 flex flex-col space-y-4 max-h-[90vh] overflow-y-auto">
+          <div className="bg-card border border-border rounded-2xl w-full max-w-2xl p-5 shadow-2xl animate-in zoom-in-95 flex flex-col space-y-4 max-h-[90vh] overflow-y-auto">
+            {/* Modal Header */}
             <div className="flex items-center justify-between pb-3 border-b border-border">
               <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
-                  <Server className="w-4 h-4" />
+                <div className="w-9 h-9 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
+                  <Sparkles className="w-5 h-5" />
                 </div>
                 <div>
                   <h3 className="font-semibold text-sm text-foreground">
                     {editingCustomProvider ? t('settings.editProviderModalTitle') : t('settings.addProviderModalTitle')}
                   </h3>
-                  <p className="text-xs text-muted-foreground">
-                    {t('settings.providerBaseUrlHelp')}
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    {t('settings.selectPopularProviderDesc')}
                   </p>
                 </div>
               </div>
               <button
                 type="button"
                 onClick={() => setIsAddProviderModalOpen(false)}
-                className="text-muted-foreground hover:text-foreground text-sm p-1 rounded-lg hover:bg-muted"
+                className="text-muted-foreground hover:text-foreground text-sm p-1 rounded-lg hover:bg-muted transition-colors"
               >
                 ✕
               </button>
             </div>
 
-            <div className="space-y-3.5 text-xs">
-              {/* Provider Name */}
-              <div className="space-y-1">
-                <Label htmlFor="cp-name" className="text-xs font-medium">
-                  {t('settings.providerNameLabel')} *
-                </Label>
-                <Input
-                  id="cp-name"
-                  value={customProviderForm.name}
-                  onChange={(e) => {
-                    const name = e.target.value;
-                    setCustomProviderForm(prev => ({
-                      ...prev,
-                      name,
-                      id: prev.id || (!editingCustomProvider ? name.toLowerCase().replace(/[^a-z0-9_-]/g, '-').replace(/-+/g, '-') : prev.id)
-                    }));
-                  }}
-                  placeholder={t('settings.providerNamePlaceholder')}
-                  className={cn("text-xs h-8", customProviderFormErrors.name && "border-destructive")}
-                />
-                {customProviderFormErrors.name && (
-                  <p className="text-[11px] text-destructive">{customProviderFormErrors.name}</p>
-                )}
-              </div>
-
-              {/* Provider ID (Slug) */}
-              <div className="space-y-1">
-                <Label htmlFor="cp-id" className="text-xs font-medium">
-                  {t('settings.providerIdLabel')}
-                </Label>
-                <Input
-                  id="cp-id"
-                  value={customProviderForm.id}
-                  disabled={Boolean(editingCustomProvider)}
-                  onChange={(e) => setCustomProviderForm(prev => ({ ...prev, id: e.target.value }))}
-                  placeholder={t('settings.providerIdPlaceholder')}
-                  className="text-xs h-8 font-mono"
-                />
-              </div>
-
-              {/* Provider Base URL */}
-              <div className="space-y-1">
-                <Label htmlFor="cp-baseUrl" className="text-xs font-medium">
-                  {t('settings.providerBaseUrlLabel')} *
-                </Label>
-                <Input
-                  id="cp-baseUrl"
-                  value={customProviderForm.baseUrl}
-                  onChange={(e) => setCustomProviderForm(prev => ({ ...prev, baseUrl: e.target.value }))}
-                  placeholder={t('settings.providerBaseUrlPlaceholder')}
-                  className={cn("text-xs h-8 font-mono", customProviderFormErrors.baseUrl && "border-destructive")}
-                />
-                {customProviderFormErrors.baseUrl && (
-                  <p className="text-[11px] text-destructive">{customProviderFormErrors.baseUrl}</p>
-                )}
-              </div>
-
-              {/* Provider API Key */}
-              <div className="space-y-1">
-                <Label htmlFor="cp-apiKey" className="text-xs font-medium">
-                  {t('settings.providerApiKeyOptionalLabel')}
-                </Label>
-                <Input
-                  type="password"
-                  id="cp-apiKey"
-                  value={customProviderForm.apiKey}
-                  onChange={(e) => setCustomProviderForm(prev => ({ ...prev, apiKey: e.target.value }))}
-                  placeholder="sk-..."
-                  className="text-xs h-8 font-mono"
-                />
-              </div>
-
-              {/* Default Model */}
-              <div className="space-y-1">
-                <Label htmlFor="cp-model" className="text-xs font-medium">
-                  {t('settings.providerDefaultModelLabel')}
-                </Label>
-                <Input
-                  id="cp-model"
-                  value={customProviderForm.defaultModel}
-                  onChange={(e) => setCustomProviderForm(prev => ({ ...prev, defaultModel: e.target.value }))}
-                  placeholder={t('settings.providerDefaultModelPlaceholder')}
-                  className="text-xs h-8"
-                />
-              </div>
-
-              {/* Description */}
-              <div className="space-y-1">
-                <Label htmlFor="cp-desc" className="text-xs font-medium">
-                  {t('settings.providerDescLabel')}
-                </Label>
-                <Input
-                  id="cp-desc"
-                  value={customProviderForm.description}
-                  onChange={(e) => setCustomProviderForm(prev => ({ ...prev, description: e.target.value }))}
-                  placeholder={t('settings.providerDescPlaceholder')}
-                  className="text-xs h-8"
-                />
-              </div>
-
-              {/* Toggles */}
-              <div className="space-y-2 pt-2 border-t border-border/60">
+            {/* Provider Catalog (if no preset is selected and not editing) */}
+            {!selectedPresetId && !editingCustomProvider ? (
+              <div className="space-y-3">
                 <div className="flex items-center justify-between">
-                  <span className="text-xs font-medium text-foreground">
-                    {t('settings.statusActive')}
+                  <span className="text-xs font-semibold text-foreground">
+                    {t('settings.selectPopularProvider')}
                   </span>
-                  <Switch
-                    checked={customProviderForm.enabled}
-                    onChange={(e) => setCustomProviderForm(prev => ({ ...prev, enabled: e.target.checked }))}
-                  />
+                  <Badge variant="outline" className="text-[10px] text-muted-foreground">
+                    {POPULAR_PROVIDER_PRESETS.length} opções disponíveis
+                  </Badge>
                 </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-medium text-foreground">
-                    {t('settings.providerIsLocal')}
-                  </span>
-                  <Switch
-                    checked={customProviderForm.isLocal}
-                    onChange={(e) => setCustomProviderForm(prev => ({ ...prev, isLocal: e.target.checked }))}
-                  />
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-medium text-foreground">
-                    {t('settings.providerRequiresApiKey')}
-                  </span>
-                  <Switch
-                    checked={customProviderForm.requiresApiKey}
-                    onChange={(e) => setCustomProviderForm(prev => ({ ...prev, requiresApiKey: e.target.checked }))}
-                  />
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 max-h-[55vh] overflow-y-auto pr-1">
+                  {POPULAR_PROVIDER_PRESETS.map((preset) => {
+                    const PresetIcon = preset.icon;
+                    return (
+                      <button
+                        key={preset.id}
+                        type="button"
+                        onClick={() => handleSelectPreset(preset)}
+                        className={cn(
+                          "flex flex-col text-left p-3 rounded-xl border transition-all duration-150 relative group select-none shadow-xs",
+                          "bg-card hover:bg-accent/40 border-border/80 hover:border-primary/50 hover:shadow-md cursor-pointer"
+                        )}
+                      >
+                        <div className="flex items-center justify-between gap-2 w-full">
+                          <div className="flex items-center gap-2.5 min-w-0">
+                            <div className={cn("w-8 h-8 rounded-lg flex items-center justify-center shrink-0 border bg-gradient-to-br", preset.color)}>
+                              <PresetIcon className="w-4 h-4" />
+                            </div>
+                            <div className="min-w-0">
+                              <span className="font-semibold text-xs text-foreground block truncate">
+                                {preset.name}
+                              </span>
+                              <span className="text-[10.5px] text-primary/80 font-medium truncate block">
+                                {preset.badge}
+                              </span>
+                            </div>
+                          </div>
+                          <Badge variant="secondary" className="text-[10px] shrink-0 font-normal group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
+                            {preset.id === 'custom' ? 'Manual' : '+ Ativar'}
+                          </Badge>
+                        </div>
+                        <p className="text-[11px] text-muted-foreground mt-2 line-clamp-2 leading-relaxed">
+                          {preset.description}
+                        </p>
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
-            </div>
+            ) : (
+              /* Config Form for Selected Provider */
+              <div className="space-y-4 text-xs">
+                {/* Active Provider Info Banner */}
+                {(() => {
+                  const currentPreset = POPULAR_PROVIDER_PRESETS.find(p => p.id === selectedPresetId);
+                  const PresetIcon = currentPreset?.icon || Server;
 
+                  return (
+                    <div className="p-3.5 rounded-xl border border-primary/20 bg-primary/5 flex items-center justify-between gap-3 shadow-xs">
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div className="w-9 h-9 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0 border border-primary/20">
+                          <PresetIcon className="w-4.5 h-4.5" />
+                        </div>
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="font-semibold text-sm text-foreground">
+                              {customProviderForm.name || currentPreset?.name || 'Provedor'}
+                            </span>
+                            {currentPreset?.badge && (
+                              <Badge variant="outline" className="text-[10.5px] px-1.5 py-0 bg-background/80 text-primary border-primary/30">
+                                {currentPreset.badge}
+                              </Badge>
+                            )}
+                          </div>
+                          <p className="text-[11.5px] text-muted-foreground truncate mt-0.5">
+                            {customProviderForm.description || currentPreset?.description}
+                          </p>
+                        </div>
+                      </div>
+
+                      {!editingCustomProvider && (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => {
+                            setSelectedPresetId(null);
+                            setModalTestResult(null);
+                          }}
+                          className="h-7 px-2 text-xs text-muted-foreground hover:text-foreground shrink-0 gap-1"
+                        >
+                          <RotateCcw className="w-3 h-3" />
+                          <span>{t('settings.chooseProviderPreset')}</span>
+                        </Button>
+                      )}
+                    </div>
+                  );
+                })()}
+
+                {/* Primary Action: API Key Input */}
+                <div className="space-y-2 p-3.5 rounded-xl border border-border/80 bg-muted/20">
+                  <div className="flex items-center justify-between gap-2 flex-wrap">
+                    <Label htmlFor="cp-apiKey" className="text-xs font-semibold text-foreground">
+                      {t('settings.onlyApiKeyPrompt')}
+                    </Label>
+                    {(() => {
+                      const preset = POPULAR_PROVIDER_PRESETS.find(p => p.id === selectedPresetId);
+                      if (preset?.keyUrl) {
+                        return (
+                          <a
+                            href={preset.keyUrl}
+                            target="_blank"
+                            rel="noreferrer"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              if (window.electron?.openExternal) {
+                                window.electron.openExternal(preset.keyUrl);
+                              } else {
+                                window.open(preset.keyUrl, '_blank');
+                              }
+                            }}
+                            className="text-[11px] text-primary hover:underline inline-flex items-center gap-1 font-medium cursor-pointer"
+                          >
+                            <ExternalLink className="w-3 h-3" />
+                            <span>{t('settings.getKeyHelp')} ({preset.keyUrlLabel || preset.name}) ↗</span>
+                          </a>
+                        );
+                      }
+                      return null;
+                    })()}
+                  </div>
+
+                  <div className="relative">
+                    <Input
+                      ref={modalApiKeyInputRef}
+                      type={showModalApiKey ? "text" : "password"}
+                      id="cp-apiKey"
+                      value={customProviderForm.apiKey}
+                      onChange={(e) => setCustomProviderForm(prev => ({ ...prev, apiKey: e.target.value }))}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' && !e.shiftKey) {
+                          e.preventDefault();
+                          handleSaveCustomProvider();
+                        }
+                      }}
+                      placeholder={POPULAR_PROVIDER_PRESETS.find(p => p.id === selectedPresetId)?.keyPlaceholder || "Insira sua chave de API (sk-...)"}
+                      className="text-xs h-9 pr-10 font-mono bg-background"
+                      autoFocus
+                    />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="absolute right-0 top-0 h-9 w-9 text-muted-foreground hover:text-foreground"
+                      onClick={() => setShowModalApiKey(prev => !prev)}
+                      tabIndex={-1}
+                    >
+                      {showModalApiKey ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+                    </Button>
+                  </div>
+
+                  {/* Test Connection in Modal */}
+                  <div className="flex items-center justify-between gap-2 pt-1">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={handleTestModalConnection}
+                      disabled={modalTestResult?.testing || !customProviderForm.baseUrl}
+                      className="h-7 text-xs gap-1.5 px-2.5"
+                    >
+                      {modalTestResult?.testing ? (
+                        <>
+                          <RefreshCw className="w-3 h-3 animate-spin text-primary" />
+                          <span>{t('settings.testingConnection')}</span>
+                        </>
+                      ) : (
+                        <>
+                          <Zap className="w-3 h-3 text-amber-500" />
+                          <span>{t('settings.testConnection')}</span>
+                        </>
+                      )}
+                    </Button>
+
+                    {modalTestResult && !modalTestResult.testing && (
+                      <div className="text-[11px] font-medium truncate">
+                        {modalTestResult.success ? (
+                          <span className="text-emerald-600 dark:text-emerald-400 inline-flex items-center gap-1">
+                            <CheckCircle className="w-3.5 h-3.5" />
+                            {t('settings.testSuccessInModal', { count: modalTestResult.count, latency: modalTestResult.latencyMs })}
+                          </span>
+                        ) : (
+                          <span className="text-destructive inline-flex items-center gap-1">
+                            <AlertCircle className="w-3.5 h-3.5" />
+                            {t('settings.testErrorInModal', { error: modalTestResult.error })}
+                          </span>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Collapsible Advanced Options Toggle */}
+                <div className="border border-border/70 rounded-xl overflow-hidden">
+                  <button
+                    type="button"
+                    onClick={() => setIsAdvancedOptionsOpen(prev => !prev)}
+                    className="w-full flex items-center justify-between p-3 text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted/40 transition-colors select-none"
+                  >
+                    <div className="flex items-center gap-2">
+                      <Sliders className="w-3.5 h-3.5 text-primary" />
+                      <span>{t('settings.advancedSettingsToggle')}</span>
+                    </div>
+                    {isAdvancedOptionsOpen ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+                  </button>
+
+                  {isAdvancedOptionsOpen && (
+                    <div className="p-3.5 pt-1 space-y-3 border-t border-border/60 bg-muted/10">
+                      {/* Provider Name */}
+                      <div className="space-y-1">
+                        <Label htmlFor="cp-name" className="text-xs font-medium">
+                          {t('settings.providerNameLabel')} *
+                        </Label>
+                        <Input
+                          id="cp-name"
+                          value={customProviderForm.name}
+                          onChange={(e) => {
+                            const name = e.target.value;
+                            setCustomProviderForm(prev => ({
+                              ...prev,
+                              name,
+                              id: prev.id || (!editingCustomProvider ? name.toLowerCase().replace(/[^a-z0-9_-]/g, '-').replace(/-+/g, '-') : prev.id)
+                            }));
+                          }}
+                          placeholder={t('settings.providerNamePlaceholder')}
+                          className={cn("text-xs h-8", customProviderFormErrors.name && "border-destructive")}
+                        />
+                        {customProviderFormErrors.name && (
+                          <p className="text-[11px] text-destructive">{customProviderFormErrors.name}</p>
+                        )}
+                      </div>
+
+                      {/* Provider ID (Slug) */}
+                      <div className="space-y-1">
+                        <Label htmlFor="cp-id" className="text-xs font-medium">
+                          {t('settings.providerIdLabel')}
+                        </Label>
+                        <Input
+                          id="cp-id"
+                          value={customProviderForm.id}
+                          disabled={Boolean(editingCustomProvider)}
+                          onChange={(e) => setCustomProviderForm(prev => ({ ...prev, id: e.target.value }))}
+                          placeholder={t('settings.providerIdPlaceholder')}
+                          className="text-xs h-8 font-mono"
+                        />
+                      </div>
+
+                      {/* Provider Base URL */}
+                      <div className="space-y-1">
+                        <Label htmlFor="cp-baseUrl" className="text-xs font-medium">
+                          {t('settings.providerBaseUrlLabel')} *
+                        </Label>
+                        <Input
+                          id="cp-baseUrl"
+                          value={customProviderForm.baseUrl}
+                          onChange={(e) => setCustomProviderForm(prev => ({ ...prev, baseUrl: e.target.value }))}
+                          placeholder={t('settings.providerBaseUrlPlaceholder')}
+                          className={cn("text-xs h-8 font-mono", customProviderFormErrors.baseUrl && "border-destructive")}
+                        />
+                        {customProviderFormErrors.baseUrl && (
+                          <p className="text-[11px] text-destructive">{customProviderFormErrors.baseUrl}</p>
+                        )}
+                      </div>
+
+                      {/* Default Model */}
+                      <div className="space-y-1">
+                        <Label htmlFor="cp-model" className="text-xs font-medium">
+                          {t('settings.providerDefaultModelLabel')}
+                        </Label>
+                        <Input
+                          id="cp-model"
+                          value={customProviderForm.defaultModel}
+                          onChange={(e) => setCustomProviderForm(prev => ({ ...prev, defaultModel: e.target.value }))}
+                          placeholder={t('settings.providerDefaultModelPlaceholder')}
+                          className="text-xs h-8"
+                        />
+                      </div>
+
+                      {/* Description */}
+                      <div className="space-y-1">
+                        <Label htmlFor="cp-desc" className="text-xs font-medium">
+                          {t('settings.providerDescLabel')}
+                        </Label>
+                        <Input
+                          id="cp-desc"
+                          value={customProviderForm.description}
+                          onChange={(e) => setCustomProviderForm(prev => ({ ...prev, description: e.target.value }))}
+                          placeholder={t('settings.providerDescPlaceholder')}
+                          className="text-xs h-8"
+                        />
+                      </div>
+
+                      {/* Toggles */}
+                      <div className="space-y-2 pt-2 border-t border-border/60">
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-medium text-foreground">
+                            {t('settings.statusActive')}
+                          </span>
+                          <Switch
+                            checked={customProviderForm.enabled}
+                            onChange={(e) => setCustomProviderForm(prev => ({ ...prev, enabled: e.target.checked }))}
+                          />
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-medium text-foreground">
+                            {t('settings.providerIsLocal')}
+                          </span>
+                          <Switch
+                            checked={customProviderForm.isLocal}
+                            onChange={(e) => setCustomProviderForm(prev => ({ ...prev, isLocal: e.target.checked }))}
+                          />
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-medium text-foreground">
+                            {t('settings.providerRequiresApiKey')}
+                          </span>
+                          <Switch
+                            checked={customProviderForm.requiresApiKey}
+                            onChange={(e) => setCustomProviderForm(prev => ({ ...prev, requiresApiKey: e.target.checked }))}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Modal Footer Actions */}
             <div className="flex items-center justify-end gap-2 pt-3 border-t border-border">
               <button
                 type="button"
@@ -6818,14 +7313,16 @@ function Settings() {
               >
                 {t('common.cancel')}
               </button>
-              <button
-                type="button"
-                onClick={handleSaveCustomProvider}
-                className="px-4 py-1.5 rounded-lg text-xs font-semibold bg-primary text-primary-foreground hover:bg-primary/90 transition-colors shadow-xs flex items-center gap-1.5"
-              >
-                <Check className="w-3.5 h-3.5" />
-                <span>{t('settings.saveProvider')}</span>
-              </button>
+              {(selectedPresetId || editingCustomProvider) && (
+                <button
+                  type="button"
+                  onClick={handleSaveCustomProvider}
+                  className="px-4 py-1.5 rounded-lg text-xs font-semibold bg-primary text-primary-foreground hover:bg-primary/90 transition-colors shadow-xs flex items-center gap-1.5"
+                >
+                  <Check className="w-3.5 h-3.5" />
+                  <span>{t('settings.saveAndActivate')}</span>
+                </button>
+              )}
             </div>
           </div>
         </div>,
