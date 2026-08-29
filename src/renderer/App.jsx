@@ -1049,25 +1049,31 @@ function App() {
     const turnStartTime = Date.now();
 
     try {
-        // Create a streaming assistant message placeholder
-        const assistantPlaceholder = {
-            role: 'assistant',
-            content: '',
-            isStreaming: true,
-            reasoningSummaries: [],
-            timestamp: turnStartTime,
-            createdAt: new Date().toISOString()
-        };
-        setMessages(prev => [...prev, assistantPlaceholder]);
-
         // Prepare messages to send, including active project instructions and active persona system prompt if defined
         let messagesToSend = [...turnMessages];
         const systemParts = [];
+        const injectedParts = [];
+
         if (activeProject?.customPrompt && activeProject.customPrompt.trim()) {
-            systemParts.push(`[Instruções do Projeto "${activeProject.name}"]:\n${activeProject.customPrompt.trim()}`);
+            const projectText = `[Instruções do Projeto "${activeProject.name}"]:\n${activeProject.customPrompt.trim()}`;
+            systemParts.push(projectText);
+            injectedParts.push({
+                type: 'project',
+                title: activeProject.name,
+                content: activeProject.customPrompt.trim(),
+                raw: projectText
+            });
         }
         if (activePersona?.systemPrompt && activePersona.systemPrompt.trim()) {
-            systemParts.push(activePersona.systemPrompt.trim());
+            const personaName = activePersona.name || (activePersona.nameKey ? t(activePersona.nameKey) : activePersona.id);
+            const personaText = activePersona.systemPrompt.trim();
+            systemParts.push(personaText);
+            injectedParts.push({
+                type: 'persona',
+                title: personaName,
+                content: personaText,
+                raw: personaText
+            });
         }
         if (canvasDoc && canvasDoc.content) {
             let canvasContextPrompt = `[Documento Canvas Ativo no Espaço de Trabalho]:\nTítulo: "${canvasDoc.title}" (v${canvasDoc.version || 1}, formato: ${canvasDoc.language || 'markdown'})\nTotal de Palavras: ${canvasDoc.stats?.words || 0}\n`;
@@ -1076,15 +1082,51 @@ function App() {
             }
             canvasContextPrompt += `Conteúdo do Documento no Canvas:\n\`\`\`${canvasDoc.language || ''}\n${canvasDoc.content}\n\`\`\``;
             systemParts.push(canvasContextPrompt);
+            injectedParts.push({
+                type: 'canvas',
+                title: `${canvasDoc.title} (v${canvasDoc.version || 1})`,
+                content: canvasDoc.content,
+                selectedText: selectedText || null,
+                raw: canvasContextPrompt
+            });
         }
-        if (systemParts.length > 0 && !messagesToSend.some(m => m.role === 'system')) {
+
+        const existingSystem = messagesToSend.find(m => m.role === 'system');
+        if (existingSystem) {
+            injectedParts.unshift({
+                type: 'system',
+                title: 'System Prompt',
+                content: typeof existingSystem.content === 'string' ? existingSystem.content : JSON.stringify(existingSystem.content),
+                raw: typeof existingSystem.content === 'string' ? existingSystem.content : JSON.stringify(existingSystem.content)
+            });
+        }
+
+        if (systemParts.length > 0 && !existingSystem) {
             messagesToSend = [{ role: 'system', content: systemParts.join('\n\n') }, ...messagesToSend];
         }
+
+        const turnInjectedContext = (systemParts.length > 0 || injectedParts.length > 0) ? {
+            systemPrompt: systemParts.join('\n\n') || (existingSystem ? (typeof existingSystem.content === 'string' ? existingSystem.content : JSON.stringify(existingSystem.content)) : ''),
+            parts: injectedParts,
+            timestamp: turnStartTime
+        } : null;
+
+        // Create a streaming assistant message placeholder
+        const assistantPlaceholder = {
+            role: 'assistant',
+            content: '',
+            isStreaming: true,
+            reasoningSummaries: [],
+            timestamp: turnStartTime,
+            createdAt: new Date().toISOString(),
+            injectedContext: turnInjectedContext
+        };
+        setMessages(prev => [...prev, assistantPlaceholder]);
 
         // Start streaming chat
         const streamHandler = window.electron.startChatStream(messagesToSend, selectedModel);
 
-            // Collect the final message data
+        // Collect the final message data
         let finalAssistantData = {
             role: 'assistant',
             content: '',
@@ -1096,7 +1138,8 @@ function App() {
             reasoningSummaries: [],
             reasoningStartTime: null,
             reasoningDuration: null,
-            pre_calculated_tool_responses: undefined
+            pre_calculated_tool_responses: undefined,
+            injectedContext: turnInjectedContext
         };
 
         // Setup event handlers for streaming
@@ -1311,7 +1354,8 @@ function App() {
                     finish_reason: data.finish_reason,
                     timestamp: turnStartTime,
                     createdAt: new Date().toISOString(),
-                    durationMs: Date.now() - turnStartTime
+                    durationMs: Date.now() - turnStartTime,
+                    injectedContext: turnInjectedContext
                 };
                 turnAssistantMessage = finalAssistantData; // Store the completed message
 
@@ -2546,6 +2590,9 @@ function App() {
                       messages={messages}
                       currentChatTitle={currentChatTitle}
                       activeProject={activeProject}
+                      activePersona={activePersona}
+                      canvasDoc={canvasDoc}
+                      selectedText={selectedText}
                       selectedModel={selectedModel}
                       mcpTools={mcpTools}
                       loading={loading}

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useLanguage } from '../context/LanguageContext';
-import { ChevronRight, ChevronDown, Copy, Check, Terminal, AlertCircle } from 'lucide-react';
+import { ChevronRight, ChevronDown, Copy, Check, Terminal, AlertCircle, Sparkles, FolderKanban, Bot, FileText, Code } from 'lucide-react';
 import { extractThinking } from '../lib/messageUtils';
 
 export default function TrajectoryLedger({
@@ -98,6 +98,11 @@ export default function TrajectoryLedger({
     if (!q) return true;
     const query = q.toLowerCase();
     
+    if (item.type === 'injected_context') {
+      const partsText = (item.parts || []).map(p => `${p.title || ''} ${p.content || ''} ${p.type || ''}`).join(' ');
+      const fullText = `${item.systemPrompt || ''} ${partsText} etapa 1 context injetado stage 1`;
+      return fullText.toLowerCase().includes(query) || 'etapa 1'.includes(query) || 'contexto'.includes(query) || 'prompt'.includes(query);
+    }
     if (item.type === 'system' && (item.content?.toLowerCase().includes(query) || 'system'.includes(query))) {
       return true;
     }
@@ -214,6 +219,206 @@ export default function TrajectoryLedger({
                           {isItemExpanded && (
                             <div className="mt-2 p-2.5 rounded-lg bg-muted/40 border border-border/60 font-mono text-[11px] whitespace-pre-wrap text-muted-foreground max-h-60 overflow-y-auto">
                               {event.content}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  }
+
+                  // 1.5. INJECTED CONTEXT (STAGE 1) EVENT
+                  if (event.type === 'injected_context') {
+                    const parts = event.parts || [];
+                    const hasProject = parts.some(p => p.type === 'project');
+                    const hasPersona = parts.some(p => p.type === 'persona');
+                    const hasCanvas = parts.some(p => p.type === 'canvas');
+                    const totalChars = event.systemPrompt ? event.systemPrompt.length : 0;
+                    const totalWords = event.systemPrompt ? event.systemPrompt.trim().split(/\s+/).length : 0;
+
+                    return (
+                      <div key={eventId} className="pt-2.5 first:pt-0 flex items-start gap-3">
+                        <span className="shrink-0 px-2 py-0.5 rounded-md font-semibold text-[10px] uppercase tracking-wider bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800 flex items-center gap-1">
+                          <Sparkles className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
+                          <span>{t('trajectory.stage1Badge')}</span>
+                        </span>
+
+                        <div className="flex-1 min-w-0 space-y-2">
+                          <div
+                            className="flex items-center justify-between font-medium text-foreground/90 cursor-pointer hover:text-foreground select-none"
+                            onClick={() => toggleItem(eventId)}
+                          >
+                            <div className="flex flex-wrap items-center gap-2">
+                              <span className="font-semibold text-[11px] text-foreground">
+                                {t('trajectory.injectedPromptTitle')}
+                              </span>
+                              <span className="text-[10px] text-muted-foreground font-mono">
+                                ({parts.length === 1 ? t('trajectory.componentInjected') : t('trajectory.componentsInjected', { count: parts.length })})
+                              </span>
+                              {hasProject && (
+                                <span className="px-1.5 py-0.2 rounded text-[10px] bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20 font-medium">
+                                  📁 {t('trajectory.projectInstructions')}
+                                </span>
+                              )}
+                              {hasPersona && (
+                                <span className="px-1.5 py-0.2 rounded text-[10px] bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20 font-medium">
+                                  🎭 {t('trajectory.activePersona')}
+                                </span>
+                              )}
+                              {hasCanvas && (
+                                <span className="px-1.5 py-0.2 rounded text-[10px] bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 font-medium">
+                                  📝 {t('trajectory.canvasDocContext')}
+                                </span>
+                              )}
+                            </div>
+
+                            <span className="text-muted-foreground text-[10px]">
+                              {isItemExpanded !== false ? '▲' : '▼'}
+                            </span>
+                          </div>
+
+                          {isItemExpanded !== false && (
+                            <div className="p-3 rounded-xl bg-emerald-500/5 border border-emerald-500/20 space-y-3">
+                              <p className="text-[11px] text-muted-foreground">
+                                {t('trajectory.injectedPromptsDesc')}
+                              </p>
+
+                              {/* Individual Injected Components */}
+                              <div className="space-y-2.5">
+                                {parts.map((part, pIdx) => {
+                                  const partId = `${eventId}-part-${pIdx}`;
+                                  const isPartExpanded = expandedItems[partId] !== false;
+                                  const isCopied = copiedId === partId;
+
+                                  let IconComponent = Terminal;
+                                  let typeBadgeClass = 'bg-zinc-500/10 text-zinc-600 dark:text-zinc-400 border-zinc-500/20';
+                                  let typeLabel = part.type;
+
+                                  if (part.type === 'project') {
+                                    IconComponent = FolderKanban;
+                                    typeBadgeClass = 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20';
+                                    typeLabel = t('trajectory.projectInstructions');
+                                  } else if (part.type === 'persona') {
+                                    IconComponent = Bot;
+                                    typeBadgeClass = 'bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/20';
+                                    typeLabel = t('trajectory.activePersona');
+                                  } else if (part.type === 'canvas') {
+                                    IconComponent = FileText;
+                                    typeBadgeClass = 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20';
+                                    typeLabel = t('trajectory.canvasDocContext');
+                                  }
+
+                                  return (
+                                    <div
+                                      key={partId}
+                                      className="rounded-lg border border-border/80 bg-background/80 p-2.5 space-y-2 shadow-2xs"
+                                    >
+                                      <div className="flex items-center justify-between gap-2">
+                                        <div
+                                          className="flex items-center gap-2 cursor-pointer select-none min-w-0"
+                                          onClick={() => toggleItem(partId)}
+                                        >
+                                          <IconComponent className="w-3.5 h-3.5 text-primary shrink-0" />
+                                          <span className="font-semibold text-foreground text-[11px] truncate">
+                                            {part.title}
+                                          </span>
+                                          <span className={`px-1.5 py-0.2 rounded text-[9px] border font-medium uppercase tracking-wider ${typeBadgeClass}`}>
+                                            {typeLabel}
+                                          </span>
+                                          <span className="text-muted-foreground text-[10px]">
+                                            {isPartExpanded ? '▲' : '▼'}
+                                          </span>
+                                        </div>
+
+                                        <button
+                                          type="button"
+                                          onClick={() => handleCopy(part.raw || part.content, partId)}
+                                          className="flex items-center gap-1 px-2 py-0.5 rounded text-[10px] text-muted-foreground hover:text-foreground hover:bg-muted border border-border/60 transition-colors cursor-pointer"
+                                          title={t('trajectory.copyInjectedPrompt')}
+                                        >
+                                          {isCopied ? (
+                                            <>
+                                              <Check className="w-3 h-3 text-emerald-500" />
+                                              <span className="text-emerald-500 font-medium">{t('trajectory.copied')}</span>
+                                            </>
+                                          ) : (
+                                            <>
+                                              <Copy className="w-3 h-3" />
+                                              <span>{t('trajectory.copyArguments')}</span>
+                                            </>
+                                          )}
+                                        </button>
+                                      </div>
+
+                                      {isPartExpanded && (
+                                        <div className="space-y-2">
+                                          {part.selectedText && (
+                                            <div className="p-2 rounded bg-amber-500/10 border border-amber-500/20 text-amber-900 dark:text-amber-200 text-[11px] font-mono whitespace-pre-wrap">
+                                              <span className="font-bold text-[10px] block text-amber-700 dark:text-amber-400 mb-0.5">
+                                                {t('trajectory.canvasSelection')}:
+                                              </span>
+                                              &ldquo;{part.selectedText}&rdquo;
+                                            </div>
+                                          )}
+
+                                          <div className="p-2.5 rounded-lg bg-muted/40 border border-border/50 font-mono text-[11px] whitespace-pre-wrap text-foreground/90 max-h-48 overflow-y-auto select-text leading-relaxed">
+                                            {part.content}
+                                          </div>
+                                        </div>
+                                      )}
+                                    </div>
+                                  );
+                                })}
+                              </div>
+
+                              {/* Consolidated System Prompt (role: system) Payload */}
+                              {event.systemPrompt && (
+                                <div className="rounded-lg border border-border/80 bg-background/80 p-2.5 space-y-2 shadow-2xs">
+                                  <div className="flex items-center justify-between gap-2">
+                                    <div
+                                      className="flex items-center gap-2 cursor-pointer select-none min-w-0"
+                                      onClick={() => toggleItem(`${eventId}-payload`)}
+                                    >
+                                      <Code className="w-3.5 h-3.5 text-primary shrink-0" />
+                                      <span className="font-semibold text-foreground text-[11px] truncate">
+                                        {t('trajectory.consolidatedSystemPayload')}
+                                      </span>
+                                      {totalChars > 0 && (
+                                        <span className="text-[10px] text-muted-foreground font-mono">
+                                          ({t('trajectory.charsAndWords', { chars: totalChars, words: totalWords })})
+                                        </span>
+                                      )}
+                                      <span className="text-muted-foreground text-[10px]">
+                                        {expandedItems[`${eventId}-payload`] ? '▲' : '▼'}
+                                      </span>
+                                    </div>
+
+                                    <button
+                                      type="button"
+                                      onClick={() => handleCopy(event.systemPrompt, `${eventId}-payload-copy`)}
+                                      className="flex items-center gap-1 px-2 py-0.5 rounded text-[10px] text-muted-foreground hover:text-foreground hover:bg-muted border border-border/60 transition-colors cursor-pointer"
+                                      title={t('trajectory.copyInjectedPrompt')}
+                                    >
+                                      {copiedId === `${eventId}-payload-copy` ? (
+                                        <>
+                                          <Check className="w-3 h-3 text-emerald-500" />
+                                          <span className="text-emerald-500 font-medium">{t('trajectory.copied')}</span>
+                                        </>
+                                      ) : (
+                                        <>
+                                          <Copy className="w-3 h-3" />
+                                          <span>{t('trajectory.copyArguments')}</span>
+                                        </>
+                                      )}
+                                    </button>
+                                  </div>
+
+                                  {expandedItems[`${eventId}-payload`] && (
+                                    <div className="p-2.5 rounded-lg bg-muted/60 border border-border/60 font-mono text-[10px] whitespace-pre-wrap text-muted-foreground max-h-60 overflow-y-auto select-text leading-relaxed">
+                                      {event.systemPrompt}
+                                    </div>
+                                  )}
+                                </div>
+                              )}
                             </div>
                           )}
                         </div>

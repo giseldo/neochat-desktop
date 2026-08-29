@@ -10,6 +10,9 @@ export default function TrajectoryView({
   messages = [],
   currentChatTitle = '',
   activeProject = null,
+  activePersona = null,
+  canvasDoc = null,
+  selectedText = '',
   selectedModel = '',
   mcpTools = [],
   loading: _loading = false,
@@ -29,6 +32,46 @@ export default function TrajectoryView({
     const segments = [];
     let currentTurn = null;
     let turnCount = 0;
+
+    // Reconstruct current active context if any (fallback for turns without metadata)
+    const activeContextParts = [];
+    const activeSystemStrings = [];
+    if (activeProject?.customPrompt && activeProject.customPrompt.trim()) {
+      const pRaw = `[Instruções do Projeto "${activeProject.name}"]:\n${activeProject.customPrompt.trim()}`;
+      activeSystemStrings.push(pRaw);
+      activeContextParts.push({
+        type: 'project',
+        title: activeProject.name,
+        content: activeProject.customPrompt.trim(),
+        raw: pRaw
+      });
+    }
+    if (activePersona?.systemPrompt && activePersona.systemPrompt.trim()) {
+      const pName = activePersona.name || (activePersona.nameKey ? t(activePersona.nameKey) : activePersona.id);
+      const personaRaw = activePersona.systemPrompt.trim();
+      activeSystemStrings.push(personaRaw);
+      activeContextParts.push({
+        type: 'persona',
+        title: pName,
+        content: personaRaw,
+        raw: personaRaw
+      });
+    }
+    if (canvasDoc && canvasDoc.content) {
+      let cPrompt = `[Documento Canvas Ativo no Espaço de Trabalho]:\nTítulo: "${canvasDoc.title}" (v${canvasDoc.version || 1}, formato: ${canvasDoc.language || 'markdown'})\nTotal de Palavras: ${canvasDoc.stats?.words || 0}\n`;
+      if (selectedText) {
+        cPrompt += `Trecho Selecionado pelo Usuário no Canvas:\n"""\n${selectedText}\n"""\n`;
+      }
+      cPrompt += `Conteúdo do Documento no Canvas:\n\`\`\`${canvasDoc.language || ''}\n${canvasDoc.content}\n\`\`\``;
+      activeSystemStrings.push(cPrompt);
+      activeContextParts.push({
+        type: 'canvas',
+        title: `${canvasDoc.title} (v${canvasDoc.version || 1})`,
+        content: canvasDoc.content,
+        selectedText: selectedText || null,
+        raw: cPrompt
+      });
+    }
 
     // Check for initial system prompt
     const systemMessages = messages.filter(m => m.role === 'system');
@@ -101,6 +144,27 @@ export default function TrajectoryView({
             events: []
           };
           turnsList.push(currentTurn);
+        }
+
+        // Add Injected Context (Stage 1) event if present or fallback on Turn 1
+        const injectedCtx = msg.injectedContext || (turnCount === 1 && activeContextParts.length > 0 ? {
+          systemPrompt: activeSystemStrings.join('\n\n'),
+          parts: activeContextParts,
+          timestamp: msg.timestamp || msg.createdAt
+        } : null);
+
+        if (injectedCtx && (injectedCtx.parts?.length > 0 || injectedCtx.systemPrompt)) {
+          const hasAlreadyInjectedEvent = currentTurn.events.some(e => e.type === 'injected_context');
+          if (!hasAlreadyInjectedEvent) {
+            currentTurn.events.push({
+              id: `ev-injected-${currentTurn.turnNumber || idx}`,
+              type: 'injected_context',
+              title: t('trajectory.injectedContextStage1'),
+              systemPrompt: injectedCtx.systemPrompt,
+              parts: injectedCtx.parts || [],
+              timestamp: injectedCtx.timestamp || msg.timestamp || msg.createdAt,
+            });
+          }
         }
 
         // Assistant Message Event
@@ -198,8 +262,24 @@ export default function TrajectoryView({
       }
     });
 
+    if (turnsList.length === 0 && activeContextParts.length > 0) {
+      turnsList.push({
+        id: 'turn-context-preview',
+        turnNumber: 1,
+        userPrompt: t('trajectory.injectedContextStage1'),
+        events: [{
+          id: 'ev-injected-preview',
+          type: 'injected_context',
+          title: t('trajectory.injectedContextStage1'),
+          systemPrompt: activeSystemStrings.join('\n\n'),
+          parts: activeContextParts,
+          timestamp: Date.now()
+        }]
+      });
+    }
+
     return { turns: turnsList, timelineSegments: segments };
-  }, [messages]);
+  }, [messages, activeProject, activePersona, canvasDoc, selectedText, t]);
 
   // Handle clicking on a timeline segment to scroll directly to that turn
   const handleSelectSegment = (segment) => {
@@ -230,6 +310,9 @@ export default function TrajectoryView({
           events: t.events.map(e => ({
             type: e.type,
             name: e.name,
+            title: e.title,
+            systemPrompt: e.systemPrompt,
+            injectedParts: e.parts,
             content: e.content,
             reasoning: e.reasoning,
             reasoningDuration: e.reasoningDuration,
