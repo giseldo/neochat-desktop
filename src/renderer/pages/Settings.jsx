@@ -287,7 +287,8 @@ function Settings() {
     voiceInput: { enabled: true, apiKey: '' },
     autoUpdate: { checkOnStartup: true, channel: 'stable' },
     observability: { monthlyBudgetUsd: 0, defaultRate: { input: 0, output: 0 }, modelRates: {} },
-    gitIntegration: { repositoryPath: '' }
+    gitIntegration: { repositoryPath: '' },
+    providerFilterTab: 'active'
   });
   const [googleOAuthStatus, setGoogleOAuthStatus] = useState(null);
   const [isRefreshingToken, setIsRefreshingToken] = useState(false);
@@ -323,7 +324,7 @@ function Settings() {
   const [isConfigDirLoading, setIsConfigDirLoading] = useState(false);
   const [providers, setProviders] = useState([]);
   const [activeProvider, setActiveProvider] = useState(null);
-  const [providerFilterTab, setProviderFilterTab] = useState('all'); // 'all' | 'active' | 'configured' | 'local' | 'custom'
+  const [providerFilterTab, setProviderFilterTab] = useState('active'); // 'all' | 'active' | 'configured' | 'local' | 'custom'
   const [providerSearchTerm, setProviderSearchTerm] = useState('');
   const [isAddProviderModalOpen, setIsAddProviderModalOpen] = useState(false);
   const [editingCustomProvider, setEditingCustomProvider] = useState(null);
@@ -938,6 +939,10 @@ function Settings() {
         if (settingsData.GROQ_API_KEY && !settingsData.apiKeys.groq) {
             settingsData.apiKeys.groq = settingsData.GROQ_API_KEY;
         }
+        if (!settingsData.providerFilterTab) {
+            settingsData.providerFilterTab = 'active';
+        }
+        setProviderFilterTab(settingsData.providerFilterTab);
         setSettings(settingsData);
         const provider = (providerList || []).find(p => p.id === settingsData.provider);
         setActiveProvider(provider || null);
@@ -1071,6 +1076,13 @@ function Settings() {
 
   const handleSelectChange = (name, value) => {
     const updatedSettings = { ...settings, [name]: value };
+    setSettings(updatedSettings);
+    saveSettings(updatedSettings);
+  };
+
+  const handleProviderFilterTabChange = (tab) => {
+    setProviderFilterTab(tab);
+    const updatedSettings = { ...settings, providerFilterTab: tab };
     setSettings(updatedSettings);
     saveSettings(updatedSettings);
   };
@@ -4155,7 +4167,7 @@ function Settings() {
                   <div className="flex items-center gap-1 overflow-x-auto pb-1 sm:pb-0 text-xs">
                     <button
                       type="button"
-                      onClick={() => setProviderFilterTab('all')}
+                      onClick={() => handleProviderFilterTabChange('all')}
                       className={cn(
                         "px-2.5 py-1 rounded-lg font-medium whitespace-nowrap transition-colors",
                         providerFilterTab === 'all'
@@ -4167,7 +4179,7 @@ function Settings() {
                     </button>
                     <button
                       type="button"
-                      onClick={() => setProviderFilterTab('active')}
+                      onClick={() => handleProviderFilterTabChange('active')}
                       className={cn(
                         "px-2.5 py-1 rounded-lg font-medium whitespace-nowrap transition-colors",
                         providerFilterTab === 'active'
@@ -4179,7 +4191,7 @@ function Settings() {
                     </button>
                     <button
                       type="button"
-                      onClick={() => setProviderFilterTab('configured')}
+                      onClick={() => handleProviderFilterTabChange('configured')}
                       className={cn(
                         "px-2.5 py-1 rounded-lg font-medium whitespace-nowrap transition-colors",
                         providerFilterTab === 'configured'
@@ -4192,7 +4204,7 @@ function Settings() {
                     {localCount > 0 && (
                       <button
                         type="button"
-                        onClick={() => setProviderFilterTab('local')}
+                        onClick={() => handleProviderFilterTabChange('local')}
                         className={cn(
                           "px-2.5 py-1 rounded-lg font-medium whitespace-nowrap transition-colors",
                           providerFilterTab === 'local'
@@ -4206,7 +4218,7 @@ function Settings() {
                     {customCount > 0 && (
                       <button
                         type="button"
-                        onClick={() => setProviderFilterTab('custom')}
+                        onClick={() => handleProviderFilterTabChange('custom')}
                         className={cn(
                           "px-2.5 py-1 rounded-lg font-medium whitespace-nowrap transition-colors",
                           providerFilterTab === 'custom'

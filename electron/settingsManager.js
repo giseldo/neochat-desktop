@@ -74,6 +74,7 @@ function loadSettings() {
             googleTokenExpiresAt: null,
             customPromptTemplates: [],
             voiceInput: { enabled: true, apiKey: '' },
+            providerFilterTab: 'active',
             webSearch: {
                 enabled: true,
                 provider: 'local',
@@ -130,6 +131,7 @@ function loadSettings() {
         googleClientSecret: "",
         googleTokenExpiresAt: null,
         customPromptTemplates: [],
+        providerFilterTab: 'active',
         webSearch: {
             enabled: true,
             provider: 'local',
@@ -233,6 +235,7 @@ function loadSettings() {
             settings.googleClientSecret = settings.googleClientSecret || defaultSettings.googleClientSecret;
             settings.googleTokenExpiresAt = settings.googleTokenExpiresAt ?? defaultSettings.googleTokenExpiresAt;
             settings.customPromptTemplates = Array.isArray(settings.customPromptTemplates) ? settings.customPromptTemplates : defaultSettings.customPromptTemplates;
+            settings.providerFilterTab = settings.providerFilterTab || defaultSettings.providerFilterTab;
             settings.webSearch = { ...defaultSettings.webSearch, ...(loadedSettings.webSearch || {}) };
             if (settings.webSearch.provider === 'duckduckgo') {
                 settings.webSearch.provider = 'local';
