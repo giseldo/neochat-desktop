@@ -19,6 +19,19 @@ import { getModelGroup, groupModels, parseBulkModelsInput } from '../lib/modelGr
 
 const POPULAR_PROVIDER_PRESETS = [
   {
+    id: 'groq',
+    name: 'Groq',
+    badge: 'Llama 3.3, DeepSeek R1 Distill',
+    defaultModel: 'llama-3.3-70b-versatile',
+    baseUrl: 'https://api.groq.com/openai/v1',
+    description: 'Inferência LPU ultra-rápida com modelos Llama, Gemma e DeepSeek',
+    icon: Zap,
+    color: 'from-orange-500/10 to-amber-500/10 border-orange-500/30 text-orange-500',
+    keyPlaceholder: 'gsk_...',
+    keyUrl: 'https://console.groq.com/keys',
+    keyUrlLabel: 'Groq Console',
+  },
+  {
     id: 'gemini',
     name: 'Google Gemini',
     badge: 'Gemini 2.5 Flash / 2.0 Flash / 1.5 Pro',
@@ -807,21 +820,48 @@ function Settings() {
   }, [searchQuery, activeCategory, settings.interfaceMode, CARDS_METADATA]);
 
   useEffect(() => {
-    const loadProviders = async () => {
+    const buildFallbackProviders = (settingsData) => {
+      const targetSettings = settingsData || settings || {};
+      const customItems = Array.isArray(targetSettings.customProviders) ? targetSettings.customProviders : [];
+      const presets = POPULAR_PROVIDER_PRESETS.filter(p => p.id !== 'custom');
+      const allMerged = [...presets, ...customItems.filter(c => !presets.some(p => p.id === c.id))];
+      return allMerged.map(p => {
+        const apiKey = targetSettings.apiKeys?.[p.id] || (p.id === 'groq' ? targetSettings.GROQ_API_KEY : '') || p.apiKey || '';
+        const isConfigured = p.isLocal || Boolean(apiKey && apiKey !== '<replace me>' && apiKey.trim());
+        const isEnabled = Array.isArray(targetSettings.enabledProviders)
+          ? targetSettings.enabledProviders.includes(p.id)
+          : (isConfigured || p.id === (targetSettings.provider || 'groq'));
+        return {
+          ...p,
+          apiKey,
+          baseUrl: targetSettings.providerUrls?.[p.id] || p.baseUrl || '',
+          isConfigured,
+          isEnabled,
+          isPrimary: (targetSettings.provider || 'groq') === p.id,
+          isFallback: Array.isArray(targetSettings.fallbackProviders) && targetSettings.fallbackProviders.includes(p.id)
+        };
+      });
+    };
+
+    const loadProviders = async (settingsData) => {
       try {
         const list = await window.electron.getProviders();
-        setProviders(list || []);
-        return list || [];
+        if (Array.isArray(list) && list.length > 0) {
+          setProviders(list);
+          return list;
+        }
       } catch (error) {
-        console.error('Error fetching providers:', error);
-        return [];
+        console.error('Error fetching providers from electron:', error);
       }
+      const fallbackList = buildFallbackProviders(settingsData);
+      setProviders(fallbackList);
+      return fallbackList;
     };
 
     const loadSettings = async () => {
       try {
-        const providerList = await loadProviders();
         const settingsData = await window.electron.getSettings();
+        const providerList = await loadProviders(settingsData);
         if (!settingsData.disabledMcpServers) {
             settingsData.disabledMcpServers = [];
         }
@@ -1131,11 +1171,33 @@ function Settings() {
   const refreshProvidersAndModels = async () => {
     try {
       const list = await window.electron.getProviders();
-      setProviders(list || []);
+      if (Array.isArray(list) && list.length > 0) {
+        setProviders(list);
+      } else {
+        const customItems = Array.isArray(settings.customProviders) ? settings.customProviders : [];
+        const presets = POPULAR_PROVIDER_PRESETS.filter(p => p.id !== 'custom');
+        const allMerged = [...presets, ...customItems.filter(c => !presets.some(p => p.id === c.id))];
+        const fallbackList = allMerged.map(p => {
+          const apiKey = settings.apiKeys?.[p.id] || (p.id === 'groq' ? settings.GROQ_API_KEY : '') || p.apiKey || '';
+          const isConfigured = p.isLocal || Boolean(apiKey && apiKey !== '<replace me>' && apiKey.trim());
+          const isEnabled = Array.isArray(settings.enabledProviders)
+            ? settings.enabledProviders.includes(p.id)
+            : (isConfigured || p.id === (settings.provider || 'groq'));
+          return {
+            ...p,
+            apiKey,
+            baseUrl: settings.providerUrls?.[p.id] || p.baseUrl || '',
+            isConfigured,
+            isEnabled,
+            isPrimary: (settings.provider || 'groq') === p.id,
+            isFallback: Array.isArray(settings.fallbackProviders) && settings.fallbackProviders.includes(p.id)
+          };
+        });
+        setProviders(fallbackList);
+      }
       const configs = await window.electron.getModelConfigs();
       setModelConfigs(configs || {});
       setAllLoadedModels(Object.keys(configs || {}).filter(k => k !== 'default'));
-      return { list, configs };
     } catch (err) {
       console.error('Error refreshing providers and models:', err);
     }
