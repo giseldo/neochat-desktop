@@ -6,7 +6,6 @@ release
 electron
 src
 shared
-site
 scripts
 test-*
 *.exe

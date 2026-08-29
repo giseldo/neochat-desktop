@@ -14,8 +14,9 @@ export default defineConfig({
       { text: 'MCP & Tools', link: '/guide/mcp' },
       { text: 'RAG Local', link: '/guide/rag' },
       {
-        text: 'v1.3.0',
+        text: 'v1.4.0',
         items: [
+          { text: 'Site Oficial', link: 'https://neochatdesktop.vercel.app' },
           { text: 'Releases & Downloads', link: 'https://github.com/giseldo/neochat-releases' },
           { text: 'Repositório GitHub', link: 'https://github.com/giseldo/neochat-desktop' }
         ]
