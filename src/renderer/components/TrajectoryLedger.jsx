@@ -1,18 +1,83 @@
 import { useState } from 'react';
 import { useLanguage } from '../context/LanguageContext';
-import { ChevronRight, ChevronDown, Copy, Check, Terminal, AlertCircle, Sparkles, FolderKanban, Bot, FileText, Code } from 'lucide-react';
+import { 
+  ChevronRight, 
+  ChevronDown, 
+  Copy, 
+  Check, 
+  Terminal, 
+  AlertCircle, 
+  Sparkles, 
+  FolderKanban, 
+  Bot, 
+  FileText, 
+  Code,
+  Activity,
+  Zap,
+  MessageSquare,
+  Cpu,
+  Layers
+} from 'lucide-react';
 import { extractThinking } from '../lib/messageUtils';
 
 export default function TrajectoryLedger({
   turns = [],
   viewMode = 'duration', // 'duration' | 'turns' | 'calls'
   searchQuery = '',
+  mcpTools = [],
   onPreviewArtifact: _onPreviewArtifact,
 }) {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const [expandedTurns, setExpandedTurns] = useState({});
   const [expandedItems, setExpandedItems] = useState({});
   const [copiedId, setCopiedId] = useState(null);
+
+  const formatNumber = (num) => (num ? Number(num).toLocaleString(language === 'pt' ? 'pt-BR' : 'en-US') : '0');
+
+  const getTurnBreakdown = (event, turn, activeTools = []) => {
+    if (event.usage?.breakdown) {
+      return event.usage.breakdown;
+    }
+
+    const promptTokens = event.usage?.prompt_tokens || 0;
+    const completionTokens = event.usage?.completion_tokens || 0;
+
+    if (promptTokens === 0 && completionTokens === 0) return null;
+
+    const toolsList = activeTools.map(tl => tl.name || tl.function?.name || 'tool');
+    const toolsChars = activeTools.length > 0 ? JSON.stringify(activeTools).length : 3200;
+
+    const systemPromptEvent = turn?.events?.find(e => e.type === 'injected_context' || e.type === 'system');
+    const systemChars = (systemPromptEvent?.systemPrompt?.length || systemPromptEvent?.content?.length || 0) + 1200;
+
+    const userEvent = turn?.events?.find(e => e.type === 'user');
+    const userContent = typeof userEvent?.content === 'string' ? userEvent.content : JSON.stringify(userEvent?.content || '');
+    const userChars = userContent.length;
+
+    const totalChars = toolsChars + systemChars + userChars;
+
+    return {
+      tools: {
+        count: activeTools.length,
+        chars: toolsChars,
+        tools: toolsList,
+        estimated_tokens: Math.max(0, Math.round(totalChars > 0 ? (toolsChars / totalChars) * promptTokens : toolsChars / 4))
+      },
+      system: {
+        chars: systemChars,
+        estimated_tokens: Math.max(0, Math.round(totalChars > 0 ? (systemChars / totalChars) * promptTokens : systemChars / 4))
+      },
+      user_input: {
+        chars: userChars,
+        estimated_tokens: Math.max(0, Math.round(totalChars > 0 ? (userChars / totalChars) * promptTokens : userChars / 4))
+      },
+      completion: {
+        content_tokens: completionTokens,
+        reasoning_tokens: 0,
+        total_tokens: completionTokens
+      }
+    };
+  };
 
   const toggleTurn = (turnId) => {
     setExpandedTurns(prev => ({
@@ -513,6 +578,163 @@ export default function TrajectoryLedger({
                               {t('trajectory.toolCallOnly')}
                             </div>
                           ) : null}
+
+                          {/* Token Breakdown Inspector Section */}
+                          {(() => {
+                            const hasUsage = Boolean(event.usage && (event.usage.prompt_tokens || event.usage.total_tokens || event.usage.completion_tokens));
+                            if (!hasUsage) return null;
+
+                            const promptTokens = event.usage?.prompt_tokens || 0;
+                            const completionTokens = event.usage?.completion_tokens || 0;
+                            const totalTokens = event.usage?.total_tokens || (promptTokens + completionTokens);
+
+                            const breakdown = getTurnBreakdown(event, turn, mcpTools);
+                            const toolsTokens = breakdown?.tools?.estimated_tokens || 0;
+                            const toolsCount = breakdown?.tools?.count || (mcpTools ? mcpTools.length : 0);
+                            const toolsList = breakdown?.tools?.tools || [];
+                            const systemTokens = breakdown?.system?.estimated_tokens || 0;
+                            const userTokens = breakdown?.user_input?.estimated_tokens || 0;
+
+                            const toolsPct = totalTokens > 0 ? Math.round((toolsTokens / totalTokens) * 100) : 0;
+                            const systemPct = totalTokens > 0 ? Math.round((systemTokens / totalTokens) * 100) : 0;
+                            const userPct = totalTokens > 0 ? Math.round((userTokens / totalTokens) * 100) : 0;
+                            const completionPct = totalTokens > 0 ? Math.max(1, 100 - toolsPct - systemPct - userPct) : 0;
+
+                            return (
+                              <div className="mt-2.5 pt-2 border-t border-border/40">
+                                <div
+                                  className="flex items-center justify-between p-2 rounded-lg bg-muted/30 border border-border/60 hover:bg-muted/50 cursor-pointer select-none transition-colors"
+                                  onClick={() => toggleItem(`${eventId}-tokens`)}
+                                >
+                                  <div className="flex flex-wrap items-center gap-2 font-mono text-[11px]">
+                                    <span className="font-semibold text-foreground flex items-center gap-1.5">
+                                      <Activity className="w-3.5 h-3.5 text-primary" />
+                                      <span>{t('trajectory.tokenAuditTitle')}</span>
+                                    </span>
+                                    <span className="px-1.5 py-0.2 rounded bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20 font-medium">
+                                      {formatNumber(totalTokens)} {t('trajectory.tokensUnit')}
+                                    </span>
+                                    <span className="text-[10px] text-muted-foreground">
+                                      (📥 {formatNumber(promptTokens)} {t('trajectory.promptTokensLabel')} · 📤 {formatNumber(completionTokens)} {t('trajectory.completionTokensLabel')})
+                                    </span>
+                                  </div>
+
+                                  <div className="flex items-center gap-1 text-[10px] text-muted-foreground font-sans">
+                                    <span>{expandedItems[`${eventId}-tokens`] ? t('trajectory.hideTokenBreakdown') : t('trajectory.viewTokenBreakdown')}</span>
+                                    <span>{expandedItems[`${eventId}-tokens`] ? '▲' : '▼'}</span>
+                                  </div>
+                                </div>
+
+                                {expandedItems[`${eventId}-tokens`] && (
+                                  <div className="mt-2 p-3 rounded-xl bg-card border border-border space-y-3 shadow-2xs">
+                                    {/* Proportional Colored Stacked Bar */}
+                                    <div className="space-y-1.5">
+                                      <div className="flex items-center justify-between text-[10px] text-muted-foreground font-mono">
+                                        <span>Distribuição de Consumo</span>
+                                        <span>Total: {formatNumber(totalTokens)} tokens</span>
+                                      </div>
+                                      <div className="h-3 w-full rounded-full bg-muted/60 flex overflow-hidden border border-border/60">
+                                        {toolsPct > 0 && <div style={{ width: `${toolsPct}%` }} className="bg-amber-500 hover:opacity-90 transition-all" title={`Ferramentas/MCP: ${toolsPct}% (~${formatNumber(toolsTokens)} tk)`} />}
+                                        {systemPct > 0 && <div style={{ width: `${systemPct}%` }} className="bg-blue-500 hover:opacity-90 transition-all" title={`Sistema/Contexto: ${systemPct}% (~${formatNumber(systemTokens)} tk)`} />}
+                                        {userPct > 0 && <div style={{ width: `${userPct}%` }} className="bg-emerald-500 hover:opacity-90 transition-all" title={`Entrada/Histórico: ${userPct}% (~${formatNumber(userTokens)} tk)`} />}
+                                        {completionPct > 0 && <div style={{ width: `${completionPct}%` }} className="bg-purple-500 hover:opacity-90 transition-all" title={`Geração: ${completionPct}% (~${formatNumber(completionTokens)} tk)`} />}
+                                      </div>
+                                    </div>
+
+                                    {/* 4 Cards Breakdown Grid */}
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[11px]">
+                                      {/* 1. Ferramentas & MCPs */}
+                                      <div className="p-2.5 rounded-lg border border-amber-500/20 bg-amber-500/5 space-y-1">
+                                        <div className="flex items-center justify-between">
+                                          <span className="font-semibold text-amber-700 dark:text-amber-300 flex items-center gap-1.5">
+                                            <Zap className="w-3.5 h-3.5 text-amber-500" />
+                                            <span>{t('trajectory.toolSchemas')}</span>
+                                          </span>
+                                          <span className="font-mono font-bold text-amber-800 dark:text-amber-200">
+                                            ~{formatNumber(toolsTokens)} tk ({toolsPct}%)
+                                          </span>
+                                        </div>
+                                        <p className="text-[10px] text-muted-foreground leading-tight">
+                                          {toolsCount > 0 ? t('trajectory.activeToolsCount', { count: toolsCount }) : t('trajectory.toolSchemasDesc')}
+                                        </p>
+                                        {toolsList.length > 0 && (
+                                          <div className="flex flex-wrap gap-1 pt-1">
+                                            {toolsList.slice(0, 6).map((tn, i) => (
+                                              <span key={i} className="px-1.5 py-0.2 rounded bg-amber-500/10 text-amber-700 dark:text-amber-300 text-[9px] font-mono border border-amber-500/20">
+                                                {tn}
+                                              </span>
+                                            ))}
+                                            {toolsList.length > 6 && (
+                                              <span className="px-1.5 py-0.2 rounded bg-muted text-muted-foreground text-[9px] font-mono">
+                                                +{toolsList.length - 6} mais
+                                              </span>
+                                            )}
+                                          </div>
+                                        )}
+                                      </div>
+
+                                      {/* 2. Sistema & Contexto Injetado */}
+                                      <div className="p-2.5 rounded-lg border border-blue-500/20 bg-blue-500/5 space-y-1">
+                                        <div className="flex items-center justify-between">
+                                          <span className="font-semibold text-blue-700 dark:text-blue-300 flex items-center gap-1.5">
+                                            <Sparkles className="w-3.5 h-3.5 text-blue-500" />
+                                            <span>{t('trajectory.systemAndContext')}</span>
+                                          </span>
+                                          <span className="font-mono font-bold text-blue-800 dark:text-blue-200">
+                                            ~{formatNumber(systemTokens)} tk ({systemPct}%)
+                                          </span>
+                                        </div>
+                                        <p className="text-[10px] text-muted-foreground leading-tight">
+                                          {t('trajectory.systemAndContextDesc')}
+                                        </p>
+                                      </div>
+
+                                      {/* 3. Entrada do Usuário & Histórico */}
+                                      <div className="p-2.5 rounded-lg border border-emerald-500/20 bg-emerald-500/5 space-y-1">
+                                        <div className="flex items-center justify-between">
+                                          <span className="font-semibold text-emerald-700 dark:text-emerald-300 flex items-center gap-1.5">
+                                            <MessageSquare className="w-3.5 h-3.5 text-emerald-500" />
+                                            <span>{t('trajectory.userAndHistory')}</span>
+                                          </span>
+                                          <span className="font-mono font-bold text-emerald-800 dark:text-emerald-200">
+                                            ~{formatNumber(userTokens)} tk ({userPct}%)
+                                          </span>
+                                        </div>
+                                        <p className="text-[10px] text-muted-foreground leading-tight">
+                                          {t('trajectory.userAndHistoryDesc')}
+                                        </p>
+                                      </div>
+
+                                      {/* 4. Resposta Gerada (Saída) */}
+                                      <div className="p-2.5 rounded-lg border border-purple-500/20 bg-purple-500/5 space-y-1">
+                                        <div className="flex items-center justify-between">
+                                          <span className="font-semibold text-purple-700 dark:text-purple-300 flex items-center gap-1.5">
+                                            <Cpu className="w-3.5 h-3.5 text-purple-500" />
+                                            <span>{t('trajectory.modelCompletion')}</span>
+                                          </span>
+                                          <span className="font-mono font-bold text-purple-800 dark:text-purple-200">
+                                            {formatNumber(completionTokens)} tk ({completionPct}%)
+                                          </span>
+                                        </div>
+                                        <p className="text-[10px] text-muted-foreground leading-tight">
+                                          {t('trajectory.modelCompletionDesc')}
+                                        </p>
+                                      </div>
+                                    </div>
+
+                                    {/* Technical Tip Alert */}
+                                    <div className="p-2.5 rounded-lg bg-amber-500/10 border border-amber-500/20 flex items-start gap-2 text-amber-900 dark:text-amber-200 text-[10px] leading-relaxed">
+                                      <AlertCircle className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+                                      <div>
+                                        <span className="font-bold block mb-0.5">{t('trajectory.whySoManyTokens')}</span>
+                                        <span>{t('trajectory.tokenOptimizationTip')}</span>
+                                      </div>
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })()}
                         </div>
                       </div>
                     );

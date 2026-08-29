@@ -1,6 +1,6 @@
 import { useState, useMemo, useRef } from 'react';
 import { useLanguage } from '../context/LanguageContext';
-import { Clock, Layers, Terminal, Search, Download, Check, Sparkles, Zap } from 'lucide-react';
+import { Clock, Layers, Terminal, Search, Download, Check, Sparkles, Zap, Activity } from 'lucide-react';
 import TrajectoryTimeline from './TrajectoryTimeline';
 import TrajectoryLedger from './TrajectoryLedger';
 import { Button } from './ui/button';
@@ -19,7 +19,7 @@ export default function TrajectoryView({
   onPreviewArtifact,
   onOpenMcpTools,
 }) {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const [viewMode, setViewMode] = useState('duration'); // 'duration' | 'turns' | 'calls'
   const [searchQuery, setSearchQuery] = useState('');
   const [activeSegmentId, setActiveSegmentId] = useState(null);
@@ -281,6 +281,31 @@ export default function TrajectoryView({
     return { turns: turnsList, timelineSegments: segments };
   }, [messages, activeProject, activePersona, canvasDoc, selectedText, t]);
 
+  const totalTokensSummary = useMemo(() => {
+    let totalPrompt = 0;
+    let totalCompletion = 0;
+    let totalTokens = 0;
+
+    turns.forEach(t => {
+      t.events?.forEach(e => {
+        if (e.type === 'assistant' && e.usage) {
+          const prompt = e.usage.prompt_tokens || 0;
+          const comp = e.usage.completion_tokens || 0;
+          const tot = e.usage.total_tokens || (prompt + comp);
+          totalPrompt += prompt;
+          totalCompletion += comp;
+          totalTokens += tot;
+        }
+      });
+    });
+
+    return {
+      totalPrompt,
+      totalCompletion,
+      totalTokens
+    };
+  }, [turns]);
+
   // Handle clicking on a timeline segment to scroll directly to that turn
   const handleSelectSegment = (segment) => {
     setActiveSegmentId(segment.id);
@@ -303,6 +328,7 @@ export default function TrajectoryView({
         exportedAt: new Date().toISOString(),
         totalTurns: turns.filter(t => t.type !== 'system').length,
         totalEvents: turns.reduce((acc, t) => acc + t.events.length, 0),
+        tokensSummary: totalTokensSummary,
         turns: turns.map(t => ({
           id: t.id,
           turnNumber: t.turnNumber,
@@ -321,6 +347,7 @@ export default function TrajectoryView({
             error: e.error,
             durationMs: e.durationMs,
             status: e.status,
+            usage: e.usage
           }))
         }))
       };
@@ -354,6 +381,16 @@ export default function TrajectoryView({
             <Sparkles className="w-3 h-3 text-primary" />
             <span>{t('trajectory.standardMode')}</span>
           </span>
+
+          {totalTokensSummary.totalTokens > 0 && (
+            <span 
+              className="px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20 flex items-center gap-1.5 shrink-0 font-mono shadow-2xs select-none"
+              title={`${t('trajectory.promptTokensLabel')}: ${totalTokensSummary.totalPrompt.toLocaleString(language === 'pt' ? 'pt-BR' : 'en-US')} tk | ${t('trajectory.completionTokensLabel')}: ${totalTokensSummary.totalCompletion.toLocaleString(language === 'pt' ? 'pt-BR' : 'en-US')} tk`}
+            >
+              <Activity className="w-3 h-3 text-purple-500" />
+              <span>{totalTokensSummary.totalTokens.toLocaleString(language === 'pt' ? 'pt-BR' : 'en-US')} {t('trajectory.tokensUnit')}</span>
+            </span>
+          )}
 
           {mcpTools.length > 0 && (
             <button
@@ -467,6 +504,7 @@ export default function TrajectoryView({
           turns={turns}
           viewMode={viewMode}
           searchQuery={searchQuery}
+          mcpTools={mcpTools}
           onPreviewArtifact={onPreviewArtifact}
         />
       </div>

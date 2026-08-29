@@ -696,6 +696,71 @@ function handleStreamCompletion(event, accumulatedData, finishReason, streamId, 
             is_estimated: true
         };
     }
+
+    // Calculate detailed breakdown of where tokens were spent
+    let systemChars = 0;
+    let userChars = 0;
+    let historyChars = 0;
+    let toolsChars = 0;
+    const toolsList = (chatCompletionParams?.tools || []).map(t => t.function?.name || t.name || t.type).filter(Boolean);
+
+    if (chatCompletionParams?.messages) {
+        for (let i = 0; i < chatCompletionParams.messages.length; i++) {
+            const msg = chatCompletionParams.messages[i];
+            let msgChars = 0;
+            if (typeof msg.content === 'string') {
+                msgChars = msg.content.length;
+            } else if (Array.isArray(msg.content)) {
+                for (const part of msg.content) {
+                    if (part.type === 'text' && part.text) msgChars += part.text.length;
+                }
+            }
+            if (msg.role === 'system') {
+                systemChars += msgChars;
+            } else if (i === chatCompletionParams.messages.length - 1 && msg.role === 'user') {
+                userChars += msgChars;
+            } else {
+                historyChars += msgChars;
+            }
+        }
+    }
+    if (chatCompletionParams?.tools?.length > 0) {
+        toolsChars = JSON.stringify(chatCompletionParams.tools).length;
+    }
+
+    const totalInputChars = systemChars + userChars + historyChars + toolsChars;
+    const actualPromptTokens = accumulatedData.usage?.prompt_tokens || estimatedPromptTokens || 1;
+    const actualCompletionTokens = accumulatedData.usage?.completion_tokens || estimatedCompletionTokens || 0;
+
+    const contentLen = (accumulatedData.content || '').length;
+    const reasoningLen = (accumulatedData.reasoning || '').length;
+    const totalOutputLen = contentLen + reasoningLen;
+
+    accumulatedData.usage.breakdown = {
+        tools: {
+            count: toolsList.length,
+            chars: toolsChars,
+            tools: toolsList,
+            estimated_tokens: Math.max(0, Math.round(totalInputChars > 0 ? (toolsChars / totalInputChars) * actualPromptTokens : toolsChars / 4))
+        },
+        system: {
+            chars: systemChars,
+            estimated_tokens: Math.max(0, Math.round(totalInputChars > 0 ? (systemChars / totalInputChars) * actualPromptTokens : systemChars / 4))
+        },
+        history: {
+            chars: historyChars,
+            estimated_tokens: Math.max(0, Math.round(totalInputChars > 0 ? (historyChars / totalInputChars) * actualPromptTokens : historyChars / 4))
+        },
+        user_input: {
+            chars: userChars,
+            estimated_tokens: Math.max(0, Math.round(totalInputChars > 0 ? (userChars / totalInputChars) * actualPromptTokens : userChars / 4))
+        },
+        completion: {
+            content_tokens: totalOutputLen > 0 ? Math.round((contentLen / totalOutputLen) * actualCompletionTokens) : actualCompletionTokens,
+            reasoning_tokens: totalOutputLen > 0 ? Math.round((reasoningLen / totalOutputLen) * actualCompletionTokens) : 0,
+            total_tokens: actualCompletionTokens
+        }
+    };
     
     let finalContent = accumulatedData.content;
     let finalReasoning = accumulatedData.reasoning;
