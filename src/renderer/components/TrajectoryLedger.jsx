@@ -34,6 +34,105 @@ export default function TrajectoryLedger({
 
   const formatNumber = (num) => (num ? Number(num).toLocaleString(language === 'pt' ? 'pt-BR' : 'en-US') : '0');
 
+  const NATIVE_TOOLS = [
+    {
+      name: 'canvas_create_document',
+      category: 'Canvas Workspace',
+      isNative: true,
+      description: 'Cria um novo documento no editor Canvas interativo (Markdown, código, etc.).',
+      schema: {
+        type: 'object',
+        properties: {
+          title: { type: 'string', description: 'Título claro do documento' },
+          content: { type: 'string', description: 'Conteúdo inicial do documento' },
+          language: { type: 'string', description: 'Linguagem ou formato: markdown, javascript, python, html, etc.' },
+          summary: { type: 'string', description: 'Resumo do que foi criado' }
+        },
+        required: ['title', 'content']
+      }
+    },
+    {
+      name: 'canvas_update_document',
+      category: 'Canvas Workspace',
+      isNative: true,
+      description: 'Atualiza, reescreve, expande ou modifica a íntegra do documento ativo no Canvas.',
+      schema: {
+        type: 'object',
+        properties: {
+          content: { type: 'string', description: 'Conteúdo completo atualizado do documento' },
+          summary: { type: 'string', description: 'Breve explicação das mudanças' },
+          title: { type: 'string', description: 'Título atualizado opcional' },
+          language: { type: 'string', description: 'Linguagem/formato opcional' }
+        },
+        required: ['content', 'summary']
+      }
+    },
+    {
+      name: 'canvas_edit_selection',
+      category: 'Canvas Workspace',
+      isNative: true,
+      description: 'Substitui um trecho específico selecionado pelo usuário no documento Canvas.',
+      schema: {
+        type: 'object',
+        properties: {
+          targetText: { type: 'string', description: 'Texto exato a ser substituído' },
+          replacementText: { type: 'string', description: 'Novo texto substituto' },
+          summary: { type: 'string', description: 'Breve descrição da edição' }
+        },
+        required: ['targetText', 'replacementText', 'summary']
+      }
+    },
+    {
+      name: 'canvas_get_document',
+      category: 'Canvas Workspace',
+      isNative: true,
+      description: 'Obtém o conteúdo atual, versão e estatísticas do documento ativo no Canvas.',
+      schema: { type: 'object', properties: {} }
+    },
+    {
+      name: 'web_search',
+      category: 'Busca Web (Web Search)',
+      isNative: true,
+      description: 'Busca na web em tempo real por fatos, notícias, documentação técnica e dados recentes.',
+      schema: {
+        type: 'object',
+        properties: {
+          query: { type: 'string', description: 'Termos de busca na web' }
+        },
+        required: ['query']
+      }
+    },
+    {
+      name: 'query_project_knowledge',
+      category: 'RAG Local / Projeto',
+      isNative: true,
+      description: 'Busca semântica e vetorial em arquivos indexados da base de conhecimento do projeto.',
+      schema: {
+        type: 'object',
+        properties: {
+          query: { type: 'string', description: 'Consulta semântica sobre os arquivos do projeto' },
+          limit: { type: 'integer', description: 'Número máximo de trechos a retornar' }
+        },
+        required: ['query']
+      }
+    },
+    {
+      name: 'read_project_file',
+      category: 'RAG Local / Projeto',
+      isNative: true,
+      description: 'Lê o conteúdo bruto ou linhas específicas de um arquivo local do projeto.',
+      schema: {
+        type: 'object',
+        properties: {
+          filePath: { type: 'string', description: 'Caminho relativo do arquivo no projeto' },
+          startLine: { type: 'integer', description: 'Linha inicial (1-indexed)' },
+          endLine: { type: 'integer', description: 'Linha final (1-indexed)' }
+        },
+        required: ['filePath']
+      }
+    }
+  ];
+
   const getTurnBreakdown = (event, turn, activeTools = []) => {
     if (event.usage?.breakdown) {
       return event.usage.breakdown;
@@ -44,37 +143,84 @@ export default function TrajectoryLedger({
 
     if (promptTokens === 0 && completionTokens === 0) return null;
 
-    const toolsList = activeTools.map(tl => tl.name || tl.function?.name || 'tool');
-    const toolsChars = activeTools.length > 0 ? JSON.stringify(activeTools).length : 3200;
+    // Combine Native Tools with active MCP tools passed from props
+    const mcpItems = (activeTools || []).map(t => {
+      const jsonStr = JSON.stringify(t, null, 2);
+      return {
+        name: t.name || t.function?.name || 'mcp_tool',
+        description: t.description || t.function?.description || '',
+        category: t.server_label ? `MCP (${t.server_label})` : 'Servidor MCP',
+        isNative: false,
+        rawSchema: t,
+        rawJson: jsonStr,
+        chars: jsonStr.length,
+        estimated_tokens: Math.max(1, Math.round(jsonStr.length / 4))
+      };
+    });
+
+    const nativeItems = NATIVE_TOOLS.map(t => {
+      const fullDef = {
+        type: 'function',
+        function: {
+          name: t.name,
+          description: t.description,
+          parameters: t.schema
+        }
+      };
+      const jsonStr = JSON.stringify(fullDef, null, 2);
+      return {
+        name: t.name,
+        description: t.description,
+        category: t.category,
+        isNative: true,
+        rawSchema: fullDef,
+        rawJson: jsonStr,
+        chars: jsonStr.length,
+        estimated_tokens: Math.max(1, Math.round(jsonStr.length / 4))
+      };
+    });
+
+    const allToolItems = [...nativeItems, ...mcpItems];
+    const toolsChars = allToolItems.reduce((acc, t) => acc + t.chars, 0);
 
     const systemPromptEvent = turn?.events?.find(e => e.type === 'injected_context' || e.type === 'system');
-    const systemChars = (systemPromptEvent?.systemPrompt?.length || systemPromptEvent?.content?.length || 0) + 1200;
+    const systemRaw = systemPromptEvent?.systemPrompt || systemPromptEvent?.content || '';
+    const systemChars = (systemRaw ? systemRaw.length : 0) + 1200;
 
     const userEvent = turn?.events?.find(e => e.type === 'user');
     const userContent = typeof userEvent?.content === 'string' ? userEvent.content : JSON.stringify(userEvent?.content || '');
     const userChars = userContent.length;
 
     const totalChars = toolsChars + systemChars + userChars;
+    const toolsEstimatedTokens = Math.max(0, Math.round(totalChars > 0 ? (toolsChars / totalChars) * promptTokens : toolsChars / 4));
 
     return {
       tools: {
-        count: activeTools.length,
+        count: allToolItems.length,
         chars: toolsChars,
-        tools: toolsList,
-        estimated_tokens: Math.max(0, Math.round(totalChars > 0 ? (toolsChars / totalChars) * promptTokens : toolsChars / 4))
+        tools: allToolItems.map(t => t.name),
+        items: allToolItems.map(t => ({
+          ...t,
+          estimated_tokens: Math.max(1, Math.round((t.chars / Math.max(1, toolsChars)) * toolsEstimatedTokens))
+        })),
+        estimated_tokens: toolsEstimatedTokens
       },
       system: {
         chars: systemChars,
-        estimated_tokens: Math.max(0, Math.round(totalChars > 0 ? (systemChars / totalChars) * promptTokens : systemChars / 4))
+        estimated_tokens: Math.max(0, Math.round(totalChars > 0 ? (systemChars / totalChars) * promptTokens : systemChars / 4)),
+        rawContent: systemRaw || 'Instruções base do NeoChat com diretrizes de busca web, ferramentas Canvas, modo de agente, data/hora e regras do sistema.'
       },
       user_input: {
         chars: userChars,
-        estimated_tokens: Math.max(0, Math.round(totalChars > 0 ? (userChars / totalChars) * promptTokens : userChars / 4))
+        estimated_tokens: Math.max(0, Math.round(totalChars > 0 ? (userChars / totalChars) * promptTokens : userChars / 4)),
+        content: userContent
       },
       completion: {
         content_tokens: completionTokens,
         reasoning_tokens: 0,
-        total_tokens: completionTokens
+        total_tokens: completionTokens,
+        ttft: event.usage?.ttft,
+        tokens_per_sec: event.usage?.tokens_per_sec
       }
     };
   };
@@ -642,83 +788,268 @@ export default function TrajectoryLedger({
                                     </div>
 
                                     {/* 4 Cards Breakdown Grid */}
-                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[11px]">
+                                    <div className="grid grid-cols-1 gap-2.5 text-[11px]">
                                       {/* 1. Ferramentas & MCPs */}
-                                      <div className="p-2.5 rounded-lg border border-amber-500/20 bg-amber-500/5 space-y-1">
-                                        <div className="flex items-center justify-between">
-                                          <span className="font-semibold text-amber-700 dark:text-amber-300 flex items-center gap-1.5">
-                                            <Zap className="w-3.5 h-3.5 text-amber-500" />
-                                            <span>{t('trajectory.toolSchemas')}</span>
-                                          </span>
-                                          <span className="font-mono font-bold text-amber-800 dark:text-amber-200">
-                                            ~{formatNumber(toolsTokens)} tk ({toolsPct}%)
-                                          </span>
+                                      <div className="rounded-lg border border-amber-500/20 bg-amber-500/5 overflow-hidden transition-all shadow-2xs">
+                                        <div 
+                                          className="p-2.5 flex items-center justify-between cursor-pointer hover:bg-amber-500/10 select-none transition-colors"
+                                          onClick={() => toggleItem(`${eventId}-card-tools`)}
+                                        >
+                                          <div className="flex items-center gap-2 min-w-0">
+                                            <Zap className="w-4 h-4 text-amber-500 shrink-0" />
+                                            <div className="min-w-0">
+                                              <span className="font-semibold text-amber-800 dark:text-amber-200">
+                                                {t('trajectory.toolSchemas')}
+                                              </span>
+                                              <span className="text-[10px] text-muted-foreground ml-2">
+                                                ({toolsCount > 0 ? t('trajectory.activeToolsCount', { count: toolsCount }) : t('trajectory.toolSchemasDesc')})
+                                              </span>
+                                            </div>
+                                          </div>
+                                          <div className="flex items-center gap-2 font-mono shrink-0">
+                                            <span className="font-bold text-amber-800 dark:text-amber-200">
+                                              ~{formatNumber(toolsTokens)} tk ({toolsPct}%)
+                                            </span>
+                                            <span className="text-muted-foreground text-[10px]">
+                                              {expandedItems[`${eventId}-card-tools`] ? '▲' : '▼'}
+                                            </span>
+                                          </div>
                                         </div>
-                                        <p className="text-[10px] text-muted-foreground leading-tight">
-                                          {toolsCount > 0 ? t('trajectory.activeToolsCount', { count: toolsCount }) : t('trajectory.toolSchemasDesc')}
-                                        </p>
-                                        {toolsList.length > 0 && (
-                                          <div className="flex flex-wrap gap-1 pt-1">
-                                            {toolsList.slice(0, 6).map((tn, i) => (
-                                              <span key={i} className="px-1.5 py-0.2 rounded bg-amber-500/10 text-amber-700 dark:text-amber-300 text-[9px] font-mono border border-amber-500/20">
-                                                {tn}
-                                              </span>
-                                            ))}
-                                            {toolsList.length > 6 && (
-                                              <span className="px-1.5 py-0.2 rounded bg-muted text-muted-foreground text-[9px] font-mono">
-                                                +{toolsList.length - 6} mais
-                                              </span>
-                                            )}
+
+                                        {expandedItems[`${eventId}-card-tools`] && (
+                                          <div className="p-3 pt-0 space-y-2.5 border-t border-amber-500/20 bg-background/50">
+                                            {/* Informative explanation banner */}
+                                            <div className="p-2 rounded-md bg-amber-500/10 border border-amber-500/20 text-[11px] text-amber-900 dark:text-amber-200 leading-relaxed space-y-1">
+                                              <div className="font-semibold flex items-center gap-1.5">
+                                                <Sparkles className="w-3 h-3 text-amber-600 dark:text-amber-400" />
+                                                <span>{t('trajectory.nativeToolsClarification', { count: breakdown?.tools?.items?.filter(it => it.isNative)?.length || 7 })}</span>
+                                              </div>
+                                              <p className="text-[10px] opacity-90">
+                                                {t('trajectory.nativeToolsExplanation')}
+                                              </p>
+                                            </div>
+
+                                            {/* Tool Items Detailed List */}
+                                            <div className="space-y-2">
+                                              {(breakdown?.tools?.items || []).map((toolItem, tIdx) => {
+                                                const schemaId = `${eventId}-tool-schema-${tIdx}`;
+                                                const isSchemaOpen = expandedItems[schemaId];
+                                                const isCopied = copiedId === schemaId;
+
+                                                return (
+                                                  <div
+                                                    key={schemaId}
+                                                    className="p-2.5 rounded-lg border border-border/80 bg-card space-y-1.5 shadow-2xs"
+                                                  >
+                                                    <div className="flex flex-wrap items-center justify-between gap-2">
+                                                      <div className="flex flex-wrap items-center gap-2 min-w-0">
+                                                        <Code className="w-3.5 h-3.5 text-primary shrink-0" />
+                                                        <span className="font-mono font-bold text-foreground text-xs">
+                                                          {toolItem.name}
+                                                        </span>
+                                                        <span className={`px-1.5 py-0.2 rounded text-[9px] font-medium border ${
+                                                          toolItem.isNative
+                                                            ? 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20'
+                                                            : 'bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/20'
+                                                        }`}>
+                                                          {toolItem.category}
+                                                        </span>
+                                                      </div>
+
+                                                      <div className="flex items-center gap-2">
+                                                        <span className="text-[10px] font-mono text-muted-foreground">
+                                                          ~{formatNumber(toolItem.estimated_tokens)} {t('trajectory.tokensUnit')}
+                                                        </span>
+                                                        <button
+                                                          type="button"
+                                                          onClick={() => toggleItem(schemaId)}
+                                                          className="px-2 py-0.5 rounded text-[10px] font-medium bg-muted hover:bg-muted/80 text-foreground border border-border transition-colors cursor-pointer"
+                                                        >
+                                                          {isSchemaOpen ? 'Ocultar Schema' : t('trajectory.viewToolSchema')}
+                                                        </button>
+                                                        <button
+                                                          type="button"
+                                                          onClick={() => handleCopy(toolItem.rawJson, schemaId)}
+                                                          className="p-1 rounded text-muted-foreground hover:text-foreground hover:bg-muted transition-colors cursor-pointer"
+                                                          title={t('trajectory.copySchema')}
+                                                        >
+                                                          {isCopied ? <Check className="w-3 h-3 text-emerald-500" /> : <Copy className="w-3 h-3" />}
+                                                        </button>
+                                                      </div>
+                                                    </div>
+
+                                                    {toolItem.description && (
+                                                      <p className="text-[11px] text-muted-foreground leading-relaxed">
+                                                        {toolItem.description}
+                                                      </p>
+                                                    )}
+
+                                                    {isSchemaOpen && (
+                                                      <div className="mt-2 rounded-lg bg-zinc-950 p-2.5 font-mono text-[11px] text-zinc-200 border border-zinc-800 overflow-x-auto max-h-56">
+                                                        <pre>{toolItem.rawJson}</pre>
+                                                      </div>
+                                                    )}
+                                                  </div>
+                                                );
+                                              })}
+                                            </div>
                                           </div>
                                         )}
                                       </div>
 
                                       {/* 2. Sistema & Contexto Injetado */}
-                                      <div className="p-2.5 rounded-lg border border-blue-500/20 bg-blue-500/5 space-y-1">
-                                        <div className="flex items-center justify-between">
-                                          <span className="font-semibold text-blue-700 dark:text-blue-300 flex items-center gap-1.5">
-                                            <Sparkles className="w-3.5 h-3.5 text-blue-500" />
-                                            <span>{t('trajectory.systemAndContext')}</span>
-                                          </span>
-                                          <span className="font-mono font-bold text-blue-800 dark:text-blue-200">
-                                            ~{formatNumber(systemTokens)} tk ({systemPct}%)
-                                          </span>
+                                      <div className="rounded-lg border border-blue-500/20 bg-blue-500/5 overflow-hidden transition-all shadow-2xs">
+                                        <div 
+                                          className="p-2.5 flex items-center justify-between cursor-pointer hover:bg-blue-500/10 select-none transition-colors"
+                                          onClick={() => toggleItem(`${eventId}-card-system`)}
+                                        >
+                                          <div className="flex items-center gap-2 min-w-0">
+                                            <Sparkles className="w-4 h-4 text-blue-500 shrink-0" />
+                                            <div className="min-w-0">
+                                              <span className="font-semibold text-blue-800 dark:text-blue-200">
+                                                {t('trajectory.systemAndContext')}
+                                              </span>
+                                              <span className="text-[10px] text-muted-foreground ml-2">
+                                                ({t('trajectory.systemAndContextDesc')})
+                                              </span>
+                                            </div>
+                                          </div>
+                                          <div className="flex items-center gap-2 font-mono shrink-0">
+                                            <span className="font-bold text-blue-800 dark:text-blue-200">
+                                              ~{formatNumber(systemTokens)} tk ({systemPct}%)
+                                            </span>
+                                            <span className="text-muted-foreground text-[10px]">
+                                              {expandedItems[`${eventId}-card-system`] ? '▲' : '▼'}
+                                            </span>
+                                          </div>
                                         </div>
-                                        <p className="text-[10px] text-muted-foreground leading-tight">
-                                          {t('trajectory.systemAndContextDesc')}
-                                        </p>
+
+                                        {expandedItems[`${eventId}-card-system`] && (
+                                          <div className="p-3 pt-0 space-y-2 border-t border-blue-500/20 bg-background/50">
+                                            <div className="flex items-center justify-between text-[11px]">
+                                              <span className="font-semibold text-foreground">
+                                                {t('trajectory.fullSystemPrompt')}
+                                              </span>
+                                              <button
+                                                type="button"
+                                                onClick={() => handleCopy(breakdown?.system?.rawContent, `${eventId}-sys-copy`)}
+                                                className="px-2 py-0.5 rounded text-[10px] font-medium bg-muted hover:bg-muted/80 text-foreground border border-border flex items-center gap-1 cursor-pointer"
+                                              >
+                                                {copiedId === `${eventId}-sys-copy` ? <Check className="w-3 h-3 text-emerald-500" /> : <Copy className="w-3 h-3" />}
+                                                <span>{copiedId === `${eventId}-sys-copy` ? t('trajectory.copied') : t('trajectory.copyInjectedPrompt')}</span>
+                                              </button>
+                                            </div>
+                                            <div className="p-2.5 rounded-lg bg-zinc-950 text-zinc-200 font-mono text-[11px] border border-zinc-800 whitespace-pre-wrap max-h-64 overflow-y-auto leading-relaxed">
+                                              {breakdown?.system?.rawContent || 'N/A'}
+                                            </div>
+                                          </div>
+                                        )}
                                       </div>
 
                                       {/* 3. Entrada do Usuário & Histórico */}
-                                      <div className="p-2.5 rounded-lg border border-emerald-500/20 bg-emerald-500/5 space-y-1">
-                                        <div className="flex items-center justify-between">
-                                          <span className="font-semibold text-emerald-700 dark:text-emerald-300 flex items-center gap-1.5">
-                                            <MessageSquare className="w-3.5 h-3.5 text-emerald-500" />
-                                            <span>{t('trajectory.userAndHistory')}</span>
-                                          </span>
-                                          <span className="font-mono font-bold text-emerald-800 dark:text-emerald-200">
-                                            ~{formatNumber(userTokens)} tk ({userPct}%)
-                                          </span>
+                                      <div className="rounded-lg border border-emerald-500/20 bg-emerald-500/5 overflow-hidden transition-all shadow-2xs">
+                                        <div 
+                                          className="p-2.5 flex items-center justify-between cursor-pointer hover:bg-emerald-500/10 select-none transition-colors"
+                                          onClick={() => toggleItem(`${eventId}-card-user`)}
+                                        >
+                                          <div className="flex items-center gap-2 min-w-0">
+                                            <MessageSquare className="w-4 h-4 text-emerald-500 shrink-0" />
+                                            <div className="min-w-0">
+                                              <span className="font-semibold text-emerald-800 dark:text-emerald-200">
+                                                {t('trajectory.userAndHistory')}
+                                              </span>
+                                              <span className="text-[10px] text-muted-foreground ml-2">
+                                                ({t('trajectory.userAndHistoryDesc')})
+                                              </span>
+                                            </div>
+                                          </div>
+                                          <div className="flex items-center gap-2 font-mono shrink-0">
+                                            <span className="font-bold text-emerald-800 dark:text-emerald-200">
+                                              ~{formatNumber(userTokens)} tk ({userPct}%)
+                                            </span>
+                                            <span className="text-muted-foreground text-[10px]">
+                                              {expandedItems[`${eventId}-card-user`] ? '▲' : '▼'}
+                                            </span>
+                                          </div>
                                         </div>
-                                        <p className="text-[10px] text-muted-foreground leading-tight">
-                                          {t('trajectory.userAndHistoryDesc')}
-                                        </p>
+
+                                        {expandedItems[`${eventId}-card-user`] && (
+                                          <div className="p-3 pt-0 space-y-2 border-t border-emerald-500/20 bg-background/50">
+                                            <div className="flex items-center justify-between text-[11px]">
+                                              <span className="font-semibold text-foreground">
+                                                {t('trajectory.userMessagePayload')}
+                                              </span>
+                                              <button
+                                                type="button"
+                                                onClick={() => handleCopy(breakdown?.user_input?.content, `${eventId}-usr-copy`)}
+                                                className="px-2 py-0.5 rounded text-[10px] font-medium bg-muted hover:bg-muted/80 text-foreground border border-border flex items-center gap-1 cursor-pointer"
+                                              >
+                                                {copiedId === `${eventId}-usr-copy` ? <Check className="w-3 h-3 text-emerald-500" /> : <Copy className="w-3 h-3" />}
+                                                <span>{copiedId === `${eventId}-usr-copy` ? t('trajectory.copied') : 'Copiar Entrada'}</span>
+                                              </button>
+                                            </div>
+                                            <div className="p-2.5 rounded-lg bg-zinc-950 text-zinc-200 font-mono text-[11px] border border-zinc-800 whitespace-pre-wrap max-h-48 overflow-y-auto leading-relaxed">
+                                              {typeof breakdown?.user_input?.content === 'string'
+                                                ? breakdown.user_input.content
+                                                : JSON.stringify(breakdown?.user_input?.content || '', null, 2)}
+                                            </div>
+                                          </div>
+                                        )}
                                       </div>
 
                                       {/* 4. Resposta Gerada (Saída) */}
-                                      <div className="p-2.5 rounded-lg border border-purple-500/20 bg-purple-500/5 space-y-1">
-                                        <div className="flex items-center justify-between">
-                                          <span className="font-semibold text-purple-700 dark:text-purple-300 flex items-center gap-1.5">
-                                            <Cpu className="w-3.5 h-3.5 text-purple-500" />
-                                            <span>{t('trajectory.modelCompletion')}</span>
-                                          </span>
-                                          <span className="font-mono font-bold text-purple-800 dark:text-purple-200">
-                                            {formatNumber(completionTokens)} tk ({completionPct}%)
-                                          </span>
+                                      <div className="rounded-lg border border-purple-500/20 bg-purple-500/5 overflow-hidden transition-all shadow-2xs">
+                                        <div 
+                                          className="p-2.5 flex items-center justify-between cursor-pointer hover:bg-purple-500/10 select-none transition-colors"
+                                          onClick={() => toggleItem(`${eventId}-card-comp`)}
+                                        >
+                                          <div className="flex items-center gap-2 min-w-0">
+                                            <Cpu className="w-4 h-4 text-purple-500 shrink-0" />
+                                            <div className="min-w-0">
+                                              <span className="font-semibold text-purple-800 dark:text-purple-200">
+                                                {t('trajectory.modelCompletion')}
+                                              </span>
+                                              <span className="text-[10px] text-muted-foreground ml-2">
+                                                ({t('trajectory.modelCompletionDesc')})
+                                              </span>
+                                            </div>
+                                          </div>
+                                          <div className="flex items-center gap-2 font-mono shrink-0">
+                                            <span className="font-bold text-purple-800 dark:text-purple-200">
+                                              {formatNumber(completionTokens)} tk ({completionPct}%)
+                                            </span>
+                                            <span className="text-muted-foreground text-[10px]">
+                                              {expandedItems[`${eventId}-card-comp`] ? '▲' : '▼'}
+                                            </span>
+                                          </div>
                                         </div>
-                                        <p className="text-[10px] text-muted-foreground leading-tight">
-                                          {t('trajectory.modelCompletionDesc')}
-                                        </p>
+
+                                        {expandedItems[`${eventId}-card-comp`] && (
+                                          <div className="p-3 pt-0 space-y-2 border-t border-purple-500/20 bg-background/50">
+                                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-center text-[11px] font-mono">
+                                              <div className="p-2 rounded-md bg-purple-500/10 border border-purple-500/20">
+                                                <span className="text-[10px] text-muted-foreground block">{t('trajectory.contentTokensLabel')}</span>
+                                                <span className="font-bold text-purple-700 dark:text-purple-300">{formatNumber(breakdown?.completion?.content_tokens || completionTokens)} tk</span>
+                                              </div>
+                                              <div className="p-2 rounded-md bg-purple-500/10 border border-purple-500/20">
+                                                <span className="text-[10px] text-muted-foreground block">{t('trajectory.reasoningTokensLabel')}</span>
+                                                <span className="font-bold text-purple-700 dark:text-purple-300">{formatNumber(breakdown?.completion?.reasoning_tokens || 0)} tk</span>
+                                              </div>
+                                              {breakdown?.completion?.tokens_per_sec > 0 && (
+                                                <div className="p-2 rounded-md bg-purple-500/10 border border-purple-500/20">
+                                                  <span className="text-[10px] text-muted-foreground block">Velocidade</span>
+                                                  <span className="font-bold text-purple-700 dark:text-purple-300">{breakdown.completion.tokens_per_sec} t/s</span>
+                                                </div>
+                                              )}
+                                              {breakdown?.completion?.ttft > 0 && (
+                                                <div className="p-2 rounded-md bg-purple-500/10 border border-purple-500/20">
+                                                  <span className="text-[10px] text-muted-foreground block">TTFT</span>
+                                                  <span className="font-bold text-purple-700 dark:text-purple-300">{Math.round(breakdown.completion.ttft)}ms</span>
+                                                </div>
+                                              )}
+                                            </div>
+                                          </div>
+                                        )}
                                       </div>
                                     </div>
 

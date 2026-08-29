@@ -736,29 +736,67 @@ function handleStreamCompletion(event, accumulatedData, finishReason, streamId, 
     const reasoningLen = (accumulatedData.reasoning || '').length;
     const totalOutputLen = contentLen + reasoningLen;
 
+    const totalToolsEstimatedTokens = Math.max(0, Math.round(totalInputChars > 0 ? (toolsChars / totalInputChars) * actualPromptTokens : toolsChars / 4));
+
     accumulatedData.usage.breakdown = {
         tools: {
             count: toolsList.length,
             chars: toolsChars,
             tools: toolsList,
-            estimated_tokens: Math.max(0, Math.round(totalInputChars > 0 ? (toolsChars / totalInputChars) * actualPromptTokens : toolsChars / 4))
+            estimated_tokens: totalToolsEstimatedTokens,
+            items: (chatCompletionParams?.tools || []).map(t => {
+                const fn = t.function || t;
+                const jsonStr = JSON.stringify(t, null, 2);
+                const name = fn.name || t.name || t.type || 'unknown_tool';
+                let category = 'MCP Server';
+                let isNative = false;
+                if (name.startsWith('canvas_')) {
+                    category = 'Canvas Workspace';
+                    isNative = true;
+                } else if (name === 'web_search') {
+                    category = 'Busca Web (Web Search)';
+                    isNative = true;
+                } else if (name.includes('project_knowledge') || name.includes('project_file')) {
+                    category = 'RAG Local / Projeto';
+                    isNative = true;
+                } else if (t.type === 'code_interpreter' || t.type === 'browser_search') {
+                    category = 'Ferramenta Embutida';
+                    isNative = true;
+                }
+                return {
+                    name,
+                    description: fn.description || t.description || '',
+                    type: t.type || 'function',
+                    category,
+                    isNative,
+                    rawSchema: t,
+                    rawJson: jsonStr,
+                    chars: jsonStr.length,
+                    estimated_tokens: Math.max(1, Math.round((jsonStr.length / Math.max(1, toolsChars)) * totalToolsEstimatedTokens))
+                };
+            })
         },
         system: {
             chars: systemChars,
-            estimated_tokens: Math.max(0, Math.round(totalInputChars > 0 ? (systemChars / totalInputChars) * actualPromptTokens : systemChars / 4))
+            estimated_tokens: Math.max(0, Math.round(totalInputChars > 0 ? (systemChars / totalInputChars) * actualPromptTokens : systemChars / 4)),
+            rawContent: chatCompletionParams?.messages?.find(m => m.role === 'system')?.content || ''
         },
         history: {
             chars: historyChars,
-            estimated_tokens: Math.max(0, Math.round(totalInputChars > 0 ? (historyChars / totalInputChars) * actualPromptTokens : historyChars / 4))
+            estimated_tokens: Math.max(0, Math.round(totalInputChars > 0 ? (historyChars / totalInputChars) * actualPromptTokens : historyChars / 4)),
+            messages: (chatCompletionParams?.messages || []).filter(m => m.role !== 'system' && m !== chatCompletionParams?.messages?.[chatCompletionParams.messages.length - 1])
         },
         user_input: {
             chars: userChars,
-            estimated_tokens: Math.max(0, Math.round(totalInputChars > 0 ? (userChars / totalInputChars) * actualPromptTokens : userChars / 4))
+            estimated_tokens: Math.max(0, Math.round(totalInputChars > 0 ? (userChars / totalInputChars) * actualPromptTokens : userChars / 4)),
+            content: chatCompletionParams?.messages?.[chatCompletionParams.messages.length - 1]?.content || ''
         },
         completion: {
             content_tokens: totalOutputLen > 0 ? Math.round((contentLen / totalOutputLen) * actualCompletionTokens) : actualCompletionTokens,
             reasoning_tokens: totalOutputLen > 0 ? Math.round((reasoningLen / totalOutputLen) * actualCompletionTokens) : 0,
-            total_tokens: actualCompletionTokens
+            total_tokens: actualCompletionTokens,
+            ttft: accumulatedData.usage?.ttft || 0,
+            tokens_per_sec: (accumulatedData.usage?.completion_time || elapsedSeconds) > 0 ? Math.round(actualCompletionTokens / (accumulatedData.usage?.completion_time || elapsedSeconds)) : 0
         }
     };
     
