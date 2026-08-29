@@ -4,6 +4,8 @@ node_modules/
 dist/
 release/
 .vercel/
+docs/.vitepress/dist/
+docs/.vitepress/cache/
 
 # OS generated files
 .DS_Store
@@ -37,3 +39,4 @@ pnpm-debug.log*
 
 # Local test scripts
 local-test-scripts/
+.vercel

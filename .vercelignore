@@ -1,0 +1,16 @@
+node_modules
+dist
+release
+.git
+.vercel
+electron
+src
+shared
+site
+scripts
+test-*
+*.exe
+*.dmg
+*.AppImage
+*.zip
+*.log
