@@ -564,7 +564,7 @@ function Message({
             "flex items-center gap-2 mt-2 pt-2 text-xs text-muted-foreground",
             isPowerUser 
               ? "flex-wrap justify-between border-t border-border/70" 
-              : "justify-end opacity-70 hover:opacity-100 transition-opacity"
+              : "justify-start opacity-70 hover:opacity-100 transition-opacity"
           )}>
             {/* Speed & Performance Metrics (Power Mode only) */}
             {isPowerUser && (
