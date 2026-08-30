@@ -2221,15 +2221,17 @@ function App() {
       setActiveProjectId(targetProjectId);
     }
     
-    // Clear canvas when creating a new chat
+    // Clear canvas and artifacts when creating a new chat
     clearCanvas();
+    closeCanvas();
+    setActiveArtifact(null);
 
     // Create a new chat in history with the current API mode and target project
     await createNewChat(selectedModel, useResponsesApi, projId);
 
     // Signal the ChatInput to focus on the text area
     setChatFocusSignal(s => s + 1);
-  }, [loading, createNewChat, selectedModel, useResponsesApi, activeProjectId, setActiveProjectId, clearCanvas]);
+  }, [loading, createNewChat, selectedModel, useResponsesApi, activeProjectId, setActiveProjectId, clearCanvas, closeCanvas]);
 
   // Global Keyboard shortcuts:
   // - Ctrl/Cmd + N -> New Chat
@@ -2310,6 +2312,9 @@ function App() {
   // Handle when a chat is loaded from history - switch API mode and sync active project if needed
   const handleChatLoaded = useCallback(async (chat) => {
     if (!chat) return;
+
+    // Reset active artifact preview when switching chats
+    setActiveArtifact(null);
 
     // Load canvas document if this chat has one
     if (chat.canvasDoc) {

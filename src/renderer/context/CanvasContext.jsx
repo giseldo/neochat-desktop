@@ -235,6 +235,7 @@ export function CanvasProvider({ children }) {
   const loadChatCanvas = useCallback((chatCanvasDoc) => {
     if (chatCanvasDoc && typeof chatCanvasDoc === 'object') {
       setCanvasDoc(chatCanvasDoc);
+      setIsOpen(true);
       // Determine default mode based on language
       const lang = (chatCanvasDoc.language || '').toLowerCase();
       if (['javascript', 'python', 'typescript', 'js', 'py', 'ts'].includes(lang)) {
@@ -244,6 +245,8 @@ export function CanvasProvider({ children }) {
       }
     } else {
       setCanvasDoc(null);
+      setIsOpen(false);
+      setIsFullscreen(false);
     }
     setActiveRevisionIndex(null);
   }, []);
@@ -276,6 +279,8 @@ export function CanvasProvider({ children }) {
 
   const clearCanvas = useCallback(() => {
     setCanvasDoc(null);
+    setIsOpen(false);
+    setIsFullscreen(false);
     setSelectedTextState('');
     setSelectionRange(null);
     setActiveRevisionIndex(null);
