@@ -240,7 +240,8 @@ function updateChatTitle(chatId, title) {
         return null;
     }
     
-    chat.title = title;
+    const cleanTitle = typeof title === 'string' ? title.trim() : '';
+    chat.title = cleanTitle || chat.title || 'New Chat';
     saveChat(chat);
     return chat;
 }

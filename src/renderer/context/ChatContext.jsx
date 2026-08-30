@@ -257,6 +257,24 @@ export const ChatProvider = ({ children }) => {
     return null;
   }, []);
 
+  // Rename a chat title
+  const renameChat = useCallback(async (chatId, newTitle) => {
+    if (!chatId) return null;
+    const cleanTitle = (typeof newTitle === 'string' ? newTitle.trim() : '') || 'New Chat';
+    try {
+      // Optimistically update list
+      setChatList(prev => prev.map(chat =>
+        chat.id === chatId ? { ...chat, title: cleanTitle, updatedAt: new Date().toISOString() } : chat
+      ));
+      const result = await window.electron.chatHistory.updateTitle(chatId, cleanTitle);
+      return result;
+    } catch (error) {
+      console.error('Error renaming chat:', error);
+      await loadChatList();
+    }
+    return null;
+  }, [loadChatList]);
+
   // Provide the state and methods to children
   const value = {
     messages,
@@ -273,6 +291,7 @@ export const ChatProvider = ({ children }) => {
     deleteAllChats,
     clearCurrentChat,
     updateChatProject,
+    renameChat,
     startFreshChat,
     toggleSidebar,
     needsTitleGeneration,

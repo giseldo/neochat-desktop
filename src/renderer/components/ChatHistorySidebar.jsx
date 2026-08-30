@@ -23,7 +23,9 @@ import {
   FolderPlus,
   Settings2,
   FolderOpen,
-  Folder
+  Folder,
+  Pencil,
+  Check
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 
@@ -177,6 +179,7 @@ function ChatHistorySidebar({ onNewChat, onChatLoaded, loading }) {
     loadChat, 
     deleteChat, 
     deleteAllChats,
+    renameChat,
     isSidebarCollapsed, 
     toggleSidebar,
     isLoadingChats 
@@ -199,12 +202,15 @@ function ChatHistorySidebar({ onNewChat, onChatLoaded, loading }) {
   const [hoveredChatId, setHoveredChatId] = useState(null);
   const [hoveredProjectId, setHoveredProjectId] = useState(null);
   const [menuOpenChatId, setMenuOpenChatId] = useState(null);
+  const [editingChatId, setEditingChatId] = useState(null);
+  const [editingTitle, setEditingTitle] = useState('');
   const [deletingChatId, setDeletingChatId] = useState(null);
   const [chatToDelete, setChatToDelete] = useState(null);
   const [isDeletingAllModalOpen, setIsDeletingAllModalOpen] = useState(false);
   const [isDeletingAll, setIsDeletingAll] = useState(false);
   const [menuPosition, setMenuPosition] = useState({ top: 0, left: 0 });
   const menuButtonRefs = useRef({});
+  const editInputRef = useRef(null);
 
   // Expanded project IDs set (persisted in localStorage)
   const [expandedProjects, setExpandedProjects] = useState(() => {
@@ -415,8 +421,46 @@ function ChatHistorySidebar({ onNewChat, onChatLoaded, loading }) {
   };
 
   useEffect(() => {
+    if (editingChatId && editInputRef.current) {
+      editInputRef.current.focus();
+      editInputRef.current.select();
+    }
+  }, [editingChatId]);
+
+  const handleStartRename = (e, chat) => {
+    if (e) e.stopPropagation();
+    setMenuOpenChatId(null);
+    setEditingChatId(chat.id);
+    setEditingTitle(chat.title || t('sidebar.newChat'));
+  };
+
+  const handleSaveRename = async (e, chatId) => {
+    if (e) e.stopPropagation();
+    const newTitle = editingTitle.trim();
+    if (newTitle && chatId) {
+      try {
+        await renameChat(chatId, newTitle);
+      } catch (err) {
+        console.error('Error renaming chat:', err);
+      }
+    }
+    setEditingChatId(null);
+    setEditingTitle('');
+  };
+
+  const handleCancelRename = (e) => {
+    if (e) e.stopPropagation();
+    setEditingChatId(null);
+    setEditingTitle('');
+  };
+
+  useEffect(() => {
     const handleKeyDown = (e) => {
       if (e.key === 'Escape') {
+        if (editingChatId) {
+          setEditingChatId(null);
+          setEditingTitle('');
+        }
         if (chatToDelete && !deletingChatId) {
           setChatToDelete(null);
         }
@@ -425,11 +469,11 @@ function ChatHistorySidebar({ onNewChat, onChatLoaded, loading }) {
         }
       }
     };
-    if (chatToDelete || isDeletingAllModalOpen) {
+    if (chatToDelete || isDeletingAllModalOpen || editingChatId) {
       window.addEventListener('keydown', handleKeyDown);
       return () => window.removeEventListener('keydown', handleKeyDown);
     }
-  }, [chatToDelete, deletingChatId, isDeletingAllModalOpen, isDeletingAll]);
+  }, [chatToDelete, deletingChatId, isDeletingAllModalOpen, isDeletingAll, editingChatId]);
 
   const handleOpenMoveModal = (e, chat) => {
     e.stopPropagation();
@@ -485,6 +529,7 @@ function ChatHistorySidebar({ onNewChat, onChatLoaded, loading }) {
     const isDeleting = deletingChatId === chat.id;
     const isHovered = hoveredChatId === chat.id;
     const isMenuOpen = menuOpenChatId === chat.id;
+    const isEditing = editingChatId === chat.id;
 
     return (
       <div
@@ -499,35 +544,102 @@ function ChatHistorySidebar({ onNewChat, onChatLoaded, loading }) {
             : "hover:bg-muted/60 text-muted-foreground hover:text-foreground",
           isDeleting && "opacity-50"
         )}
-        onClick={() => handleChatClick(chat.id)}
+        onClick={() => {
+          if (!isEditing) handleChatClick(chat.id);
+        }}
         onMouseEnter={() => setHoveredChatId(chat.id)}
         onMouseLeave={() => {
           setHoveredChatId(null);
           if (menuOpenChatId === chat.id) setMenuOpenChatId(null);
         }}
       >
-        <div className="flex items-center gap-2 min-w-0 pr-12">
+        <div className="flex items-center gap-2 min-w-0 flex-1 pr-1">
           <MessageSquare className={cn(
             "flex-shrink-0 transition-colors",
             isIndented ? "h-3.5 w-3.5 text-muted-foreground/70 group-hover:text-primary" : "h-3.5 w-3.5 text-primary/80",
             isCurrent && "text-primary"
           )} />
-          <div className="min-w-0 flex-1">
-            <div className="truncate text-xs font-normal">
-              {chat.title || t('sidebar.newChat')}
-            </div>
-            {!isIndented && (
-              <div className="flex items-center gap-1 text-[10px] text-muted-foreground/70 mt-0.5">
-                <Clock className="h-2.5 w-2.5" />
-                <span>{formatRelativeTime(chat.updatedAt, t, language)}</span>
+          {isEditing ? (
+            <div className="flex items-center gap-1 min-w-0 flex-1" onClick={(e) => e.stopPropagation()}>
+              <input
+                ref={editInputRef}
+                type="text"
+                value={editingTitle}
+                onChange={(e) => setEditingTitle(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    handleSaveRename(e, chat.id);
+                  } else if (e.key === 'Escape') {
+                    e.preventDefault();
+                    handleCancelRename(e);
+                  }
+                }}
+                onBlur={() => {
+                  if (editingTitle.trim()) {
+                    handleSaveRename(null, chat.id);
+                  } else {
+                    handleCancelRename();
+                  }
+                }}
+                className="w-full bg-background border border-primary/60 rounded px-1.5 py-0.5 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary shadow-xs"
+                placeholder={t('sidebar.renamePlaceholder') || 'Nome da conversa...'}
+                autoFocus
+              />
+              <div className="flex items-center gap-0.5 shrink-0">
+                <button
+                  type="button"
+                  onMouseDown={(e) => {
+                    e.preventDefault();
+                    handleSaveRename(e, chat.id);
+                  }}
+                  className="p-1 rounded hover:bg-muted text-primary hover:text-primary transition-colors"
+                  title={t('common.save')}
+                >
+                  <Check className="h-3 w-3" />
+                </button>
+                <button
+                  type="button"
+                  onMouseDown={(e) => {
+                    e.preventDefault();
+                    handleCancelRename(e);
+                  }}
+                  className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-destructive transition-colors"
+                  title={t('common.cancel')}
+                >
+                  <X className="h-3 w-3" />
+                </button>
               </div>
-            )}
-          </div>
+            </div>
+          ) : (
+            <div 
+              className="min-w-0 flex-1"
+              onDoubleClick={(e) => handleStartRename(e, chat)}
+            >
+              <div className="truncate text-xs font-normal" title={chat.title || t('sidebar.newChat')}>
+                {chat.title || t('sidebar.newChat')}
+              </div>
+              {!isIndented && (
+                <div className="flex items-center gap-1 text-[10px] text-muted-foreground/70 mt-0.5">
+                  <Clock className="h-2.5 w-2.5" />
+                  <span>{formatRelativeTime(chat.updatedAt, t, language)}</span>
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Action buttons on hover */}
-        {(isHovered || isMenuOpen || chatToDelete?.id === chat.id) && (
+        {!isEditing && (isHovered || isMenuOpen || chatToDelete?.id === chat.id) && (
           <div className="absolute right-1.5 top-1/2 -translate-y-1/2 flex items-center gap-0.5 bg-background/90 backdrop-blur-xs px-1 py-0.5 rounded-md border border-border/50 shadow-2xs">
+            <button
+              type="button"
+              onClick={(e) => handleStartRename(e, chat)}
+              className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
+              title={t('sidebar.renameChat')}
+            >
+              <Pencil className="h-3 w-3" />
+            </button>
             <button
               type="button"
               onClick={(e) => handlePromptDelete(e, chat)}
@@ -556,6 +668,15 @@ function ChatHistorySidebar({ onNewChat, onChatLoaded, loading }) {
               left: menuPosition.left,
             }}
           >
+            {/* Rename */}
+            <button
+              onClick={(e) => handleStartRename(e, chat)}
+              className="w-full flex items-center gap-2 px-3 py-1.5 hover:bg-muted text-foreground transition-colors text-left font-medium"
+            >
+              <Pencil className="h-3.5 w-3.5 text-primary" />
+              <span>{t('sidebar.renameChat')}</span>
+            </button>
+
             {/* Move to Project */}
             <button
               onClick={(e) => handleOpenMoveModal(e, chat)}
