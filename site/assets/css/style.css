@@ -310,10 +310,9 @@ code, pre { font-family: 'JetBrains Mono', monospace; }
   gap: 10px;
   flex-shrink: 0;
 }
-.nav__gh-stars {
-  font-size: 0.82rem;
-  font-family: 'JetBrains Mono', monospace;
-  color: var(--accent);
+.nav__mobile-cta {
+  margin-top: 4px;
+  justify-content: center;
 }
 .nav__toggle {
   display: none;

@@ -218,28 +218,6 @@
   var yearEl = document.getElementById('year');
   if (yearEl) yearEl.textContent = new Date().getFullYear();
 
-  /* ----- GitHub Stars Counter (cached) ----- */
-  var starCount = document.getElementById('starCount');
-  if (starCount) {
-    var cachedStars = cacheGet('neochat:stars');
-    if (cachedStars && typeof cachedStars.stargazers_count === 'number') {
-      starCount.textContent = cachedStars.stargazers_count > 0 ? '★ ' + cachedStars.stargazers_count : 'Releases';
-    }
-    fetch('https://api.github.com/repos/giseldo/neochat-releases', { headers: { 'Accept': 'application/vnd.github.v3+json' } })
-      .then(function (r) { return r.ok ? r.json() : Promise.reject(new Error('stars ' + r.status)); })
-      .then(function (data) {
-        cacheSet('neochat:stars', data);
-        if (data && typeof data.stargazers_count === 'number' && data.stargazers_count > 0) {
-          starCount.textContent = '★ ' + data.stargazers_count;
-        } else {
-          starCount.textContent = 'Releases';
-        }
-      })
-      .catch(function () {
-        if (!cachedStars) starCount.textContent = 'Releases';
-      });
-  }
-
   /* ----- Latest GitHub Release Assets Linking (cached + smart match) ----- */
   var findAsset = function (assets, predicate) {
     for (var i = 0; i < assets.length; i++) {
