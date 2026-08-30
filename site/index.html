@@ -65,6 +65,7 @@
         <a href="#providers">Provedores &amp; IA Local</a>
         <a href="#features">Recursos</a>
         <a href="#modes">Modos de Uso</a>
+        <a href="#screenshots">Screenshots</a>
         <a href="#mcp">MCP &amp; RAG</a>
         <a href="#download">Download</a>
         <a href="https://neochat-docs.vercel.app" target="_blank" rel="noopener">Docs Arquitetura ↗</a>
@@ -85,6 +86,7 @@
       <a href="#providers">Provedores &amp; IA Local</a>
       <a href="#features">Recursos</a>
       <a href="#modes">Modos de Uso</a>
+      <a href="#screenshots">Screenshots</a>
       <a href="#mcp">MCP &amp; RAG</a>
       <a href="#download">Download</a>
       <a href="https://neochat-docs.vercel.app" target="_blank" rel="noopener">Docs Arquitetura ↗</a>
@@ -127,69 +129,10 @@
           </div>
         </div>
 
-        <!-- Visual App Preview Window -->
+        <!-- Visual App Preview — Real Screenshot -->
         <div class="hero__visual reveal" data-delay="150">
-          <div class="window">
-            <div class="window__bar">
-              <div class="window__dots">
-                <span class="window__dot window__dot--red"></span>
-                <span class="window__dot window__dot--yellow"></span>
-                <span class="window__dot window__dot--green"></span>
-              </div>
-              <div class="window__title-container">
-                <img src="./assets/img/icon.png" alt="" class="window__mini-logo" width="16" height="16" />
-                <span class="window__title">NeoChat Desktop — Multi-Provider Workspace</span>
-              </div>
-              <div class="window__badge-mode">Power User</div>
-            </div>
-            <div class="window__body">
-              <div class="chat-preview">
-                <div class="chat-msg chat-msg--user">
-                  <span>Analise este relatório financeiro e crie um evento de fechamento na minha agenda.</span>
-                  <div class="chat-attachment-pill">
-                    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg>
-                    <span>fechamento_mensal.pdf</span>
-                  </div>
-                </div>
-
-                <div class="chat-msg chat-msg--tool">
-                  <span class="tool-icon">📚</span>
-                  <div>
-                    <strong>RAG Local:</strong> <code>fechamento_mensal.pdf</code> indexado offline (similaridade 96%)
-                  </div>
-                </div>
-
-                <div class="chat-msg chat-msg--ai">
-                  <div class="chat-ai-head">
-                    <div class="ai-badge-group">
-                      <span class="ai-dot"></span>
-                      <strong>Ollama (DeepSeek R1) &amp; Groq Fallback</strong>
-                      <span class="ai-latency">⚡ Local / Multi-Endpoint</span>
-                    </div>
-                  </div>
-                  <p>Com base nos dados locais do PDF, o faturamento trimestral atingiu a meta com <strong>+38% de margem</strong>.</p>
-                  <p>Acionei o conector do <strong>Google Calendar</strong> via MCP para programar a reunião de encerramento:</p>
-                </div>
-
-                <div class="chat-msg chat-msg--tool chat-msg--tool-success">
-                  <span class="tool-icon">📅</span>
-                  <div>
-                    <strong>MCP Google Calendar:</strong> Evento <em>"Reunião de Fechamento Trimestral"</em> agendado para sexta-feira às 15:00.
-                  </div>
-                </div>
-
-                <!-- Interactive Chat Input Simulation -->
-                <div class="chat-input-bar">
-                  <div class="chat-input-placeholder">Digite sua mensagem ou segure Ctrl+Alt para ditar...</div>
-                  <div class="chat-input-tools">
-                    <span class="tool-pill" title="Push-to-talk ativo">🎙️ PTT (Ctrl+Alt)</span>
-                    <span class="tool-pill" title="Captura de tela">✂️ Snip</span>
-                    <span class="tool-pill" title="RAG Ativo">📂 RAG</span>
-                    <button class="send-btn" aria-label="Enviar mensagem">→</button>
-                  </div>
-                </div>
-              </div>
-            </div>
+          <div class="hero__screenshot" onclick="openLightbox(0)">
+            <img src="./assets/img/telas/2.png" alt="NeoChat Desktop — Interface principal com resposta de IA" loading="eager" width="1536" height="780" />
           </div>
 
           <!-- Floating Badges -->
@@ -318,15 +261,8 @@
                 </ul>
               </div>
               <div class="mode-card-preview">
-                <div class="preview-box">
-                  <div class="preview-header">
-                    <span class="preview-title">Modo Usuário Ativo</span>
-                    <span class="status-indicator">Online</span>
-                  </div>
-                  <div class="preview-chat-simple">
-                    <div class="bubble user">Quais são as vantagens de rodar um modelo localmente?</div>
-                    <div class="bubble ai">Rodar modelos locais (via Ollama ou LM Studio) garante 100% de privacidade (seus dados nunca saem da sua máquina), funcionamento offline e custo zero por token, sendo ideal para documentos confidenciais.</div>
-                  </div>
+                <div class="feature-showcase__img" onclick="openLightbox(1)">
+                  <img src="./assets/img/telas/1.png" alt="NeoChat Desktop — Modo Usuário com interface limpa" loading="lazy" />
                 </div>
               </div>
             </div>
@@ -347,29 +283,8 @@
                 </ul>
               </div>
               <div class="mode-card-preview">
-                <div class="preview-box preview-box--power">
-                  <div class="preview-header">
-                    <span class="preview-title">Painel de Engenharia de IA</span>
-                    <span class="status-indicator status-indicator--power">Fallback Ativo</span>
-                  </div>
-                  <div class="preview-power-controls">
-                    <div class="param-row">
-                      <span>Provedores Configurados</span>
-                      <code>Ollama (Local) → Groq → OpenAI</code>
-                    </div>
-                    <div class="param-row">
-                      <span>Temperatura</span>
-                      <div class="slider-mock"><span style="width: 70%"></span></div>
-                    </div>
-                    <div class="param-row">
-                      <span>RAG Local</span>
-                      <span class="badge-mini">14 documentos indexados</span>
-                    </div>
-                    <div class="param-row">
-                      <span>Permissão MCP</span>
-                      <span class="badge-mini badge-mini--green">Safe Execution (Guarded)</span>
-                    </div>
-                  </div>
+                <div class="feature-showcase__img" onclick="openLightbox(2)">
+                  <img src="./assets/img/telas/4.png" alt="NeoChat Desktop — Modo Power User com Trajetória, Personas e Debug" loading="lazy" />
                 </div>
               </div>
             </div>
@@ -568,6 +483,158 @@
       </div>
     </section>
 
+    <!-- ===== Screenshot Showcase — App em Ação ===== -->
+    <section class="section showcase" id="screenshots">
+      <div class="container">
+        <div class="section__head reveal">
+          <span class="badge">Veja o App em Ação</span>
+          <h2 class="section__title">Conheça cada detalhe do NeoChat Desktop</h2>
+          <p class="section__subtitle">
+            Screenshots reais das funcionalidades mais poderosas — clique em qualquer imagem para ampliar.
+          </p>
+        </div>
+
+        <!-- === Feature Showcase 1: Canvas & Editor === -->
+        <div class="feature-showcase reveal">
+          <div class="feature-showcase__text">
+            <span class="badge">Canvas &amp; Editor</span>
+            <h3>Editor de Documentos integrado com IA</h3>
+            <p>Crie e edite documentos Markdown em tempo real com assistência de IA. O Canvas oferece visualização dividida (editor + preview), histórico de versões com diff visual, exportação em .md/.txt/.html, e ferramentas inteligentes como <strong>Melhorar Escrita</strong>, <strong>Resumir</strong>, <strong>Expandir Conteúdo</strong> e <strong>Corrigir Gramática</strong>.</p>
+            <ul class="check-list">
+              <li><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> Editor Markdown com preview ao vivo</li>
+              <li><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> Histórico de versões com diff colorido</li>
+              <li><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> Ações IA: Melhorar, Resumir, Traduzir, Tom Formal</li>
+            </ul>
+          </div>
+          <div class="feature-showcase__img" onclick="openLightbox(3)">
+            <img src="./assets/img/telas/9.png" alt="NeoChat Desktop — Canvas com editor Markdown e preview dividido" loading="lazy" />
+          </div>
+        </div>
+
+        <!-- === Feature Showcase 2: Code Execution === -->
+        <div class="feature-showcase feature-showcase--reverse reveal">
+          <div class="feature-showcase__text">
+            <span class="badge">Execução de Código</span>
+            <h3>Sandbox Python integrado no chat</h3>
+            <p>Peça para a IA criar código e execute Python diretamente na interface, sem configurar nada. O sandbox usa <strong>Pyodide (WebAssembly)</strong> para execução segura no navegador, com console de logs em tempo real, formatação automática e seleção de runtime.</p>
+            <ul class="check-list">
+              <li><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> Execução Python segura via WebAssembly</li>
+              <li><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> Console &amp; Logs com resultados em tempo real</li>
+              <li><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> Copie ou edite o código gerado antes de executar</li>
+            </ul>
+          </div>
+          <div class="feature-showcase__img" onclick="openLightbox(4)">
+            <img src="./assets/img/telas/14.png" alt="NeoChat Desktop — Execução de código Python com sandbox e console" loading="lazy" />
+          </div>
+        </div>
+
+        <!-- === Feature Showcase 3: Workflows === -->
+        <div class="feature-showcase reveal">
+          <div class="feature-showcase__text">
+            <span class="badge">Workflows &amp; Automações</span>
+            <h3>Automatize tarefas com fluxos multi-etapas</h3>
+            <p>Crie workflows personalizados com múltiplas etapas sequenciais, variáveis dinâmicas e agendamento automático (diário, semanal). Use <strong>7 modelos prontos</strong> incluindo Revisão de Código, Briefing de Notícias, Criação de Artigos e Diagnóstico de Bugs — ou crie seus próprios.</p>
+            <ul class="check-list">
+              <li><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> 7 templates prontos + criação personalizada</li>
+              <li><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> Agendamento com expressões cron</li>
+              <li><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> Variáveis dinâmicas entre etapas</li>
+            </ul>
+          </div>
+          <div class="feature-showcase__img" onclick="openLightbox(5)">
+            <img src="./assets/img/telas/18.png" alt="NeoChat Desktop — Editor de Workflows com modelos prontos e agendamento" loading="lazy" />
+          </div>
+        </div>
+
+        <!-- === Feature Showcase 4: MCP Catalog === -->
+        <div class="feature-showcase feature-showcase--reverse reveal">
+          <div class="feature-showcase__text">
+            <span class="badge">Catálogo MCP</span>
+            <h3>Instale ferramentas MCP com 1 clique</h3>
+            <p>Navegue pelo catálogo visual de servidores MCP e instale com um único clique. <strong>Brave Search</strong>, <strong>Local Filesystem</strong>, <strong>Web Fetch</strong>, <strong>SQLite</strong>, <strong>PostgreSQL</strong> e muito mais. Cada ferramenta mostra o comando de instalação, categoria e status de conexão.</p>
+            <ul class="check-list">
+              <li><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> Instalação com 1 clique do catálogo</li>
+              <li><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> Suporte a stdio (local) e HTTP SSE (remoto)</li>
+              <li><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> Status de conexão e controle de permissões</li>
+            </ul>
+          </div>
+          <div class="feature-showcase__img" onclick="openLightbox(6)">
+            <img src="./assets/img/telas/44.png" alt="NeoChat Desktop — Catálogo de Ferramentas MCP com instalação em 1 clique" loading="lazy" />
+          </div>
+        </div>
+
+        <!-- === Feature Showcase 5: Personas/Specialists === -->
+        <div class="feature-showcase reveal">
+          <div class="feature-showcase__text">
+            <span class="badge">Assistentes Especialistas</span>
+            <h3>Personas com prompts, temperatura e especialização</h3>
+            <p>Crie assistentes personalizados para cada tipo de tarefa: <strong>Dev &amp; Arquiteto</strong>, <strong>Revisor de Código</strong>, <strong>Tradutor Técnico</strong>, <strong>Especialista SQL</strong> e mais. Cada persona tem prompt de sistema, temperatura e descrição configuráveis.</p>
+            <ul class="check-list">
+              <li><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> Especialistas pré-configurados para dev, tradução e dados</li>
+              <li><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> Criação personalizada com prompt e temperatura</li>
+              <li><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> Troca rápida entre assistentes durante a conversa</li>
+            </ul>
+          </div>
+          <div class="feature-showcase__img" onclick="openLightbox(7)">
+            <img src="./assets/img/telas/8.png" alt="NeoChat Desktop — Criação de Assistente Especialista com prompt e temperatura" loading="lazy" />
+          </div>
+        </div>
+
+        <!-- === Feature Showcase 6: Settings & Customization === -->
+        <div class="feature-showcase feature-showcase--reverse reveal">
+          <div class="feature-showcase__text">
+            <span class="badge">Personalização Total</span>
+            <h3>Temas, cores, fontes e idiomas</h3>
+            <p>Customize cada aspecto visual do NeoChat Desktop: escolha entre <strong>8 cores de destaque</strong>, <strong>4 estilos de fundo</strong>, <strong>6 famílias tipográficas</strong> e <strong>4 tamanhos de fonte</strong>. Interface disponível em Português (Brasil) e English (US), com preview ao vivo das configurações.</p>
+            <ul class="check-list">
+              <li><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> 8 temas de cor: Roxo, Azul, Verde, Rosa, Âmbar, Ciano...</li>
+              <li><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> Modo Claro, Escuro ou Automático do sistema</li>
+              <li><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> Pré-visualização ao vivo das mudanças</li>
+            </ul>
+          </div>
+          <div class="feature-showcase__img" onclick="openLightbox(8)">
+            <img src="./assets/img/telas/21.png" alt="NeoChat Desktop — Configurações de aparência, cores e tipografia" loading="lazy" />
+          </div>
+        </div>
+
+        <!-- === Scrolling Gallery of All Screenshots === -->
+        <div class="section__head reveal" style="margin-top: 64px;">
+          <span class="badge">Galeria Completa</span>
+          <h2 class="section__title">Explore todas as telas do NeoChat Desktop</h2>
+          <p class="section__subtitle">Arraste para navegar • Clique para ampliar</p>
+        </div>
+
+        <div class="gallery-strip reveal">
+          <div class="gallery-item" onclick="openLightbox(9)"><img src="./assets/img/telas/1.png" alt="Interface principal" loading="lazy" /><div class="gallery-item__label">Interface Principal</div></div>
+          <div class="gallery-item" onclick="openLightbox(10)"><img src="./assets/img/telas/2.png" alt="Chat com IA" loading="lazy" /><div class="gallery-item__label">Chat com Resposta IA</div></div>
+          <div class="gallery-item" onclick="openLightbox(11)"><img src="./assets/img/telas/4.png" alt="Trajetória e Debug" loading="lazy" /><div class="gallery-item__label">Trajetória &amp; Debug</div></div>
+          <div class="gallery-item" onclick="openLightbox(12)"><img src="./assets/img/telas/5.png" alt="Métricas de Tokens" loading="lazy" /><div class="gallery-item__label">Métricas de Tokens</div></div>
+          <div class="gallery-item" onclick="openLightbox(13)"><img src="./assets/img/telas/7.png" alt="Personas Especialistas" loading="lazy" /><div class="gallery-item__label">Personas Especialistas</div></div>
+          <div class="gallery-item" onclick="openLightbox(14)"><img src="./assets/img/telas/8.png" alt="Criar Assistente" loading="lazy" /><div class="gallery-item__label">Criar Assistente</div></div>
+          <div class="gallery-item" onclick="openLightbox(15)"><img src="./assets/img/telas/9.png" alt="Canvas Editor" loading="lazy" /><div class="gallery-item__label">Canvas &amp; Editor</div></div>
+          <div class="gallery-item" onclick="openLightbox(16)"><img src="./assets/img/telas/10.png" alt="Canvas Dividido" loading="lazy" /><div class="gallery-item__label">Canvas Dividido</div></div>
+          <div class="gallery-item" onclick="openLightbox(17)"><img src="./assets/img/telas/11.png" alt="Versões com Diff" loading="lazy" /><div class="gallery-item__label">Versões com Diff</div></div>
+          <div class="gallery-item" onclick="openLightbox(18)"><img src="./assets/img/telas/13.png" alt="Canvas Tela Cheia" loading="lazy" /><div class="gallery-item__label">Canvas Tela Cheia</div></div>
+          <div class="gallery-item" onclick="openLightbox(19)"><img src="./assets/img/telas/14.png" alt="Execução Python" loading="lazy" /><div class="gallery-item__label">Execução Python</div></div>
+          <div class="gallery-item" onclick="openLightbox(20)"><img src="./assets/img/telas/17.png" alt="Workflows" loading="lazy" /><div class="gallery-item__label">Workflows</div></div>
+          <div class="gallery-item" onclick="openLightbox(21)"><img src="./assets/img/telas/18.png" alt="Templates Workflows" loading="lazy" /><div class="gallery-item__label">Templates de Workflow</div></div>
+          <div class="gallery-item" onclick="openLightbox(22)"><img src="./assets/img/telas/19.png" alt="Catálogo MCP" loading="lazy" /><div class="gallery-item__label">Catálogo MCP</div></div>
+          <div class="gallery-item" onclick="openLightbox(23)"><img src="./assets/img/telas/44.png" alt="MCP Instalado" loading="lazy" /><div class="gallery-item__label">MCP Instalado</div></div>
+          <div class="gallery-item" onclick="openLightbox(24)"><img src="./assets/img/telas/46.png" alt="Ferramentas MCP" loading="lazy" /><div class="gallery-item__label">Ferramentas Disponíveis</div></div>
+          <div class="gallery-item" onclick="openLightbox(25)"><img src="./assets/img/telas/20.png" alt="Configurações" loading="lazy" /><div class="gallery-item__label">Configurações</div></div>
+          <div class="gallery-item" onclick="openLightbox(26)"><img src="./assets/img/telas/21.png" alt="Temas e Cores" loading="lazy" /><div class="gallery-item__label">Temas &amp; Cores</div></div>
+          <div class="gallery-item" onclick="openLightbox(27)"><img src="./assets/img/telas/22.png" alt="Tipografia" loading="lazy" /><div class="gallery-item__label">Tipografia &amp; Fontes</div></div>
+          <div class="gallery-item" onclick="openLightbox(28)"><img src="./assets/img/telas/30.png" alt="Modelos por Provedor" loading="lazy" /><div class="gallery-item__label">Modelos por Provedor</div></div>
+          <div class="gallery-item" onclick="openLightbox(29)"><img src="./assets/img/telas/25.png" alt="Ditado por Voz" loading="lazy" /><div class="gallery-item__label">Ditado por Voz</div></div>
+          <div class="gallery-item" onclick="openLightbox(30)"><img src="./assets/img/telas/33.png" alt="MCP Config" loading="lazy" /><div class="gallery-item__label">Config MCP &amp; Integrações</div></div>
+          <div class="gallery-item" onclick="openLightbox(31)"><img src="./assets/img/telas/38.png" alt="Atalhos de Teclado" loading="lazy" /><div class="gallery-item__label">Atalhos de Teclado</div></div>
+          <div class="gallery-item" onclick="openLightbox(32)"><img src="./assets/img/telas/42.png" alt="Comandos Rápidos" loading="lazy" /><div class="gallery-item__label">Comandos Rápidos /</div></div>
+          <div class="gallery-item" onclick="openLightbox(33)"><img src="./assets/img/telas/43.png" alt="Biblioteca Prompts" loading="lazy" /><div class="gallery-item__label">Biblioteca de Prompts</div></div>
+          <div class="gallery-item" onclick="openLightbox(34)"><img src="./assets/img/telas/48.png" alt="Projetos" loading="lazy" /><div class="gallery-item__label">Projetos &amp; RAG</div></div>
+          <div class="gallery-item" onclick="openLightbox(35)"><img src="./assets/img/telas/36.png" alt="Backup e Updates" loading="lazy" /><div class="gallery-item__label">Backup &amp; Atualizações</div></div>
+        </div>
+      </div>
+    </section>
+
     <!-- ===== Download Section ===== -->
     <section class="section" id="download">
       <div class="container">
@@ -762,6 +829,102 @@
     </div>
   </footer>
 
+  <!-- ===== Lightbox Overlay ===== -->
+  <div class="lightbox" id="lightbox" role="dialog" aria-modal="true" aria-label="Visualizador de imagem">
+    <button class="lightbox__close" onclick="closeLightbox()" aria-label="Fechar">&times;</button>
+    <button class="lightbox__nav lightbox__nav--prev" onclick="lightboxPrev()" aria-label="Anterior">&#8249;</button>
+    <img class="lightbox__img" id="lightboxImg" src="" alt="" />
+    <button class="lightbox__nav lightbox__nav--next" onclick="lightboxNext()" aria-label="Próxima">&#8250;</button>
+    <div class="lightbox__caption" id="lightboxCaption"></div>
+  </div>
+
   <script src="./assets/js/main.js"></script>
+  <script>
+  /* ----- Lightbox Logic ----- */
+  (function () {
+    var lightboxImages = [
+      { src: './assets/img/telas/2.png', caption: 'Interface principal com resposta de IA' },
+      { src: './assets/img/telas/1.png', caption: 'Modo Usuário — Interface limpa e intuitiva' },
+      { src: './assets/img/telas/4.png', caption: 'Modo Power User — Trajetória, Debug e Personas' },
+      { src: './assets/img/telas/9.png', caption: 'Canvas — Editor Markdown com preview dividido' },
+      { src: './assets/img/telas/14.png', caption: 'Execução de Código Python com Sandbox' },
+      { src: './assets/img/telas/18.png', caption: 'Workflows — Templates e Agendamentos' },
+      { src: './assets/img/telas/44.png', caption: 'Catálogo MCP — Instalação em 1 clique' },
+      { src: './assets/img/telas/8.png', caption: 'Criação de Assistente Especialista' },
+      { src: './assets/img/telas/21.png', caption: 'Configurações — Temas, Cores e Tipografia' },
+      { src: './assets/img/telas/1.png', caption: 'Interface Principal — Tela Inicial' },
+      { src: './assets/img/telas/2.png', caption: 'Chat com Resposta de IA estruturada' },
+      { src: './assets/img/telas/4.png', caption: 'Trajetória & Debug — Visão técnica' },
+      { src: './assets/img/telas/5.png', caption: 'Métricas de Tokens — Velocidade e uso' },
+      { src: './assets/img/telas/7.png', caption: 'Personas Especialistas — Seletor rápido' },
+      { src: './assets/img/telas/8.png', caption: 'Criar Assistente — Configuração completa' },
+      { src: './assets/img/telas/9.png', caption: 'Canvas & Editor — Visualização dividida' },
+      { src: './assets/img/telas/10.png', caption: 'Canvas Dividido — Editor e Preview lado a lado' },
+      { src: './assets/img/telas/11.png', caption: 'Versões com Diff — Histórico visual' },
+      { src: './assets/img/telas/13.png', caption: 'Canvas Tela Cheia — Com diff e ações IA' },
+      { src: './assets/img/telas/14.png', caption: 'Execução Python — Sandbox WebAssembly' },
+      { src: './assets/img/telas/17.png', caption: 'Workflows — Editor de Automações' },
+      { src: './assets/img/telas/18.png', caption: 'Templates de Workflow — 7 modelos prontos' },
+      { src: './assets/img/telas/19.png', caption: 'Catálogo MCP — Ferramentas disponíveis' },
+      { src: './assets/img/telas/44.png', caption: 'MCP Instalado — Status de conexão' },
+      { src: './assets/img/telas/46.png', caption: 'Ferramentas MCP — Lista detalhada' },
+      { src: './assets/img/telas/20.png', caption: 'Configurações — Interface & Aparência' },
+      { src: './assets/img/telas/21.png', caption: 'Temas & Cores — 8 opções de destaque' },
+      { src: './assets/img/telas/22.png', caption: 'Tipografia & Fontes — 6 famílias' },
+      { src: './assets/img/telas/30.png', caption: 'Modelos por Provedor — Ollama, OpenRouter...' },
+      { src: './assets/img/telas/25.png', caption: 'Ditado por Voz — Whisper via Groq' },
+      { src: './assets/img/telas/33.png', caption: 'Integrações & MCP — Servidores locais' },
+      { src: './assets/img/telas/38.png', caption: 'Atalhos de Teclado — 22 atalhos disponíveis' },
+      { src: './assets/img/telas/42.png', caption: 'Comandos Rápidos — /summarize, /refactor...' },
+      { src: './assets/img/telas/43.png', caption: 'Biblioteca de Prompts — Templates editáveis' },
+      { src: './assets/img/telas/48.png', caption: 'Projetos & RAG — Base de conhecimento local' },
+      { src: './assets/img/telas/36.png', caption: 'Backup & Atualizações — Exportar/Importar' }
+    ];
+
+    var currentIndex = 0;
+    var lightbox = document.getElementById('lightbox');
+    var lightboxImg = document.getElementById('lightboxImg');
+    var lightboxCaption = document.getElementById('lightboxCaption');
+
+    window.openLightbox = function (index) {
+      currentIndex = index;
+      lightboxImg.src = lightboxImages[index].src;
+      lightboxImg.alt = lightboxImages[index].caption;
+      lightboxCaption.textContent = lightboxImages[index].caption;
+      lightbox.classList.add('active');
+      document.body.style.overflow = 'hidden';
+    };
+
+    window.closeLightbox = function () {
+      lightbox.classList.remove('active');
+      document.body.style.overflow = '';
+    };
+
+    window.lightboxPrev = function () {
+      currentIndex = (currentIndex - 1 + lightboxImages.length) % lightboxImages.length;
+      lightboxImg.src = lightboxImages[currentIndex].src;
+      lightboxImg.alt = lightboxImages[currentIndex].caption;
+      lightboxCaption.textContent = lightboxImages[currentIndex].caption;
+    };
+
+    window.lightboxNext = function () {
+      currentIndex = (currentIndex + 1) % lightboxImages.length;
+      lightboxImg.src = lightboxImages[currentIndex].src;
+      lightboxImg.alt = lightboxImages[currentIndex].caption;
+      lightboxCaption.textContent = lightboxImages[currentIndex].caption;
+    };
+
+    lightbox.addEventListener('click', function (e) {
+      if (e.target === lightbox) closeLightbox();
+    });
+
+    document.addEventListener('keydown', function (e) {
+      if (!lightbox.classList.contains('active')) return;
+      if (e.key === 'Escape') closeLightbox();
+      if (e.key === 'ArrowLeft') lightboxPrev();
+      if (e.key === 'ArrowRight') lightboxNext();
+    });
+  })();
+  </script>
 </body>
 </html>
