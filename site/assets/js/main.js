@@ -121,7 +121,7 @@
     });
   });
 
-  /* ----- OS Detection & Hero Download Action ----- */
+  /* ----- OS Detection (highlights the visitor's platform tag) ----- */
   var detectOS = function () {
     var ua = window.navigator.userAgent.toLowerCase();
     var platform = (window.navigator.platform || '').toLowerCase();
@@ -132,8 +132,6 @@
   };
 
   var userOS = detectOS();
-  var heroDownloadText = document.getElementById('heroDownloadText');
-  var heroPrimaryDownload = document.getElementById('heroPrimaryDownload');
 
   // Highlight platform tag
   document.querySelectorAll('.platform-tag').forEach(function (tag) {
@@ -141,12 +139,6 @@
       tag.classList.add('active-os');
     }
   });
-
-  if (heroDownloadText) {
-    if (userOS === 'win') heroDownloadText.textContent = 'Baixar para Windows';
-    else if (userOS === 'mac') heroDownloadText.textContent = 'Baixar para macOS';
-    else if (userOS === 'linux') heroDownloadText.textContent = 'Baixar para Linux';
-  }
 
   /* ----- Helpers: cache with TTL ----- */
   var CACHE_TTL_MS = 60 * 60 * 1000; // 1h
@@ -266,7 +258,6 @@
         }
         var btnWin = document.getElementById('btn-win');
         if (btnWin) btnWin.href = winSetup.browser_download_url;
-        if (userOS === 'win' && heroPrimaryDownload) heroPrimaryDownload.href = winSetup.browser_download_url;
       }
       if (winPortable && dlWin.children[1]) {
         var a1 = dlWin.children[1].querySelector('a');
@@ -296,7 +287,6 @@
         }
         var btnMac = document.getElementById('btn-mac');
         if (btnMac) btnMac.href = macDmg.browser_download_url;
-        if (userOS === 'mac' && heroPrimaryDownload) heroPrimaryDownload.href = macDmg.browser_download_url;
       }
       if (macZip && dlMac.children[1]) {
         var am1 = dlMac.children[1].querySelector('a');
@@ -317,7 +307,6 @@
       if (linuxAppImage) {
         var btnLinux = document.getElementById('btn-linux');
         if (btnLinux) btnLinux.href = linuxAppImage.browser_download_url;
-        if (userOS === 'linux' && heroPrimaryDownload) heroPrimaryDownload.href = linuxAppImage.browser_download_url;
       }
       if (dlLinux.children[0]) {
         var al0 = dlLinux.children[0].querySelector('a');
