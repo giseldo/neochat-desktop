@@ -136,6 +136,7 @@ const PopupPage = () => {
   const [visionSupported, setVisionSupported] = useState(false);
   const [suggestion, setSuggestion] = useState('');
   const [autocompleteEnabled, setAutocompleteEnabled] = useState(true);
+  const [interfaceMode, setInterfaceMode] = useState('user');
   const messagesEndRef = useRef(null);
   const messagesContainerRef = useRef(null);
   const userScrollingRef = useRef(false);
@@ -330,6 +331,9 @@ const PopupPage = () => {
       const settings = await window.electron.getSettings();
       if (settings.autocompleteEnabled !== undefined) {
         setAutocompleteEnabled(settings.autocompleteEnabled);
+      }
+      if (settings.interfaceMode) {
+        setInterfaceMode(settings.interfaceMode === 'power' ? 'power' : 'user');
       }
       const filterText = settings.modelFilter || '';
       const excludeText = settings.modelFilterExclude || '';
@@ -805,6 +809,7 @@ const PopupPage = () => {
           >
             <MessageList 
               messages={messages} 
+              interfaceMode={interfaceMode}
             />
             <div ref={messagesEndRef} />
           </div>

@@ -2752,6 +2752,7 @@ function App() {
                       loading={loading}
                       onActionsVisible={scrollToBottom}
                       onPreviewArtifact={(art) => setActiveArtifact(art)}
+                      interfaceMode={interfaceMode}
                     />
                     <div ref={messagesEndRef} />
                   </div>

@@ -25,10 +25,15 @@ function Message({
   hideReasoningUI = false,
   combinedReasoning = null,
   combinedReasoningDuration = null,
-  onPreviewArtifact
+  onPreviewArtifact,
+  interfaceMode: propInterfaceMode
 }) {
   const { t, language } = useLanguage();
   const { role, tool_calls, reasoning, isStreaming, executed_tools, liveReasoning, liveExecutedTools, reasoningSummaries, reasoningDuration, usage } = message;
+  const [localInterfaceMode, setLocalInterfaceMode] = useState(propInterfaceMode || 'user');
+  const currentInterfaceMode = propInterfaceMode || localInterfaceMode;
+  const isPowerUser = currentInterfaceMode === 'power';
+
   const [showReasoning, setShowReasoning] = useState(false);
   const [showExecutedTools, setShowExecutedTools] = useState(false);
   const [collapsedOutputs, setCollapsedOutputs] = useState(new Set());
@@ -84,8 +89,19 @@ function Message({
   
   // Auto-collapse when streaming finishes
   useEffect(() => {
-    window.electron?.getSettings?.().then(settings => setTtsSettings(current => ({ ...current, ...(settings.tts || {}) }))).catch(() => {});
+    window.electron?.getSettings?.().then(settings => {
+      setTtsSettings(current => ({ ...current, ...(settings.tts || {}) }));
+      if (settings?.interfaceMode) {
+        setLocalInterfaceMode(settings.interfaceMode);
+      }
+    }).catch(() => {});
   }, []);
+
+  useEffect(() => {
+    if (propInterfaceMode) {
+      setLocalInterfaceMode(propInterfaceMode);
+    }
+  }, [propInterfaceMode]);
 
   useEffect(() => {
     if (wasStreamingRef.current && !isStreamingMessage) {
@@ -320,12 +336,12 @@ function Message({
   };
 
   useEffect(() => {
-    if (!ttsSettings.autoSpeak || isUser || !isLastMessage || isStreamingMessage || loading) return;
+    if (!isPowerUser || !ttsSettings.autoSpeak || isUser || !isLastMessage || isStreamingMessage || loading) return;
     const key = `${message.timestamp || message.createdAt || ''}:${typeof message.content === 'string' ? message.content : ''}`;
     if (!key || autoSpokenRef.current === key) return;
     autoSpokenRef.current = key;
     toggleSpeech();
-  }, [ttsSettings.autoSpeak, isUser, isLastMessage, isStreamingMessage, loading, message.content, message.timestamp, message.createdAt]);
+  }, [isPowerUser, ttsSettings.autoSpeak, isUser, isLastMessage, isStreamingMessage, loading, message.content, message.timestamp, message.createdAt]);
 
   const isOutputCollapsed = (toolIndex) => {
     return !collapsedOutputs.has(toolIndex);
@@ -352,8 +368,8 @@ function Message({
           </div>
         )}
 
-        {/* Reasoning and Tools Dropdowns */}
-        {!isUser && (hasReasoning || hasExecutedTools || hasReasoningSummaries) && (
+        {/* Reasoning and Tools Dropdowns (Power Mode only) */}
+        {!isUser && isPowerUser && (hasReasoning || hasExecutedTools || hasReasoningSummaries) && (
           <div className="pb-1.5 space-y-1">
             <div className="flex flex-wrap items-center gap-2">
               {!hideReasoningUI && hasReasoningSummaries && isStreamingMessage && !effectiveReasoningDuration && !message.content && (
@@ -544,66 +560,75 @@ function Message({
 
         {/* Action bar and Performance Metrics */}
         {!isUser && (
-          <div className="flex flex-wrap items-center justify-between gap-3 mt-3 pt-2.5 border-t border-border/70 text-xs text-muted-foreground">
-            {/* Speed & Performance Metrics */}
-            <div className="flex flex-wrap items-center gap-2">
-              {tokensPerSec > 0 && (
-                <div 
-                  className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/25 font-semibold cursor-pointer hover:bg-primary/20 transition-colors"
-                  onClick={() => setShowDetailedStats(!showDetailedStats)}
-                  title={t('message.metricsTooltip')}
-                >
-                  <Zap className="w-3 h-3 text-primary fill-primary" />
-                  <span>{tokensPerSec} t/s</span>
-                </div>
-              )}
-
-              {ttftMs != null && ttftMs > 0 && (
-                <div className="flex items-center gap-1 text-[11px] text-muted-foreground bg-muted/60 px-2 py-0.5 rounded-md border border-border/50">
-                  <Clock className="w-3 h-3" />
-                  <span>TTFT: {ttftMs}ms</span>
-                </div>
-              )}
-
-              {durationSec > 0 && (
-                <div className="text-[11px] text-muted-foreground">
-                  {durationSec.toFixed(2)}s
-                </div>
-              )}
-
-              {/* Detailed popover/stats */}
-              {showDetailedStats && (
-                <div className="w-full mt-1 p-2 rounded-lg bg-card border border-border shadow-md text-xs space-y-1 animate-in fade-in-0">
-                  <div className="flex items-center justify-between text-muted-foreground border-b border-border/50 pb-1 font-medium">
-                    <span className="flex items-center gap-1"><Gauge className="w-3.5 h-3.5 text-primary" /> {t('message.inferenceMetrics')}</span>
-                    <button onClick={() => setShowDetailedStats(false)} className="hover:text-foreground">✕</button>
+          <div className={cn(
+            "flex items-center gap-2 mt-2 pt-2 text-xs text-muted-foreground",
+            isPowerUser 
+              ? "flex-wrap justify-between border-t border-border/70" 
+              : "justify-end opacity-70 hover:opacity-100 transition-opacity"
+          )}>
+            {/* Speed & Performance Metrics (Power Mode only) */}
+            {isPowerUser && (
+              <div className="flex flex-wrap items-center gap-2">
+                {tokensPerSec > 0 && (
+                  <div 
+                    className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/25 font-semibold cursor-pointer hover:bg-primary/20 transition-colors"
+                    onClick={() => setShowDetailedStats(!showDetailedStats)}
+                    title={t('message.metricsTooltip')}
+                  >
+                    <Zap className="w-3 h-3 text-primary fill-primary" />
+                    <span>{tokensPerSec} t/s</span>
                   </div>
-                  <div className="grid grid-cols-2 gap-2 pt-1 text-[11px]">
-                    <div>{t('message.tokensPrompt')} <span className="font-semibold text-foreground">{promptTokens}</span></div>
-                    <div>{t('message.tokensResponse')} <span className="font-semibold text-foreground">{completionTokens}</span></div>
-                    <div>{t('message.totalTokens')} <span className="font-semibold text-foreground">{totalTokens}</span></div>
-                    <div>{t('message.speed')} <span className="font-semibold text-primary">{tokensPerSec} t/s</span></div>
-                    {ttftMs && <div>{t('message.ttft')} <span className="font-semibold text-foreground">{ttftMs}ms</span></div>}
-                    {usage?.queue_time && <div>{t('message.groqQueue')} <span className="font-semibold text-foreground">{(usage.queue_time * 1000).toFixed(0)}ms</span></div>}
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* Actions: TTS, Copy, Reload */}
-            <div className="flex items-center gap-1">
-              {ttsSettings.enabled !== false && <button
-                onClick={toggleSpeech}
-                className={cn(
-                  "flex items-center gap-1 p-1.5 rounded-md transition-colors",
-                  isSpeaking
-                    ? "bg-primary text-primary-foreground animate-pulse"
-                    : "hover:bg-muted text-muted-foreground hover:text-foreground"
                 )}
-                title={isSpeaking ? t('message.ttsStop') : t('message.ttsListen')}
-              >
-                {isSpeaking ? <VolumeX className="w-3.5 h-3.5" /> : <Volume2 className="w-3.5 h-3.5" />}
-              </button>}
+
+                {ttftMs != null && ttftMs > 0 && (
+                  <div className="flex items-center gap-1 text-[11px] text-muted-foreground bg-muted/60 px-2 py-0.5 rounded-md border border-border/50">
+                    <Clock className="w-3 h-3" />
+                    <span>TTFT: {ttftMs}ms</span>
+                  </div>
+                )}
+
+                {durationSec > 0 && (
+                  <div className="text-[11px] text-muted-foreground">
+                    {durationSec.toFixed(2)}s
+                  </div>
+                )}
+
+                {/* Detailed popover/stats */}
+                {showDetailedStats && (
+                  <div className="w-full mt-1 p-2 rounded-lg bg-card border border-border shadow-md text-xs space-y-1 animate-in fade-in-0">
+                    <div className="flex items-center justify-between text-muted-foreground border-b border-border/50 pb-1 font-medium">
+                      <span className="flex items-center gap-1"><Gauge className="w-3.5 h-3.5 text-primary" /> {t('message.inferenceMetrics')}</span>
+                      <button onClick={() => setShowDetailedStats(false)} className="hover:text-foreground">✕</button>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2 pt-1 text-[11px]">
+                      <div>{t('message.tokensPrompt')} <span className="font-semibold text-foreground">{promptTokens}</span></div>
+                      <div>{t('message.tokensResponse')} <span className="font-semibold text-foreground">{completionTokens}</span></div>
+                      <div>{t('message.totalTokens')} <span className="font-semibold text-foreground">{totalTokens}</span></div>
+                      <div>{t('message.speed')} <span className="font-semibold text-primary">{tokensPerSec} t/s</span></div>
+                      {ttftMs && <div>{t('message.ttft')} <span className="font-semibold text-foreground">{ttftMs}ms</span></div>}
+                      {usage?.queue_time && <div>{t('message.groqQueue')} <span className="font-semibold text-foreground">{(usage.queue_time * 1000).toFixed(0)}ms</span></div>}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Actions: TTS (Power Mode only), Copy, Reload, Branch */}
+            <div className="flex items-center gap-1">
+              {isPowerUser && ttsSettings.enabled !== false && (
+                <button
+                  onClick={toggleSpeech}
+                  className={cn(
+                    "flex items-center gap-1 p-1.5 rounded-md transition-colors",
+                    isSpeaking
+                      ? "bg-primary text-primary-foreground animate-pulse"
+                      : "hover:bg-muted text-muted-foreground hover:text-foreground"
+                  )}
+                  title={isSpeaking ? t('message.ttsStop') : t('message.ttsListen')}
+                >
+                  {isSpeaking ? <VolumeX className="w-3.5 h-3.5" /> : <Volume2 className="w-3.5 h-3.5" />}
+                </button>
+              )}
 
               <button
                 onClick={handleCopy}

@@ -45,6 +45,54 @@
     "softwareVersion": "1.4.0"
   }
   </script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "Quais provedores e modelos de IA posso usar?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "O NeoChat Desktop é independente e universal. Você pode usar modelos locais via Ollama, LM Studio, vLLM ou LocalAI (Llama, DeepSeek, Qwen, Mistral etc.) sem custo e offline, ou APIs remotas como OpenAI (GPT-4o, o1, o3-mini), Anthropic (Claude 3.7), Groq (LPU), DeepSeek, OpenRouter, Together AI e qualquer endpoint compatível com o padrão OpenAI."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Posso usar o aplicativo 100% gratuito e offline?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Sim. Usando provedores locais como Ollama ou LM Studio, todo o processamento de IA, indexação RAG e ferramentas MCP roda exclusivamente no seu computador, sem chaves de API pagas ou conexão contínua com a internet."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Como funciona o Fallback Automático entre provedores?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Você define uma ordem de prioridade nas configurações. Se o provedor principal ficar indisponível ou atingir limite de requisições, o NeoChat migra a conversa automaticamente para o provedor reserva, como um modelo local ou outra API."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Como funciona o Push-to-Talk por voz?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Basta segurar o atalho Ctrl+Alt em qualquer momento para falar e soltar para transcrever instantaneamente no chat. O app também inclui um sintetizador de voz (TTS) configurável para leitura de respostas."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Como meus documentos e chaves são protegidos?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Chaves de API e segredos OAuth são gravados de forma criptografada usando o SafeStorage nativo do sistema operacional (DPAPI no Windows, Keychain no macOS, Secret Service no Linux). No RAG local, seus arquivos são processados e armazenados apenas no seu dispositivo."
+        }
+      }
+    ]
+  }
+  </script>
 </head>
 <body>
   <a href="#download" class="skip-link">Pular para download</a>
@@ -132,7 +180,7 @@
         <!-- Visual App Preview — Real Screenshot -->
         <div class="hero__visual reveal" data-delay="150">
           <div class="hero__screenshot" onclick="openLightbox(0)">
-            <img src="./assets/img/telas/2.png" alt="NeoChat Desktop — Interface principal com resposta de IA" loading="eager" width="1536" height="780" />
+            <img src="./assets/img/telas/2.png" alt="NeoChat Desktop — Interface principal com resposta de IA" loading="eager" width="1916" height="942" />
           </div>
 
           <!-- Floating Badges -->
@@ -262,7 +310,7 @@
               </div>
               <div class="mode-card-preview">
                 <div class="feature-showcase__img" onclick="openLightbox(1)">
-                  <img src="./assets/img/telas/1.png" alt="NeoChat Desktop — Modo Usuário com interface limpa" loading="lazy" />
+                  <img src="./assets/img/telas/1.png" alt="NeoChat Desktop — Modo Usuário com interface limpa" loading="lazy"width="1916" height="955" />
                 </div>
               </div>
             </div>
@@ -284,7 +332,7 @@
               </div>
               <div class="mode-card-preview">
                 <div class="feature-showcase__img" onclick="openLightbox(2)">
-                  <img src="./assets/img/telas/4.png" alt="NeoChat Desktop — Modo Power User com Trajetória, Personas e Debug" loading="lazy" />
+                  <img src="./assets/img/telas/4.png" alt="NeoChat Desktop — Modo Power User com Trajetória, Personas e Debug" loading="lazy"width="1902" height="951" />
                 </div>
               </div>
             </div>
@@ -507,7 +555,7 @@
             </ul>
           </div>
           <div class="feature-showcase__img" onclick="openLightbox(3)">
-            <img src="./assets/img/telas/9.png" alt="NeoChat Desktop — Canvas com editor Markdown e preview dividido" loading="lazy" />
+            <img src="./assets/img/telas/9.png" alt="NeoChat Desktop — Canvas com editor Markdown e preview dividido" loading="lazy"width="1916" height="951" />
           </div>
         </div>
 
@@ -524,7 +572,7 @@
             </ul>
           </div>
           <div class="feature-showcase__img" onclick="openLightbox(4)">
-            <img src="./assets/img/telas/14.png" alt="NeoChat Desktop — Execução de código Python com sandbox e console" loading="lazy" />
+            <img src="./assets/img/telas/14.png" alt="NeoChat Desktop — Execução de código Python com sandbox e console" loading="lazy"width="1917" height="952" />
           </div>
         </div>
 
@@ -541,7 +589,7 @@
             </ul>
           </div>
           <div class="feature-showcase__img" onclick="openLightbox(5)">
-            <img src="./assets/img/telas/18.png" alt="NeoChat Desktop — Editor de Workflows com modelos prontos e agendamento" loading="lazy" />
+            <img src="./assets/img/telas/18.png" alt="NeoChat Desktop — Editor de Workflows com modelos prontos e agendamento" loading="lazy"width="1277" height="875" />
           </div>
         </div>
 
@@ -558,7 +606,7 @@
             </ul>
           </div>
           <div class="feature-showcase__img" onclick="openLightbox(6)">
-            <img src="./assets/img/telas/44.png" alt="NeoChat Desktop — Catálogo de Ferramentas MCP com instalação em 1 clique" loading="lazy" />
+            <img src="./assets/img/telas/44.png" alt="NeoChat Desktop — Catálogo de Ferramentas MCP com instalação em 1 clique" loading="lazy"width="837" height="815" />
           </div>
         </div>
 
@@ -575,7 +623,7 @@
             </ul>
           </div>
           <div class="feature-showcase__img" onclick="openLightbox(7)">
-            <img src="./assets/img/telas/8.png" alt="NeoChat Desktop — Criação de Assistente Especialista com prompt e temperatura" loading="lazy" />
+            <img src="./assets/img/telas/8.png" alt="NeoChat Desktop — Criação de Assistente Especialista com prompt e temperatura" loading="lazy"width="555" height="622" />
           </div>
         </div>
 
@@ -592,7 +640,7 @@
             </ul>
           </div>
           <div class="feature-showcase__img" onclick="openLightbox(8)">
-            <img src="./assets/img/telas/21.png" alt="NeoChat Desktop — Configurações de aparência, cores e tipografia" loading="lazy" />
+            <img src="./assets/img/telas/21.png" alt="NeoChat Desktop — Configurações de aparência, cores e tipografia" loading="lazy"width="1880" height="932" />
           </div>
         </div>
 
@@ -604,33 +652,33 @@
         </div>
 
         <div class="gallery-strip reveal">
-          <div class="gallery-item" onclick="openLightbox(9)"><img src="./assets/img/telas/1.png" alt="Interface principal" loading="lazy" /><div class="gallery-item__label">Interface Principal</div></div>
-          <div class="gallery-item" onclick="openLightbox(10)"><img src="./assets/img/telas/2.png" alt="Chat com IA" loading="lazy" /><div class="gallery-item__label">Chat com Resposta IA</div></div>
-          <div class="gallery-item" onclick="openLightbox(11)"><img src="./assets/img/telas/4.png" alt="Trajetória e Debug" loading="lazy" /><div class="gallery-item__label">Trajetória &amp; Debug</div></div>
-          <div class="gallery-item" onclick="openLightbox(12)"><img src="./assets/img/telas/5.png" alt="Métricas de Tokens" loading="lazy" /><div class="gallery-item__label">Métricas de Tokens</div></div>
-          <div class="gallery-item" onclick="openLightbox(13)"><img src="./assets/img/telas/7.png" alt="Personas Especialistas" loading="lazy" /><div class="gallery-item__label">Personas Especialistas</div></div>
-          <div class="gallery-item" onclick="openLightbox(14)"><img src="./assets/img/telas/8.png" alt="Criar Assistente" loading="lazy" /><div class="gallery-item__label">Criar Assistente</div></div>
-          <div class="gallery-item" onclick="openLightbox(15)"><img src="./assets/img/telas/9.png" alt="Canvas Editor" loading="lazy" /><div class="gallery-item__label">Canvas &amp; Editor</div></div>
-          <div class="gallery-item" onclick="openLightbox(16)"><img src="./assets/img/telas/10.png" alt="Canvas Dividido" loading="lazy" /><div class="gallery-item__label">Canvas Dividido</div></div>
-          <div class="gallery-item" onclick="openLightbox(17)"><img src="./assets/img/telas/11.png" alt="Versões com Diff" loading="lazy" /><div class="gallery-item__label">Versões com Diff</div></div>
-          <div class="gallery-item" onclick="openLightbox(18)"><img src="./assets/img/telas/13.png" alt="Canvas Tela Cheia" loading="lazy" /><div class="gallery-item__label">Canvas Tela Cheia</div></div>
-          <div class="gallery-item" onclick="openLightbox(19)"><img src="./assets/img/telas/14.png" alt="Execução Python" loading="lazy" /><div class="gallery-item__label">Execução Python</div></div>
-          <div class="gallery-item" onclick="openLightbox(20)"><img src="./assets/img/telas/17.png" alt="Workflows" loading="lazy" /><div class="gallery-item__label">Workflows</div></div>
-          <div class="gallery-item" onclick="openLightbox(21)"><img src="./assets/img/telas/18.png" alt="Templates Workflows" loading="lazy" /><div class="gallery-item__label">Templates de Workflow</div></div>
-          <div class="gallery-item" onclick="openLightbox(22)"><img src="./assets/img/telas/19.png" alt="Catálogo MCP" loading="lazy" /><div class="gallery-item__label">Catálogo MCP</div></div>
-          <div class="gallery-item" onclick="openLightbox(23)"><img src="./assets/img/telas/44.png" alt="MCP Instalado" loading="lazy" /><div class="gallery-item__label">MCP Instalado</div></div>
-          <div class="gallery-item" onclick="openLightbox(24)"><img src="./assets/img/telas/46.png" alt="Ferramentas MCP" loading="lazy" /><div class="gallery-item__label">Ferramentas Disponíveis</div></div>
-          <div class="gallery-item" onclick="openLightbox(25)"><img src="./assets/img/telas/20.png" alt="Configurações" loading="lazy" /><div class="gallery-item__label">Configurações</div></div>
-          <div class="gallery-item" onclick="openLightbox(26)"><img src="./assets/img/telas/21.png" alt="Temas e Cores" loading="lazy" /><div class="gallery-item__label">Temas &amp; Cores</div></div>
-          <div class="gallery-item" onclick="openLightbox(27)"><img src="./assets/img/telas/22.png" alt="Tipografia" loading="lazy" /><div class="gallery-item__label">Tipografia &amp; Fontes</div></div>
-          <div class="gallery-item" onclick="openLightbox(28)"><img src="./assets/img/telas/30.png" alt="Modelos por Provedor" loading="lazy" /><div class="gallery-item__label">Modelos por Provedor</div></div>
-          <div class="gallery-item" onclick="openLightbox(29)"><img src="./assets/img/telas/25.png" alt="Ditado por Voz" loading="lazy" /><div class="gallery-item__label">Ditado por Voz</div></div>
-          <div class="gallery-item" onclick="openLightbox(30)"><img src="./assets/img/telas/33.png" alt="MCP Config" loading="lazy" /><div class="gallery-item__label">Config MCP &amp; Integrações</div></div>
-          <div class="gallery-item" onclick="openLightbox(31)"><img src="./assets/img/telas/38.png" alt="Atalhos de Teclado" loading="lazy" /><div class="gallery-item__label">Atalhos de Teclado</div></div>
-          <div class="gallery-item" onclick="openLightbox(32)"><img src="./assets/img/telas/42.png" alt="Comandos Rápidos" loading="lazy" /><div class="gallery-item__label">Comandos Rápidos /</div></div>
-          <div class="gallery-item" onclick="openLightbox(33)"><img src="./assets/img/telas/43.png" alt="Biblioteca Prompts" loading="lazy" /><div class="gallery-item__label">Biblioteca de Prompts</div></div>
-          <div class="gallery-item" onclick="openLightbox(34)"><img src="./assets/img/telas/48.png" alt="Projetos" loading="lazy" /><div class="gallery-item__label">Projetos &amp; RAG</div></div>
-          <div class="gallery-item" onclick="openLightbox(35)"><img src="./assets/img/telas/36.png" alt="Backup e Updates" loading="lazy" /><div class="gallery-item__label">Backup &amp; Atualizações</div></div>
+          <div class="gallery-item" onclick="openLightbox(9)"><img src="./assets/img/telas/1.png" alt="Interface principal" loading="lazy"width="1916" height="955" /><div class="gallery-item__label">Interface Principal</div></div>
+          <div class="gallery-item" onclick="openLightbox(10)"><img src="./assets/img/telas/2.png" alt="Chat com IA" loading="lazy"width="1916" height="942" /><div class="gallery-item__label">Chat com Resposta IA</div></div>
+          <div class="gallery-item" onclick="openLightbox(11)"><img src="./assets/img/telas/4.png" alt="Trajetória e Debug" loading="lazy"width="1902" height="951" /><div class="gallery-item__label">Trajetória &amp; Debug</div></div>
+          <div class="gallery-item" onclick="openLightbox(12)"><img src="./assets/img/telas/5.png" alt="Métricas de Tokens" loading="lazy"width="1916" height="952" /><div class="gallery-item__label">Métricas de Tokens</div></div>
+          <div class="gallery-item" onclick="openLightbox(13)"><img src="./assets/img/telas/7.png" alt="Personas Especialistas" loading="lazy"width="565" height="377" /><div class="gallery-item__label">Personas Especialistas</div></div>
+          <div class="gallery-item" onclick="openLightbox(14)"><img src="./assets/img/telas/8.png" alt="Criar Assistente" loading="lazy"width="555" height="622" /><div class="gallery-item__label">Criar Assistente</div></div>
+          <div class="gallery-item" onclick="openLightbox(15)"><img src="./assets/img/telas/9.png" alt="Canvas Editor" loading="lazy"width="1916" height="951" /><div class="gallery-item__label">Canvas &amp; Editor</div></div>
+          <div class="gallery-item" onclick="openLightbox(16)"><img src="./assets/img/telas/10.png" alt="Canvas Dividido" loading="lazy"width="772" height="891" /><div class="gallery-item__label">Canvas Dividido</div></div>
+          <div class="gallery-item" onclick="openLightbox(17)"><img src="./assets/img/telas/11.png" alt="Versões com Diff" loading="lazy"width="770" height="897" /><div class="gallery-item__label">Versões com Diff</div></div>
+          <div class="gallery-item" onclick="openLightbox(18)"><img src="./assets/img/telas/13.png" alt="Canvas Tela Cheia" loading="lazy"width="1911" height="962" /><div class="gallery-item__label">Canvas Tela Cheia</div></div>
+          <div class="gallery-item" onclick="openLightbox(19)"><img src="./assets/img/telas/14.png" alt="Execução Python" loading="lazy"width="1917" height="952" /><div class="gallery-item__label">Execução Python</div></div>
+          <div class="gallery-item" onclick="openLightbox(20)"><img src="./assets/img/telas/17.png" alt="Workflows" loading="lazy"width="1277" height="886" /><div class="gallery-item__label">Workflows</div></div>
+          <div class="gallery-item" onclick="openLightbox(21)"><img src="./assets/img/telas/18.png" alt="Templates Workflows" loading="lazy"width="1277" height="875" /><div class="gallery-item__label">Templates de Workflow</div></div>
+          <div class="gallery-item" onclick="openLightbox(22)"><img src="./assets/img/telas/19.png" alt="Catálogo MCP" loading="lazy"width="845" height="817" /><div class="gallery-item__label">Catálogo MCP</div></div>
+          <div class="gallery-item" onclick="openLightbox(23)"><img src="./assets/img/telas/44.png" alt="MCP Instalado" loading="lazy"width="837" height="815" /><div class="gallery-item__label">MCP Instalado</div></div>
+          <div class="gallery-item" onclick="openLightbox(24)"><img src="./assets/img/telas/46.png" alt="Ferramentas MCP" loading="lazy"width="847" height="817" /><div class="gallery-item__label">Ferramentas Disponíveis</div></div>
+          <div class="gallery-item" onclick="openLightbox(25)"><img src="./assets/img/telas/20.png" alt="Configurações" loading="lazy"width="1882" height="945" /><div class="gallery-item__label">Configurações</div></div>
+          <div class="gallery-item" onclick="openLightbox(26)"><img src="./assets/img/telas/21.png" alt="Temas e Cores" loading="lazy"width="1880" height="932" /><div class="gallery-item__label">Temas &amp; Cores</div></div>
+          <div class="gallery-item" onclick="openLightbox(27)"><img src="./assets/img/telas/22.png" alt="Tipografia" loading="lazy"width="1895" height="947" /><div class="gallery-item__label">Tipografia &amp; Fontes</div></div>
+          <div class="gallery-item" onclick="openLightbox(28)"><img src="./assets/img/telas/30.png" alt="Modelos por Provedor" loading="lazy"width="1145" height="836" /><div class="gallery-item__label">Modelos por Provedor</div></div>
+          <div class="gallery-item" onclick="openLightbox(29)"><img src="./assets/img/telas/25.png" alt="Ditado por Voz" loading="lazy"width="1202" height="812" /><div class="gallery-item__label">Ditado por Voz</div></div>
+          <div class="gallery-item" onclick="openLightbox(30)"><img src="./assets/img/telas/33.png" alt="MCP Config" loading="lazy"width="1167" height="802" /><div class="gallery-item__label">Config MCP &amp; Integrações</div></div>
+          <div class="gallery-item" onclick="openLightbox(31)"><img src="./assets/img/telas/38.png" alt="Atalhos de Teclado" loading="lazy"width="850" height="827" /><div class="gallery-item__label">Atalhos de Teclado</div></div>
+          <div class="gallery-item" onclick="openLightbox(32)"><img src="./assets/img/telas/42.png" alt="Comandos Rápidos" loading="lazy"width="1581" height="575" /><div class="gallery-item__label">Comandos Rápidos /</div></div>
+          <div class="gallery-item" onclick="openLightbox(33)"><img src="./assets/img/telas/43.png" alt="Biblioteca Prompts" loading="lazy"width="947" height="817" /><div class="gallery-item__label">Biblioteca de Prompts</div></div>
+          <div class="gallery-item" onclick="openLightbox(34)"><img src="./assets/img/telas/48.png" alt="Projetos" loading="lazy"width="565" height="861" /><div class="gallery-item__label">Projetos &amp; RAG</div></div>
+          <div class="gallery-item" onclick="openLightbox(35)"><img src="./assets/img/telas/36.png" alt="Backup e Updates" loading="lazy"width="1170" height="867" /><div class="gallery-item__label">Backup &amp; Atualizações</div></div>
         </div>
       </div>
     </section>
@@ -831,12 +879,17 @@
 
   <!-- ===== Lightbox Overlay ===== -->
   <div class="lightbox" id="lightbox" role="dialog" aria-modal="true" aria-label="Visualizador de imagem">
-    <button class="lightbox__close" onclick="closeLightbox()" aria-label="Fechar">&times;</button>
+    <button class="lightbox__close" id="lightboxClose" onclick="closeLightbox()" aria-label="Fechar">&times;</button>
     <button class="lightbox__nav lightbox__nav--prev" onclick="lightboxPrev()" aria-label="Anterior">&#8249;</button>
     <img class="lightbox__img" id="lightboxImg" src="" alt="" />
     <button class="lightbox__nav lightbox__nav--next" onclick="lightboxNext()" aria-label="Próxima">&#8250;</button>
     <div class="lightbox__caption" id="lightboxCaption"></div>
   </div>
+
+  <!-- ===== Back to Top ===== -->
+  <button class="back-to-top" id="backToTop" aria-label="Voltar ao topo" title="Voltar ao topo">
+    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></svg>
+  </button>
 
   <script src="./assets/js/main.js"></script>
   <script>
@@ -882,23 +935,46 @@
     ];
 
     var currentIndex = 0;
+    var lastFocused = null;
     var lightbox = document.getElementById('lightbox');
     var lightboxImg = document.getElementById('lightboxImg');
     var lightboxCaption = document.getElementById('lightboxCaption');
+    var lightboxClose = document.getElementById('lightboxClose');
 
     window.openLightbox = function (index) {
       currentIndex = index;
+      lastFocused = document.activeElement;
       lightboxImg.src = lightboxImages[index].src;
       lightboxImg.alt = lightboxImages[index].caption;
       lightboxCaption.textContent = lightboxImages[index].caption;
       lightbox.classList.add('active');
       document.body.style.overflow = 'hidden';
+      lightboxClose.focus();
     };
 
     window.closeLightbox = function () {
       lightbox.classList.remove('active');
       document.body.style.overflow = '';
+      if (lastFocused && typeof lastFocused.focus === 'function') {
+        lastFocused.focus();
+      }
+      lastFocused = null;
     };
+
+    /* Trap Tab focus inside the lightbox while it is open */
+    lightbox.addEventListener('keydown', function (e) {
+      if (e.key !== 'Tab' || !lightbox.classList.contains('active')) return;
+      var focusable = lightbox.querySelectorAll('button');
+      var first = focusable[0];
+      var last = focusable[focusable.length - 1];
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault();
+        first.focus();
+      }
+    });
 
     window.lightboxPrev = function () {
       currentIndex = (currentIndex - 1 + lightboxImages.length) % lightboxImages.length;

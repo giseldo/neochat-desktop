@@ -14,7 +14,8 @@ function MessageList({
   onBranchFromMessage,
   loading, 
   onActionsVisible,
-  onPreviewArtifact 
+  onPreviewArtifact,
+  interfaceMode = 'user'
 }) {
   const { t } = useLanguage();
   const [fullScreenImage, setFullScreenImage] = useState(null);
@@ -159,6 +160,7 @@ function MessageList({
             combinedReasoning={combinedReasoning}
             combinedReasoningDuration={combinedReasoningDuration}
             onPreviewArtifact={onPreviewArtifact}
+            interfaceMode={interfaceMode}
           >
           {message.role === 'user' ? (
             <div className="flex items-start gap-2">
