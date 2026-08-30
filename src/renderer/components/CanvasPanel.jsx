@@ -676,6 +676,14 @@ export function CanvasPanel({ onSendPrompt, className }) {
                   <span>HTML Document</span>
                   <span className="text-[10px] text-muted-foreground">.html</span>
                 </button>
+                <button
+                  type="button"
+                  onClick={() => { exportDocument('pdf'); setIsExportMenuOpen(false); }}
+                  className="w-full text-left px-3 py-1.5 hover:bg-muted flex items-center justify-between text-xs"
+                >
+                  <span>{t('canvas.exportPdf') || 'Documento PDF'}</span>
+                  <span className="text-[10px] text-muted-foreground">.pdf</span>
+                </button>
                 {isCode && (
                   <button
                     type="button"

@@ -489,6 +489,10 @@ app.whenReady().then(async () => {
     return canvasManager.setActiveCanvasDocument(chatId, doc);
   });
 
+  ipcMain.handle('canvas-export-pdf', async (_event, { title, content, language, htmlContent } = {}) => {
+    return canvasManager.exportCanvasToPdf({ title, content, language, htmlContent, parentWindow: mainWindow });
+  });
+
   // --- Register Core App IPC Handlers --- //
   // Chat completion (use module object)
   ipcMain.on('chat-stream', async (event, messages, model, options = {}) => {

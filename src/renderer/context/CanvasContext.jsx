@@ -290,8 +290,26 @@ export function CanvasProvider({ children }) {
   }, [currentChatId]);
 
   // Export document as file
-  const exportDocument = useCallback((format = 'markdown') => {
+  const exportDocument = useCallback(async (format = 'markdown') => {
     if (!canvasDoc) return;
+
+    if (format === 'pdf') {
+      if (window.electron?.canvas?.exportPdf) {
+        try {
+          return await window.electron.canvas.exportPdf({
+            title: canvasDoc.title || 'documento',
+            content: canvasDoc.content || '',
+            language: canvasDoc.language || 'markdown'
+          });
+        } catch (err) {
+          console.error('Failed to export canvas to PDF via Electron:', err);
+        }
+      }
+      // Fallback for non-electron environment: trigger print dialog
+      window.print();
+      return;
+    }
+
     const extMap = {
       markdown: 'md',
       text: 'txt',

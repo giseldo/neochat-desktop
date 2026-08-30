@@ -9,7 +9,9 @@ const {
   editCanvasSelection,
   computeLineDiff,
   calculateDocStats,
-  handleCanvasToolCall
+  handleCanvasToolCall,
+  formatCanvasToHtml,
+  exportCanvasToPdf
 } = require('./electron/canvasManager');
 
 async function runTests() {
@@ -104,6 +106,61 @@ async function runTests() {
   assert.strictEqual(patchResult.action, 'edited_selection');
   assert.strictEqual(patchResult.version, 2);
   console.log('✓ Tool handler simulation passed: created and patched seamlessly');
+
+  // Test 7: Canvas HTML/PDF Document Generation
+  console.log('\n[Test 7] Testing Canvas HTML Generation for PDF Export...');
+  const mdContent = `# Relatório Mensal
+
+Documento com **negrito**, *itálico* e fórmula $E = mc^2$.
+
+## Tabela de Dados
+| Métrica | Valor | Status |
+| :--- | :---: | ---: |
+| Latência | 120ms | OK |
+| Taxa de Sucesso | 99.8% | Excelente |
+
+> Este relatório foi gerado automaticamente pelo NeoChat.
+
+### Lista de Tarefas
+- [x] Otimizar renderização
+- [ ] Conectar banco de dados
+
+\`\`\`javascript
+function calcularMedia(a, b) {
+  return (a + b) / 2;
+}
+\`\`\`
+`;
+
+  const htmlDoc = formatCanvasToHtml({
+    title: 'Relatório Mensal',
+    content: mdContent,
+    language: 'markdown'
+  });
+
+  assert.ok(htmlDoc.includes('<!DOCTYPE html>'), 'HTML output should contain DOCTYPE');
+  assert.ok(htmlDoc.includes('<title>Relatório Mensal</title>'), 'HTML output should contain document title');
+  assert.ok(htmlDoc.includes('<strong>negrito</strong>'), 'HTML output should render bold text');
+  assert.ok(htmlDoc.includes('<table>'), 'HTML output should render tables');
+  assert.ok(htmlDoc.includes('class="task-item"'), 'HTML output should render task items');
+  assert.ok(htmlDoc.includes('class="code-container"'), 'HTML output should render code blocks');
+  assert.ok(htmlDoc.includes('class="doc-meta"'), 'HTML output should include document metadata');
+  assert.ok(htmlDoc.includes('@media print'), 'HTML output should include print CSS');
+  assert.strictEqual(typeof exportCanvasToPdf, 'function', 'exportCanvasToPdf should be a function');
+  console.log('✓ Markdown to HTML for PDF passed with tables, code, and print styles');
+
+  // Test 8: Code document HTML generation
+  console.log('\n[Test 8] Testing Code Document HTML Generation...');
+  const codeContent = `const http = require('http');\nconst server = http.createServer();\nserver.listen(3000);`;
+  const codeHtmlDoc = formatCanvasToHtml({
+    title: 'Server Script',
+    content: codeContent,
+    language: 'javascript'
+  });
+
+  assert.ok(codeHtmlDoc.includes('JAVASCRIPT'), 'Code HTML should display language header');
+  assert.ok(codeHtmlDoc.includes('const server = http.createServer()'), 'Code HTML should display escaped code');
+  console.log('✓ Code document to HTML for PDF passed');
 
   console.log('\n========================================');
   console.log('🎉 ALL CANVAS SYSTEM TESTS PASSED! 🎉');
