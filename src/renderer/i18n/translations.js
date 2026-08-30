@@ -260,6 +260,7 @@ export const translations = {
       ttsStop: 'Parar leitura em voz alta',
       ttsCodeOmitted: 'Código omitido na leitura.',
       copyMessage: 'Copiar mensagem',
+      sendToCanvas: 'Enviar para o Canvas',
       regenerate: 'Regenerar resposta',
       branchConversation: 'Criar ramificação a partir daqui',
       fullscreenClose: 'Fechar imagem em tela cheia',
@@ -1377,6 +1378,9 @@ export const translations = {
       ttsResume: 'Continuar Leitura',
       ttsPlaying: 'Lendo Documento...',
       ttsListenSnippet: 'Ouvir Trecho',
+      sendToCanvas: 'Enviar para o Canvas',
+      importedFromChat: 'Importado da conversa',
+      aiResponseDoc: 'Documento do Assistente',
       ttsSpeed: 'Velocidade de Leitura'
     }
   },
@@ -1641,6 +1645,7 @@ export const translations = {
       ttsStop: 'Stop reading aloud',
       ttsCodeOmitted: 'Code omitted during reading.',
       copyMessage: 'Copy message',
+      sendToCanvas: 'Send to Canvas',
       regenerate: 'Regenerate response',
       branchConversation: 'Branch conversation from here',
       fullscreenClose: 'Close fullscreen image',
@@ -2758,6 +2763,9 @@ export const translations = {
       ttsResume: 'Resume Reading',
       ttsPlaying: 'Reading Document...',
       ttsListenSnippet: 'Listen to Snippet',
+      sendToCanvas: 'Send to Canvas',
+      importedFromChat: 'Imported from chat',
+      aiResponseDoc: 'Assistant Document',
       ttsSpeed: 'Reading Speed'
     }
   }

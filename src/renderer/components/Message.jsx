@@ -5,7 +5,8 @@ import KnowledgeSourcesList from './KnowledgeSourcesList';
 import MarkdownRenderer from './MarkdownRenderer';
 import { TextShimmer } from './ui/text-shimmer';
 import { Badge } from './ui/badge';
-import { Zap, Volume2, VolumeX, Copy, Check, RotateCw, Clock, Gauge, Layers, Info, GitBranch, ArrowUp, ArrowDown, Activity } from 'lucide-react';
+import { Zap, Volume2, VolumeX, Copy, Check, RotateCw, Clock, Gauge, Layers, Info, GitBranch, ArrowUp, ArrowDown, Activity, PenSquare } from 'lucide-react';
+import { useCanvas } from '../context/CanvasContext';
 import { useLanguage } from '../context/LanguageContext';
 import { extractThinking } from '../lib/messageUtils';
 import { playSpeech, stopSpeech } from '../lib/ttsUtils';
@@ -29,6 +30,7 @@ function Message({
   interfaceMode: propInterfaceMode
 }) {
   const { t, language } = useLanguage();
+  const { createNewDocument } = useCanvas();
   const { role, tool_calls, reasoning, isStreaming, executed_tools, liveReasoning, liveExecutedTools, reasoningSummaries, reasoningDuration, usage } = message;
   const [localInterfaceMode, setLocalInterfaceMode] = useState(propInterfaceMode || 'user');
   const currentInterfaceMode = propInterfaceMode || localInterfaceMode;
@@ -38,6 +40,7 @@ function Message({
   const [showExecutedTools, setShowExecutedTools] = useState(false);
   const [collapsedOutputs, setCollapsedOutputs] = useState(new Set());
   const [copySuccess, setCopySuccess] = useState(false);
+  const [sendCanvasSuccess, setSendCanvasSuccess] = useState(false);
   const [showActions, setShowActions] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [ttsSettings, setTtsSettings] = useState({ enabled: true, autoSpeak: false, voiceURI: '', rate: 1.05, pitch: 1 });
@@ -306,6 +309,60 @@ function Message({
       setTimeout(() => setCopySuccess(false), 2000);
     } catch (err) {
       console.error('Failed to copy text:', err);
+    }
+  };
+
+  const handleSendToCanvas = () => {
+    try {
+      const rawText = typeof message.content === 'string' 
+        ? (extracted.cleanContent !== undefined ? extracted.cleanContent : message.content)
+        : Array.isArray(message.content)
+          ? extractThinking(message.content.filter(p => p.type === 'text').map(p => p.text || '').join('\n')).cleanContent
+          : '';
+
+      if (!rawText || !rawText.trim()) return;
+
+      const trimmedText = rawText.trim();
+
+      // Check if message is a single code fence: e.g. ```typescript \n ... \n ```
+      const singleCodeBlockMatch = trimmedText.match(/^```([a-zA-Z0-9_-]+)?\r?\n([\s\S]*?)\r?\n```$/);
+      
+      let docContent = trimmedText;
+      let docLang = 'markdown';
+      let docTitle = '';
+
+      if (singleCodeBlockMatch) {
+        docLang = (singleCodeBlockMatch[1] || 'text').toLowerCase();
+        docContent = singleCodeBlockMatch[2];
+      }
+
+      // Try to find a markdown header (# Title) in the content
+      const headingMatch = trimmedText.match(/^#+\s+([^\n\r]+)/m);
+      if (headingMatch && headingMatch[1]?.trim()) {
+        docTitle = headingMatch[1].trim();
+      } else {
+        // Fallback: Use first non-empty line (capped at 40 chars)
+        const firstLine = trimmedText.split(/\r?\n/).find(line => line.trim().length > 0) || '';
+        const cleanFirstLine = firstLine.replace(/^[#*`\-=>_~[\]()]+\s*/, '').replace(/[*`_~]/g, '').trim();
+        if (cleanFirstLine.length > 0) {
+          docTitle = cleanFirstLine.length > 40 ? `${cleanFirstLine.slice(0, 40)}...` : cleanFirstLine;
+        } else {
+          docTitle = t('canvas.aiResponseDoc') || t('canvas.defaultTitle') || 'Documento do Assistente';
+        }
+      }
+
+      createNewDocument({
+        title: docTitle,
+        language: docLang,
+        content: docContent,
+        summary: t('canvas.importedFromChat') || 'Importado da conversa',
+        source: 'ai'
+      });
+
+      setSendCanvasSuccess(true);
+      setTimeout(() => setSendCanvasSuccess(false), 2000);
+    } catch (err) {
+      console.error('Failed to send message to canvas:', err);
     }
   };
 
@@ -622,6 +679,17 @@ function Message({
                 title={t('message.copyMessage')}
               >
                 {copySuccess ? <Check className="w-3.5 h-3.5 text-green-500" /> : <Copy className="w-3.5 h-3.5" />}
+              </button>
+
+              <button
+                onClick={handleSendToCanvas}
+                className={cn(
+                  "flex items-center gap-1 p-1.5 rounded-md hover:bg-muted text-muted-foreground hover:text-foreground transition-colors",
+                  sendCanvasSuccess && "text-green-500 hover:text-green-600"
+                )}
+                title={t('message.sendToCanvas') || 'Enviar para o Canvas'}
+              >
+                {sendCanvasSuccess ? <Check className="w-3.5 h-3.5 text-green-500" /> : <PenSquare className="w-3.5 h-3.5" />}
               </button>
 
               {onReloadFromMessage && messageIndex !== undefined && (

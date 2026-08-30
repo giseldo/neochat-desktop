@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { oneDark, oneLight } from 'react-syntax-highlighter/dist/esm/styles/prism';
-import { Check, Copy, Code2, Eye, Play, Terminal } from 'lucide-react';
+import { Check, Copy, Code2, Eye, Play, Terminal, PenSquare } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 import { useLanguage } from '../context/LanguageContext';
+import { useCanvas } from '../context/CanvasContext';
 import { cn } from '../lib/utils';
 
 // Helper to format language name for display
@@ -73,7 +74,9 @@ const customOneLight = cleanTheme(oneLight);
 export function CodeBlock({ language, code, onPreviewArtifact, className }) {
   const { isDark } = useTheme();
   const { t } = useLanguage();
+  const { createNewDocument } = useCanvas();
   const [copied, setCopied] = useState(false);
+  const [canvasSent, setCanvasSent] = useState(false);
 
   const cleanCode = String(code || '').replace(/\n$/, '');
   const lang = (language || '').toLowerCase().trim();
@@ -85,6 +88,23 @@ export function CodeBlock({ language, code, onPreviewArtifact, className }) {
       setTimeout(() => setCopied(false), 2000);
     } catch (err) {
       console.error('Failed to copy code:', err);
+    }
+  };
+
+  const handleSendToCanvas = () => {
+    try {
+      const defaultTitle = `${formatLanguage(lang)} Snippet`;
+      createNewDocument({
+        title: defaultTitle,
+        language: lang || 'text',
+        content: cleanCode,
+        summary: t('canvas.importedFromChat') || 'Importado da conversa',
+        source: 'user'
+      });
+      setCanvasSent(true);
+      setTimeout(() => setCanvasSent(false), 2000);
+    } catch (err) {
+      console.error('Failed to send code to canvas:', err);
     }
   };
 
@@ -126,6 +146,26 @@ export function CodeBlock({ language, code, onPreviewArtifact, className }) {
               <span>{t('artifacts.tabPreview')}</span>
             </button>
           )}
+
+          {/* Send to Canvas button */}
+          <button
+            type="button"
+            onClick={handleSendToCanvas}
+            className="flex items-center gap-1 px-2 py-0.5 rounded text-xs text-muted-foreground hover:text-foreground hover:bg-background/80 transition-colors"
+            title={t('canvas.sendToCanvas') || 'Enviar para o Canvas'}
+          >
+            {canvasSent ? (
+              <>
+                <Check className="w-3 h-3 text-green-500" />
+                <span className="text-green-500 font-medium">Canvas</span>
+              </>
+            ) : (
+              <>
+                <PenSquare className="w-3 h-3 text-primary" />
+                <span>Canvas</span>
+              </>
+            )}
+          </button>
 
           <button
             type="button"
