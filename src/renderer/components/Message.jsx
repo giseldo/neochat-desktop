@@ -8,6 +8,7 @@ import { Badge } from './ui/badge';
 import { Zap, Volume2, VolumeX, Copy, Check, RotateCw, Clock, Gauge, Layers, Info, GitBranch } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
 import { extractThinking } from '../lib/messageUtils';
+import { playSpeech, stopSpeech } from '../lib/ttsUtils';
 import { cn } from '../lib/utils';
 
 function Message({
@@ -96,9 +97,7 @@ function Message({
   // Clean up speech synthesis on unmount
   useEffect(() => {
     return () => {
-      if (typeof window !== 'undefined' && window.speechSynthesis) {
-        window.speechSynthesis.cancel();
-      }
+      stopSpeech();
     };
   }, []);
 
@@ -295,36 +294,28 @@ function Message({
   };
 
   const toggleSpeech = () => {
-    if (typeof window === 'undefined' || !window.speechSynthesis) return;
-
     if (isSpeaking) {
-      window.speechSynthesis.cancel();
+      stopSpeech();
       setIsSpeaking(false);
     } else {
-      window.speechSynthesis.cancel();
       const rawText = typeof message.content === 'string' 
         ? (extracted.cleanContent !== undefined ? extracted.cleanContent : message.content)
         : Array.isArray(message.content)
           ? extractThinking(message.content.filter(p => p.type === 'text').map(p => p.text || '').join(' ')).cleanContent
           : '';
-      
-      const cleanText = rawText.replace(/```[\s\S]*?```/g, t('message.ttsCodeOmitted'))
-                               .replace(/[#*`_~]/g, '');
 
-      if (!cleanText.trim()) return;
+      if (!rawText.trim()) return;
 
-      const utterance = new SpeechSynthesisUtterance(cleanText);
-      utterance.lang = language === 'pt' ? 'pt-BR' : 'en-US';
-      utterance.rate = Number(ttsSettings.rate) || 1.05;
-      utterance.pitch = Number(ttsSettings.pitch) || 1;
-      const selectedVoice = window.speechSynthesis.getVoices().find(voice => voice.voiceURI === ttsSettings.voiceURI);
-      if (selectedVoice) utterance.voice = selectedVoice;
-
-      utterance.onend = () => setIsSpeaking(false);
-      utterance.onerror = () => setIsSpeaking(false);
-
-      setIsSpeaking(true);
-      window.speechSynthesis.speak(utterance);
+      playSpeech({
+        text: rawText,
+        language: language === 'pt' ? 'pt' : 'en',
+        voiceURI: ttsSettings.voiceURI,
+        rate: Number(ttsSettings.rate) || 1.05,
+        pitch: Number(ttsSettings.pitch) || 1,
+        onStart: () => setIsSpeaking(true),
+        onEnd: () => setIsSpeaking(false),
+        onError: () => setIsSpeaking(false)
+      });
     }
   };
 

@@ -83,7 +83,7 @@ export function CanvasPanel({ onSendPrompt, className }) {
     exportDocument
   } = useCanvas();
 
-  const { t } = useLanguage();
+  const { t, language: appLanguage } = useLanguage();
   const { isDark } = useTheme();
 
   // Local state for editing
@@ -103,6 +103,7 @@ export function CanvasPanel({ onSendPrompt, className }) {
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
   const [ttsRate, setTtsRate] = useState(1.05);
+  const [ttsPitch, setTtsPitch] = useState(1.0);
   const [ttsVoiceURI, setTtsVoiceURI] = useState('');
   const [isTtsSpeedMenuOpen, setIsTtsSpeedMenuOpen] = useState(false);
 
@@ -116,6 +117,7 @@ export function CanvasPanel({ onSendPrompt, className }) {
     window.electron?.getSettings?.().then((settings) => {
       if (settings?.tts) {
         if (settings.tts.rate) setTtsRate(Number(settings.tts.rate) || 1.05);
+        if (settings.tts.pitch) setTtsPitch(Number(settings.tts.pitch) || 1.0);
         if (settings.tts.voiceURI) setTtsVoiceURI(settings.tts.voiceURI);
       }
     }).catch(() => {});
@@ -209,9 +211,10 @@ export function CanvasPanel({ onSendPrompt, className }) {
 
       playSpeech({
         text: textToSpeak,
-        language: (canvasDoc?.language === 'en' || language === 'en') ? 'en' : 'pt',
+        language: appLanguage === 'en' ? 'en' : 'pt',
         voiceURI: ttsVoiceURI,
         rate: ttsRate,
+        pitch: ttsPitch,
         onStart: () => {
           setIsSpeaking(true);
           setIsPaused(false);
