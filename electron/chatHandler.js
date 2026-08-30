@@ -562,8 +562,11 @@ function processStreamChunk(chunk, event, accumulatedData, groq, streamId, setti
         
         // Start interval timer on first reasoning chunk
         if (!accumulatedData.summaryInterval) {
-            // Check if thinking summaries are disabled
-            if (!settings?.disableThinkingSummaries) {
+            // Check if thinking summaries are enabled (default: true)
+            const thinkingSummariesEnabled = settings?.enableThinkingSummaries !== undefined
+                ? Boolean(settings.enableThinkingSummaries)
+                : (settings?.disableThinkingSummaries !== undefined ? !settings.disableThinkingSummaries : true);
+            if (thinkingSummariesEnabled) {
                 accumulatedData.lastSummarizedTime = Date.now();
                 
                 // Set up interval to check every 2 seconds

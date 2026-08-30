@@ -857,8 +857,10 @@ export const translations = {
       // Thinking Summaries Card
       thinkingSummariesTitle: 'Sumários de Raciocínio (Thinking)',
       thinkingSummariesDesc: 'Controla se os sumários de raciocínio são exibidos durante a resposta do modelo. Quando desativado, apenas o texto bruto de raciocínio será mostrado.',
-      disableThinkingLabel: 'Desativar Sumários de Raciocínio',
-      disableThinkingHelp: 'Quando ativado, os sumários de raciocínio não serão gerados. Apenas o texto de raciocínio bruto será exibido.',
+      enableThinkingLabel: 'Ativar Sumários de Raciocínio',
+      enableThinkingHelp: 'Quando ativado, os sumários de raciocínio serão gerados durante a resposta. Quando desativado, apenas o texto de raciocínio bruto será exibido.',
+      disableThinkingLabel: 'Ativar Sumários de Raciocínio',
+      disableThinkingHelp: 'Quando ativado, os sumários de raciocínio serão gerados durante a resposta. Quando desativado, apenas o texto de raciocínio bruto será exibido.',
 
       // API Request Logging Card
       apiLoggingTitle: 'Log de Requisições da API',
@@ -2253,8 +2255,10 @@ export const translations = {
       // Thinking Summaries Card
       thinkingSummariesTitle: 'Thinking Summaries',
       thinkingSummariesDesc: 'Control whether thinking/reasoning summaries are generated during model reasoning. When disabled, only the raw reasoning text will be shown.',
-      disableThinkingLabel: 'Disable Thinking Summaries',
-      disableThinkingHelp: 'When enabled, thinking summaries will not be generated. Only the raw reasoning text will be displayed.',
+      enableThinkingLabel: 'Enable Thinking Summaries',
+      enableThinkingHelp: 'When enabled, thinking summaries will be generated during reasoning. When disabled, only the raw reasoning text will be displayed.',
+      disableThinkingLabel: 'Enable Thinking Summaries',
+      disableThinkingHelp: 'When enabled, thinking summaries will be generated during reasoning. When disabled, only the raw reasoning text will be displayed.',
 
       // API Request Logging Card
       apiLoggingTitle: 'API Request Logging',

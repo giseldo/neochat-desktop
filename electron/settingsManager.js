@@ -65,7 +65,7 @@ function loadSettings() {
             customApiBaseUrlEnabled: false,
             customModels: {},
             disabledModels: [],
-            disableThinkingSummaries: false,
+            enableThinkingSummaries: true,
             useResponsesApi: false,
             logApiRequests: false,
             googleConnectors: { gmail: false, calendar: false, drive: false },
@@ -124,7 +124,7 @@ function loadSettings() {
         customApiBaseUrlEnabled: false,
         customModels: {},
         disabledModels: [],
-        disableThinkingSummaries: false,
+        enableThinkingSummaries: true,
         useResponsesApi: false,
         logApiRequests: false,
         googleConnectors: { gmail: false, calendar: false, drive: false },
@@ -230,7 +230,13 @@ function loadSettings() {
             settings.customApiBaseUrl = settings.customApiBaseUrl || defaultSettings.customApiBaseUrl;
             settings.customApiBaseUrlEnabled = settings.customApiBaseUrlEnabled ?? defaultSettings.customApiBaseUrlEnabled;
             settings.customModels = settings.customModels || defaultSettings.customModels;
-            settings.disableThinkingSummaries = settings.disableThinkingSummaries ?? defaultSettings.disableThinkingSummaries;
+            if (settings.enableThinkingSummaries === undefined) {
+                if (settings.disableThinkingSummaries !== undefined) {
+                    settings.enableThinkingSummaries = !settings.disableThinkingSummaries;
+                } else {
+                    settings.enableThinkingSummaries = defaultSettings.enableThinkingSummaries;
+                }
+            }
             settings.useResponsesApi = settings.useResponsesApi ?? defaultSettings.useResponsesApi;
             settings.logApiRequests = settings.logApiRequests ?? defaultSettings.logApiRequests;
             settings.googleConnectors = settings.googleConnectors || defaultSettings.googleConnectors;

@@ -345,7 +345,7 @@ function Settings() {
     },
     modelFilter: '',
     modelFilterExclude: '',
-    disableThinkingSummaries: false,
+    enableThinkingSummaries: true,
     useResponsesApi: false,
     logApiRequests: false,
     googleConnectors: { gmail: false, calendar: false, drive: false },
@@ -975,8 +975,10 @@ function Settings() {
         if (settingsData.showButtonLabels === undefined) {
             settingsData.showButtonLabels = false;
         }
-        if (settingsData.disableThinkingSummaries === undefined) {
-            settingsData.disableThinkingSummaries = false;
+        if (settingsData.enableThinkingSummaries === undefined) {
+            settingsData.enableThinkingSummaries = settingsData.disableThinkingSummaries !== undefined
+                ? !settingsData.disableThinkingSummaries
+                : true;
         }
         if (settingsData.useResponsesApi === undefined) {
             settingsData.useResponsesApi = false;
@@ -1066,7 +1068,7 @@ function Settings() {
             showButtonLabels: false,
             modelFilter: '',
             modelFilterExclude: '',
-            disableThinkingSummaries: false,
+            enableThinkingSummaries: true,
             useResponsesApi: false,
             logApiRequests: false,
             googleConnectors: { gmail: false, calendar: false, drive: false },
@@ -3462,17 +3464,17 @@ function Settings() {
               </CardHeader>
               <CardContent>
                 <div className="flex items-center justify-between">
-                  <Label htmlFor="disable-thinking-summaries" className="font-medium">
-                    {t('settings.disableThinkingLabel')}
+                  <Label htmlFor="enable-thinking-summaries" className="font-medium">
+                    {t('settings.enableThinkingLabel') || t('settings.disableThinkingLabel')}
                   </Label>
                   <Switch
-                    id="disable-thinking-summaries"
-                    checked={settings.disableThinkingSummaries || false}
-                    onChange={(e) => handleToggleChange('disableThinkingSummaries', e.target.checked)}
+                    id="enable-thinking-summaries"
+                    checked={settings.enableThinkingSummaries !== false}
+                    onChange={(e) => handleToggleChange('enableThinkingSummaries', e.target.checked)}
                   />
                 </div>
                 <p className="text-xs text-muted-foreground mt-2">
-                  {t('settings.disableThinkingHelp')}
+                  {t('settings.enableThinkingHelp') || t('settings.disableThinkingHelp')}
                 </p>
               </CardContent>
             </Card>
