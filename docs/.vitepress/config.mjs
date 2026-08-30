@@ -2,31 +2,34 @@ import { defineConfig } from 'vitepress';
 
 export default defineConfig({
   lang: 'pt-BR',
-  title: 'NeoChat Desktop',
-  description: 'Documentação Arquitetural e de Engenharia do NeoChat Desktop',
+  title: 'NeoChat Docs',
+  description: 'Documentação Arquitetural e de Engenharia do Ecossistema NeoChat (Desktop & Web)',
   cleanUrls: true,
   themeConfig: {
     siteTitle: 'NeoChat Architecture',
     nav: [
       { text: 'Visão Geral', link: '/guide/overview' },
-      { text: 'Arquitetura', link: '/guide/main-process' },
+      { text: 'Arquitetura Web', link: '/guide/web-architecture' },
+      { text: 'Processo Desktop', link: '/guide/main-process' },
       { text: 'Multi-Provider', link: '/guide/llm-engine' },
       { text: 'MCP & Tools', link: '/guide/mcp' },
       { text: 'RAG Local', link: '/guide/rag' },
       {
-        text: 'v1.4.0',
+        text: 'Acessar & Releases',
         items: [
-          { text: 'Site Oficial', link: 'https://neochatdesktop.vercel.app' },
-          { text: 'Releases & Downloads', link: 'https://github.com/giseldo/neochat-releases' },
+          { text: 'NeoChat Web (Navegador)', link: 'https://neochatweb.vercel.app' },
+          { text: 'Site Oficial Desktop', link: 'https://neochatdesktop.vercel.app' },
+          { text: 'Releases Desktop', link: 'https://github.com/giseldo/neochat-releases' },
           { text: 'Repositório GitHub', link: 'https://github.com/giseldo/neochat-desktop' }
         ]
       }
     ],
     sidebar: [
       {
-        text: '🚀 Introdução',
+        text: '🚀 Introdução & Ecossistema',
         items: [
           { text: 'Visão Geral e Filosofia', link: '/guide/overview' },
+          { text: 'Arquitetura Web & Cloud (Next.js/Neon)', link: '/guide/web-architecture' },
           { text: 'Stack Tecnológica', link: '/guide/tech-stack' }
         ]
       },
@@ -89,8 +92,8 @@ export default defineConfig({
       { icon: 'github', link: 'https://github.com/giseldo/neochat-desktop' }
     ],
     footer: {
-      message: 'NeoChat Desktop — Documentação Arquitetural e de Engenharia',
-      copyright: 'Copyright © 2026 NeoChat Desktop Team'
+      message: 'NeoChat — Ecossistema de IA Universal (Desktop & Web)',
+      copyright: 'Copyright © 2026 NeoChat Team'
     }
   }
 });
