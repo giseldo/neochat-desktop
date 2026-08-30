@@ -2794,12 +2794,10 @@ function App() {
 
         {/* Side-by-side Artifacts Panel */}
         {activeArtifact && !isCanvasOpen && (
-          <div className="w-full md:w-[480px] lg:w-[580px] flex-shrink-0 h-full border-l border-border">
-            <ArtifactsPanel
-              artifact={activeArtifact}
-              onClose={() => setActiveArtifact(null)}
-            />
-          </div>
+          <ArtifactsPanel
+            artifact={activeArtifact}
+            onClose={() => setActiveArtifact(null)}
+          />
         )}
 
         {/* Side-by-side Canvas Panel */}

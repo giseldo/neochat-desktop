@@ -71,9 +71,20 @@ function getMonacoLanguage(type = '') {
   return map[t] || 'plaintext';
 }
 
+const ARTIFACTS_WIDTH_KEY = 'neochat_artifacts_panel_width';
+const DEFAULT_ARTIFACTS_WIDTH = 580;
+const MIN_ARTIFACTS_WIDTH = 360;
+
 export function ArtifactsPanel({ artifact, onClose, className }) {
   const { t } = useLanguage();
   const { isDark } = useTheme();
+
+  // Width & Resize state
+  const [panelWidth, setPanelWidth] = useState(() => {
+    const saved = localStorage.getItem(ARTIFACTS_WIDTH_KEY);
+    return saved ? Math.max(MIN_ARTIFACTS_WIDTH, parseInt(saved, 10)) : DEFAULT_ARTIFACTS_WIDTH;
+  });
+  const [isResizing, setIsResizing] = useState(false);
 
   // Tabs: 'preview' | 'split' | 'code' | 'console'
   const [activeTab, setActiveTab] = useState('preview');
@@ -96,6 +107,47 @@ export function ArtifactsPanel({ artifact, onClose, className }) {
 
   // Monaco Editor Ref
   const editorRef = useRef(null);
+
+  // Resize Drag Handlers
+  const handleResizeStart = useCallback((e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsResizing(true);
+  }, []);
+
+  const handleResizeReset = useCallback((e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setPanelWidth(DEFAULT_ARTIFACTS_WIDTH);
+    localStorage.setItem(ARTIFACTS_WIDTH_KEY, String(DEFAULT_ARTIFACTS_WIDTH));
+  }, []);
+
+  useEffect(() => {
+    if (!isResizing) return;
+
+    const handleMouseMove = (e) => {
+      const maxWidth = Math.max(MIN_ARTIFACTS_WIDTH, window.innerWidth - 360);
+      const newWidth = Math.min(Math.max(window.innerWidth - e.clientX, MIN_ARTIFACTS_WIDTH), maxWidth);
+      setPanelWidth(newWidth);
+    };
+
+    const handleMouseUp = () => {
+      setIsResizing(false);
+      localStorage.setItem(ARTIFACTS_WIDTH_KEY, String(panelWidth));
+    };
+
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+    document.body.style.userSelect = 'none';
+    document.body.style.cursor = 'col-resize';
+
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+      document.body.style.userSelect = '';
+      document.body.style.cursor = '';
+    };
+  }, [isResizing, panelWidth]);
 
   // Sync artifact changes
   useEffect(() => {
@@ -349,7 +401,29 @@ export function ArtifactsPanel({ artifact, onClose, className }) {
   const totalConsoleErrors = sandboxLogs.filter(l => l.level === 'error').length + (executionOutput?.error ? 1 : 0);
 
   return (
-    <div className={cn("flex flex-col h-full bg-background border-l border-border shadow-2xl z-40 animate-in slide-in-from-right duration-200 min-w-[340px]", className)}>
+    <div
+      style={{ width: `${panelWidth}px` }}
+      className={cn(
+        "relative flex flex-col h-full bg-background border-l border-border shadow-2xl z-40 animate-in slide-in-from-right duration-200 min-w-[340px] shrink-0",
+        className
+      )}
+    >
+      {/* Left Resize Handle */}
+      <div
+        onMouseDown={handleResizeStart}
+        onDoubleClick={handleResizeReset}
+        className={cn(
+          "absolute top-0 left-0 -ml-1 w-2.5 h-full cursor-col-resize z-50 group select-none flex items-center justify-center transition-colors",
+          isResizing ? "bg-primary/40" : "hover:bg-primary/20"
+        )}
+        title={t('sidebar.dragToResize') || 'Arraste para redimensionar (Duplo clique para redefinir)'}
+      >
+        <div className={cn(
+          "w-1 h-8 rounded-full transition-colors",
+          isResizing ? "bg-primary" : "bg-border group-hover:bg-primary/80"
+        )} />
+      </div>
+
       {/* Header Bar */}
       <div className="flex items-center justify-between px-4 py-2.5 border-b border-border bg-muted/30 gap-2 select-none">
         <div className="flex items-center gap-2 min-w-0">

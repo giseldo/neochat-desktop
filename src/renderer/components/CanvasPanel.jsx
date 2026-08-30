@@ -64,6 +64,10 @@ const SUPPORTED_LANGUAGES = [
   { id: 'sql', label: 'SQL (.sql)', icon: FileCode },
 ];
 
+const CANVAS_WIDTH_KEY = 'neochat_canvas_panel_width';
+const DEFAULT_CANVAS_WIDTH = 680;
+const MIN_CANVAS_WIDTH = 380;
+
 export function CanvasPanel({ onSendPrompt, className }) {
   const {
     canvasDoc,
@@ -85,6 +89,54 @@ export function CanvasPanel({ onSendPrompt, className }) {
 
   const { t, language: appLanguage } = useLanguage();
   const { isDark } = useTheme();
+
+  // Width & Resize state
+  const [panelWidth, setPanelWidth] = useState(() => {
+    const saved = localStorage.getItem(CANVAS_WIDTH_KEY);
+    return saved ? Math.max(MIN_CANVAS_WIDTH, parseInt(saved, 10)) : DEFAULT_CANVAS_WIDTH;
+  });
+  const [isResizing, setIsResizing] = useState(false);
+
+  // Resize Drag Handlers
+  const handleResizeStart = useCallback((e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsResizing(true);
+  }, []);
+
+  const handleResizeReset = useCallback((e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setPanelWidth(DEFAULT_CANVAS_WIDTH);
+    localStorage.setItem(CANVAS_WIDTH_KEY, String(DEFAULT_CANVAS_WIDTH));
+  }, []);
+
+  useEffect(() => {
+    if (!isResizing) return;
+
+    const handleMouseMove = (e) => {
+      const maxWidth = Math.max(MIN_CANVAS_WIDTH, window.innerWidth - 360);
+      const newWidth = Math.min(Math.max(window.innerWidth - e.clientX, MIN_CANVAS_WIDTH), maxWidth);
+      setPanelWidth(newWidth);
+    };
+
+    const handleMouseUp = () => {
+      setIsResizing(false);
+      localStorage.setItem(CANVAS_WIDTH_KEY, String(panelWidth));
+    };
+
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+    document.body.style.userSelect = 'none';
+    document.body.style.cursor = 'col-resize';
+
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+      document.body.style.userSelect = '';
+      document.body.style.cursor = '';
+    };
+  }, [isResizing, panelWidth]);
 
   // Local state for editing
   const [localContent, setLocalContent] = useState('');
@@ -333,13 +385,32 @@ export function CanvasPanel({ onSendPrompt, className }) {
 
   return (
     <div
+      style={{ width: isFullscreen ? '100%' : `${panelWidth}px` }}
       className={cn(
-        "flex flex-col h-full bg-background border-l border-border shadow-2xl z-40 animate-in slide-in-from-right duration-200 min-w-[360px]",
-        isFullscreen ? "fixed inset-0 z-50 w-full" : "w-full md:w-[540px] lg:w-[680px] xl:w-[780px]",
+        "relative flex flex-col h-full bg-background border-l border-border shadow-2xl z-40 animate-in slide-in-from-right duration-200 min-w-[360px] shrink-0",
+        isFullscreen && "fixed inset-0 z-50 w-full",
         className
       )}
       onMouseUp={handleTextSelection}
     >
+      {/* Left Resize Handle */}
+      {!isFullscreen && (
+        <div
+          onMouseDown={handleResizeStart}
+          onDoubleClick={handleResizeReset}
+          className={cn(
+            "absolute top-0 left-0 -ml-1 w-2.5 h-full cursor-col-resize z-50 group select-none flex items-center justify-center transition-colors",
+            isResizing ? "bg-primary/40" : "hover:bg-primary/20"
+          )}
+          title={t('sidebar.dragToResize') || 'Arraste para redimensionar (Duplo clique para redefinir)'}
+        >
+          <div className={cn(
+            "w-1 h-8 rounded-full transition-colors",
+            isResizing ? "bg-primary" : "bg-border group-hover:bg-primary/80"
+          )} />
+        </div>
+      )}
+
       {/* 1. Header Bar */}
       <div className="flex items-center justify-between px-4 py-2.5 border-b border-border bg-muted/40 gap-2 select-none shrink-0">
         <div className="flex items-center gap-2.5 min-w-0 flex-1">
