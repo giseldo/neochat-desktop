@@ -318,70 +318,99 @@ function unassignProjectFromChats(projectId) {
  * @param {string} userMessage - The first user message content
  * @returns {Promise<string>} Generated title
  */
+/**
+ * Helper to generate a clean fallback title from user message text
+ * @param {string} textContent
+ * @returns {string}
+ */
+function extractFallbackTitle(textContent) {
+    if (!textContent || typeof textContent !== 'string') return 'New Chat';
+    const cleaned = textContent.replace(/[\r\n\t]+/g, ' ').trim();
+    if (!cleaned) return 'New Chat';
+    const words = cleaned.split(/\s+/).filter(Boolean);
+    const shortTitle = words.slice(0, 6).join(' ');
+    return (shortTitle.slice(0, 45) || 'New Chat').trim();
+}
+
+/**
+ * Generate a title for a chat automatically based on the first user message
+ * Uses the active provider's default model for fast title generation without asking the user
+ * @param {string} userMessage - The first user message content
+ * @returns {Promise<string>} Generated title
+ */
 async function generateChatTitle(userMessage) {
+    // Extract text content if structured message
+    let textContent = userMessage;
+    if (typeof userMessage !== 'string') {
+        if (Array.isArray(userMessage)) {
+            textContent = userMessage
+                .filter(part => part && (part.type === 'text' || typeof part === 'string'))
+                .map(part => (typeof part === 'string' ? part : part.text || ''))
+                .join(' ');
+        } else if (userMessage && typeof userMessage === 'object') {
+            textContent = userMessage.text || JSON.stringify(userMessage);
+        } else {
+            textContent = String(userMessage || '');
+        }
+    }
+
+    const fallbackTitle = extractFallbackTitle(textContent);
+
     if (!settingsLoader) {
-        console.error('Settings loader not initialized');
-        return 'New Chat';
+        return fallbackTitle;
     }
     
     const settings = settingsLoader();
-
     const apiKey = getActiveApiKey(settings);
     if (!apiKey || apiKey === '<replace me>') {
-        console.warn('API key not configured, using default title');
-        return 'New Chat';
+        return fallbackTitle;
     }
 
     try {
         const groq = createGroqClient(settings);
         
-        // Extract text content if structured message
-        let textContent = userMessage;
-        if (typeof userMessage !== 'string') {
-            if (Array.isArray(userMessage)) {
-                textContent = userMessage
-                    .filter(part => part.type === 'text')
-                    .map(part => part.text)
-                    .join(' ');
-            } else {
-                textContent = JSON.stringify(userMessage);
-            }
-        }
-        
         // Limit the input to first 500 characters
-        const truncatedMessage = textContent.slice(0, 500);
+        const truncatedMessage = (textContent || '').slice(0, 500);
         
-        // Prefer the user's selected model; fall back to the provider default
-        const titleModel = (settings.model && settings.model !== 'default') ? settings.model : getDefaultModel(settings);
+        // Prefer the user's selected model; strip any provider:: prefix and fall back to provider default
+        let rawModel = (settings.model && settings.model !== 'default') ? settings.model : getDefaultModel(settings);
+        if (typeof rawModel === 'string' && rawModel.includes('::')) {
+            rawModel = rawModel.split('::')[1];
+        }
+        const titleModel = rawModel || 'llama-3.3-70b-versatile';
 
         const response = await groq.chat.completions.create({
             messages: [
                 {
                     role: 'system',
-                    content: 'You are a helpful assistant that generates short, concise titles for chat conversations. Generate a title of 3-6 words that summarizes the topic or question. Do not use quotes or punctuation. Just output the title, nothing else.'
+                    content: 'You are an assistant that generates short, concise titles (3 to 6 words) for chat conversations. Always generate the title in the SAME language as the user message. Do NOT use quotes, do NOT add punctuation, do NOT include prefixes like "Title:" or "Título:". Just output the title text.'
                 },
                 {
                     role: 'user',
-                    content: `Generate a short title for a conversation that starts with this message:\n\n${truncatedMessage}`
+                    content: `Generate a concise title for a conversation starting with this message:\n\n${truncatedMessage}`
                 }
             ],
             model: titleModel,
             temperature: 0.3,
-            max_tokens: 20,
+            max_tokens: 25,
             stream: false
         });
         
-        const title = response.choices[0]?.message?.content?.trim() || 'New Chat';
+        let title = response.choices[0]?.message?.content?.trim() || '';
         
-        // Clean up the title - remove quotes and limit length
-        return title
-            .replace(/^["']|["']$/g, '') // Remove surrounding quotes
-            .replace(/^Title:\s*/i, '') // Remove "Title:" prefix if present
-            .slice(0, 50); // Limit length
+        // Clean up the title - remove quotes, prefixes and punctuation
+        title = title
+            .replace(/^["'`]|["'`]$/g, '') // Remove surrounding quotes
+            .replace(/^(Title|Título|Assunto):\s*/i, '') // Remove prefixes
+            .replace(/[.!?]+$/, '') // Remove trailing punctuation
+            .trim()
+            .slice(0, 50);
+            
+        return title || fallbackTitle;
             
     } catch (error) {
-        console.error('Error generating chat title:', error);
-        return 'New Chat';
+        console.warn('[ChatHistoryManager] Non-critical error generating AI chat title, using fallback:', error?.message || error);
+        return fallbackTitle;
     }
 }
 

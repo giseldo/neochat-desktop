@@ -19,6 +19,7 @@
     "dist:win": "pnpm build && electron-builder --win",
     "dist:linux": "pnpm build && electron-builder --linux",
     "release": "pnpm build && electron-builder --win --publish always",
+    "release:create": "node scripts/release.js",
     "release:publish": "node scripts/publish-release.js",
     "release:all": "pnpm build && electron-builder --publish always",
     "test:platforms": "./test-cross-platform.sh",

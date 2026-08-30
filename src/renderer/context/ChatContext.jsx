@@ -42,30 +42,46 @@ export const ChatProvider = ({ children }) => {
     }
   }, []);
 
-  // Generate and update chat title
+  // Generate and update chat title automatically based on user message without prompting
   const generateAndUpdateTitle = useCallback(async (chatId, userMessage) => {
     if (!chatId || titleGenerationInProgress.current) return;
     
     titleGenerationInProgress.current = true;
-    console.log('[ChatContext] Generating title for chat:', chatId);
+    needsTitleGeneration.current = false;
     
     try {
       // Extract text content if structured message
       let textContent = userMessage;
       if (Array.isArray(userMessage)) {
         textContent = userMessage
-          .filter(part => part.type === 'text')
-          .map(part => part.text)
+          .filter(part => part && (part.type === 'text' || typeof part === 'string'))
+          .map(part => (typeof part === 'string' ? part : part.text || ''))
           .join(' ');
+      } else if (userMessage && typeof userMessage === 'object') {
+        textContent = userMessage.text || JSON.stringify(userMessage);
+      }
+
+      const rawText = (typeof textContent === 'string' ? textContent : String(textContent || '')).trim();
+      if (!rawText) return;
+
+      // Optimistically set a fast, clean excerpt title immediately while the AI title is generating
+      const words = rawText.replace(/[\r\n\t]+/g, ' ').split(/\s+/).filter(Boolean);
+      const instantExcerpt = words.slice(0, 6).join(' ').slice(0, 45);
+      if (instantExcerpt) {
+        setChatList(prev => prev.map(chat =>
+          chat.id === chatId && (!chat.title || chat.title === 'New Chat' || chat.title === 'Nova Conversa')
+            ? { ...chat, title: instantExcerpt }
+            : chat
+        ));
       }
       
-      const title = await window.electron.chatHistory.generateTitle(textContent);
-      console.log('[ChatContext] Generated title:', title);
+      const title = await window.electron.chatHistory.generateTitle(rawText);
       
       if (title && title !== 'New Chat') {
         await window.electron.chatHistory.updateTitle(chatId, title);
-        // Refresh chat list to show new title
-        await loadChatList();
+        setChatList(prev => prev.map(chat =>
+          chat.id === chatId ? { ...chat, title: title } : chat
+        ));
       }
     } catch (error) {
       console.error('Error generating chat title:', error);
@@ -73,7 +89,7 @@ export const ChatProvider = ({ children }) => {
       titleGenerationInProgress.current = false;
       needsTitleGeneration.current = false;
     }
-  }, [loadChatList]);
+  }, []);
 
   // Create a new chat
   const createNewChat = useCallback(async (model, useResponsesApi = false, projectId = null) => {
@@ -227,19 +243,18 @@ export const ChatProvider = ({ children }) => {
           .catch(err => console.error('Error auto-saving chat:', err));
       }
       
-      // Check if we need to generate a title (first user message added)
-      if (needsTitleGeneration.current && chatId) {
+      // Check if we need to generate a title automatically (first user message added)
+      if (chatId) {
         const userMessages = newMessages.filter(m => m.role === 'user');
-        if (userMessages.length === 1) {
-          // First user message - generate title
-          console.log('[ChatContext] First user message detected, generating title...');
+        if (userMessages.length === 1 && (needsTitleGeneration.current || !chatList.find(c => c.id === chatId) || ['New Chat', 'Nova Conversa'].includes(chatList.find(c => c.id === chatId)?.title))) {
+          needsTitleGeneration.current = false;
           generateAndUpdateTitle(chatId, userMessages[0].content);
         }
       }
       
       return newMessages;
     });
-  }, [generateAndUpdateTitle, updateChatTimestampLocally]);
+  }, [generateAndUpdateTitle, updateChatTimestampLocally, chatList]);
 
   // Update the project associated with a chat
   const updateChatProject = useCallback(async (chatId, projectId) => {

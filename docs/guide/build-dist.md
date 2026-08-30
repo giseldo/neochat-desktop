@@ -57,7 +57,25 @@ publish:
 
 ## 🚀 Fluxo de Lançamento de Releases
 
-O processo padronizado de release segue a sequência:
+### ⚡ Modo Automático (Recomendado)
+Você pode executar todo o ciclo de release (bump de versão, build, commit, tag, push e upload) com um único comando:
+
+```bash
+# Incrementa patch (ex: 1.4.0 -> 1.4.1) e publica
+pnpm release:create
+
+# Ou incrementa minor / major / versão específica:
+pnpm release:create minor
+pnpm release:create major
+pnpm release:create 1.5.0
+
+# Simulação sem alterações:
+pnpm release:create patch --dry-run
+```
+
+---
+
+### 🛠️ Modo Manual
 
 1. Atualização de versão no `package.json` (SemVer).
 2. Compilação dos binários: `pnpm dist:win` / `pnpm dist:mac` / `pnpm dist:linux`.

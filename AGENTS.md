@@ -10,11 +10,13 @@ Electron + React 19 desktop AI workspace & chat app with universal multi-provide
 - **No test framework, no typecheck, no lint script.** Verification is ad-hoc `node test-*.js` scripts (`test-paths.js`, `test-resolver.js`, `test-popup-window.js`, ...). `pnpm test:paths` runs one; `test-cross-platform.sh` requires Docker and runs Linux tests via `test-linux.Dockerfile`; `test-windows.ps1` for Windows. Run ESLint via `npx eslint` (flat config).
 - **Workflow**: Always test/build, then `git commit` and `git push` to `origin main` automatically after implementing each requested change/feature.
 - **Release Workflow**: Whenever generating a new release:
-  1. Bump version in `package.json` (e.g. semver patch/minor).
-  2. Build distributions (`pnpm dist:win`).
-  3. Commit (`chore(release): bump version to X.Y.Z`) and create git tag `vX.Y.Z`.
-  4. Push commit and tag `git push origin main && git push origin vX.Y.Z`.
-  5. Always publish release artifacts to `giseldo/neochat-releases` via `pnpm release:publish` (or `gh release create`).
+  - **Automated**: Run `pnpm release:create [patch|minor|major|<version>]` (e.g. `pnpm release:create patch`).
+  - **Manual**:
+    1. Bump version in `package.json` (e.g. semver patch/minor).
+    2. Build distributions (`pnpm dist:win`).
+    3. Commit (`chore(release): bump version to X.Y.Z`) and create git tag `vX.Y.Z`.
+    4. Push commit and tag `git push origin main && git push origin vX.Y.Z`.
+    5. Always publish release artifacts to `giseldo/neochat-releases` via `pnpm release:publish` (or `gh release create`).
 
 ## Architecture
 
