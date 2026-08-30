@@ -185,6 +185,7 @@ export function CompareChatView({
           ) : streamStateA.content ? (
             <MarkdownRenderer 
               content={streamStateA.content} 
+              sources={streamStateA.sources || []}
               onPreviewArtifact={onPreviewArtifact} 
             />
           ) : (
@@ -328,6 +329,7 @@ export function CompareChatView({
           ) : streamStateB.content ? (
             <MarkdownRenderer 
               content={streamStateB.content} 
+              sources={streamStateB.sources || []}
               onPreviewArtifact={onPreviewArtifact} 
             />
           ) : (

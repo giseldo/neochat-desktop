@@ -8,7 +8,7 @@ import { Badge } from './ui/badge';
 import { Zap, Volume2, VolumeX, Copy, Check, RotateCw, Clock, Gauge, Layers, Info, GitBranch, ArrowUp, ArrowDown, Activity, PenSquare } from 'lucide-react';
 import { useCanvas } from '../context/CanvasContext';
 import { useLanguage } from '../context/LanguageContext';
-import { extractThinking } from '../lib/messageUtils';
+import { extractThinking, extractWebSearchSources, extractKnowledgeSources } from '../lib/messageUtils';
 import { playSpeech, stopSpeech } from '../lib/ttsUtils';
 import { cn } from '../lib/utils';
 
@@ -161,119 +161,13 @@ function Message({
 
   // Extract web search sources
   const webSearchSources = useMemo(() => {
-    if (isUser) return [];
-
-    if (Array.isArray(message.sources) && message.sources.length > 0) {
-      return message.sources;
-    }
-
-    const sources = [];
-
-    // Check tool_calls + allMessages
-    if (tool_calls && tool_calls.length > 0 && allMessages) {
-      for (const tc of tool_calls) {
-        if (tc.function?.name === 'web_search') {
-          const res = findToolResult(tc.id);
-          if (res) {
-            try {
-              const parsed = typeof res === 'string' ? JSON.parse(res) : res;
-              if (Array.isArray(parsed.results)) {
-                sources.push(...parsed.results);
-              }
-            } catch (e) {
-              console.warn('Failed to parse web_search tool results:', e);
-            }
-          }
-        }
-      }
-    }
-
-    // Check executed_tools / liveExecutedTools
-    const tools = liveExecutedTools?.length > 0 ? liveExecutedTools : executed_tools;
-    if (tools && tools.length > 0) {
-      for (const t of tools) {
-        if (t.name === 'web_search' && t.output) {
-          try {
-            const parsed = typeof t.output === 'string' ? JSON.parse(t.output) : t.output;
-            if (Array.isArray(parsed.results)) {
-              for (const r of parsed.results) {
-                if (!sources.some(s => s.url === r.url)) {
-                  sources.push(r);
-                }
-              }
-            }
-          } catch (e) {
-            console.warn('Failed to parse executed_tools web_search:', e);
-          }
-        }
-      }
-    }
-
-    // Deduplicate by URL
-    const unique = [];
-    for (const s of sources) {
-      if (s && s.url && !unique.some(u => u.url === s.url)) {
-        unique.push(s);
-      }
-    }
-
-    return unique;
-  }, [isUser, message.sources, tool_calls, allMessages, executed_tools, liveExecutedTools]);
+    return extractWebSearchSources(message, allMessages);
+  }, [message, allMessages]);
 
   // Extract Local Knowledge Base / RAG sources
   const knowledgeSources = useMemo(() => {
-    if (isUser) return [];
-
-    const sources = [];
-
-    // Check tool_calls + allMessages
-    if (tool_calls && tool_calls.length > 0 && allMessages) {
-      for (const tc of tool_calls) {
-        if (tc.function?.name === 'query_project_knowledge' || tc.function?.name === 'read_project_file') {
-          const res = findToolResult(tc.id);
-          if (res) {
-            try {
-              const parsed = typeof res === 'string' ? JSON.parse(res) : res;
-              if (Array.isArray(parsed.results)) {
-                sources.push(...parsed.results);
-              } else if (parsed.filePath && parsed.content) {
-                sources.push(parsed);
-              }
-            } catch (e) {
-              console.warn('Failed to parse RAG tool results:', e);
-            }
-          }
-        }
-      }
-    }
-
-    // Check executed_tools / liveExecutedTools
-    const tools = liveExecutedTools?.length > 0 ? liveExecutedTools : executed_tools;
-    if (tools && tools.length > 0) {
-      for (const t of tools) {
-        if ((t.name === 'query_project_knowledge' || t.name === 'read_project_file') && t.output) {
-          try {
-            const parsed = typeof t.output === 'string' ? JSON.parse(t.output) : t.output;
-            if (Array.isArray(parsed.results)) {
-              for (const r of parsed.results) {
-                if (!sources.some(s => s.id === r.id || (s.filePath === r.filePath && s.startLine === r.startLine))) {
-                  sources.push(r);
-                }
-              }
-            } else if (parsed.filePath && parsed.content) {
-              if (!sources.some(s => s.filePath === parsed.filePath && s.startLine === parsed.startLine)) {
-                sources.push(parsed);
-              }
-            }
-          } catch (e) {
-            console.warn('Failed to parse executed_tools RAG:', e);
-          }
-        }
-      }
-    }
-
-    return sources;
-  }, [isUser, tool_calls, allMessages, executed_tools, liveExecutedTools]);
+    return extractKnowledgeSources(message, allMessages);
+  }, [message, allMessages]);
 
   const messageClasses = `flex ${isUser ? 'justify-end' : 'justify-start'}`;
   const bubbleClasses = isUser

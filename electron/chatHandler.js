@@ -402,7 +402,7 @@ function buildApiParams(prunedMessages, modelToUse, settings, tools, modelContex
             : `You are a helpful assistant. Format responses using Markdown.`);
     
     if (webSearchEnabled && !hasReachedSearchLimit) {
-        systemPrompt += `\n\n- Web Search: You have access to the 'web_search' tool. When answering questions that require current information, recent facts, live news, documentation, or when the user asks to search the web, execute 'web_search'. Always cite consulted sources in your response using markdown links [Source Title](URL) or citation markers [1], [2].`;
+        systemPrompt += `\n\n- Web Search: You have access to the 'web_search' tool. When answering questions that require current information, recent facts, live news, documentation, or when the user asks to search the web, execute 'web_search'. Always cite consulted sources in your response using markdown links with the actual URL (e.g. [Source Title](URL)) or citation markers [1], [2] referencing the search results. Avoid unlinked raw tags like 【...†source】.`;
     } else if (webSearchEnabled && hasReachedSearchLimit) {
         systemPrompt += `\n\n- Web Search: You have already reached the maximum allowed web search attempts (${maxSearchesPerTurn}) for this query. Do NOT attempt to search again. Synthesize a complete and helpful final response based on the search results obtained so far.`;
     }

@@ -4,7 +4,7 @@ import MarkdownRenderer from './MarkdownRenderer';
 import { Bot } from 'lucide-react';
 import { NeoSymbol } from './NeoSymbol';
 import { useLanguage } from '../context/LanguageContext';
-import { extractThinking } from '../lib/messageUtils';
+import { extractThinking, extractWebSearchSources } from '../lib/messageUtils';
 
 function MessageList({ 
   messages = [], 
@@ -190,6 +190,7 @@ function MessageList({
           ) : message.role === 'assistant' ? (
             <MarkdownRenderer 
               content={typeof message.content === 'string' ? extractThinking(message.content).cleanContent : (message.content || '')} 
+              sources={extractWebSearchSources(message, messages)}
               onPreviewArtifact={onPreviewArtifact}
             />
           ) : null}

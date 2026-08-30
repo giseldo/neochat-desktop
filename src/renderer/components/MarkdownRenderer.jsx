@@ -5,7 +5,7 @@ import remarkMath from 'remark-math';
 import rehypeKatex from 'rehype-katex';
 import "katex/dist/katex.min.css";
 import CodeBlock from './CodeBlock';
-import { extractThinking } from '../lib/messageUtils';
+import { extractThinking, preprocessCitations } from '../lib/messageUtils';
 
 const imageFileExtensionsRegex = /\.(jpg|jpeg|png|gif|bmp|webp|svg)$/i;
 
@@ -48,9 +48,8 @@ function preprocessMarkdownMath(content) {
     .join('');
 }
 
-function MarkdownRenderer({ content = '', disableMath = false, onPreviewArtifact }) {
-  // Filter out reference lines like 【4†L24-L30】【4†L32-L35】
-  let processedContent = String(content || '').replace(/【\d+†L\d+-L\d+】/g, '');
+function MarkdownRenderer({ content = '', sources = [], disableMath = false, onPreviewArtifact }) {
+  let processedContent = String(content || '');
   
   // If rendering regular message content (disableMath is false), strip any think tags
   if (!disableMath) {
@@ -59,6 +58,9 @@ function MarkdownRenderer({ content = '', disableMath = false, onPreviewArtifact
     // If rendering reasoning content, strip raw think tags wrappers
     processedContent = processedContent.replace(/<\/?\s*(think|thought|thinking)(?:\s[^>]*)?>/gi, '');
   }
+
+  // Preprocess citation markers (e.g. 【3†source】, [3†source], [1], [2]) into clickable markdown links
+  processedContent = preprocessCitations(processedContent, sources);
 
   // Process LaTeX math formulas if math rendering is enabled
   if (!disableMath) {
@@ -214,6 +216,32 @@ function MarkdownRenderer({ content = '', disableMath = false, onPreviewArtifact
           </div>
         );
       }
+
+      // Check if this link is a citation badge (e.g. [1], [2], 3, or [3])
+      const childStr = typeof children === 'string'
+        ? children.trim()
+        : Array.isArray(children) && children.length === 1 && typeof children[0] === 'string'
+          ? children[0].trim()
+          : '';
+
+      const isCitationBadge = /^\[?\d+\]?$/.test(childStr);
+
+      if (isCitationBadge) {
+        const cleanNumber = childStr.replace(/[\[\]]/g, '');
+        return (
+          <a
+            href={href}
+            title={props.title || (href ? `Abrir fonte [${cleanNumber}]: ${href}` : `Fonte ${cleanNumber}`)}
+            target="_blank"
+            rel="noreferrer"
+            className="inline-flex items-center justify-center min-w-[1.25rem] h-4 px-1 mx-0.5 text-[10.5px] font-bold rounded bg-blue-500/15 text-blue-600 dark:text-blue-400 hover:bg-blue-500/25 hover:text-blue-700 dark:hover:text-blue-300 border border-blue-500/30 transition-all no-underline align-baseline cursor-pointer shadow-xs hover:border-blue-500/50"
+            {...props}
+          >
+            {cleanNumber}
+          </a>
+        );
+      }
+
       return (
         <a
           href={href}
