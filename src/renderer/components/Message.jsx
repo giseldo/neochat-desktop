@@ -5,7 +5,7 @@ import KnowledgeSourcesList from './KnowledgeSourcesList';
 import MarkdownRenderer from './MarkdownRenderer';
 import { TextShimmer } from './ui/text-shimmer';
 import { Badge } from './ui/badge';
-import { Zap, Volume2, VolumeX, Copy, Check, RotateCw, Clock, Gauge, Layers, Info, GitBranch } from 'lucide-react';
+import { Zap, Volume2, VolumeX, Copy, Check, RotateCw, Clock, Gauge, Layers, Info, GitBranch, ArrowUp, ArrowDown, Activity } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
 import { extractThinking } from '../lib/messageUtils';
 import { playSpeech, stopSpeech } from '../lib/ttsUtils';
@@ -564,14 +564,23 @@ function Message({
             {/* Speed & Performance Metrics (Power Mode only) */}
             {isPowerUser && (
               <div className="flex flex-wrap items-center gap-2">
-                {tokensPerSec > 0 && (
+                {(tokensPerSec > 0 || totalTokens > 0) && (
                   <div 
-                    className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/25 font-semibold cursor-pointer hover:bg-primary/20 transition-colors"
+                    className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/25 font-semibold cursor-pointer hover:bg-primary/20 transition-colors"
                     onClick={() => setShowDetailedStats(!showDetailedStats)}
                     title={t('message.metricsTooltip')}
                   >
-                    <Zap className="w-3 h-3 text-primary fill-primary" />
-                    <span>{tokensPerSec} t/s</span>
+                    {tokensPerSec > 0 ? (
+                      <>
+                        <Zap className="w-3 h-3 text-primary fill-primary" />
+                        <span>{tokensPerSec} t/s</span>
+                      </>
+                    ) : (
+                      <>
+                        <Activity className="w-3 h-3 text-primary" />
+                        <span>{totalTokens.toLocaleString(language === 'pt' ? 'pt-BR' : 'en-US')} tk</span>
+                      </>
+                    )}
                   </div>
                 )}
 
@@ -637,18 +646,46 @@ function Message({
 
             {/* Detailed popover/stats (Power Mode only) */}
             {isPowerUser && showDetailedStats && (
-              <div className="w-full mt-1 p-2 rounded-lg bg-card border border-border shadow-md text-xs space-y-1 animate-in fade-in-0">
-                <div className="flex items-center justify-between text-muted-foreground border-b border-border/50 pb-1 font-medium">
+              <div className="w-full mt-1 p-2.5 rounded-xl bg-card border border-border shadow-md text-xs space-y-2 animate-in fade-in-0">
+                <div className="flex items-center justify-between text-muted-foreground border-b border-border/50 pb-1.5 font-medium">
                   <span className="flex items-center gap-1"><Gauge className="w-3.5 h-3.5 text-primary" /> {t('message.inferenceMetrics')}</span>
                   <button onClick={() => setShowDetailedStats(false)} className="hover:text-foreground">✕</button>
                 </div>
-                <div className="grid grid-cols-2 gap-2 pt-1 text-[11px]">
-                  <div>{t('message.tokensPrompt')} <span className="font-semibold text-foreground">{promptTokens}</span></div>
-                  <div>{t('message.tokensResponse')} <span className="font-semibold text-foreground">{completionTokens}</span></div>
-                  <div>{t('message.totalTokens')} <span className="font-semibold text-foreground">{totalTokens}</span></div>
-                  <div>{t('message.speed')} <span className="font-semibold text-primary">{tokensPerSec} t/s</span></div>
-                  {ttftMs && <div>{t('message.ttft')} <span className="font-semibold text-foreground">{ttftMs}ms</span></div>}
-                  {usage?.queue_time && <div>{t('message.groqQueue')} <span className="font-semibold text-foreground">{(usage.queue_time * 1000).toFixed(0)}ms</span></div>}
+                <div className="space-y-1.5 text-[11px] font-mono">
+                  <div className="flex items-center justify-between py-0.5">
+                    <span className="flex items-center gap-1 text-blue-600 dark:text-blue-400 font-medium">
+                      <ArrowUp className="w-3 h-3" /> {t('message.tokensPrompt')}
+                    </span>
+                    <span className="font-semibold text-foreground">{promptTokens.toLocaleString(language === 'pt' ? 'pt-BR' : 'en-US')}</span>
+                  </div>
+                  <div className="flex items-center justify-between py-0.5">
+                    <span className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400 font-medium">
+                      <ArrowDown className="w-3 h-3" /> {t('message.tokensResponse')}
+                    </span>
+                    <span className="font-semibold text-foreground">{completionTokens.toLocaleString(language === 'pt' ? 'pt-BR' : 'en-US')}</span>
+                  </div>
+                  <div className="flex items-center justify-between py-0.5 border-t border-border/40 font-medium pt-1">
+                    <span className="flex items-center gap-1 text-foreground">
+                      <Layers className="w-3 h-3 text-primary" /> {t('message.totalTokens')}
+                    </span>
+                    <span className="font-bold text-foreground">Σ {totalTokens.toLocaleString(language === 'pt' ? 'pt-BR' : 'en-US')}</span>
+                  </div>
+                  <div className="flex items-center justify-between py-0.5 pt-1 border-t border-border/30 text-muted-foreground">
+                    <span className="font-sans">{t('message.speed')}</span>
+                    <span className="font-semibold text-primary">{tokensPerSec > 0 ? `${tokensPerSec} t/s` : '—'}</span>
+                  </div>
+                  {ttftMs && (
+                    <div className="flex items-center justify-between py-0.5 text-muted-foreground">
+                      <span className="font-sans">{t('message.ttft')}</span>
+                      <span className="font-semibold text-foreground">{ttftMs}ms</span>
+                    </div>
+                  )}
+                  {usage?.queue_time && (
+                    <div className="flex items-center justify-between py-0.5 text-muted-foreground">
+                      <span className="font-sans">{t('message.groqQueue')}</span>
+                      <span className="font-semibold text-foreground">{(usage.queue_time * 1000).toFixed(0)}ms</span>
+                    </div>
+                  )}
                 </div>
               </div>
             )}

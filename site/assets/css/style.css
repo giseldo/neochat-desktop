@@ -71,6 +71,12 @@ body {
 
 a { color: inherit; text-decoration: none; }
 img { max-width: 100%; display: block; }
+/* Safety net: a screenshot must never be stretched. Where a box is forced to a
+   fixed size, letterbox the image instead of deforming it. */
+.hero__screenshot img,
+.feature-showcase__img img,
+.gallery-item img,
+.lightbox__img { object-fit: contain; }
 code, pre { font-family: 'JetBrains Mono', monospace; }
 ::selection { background: var(--brand); color: #fff; }
 
@@ -1409,11 +1415,17 @@ body.no-scroll { overflow: hidden; }
   box-shadow: 0 16px 48px rgba(0,0,0,0.5), 0 0 30px var(--brand-glow);
   border-color: var(--brand);
 }
+.gallery-item {
+  width: 340px;
+}
+/* contain (never cover): screenshots are letterboxed, never cropped or stretched */
 .gallery-item img {
   display: block;
-  height: 280px;
-  width: auto;
-  object-fit: cover;
+  width: 100%;
+  height: 210px;
+  object-fit: contain;
+  object-position: center;
+  background: var(--bg-2);
 }
 .gallery-item__label {
   padding: 10px 16px;
@@ -1622,10 +1634,12 @@ body.no-scroll { overflow: hidden; }
     gap: 32px;
   }
   .feature-showcase--reverse { direction: ltr; }
-  .gallery-item img { height: 200px; }
+  .gallery-item { width: 290px; }
+  .gallery-item img { height: 180px; }
 }
 
 @media (max-width: 600px) {
-  .gallery-item img { height: 160px; }
+  .gallery-item { width: 250px; }
+  .gallery-item img { height: 155px; }
   .feature-showcase__text h3 { font-size: 1.4rem; }
 }

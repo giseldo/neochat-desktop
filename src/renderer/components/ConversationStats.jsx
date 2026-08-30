@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Activity, Zap, Clock, MessageSquare, ChevronDown, Sparkles, Cpu, Layers } from 'lucide-react';
+import { Activity, Zap, Clock, MessageSquare, ChevronDown, Sparkles, Cpu, Layers, ArrowUp, ArrowDown } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
 import { cn } from '../lib/utils';
 
@@ -101,10 +101,20 @@ export function ConversationStats({ messages = [], className }) {
         className="flex items-center gap-2 px-2.5 py-1 rounded-lg border border-border bg-background/80 hover:bg-muted text-foreground transition-all text-xs font-medium shadow-xs group"
         title={t('stats.buttonTitle')}
       >
-        <div className="flex items-center gap-1 text-primary">
-          <Activity className="w-3.5 h-3.5" />
-          <span className="font-semibold">{formatNumber(stats.totalTokens)}</span>
-          <span className="text-[10px] text-muted-foreground">{t('stats.tokensLabel')}</span>
+        <div className="flex items-center gap-1.5">
+          <Activity className="w-3.5 h-3.5 text-primary shrink-0" />
+          <div className="flex items-center gap-1.5 text-xs font-mono">
+            <span className="flex items-center gap-0.5 text-blue-600 dark:text-blue-400 font-semibold" title={t('stats.promptInput')}>
+              <ArrowUp className="w-3 h-3" />
+              <span>{formatNumber(stats.totalPromptTokens)}</span>
+            </span>
+            <span className="text-muted-foreground/30 font-light">/</span>
+            <span className="flex items-center gap-0.5 text-emerald-600 dark:text-emerald-400 font-semibold" title={t('stats.completionOutput')}>
+              <ArrowDown className="w-3 h-3" />
+              <span>{formatNumber(stats.totalCompletionTokens)}</span>
+            </span>
+          </div>
+          <span className="text-[10px] text-muted-foreground font-mono">({formatNumber(stats.totalTokens)})</span>
         </div>
 
         {stats.avgTokensPerSec > 0 && (
@@ -140,17 +150,27 @@ export function ConversationStats({ messages = [], className }) {
 
             {/* Main Stats Grid */}
             <div className="grid grid-cols-2 gap-2 mb-3">
-              <div className="p-2.5 rounded-xl bg-muted/40 border border-border/50">
-                <div className="flex items-center gap-1 text-muted-foreground text-[10px] uppercase font-mono mb-1">
-                  <Layers className="w-3 h-3 text-primary" />
-                  <span>{t('stats.totalTokens')}</span>
+              <div className="p-2.5 rounded-xl bg-muted/40 border border-border/50 flex flex-col justify-between">
+                <div className="flex items-center justify-between text-muted-foreground text-[10px] uppercase font-mono mb-1">
+                  <div className="flex items-center gap-1">
+                    <Layers className="w-3 h-3 text-primary" />
+                    <span>{t('stats.totalTokens')}</span>
+                  </div>
+                  <span className="text-[10px] font-bold text-foreground font-mono">Σ {formatNumber(stats.totalTokens)}</span>
                 </div>
-                <div className="text-base font-bold text-foreground">
-                  {formatNumber(stats.totalTokens)}
+                <div className="grid grid-cols-2 gap-1 pt-1.5 border-t border-border/40 text-[11px] font-mono">
+                  <div className="flex items-center gap-0.5 text-blue-600 dark:text-blue-400 font-medium" title={t('stats.promptInput')}>
+                    <ArrowUp className="w-3 h-3 shrink-0" />
+                    <span className="truncate">{formatNumber(stats.totalPromptTokens)}</span>
+                  </div>
+                  <div className="flex items-center gap-0.5 text-emerald-600 dark:text-emerald-400 font-medium justify-end" title={t('stats.completionOutput')}>
+                    <ArrowDown className="w-3 h-3 shrink-0" />
+                    <span className="truncate">{formatNumber(stats.totalCompletionTokens)}</span>
+                  </div>
                 </div>
               </div>
 
-              <div className="p-2.5 rounded-xl bg-muted/40 border border-border/50">
+              <div className="p-2.5 rounded-xl bg-muted/40 border border-border/50 flex flex-col justify-between">
                 <div className="flex items-center gap-1 text-muted-foreground text-[10px] uppercase font-mono mb-1">
                   <Zap className="w-3 h-3 text-amber-500" />
                   <span>{t('stats.avgSpeed')}</span>
@@ -163,14 +183,18 @@ export function ConversationStats({ messages = [], className }) {
 
             {/* Token Distribution Bar */}
             <div className="space-y-1.5 mb-3.5 p-2.5 rounded-xl bg-muted/30 border border-border/50">
-              <div className="flex justify-between text-[11px]">
+              <div className="flex justify-between items-center text-[11px]">
                 <span className="text-muted-foreground flex items-center gap-1">
-                  <span className="w-2 h-2 rounded-full bg-blue-500 inline-block" />
-                  {t('stats.promptInput')} <strong className="text-foreground">{formatNumber(stats.totalPromptTokens)}</strong>
+                  <ArrowUp className="w-3.5 h-3.5 text-blue-500 shrink-0" />
+                  <span>{t('stats.promptInput')}</span>
+                  <strong className="text-foreground font-mono">{formatNumber(stats.totalPromptTokens)}</strong>
+                  <span className="text-[10px] text-muted-foreground font-mono">({promptPercent}%)</span>
                 </span>
                 <span className="text-muted-foreground flex items-center gap-1">
-                  <span className="w-2 h-2 rounded-full bg-emerald-500 inline-block" />
-                  {t('stats.completionOutput')} <strong className="text-foreground">{formatNumber(stats.totalCompletionTokens)}</strong>
+                  <ArrowDown className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+                  <span>{t('stats.completionOutput')}</span>
+                  <strong className="text-foreground font-mono">{formatNumber(stats.totalCompletionTokens)}</strong>
+                  <span className="text-[10px] text-muted-foreground font-mono">({completionPercent}%)</span>
                 </span>
               </div>
               
@@ -178,12 +202,12 @@ export function ConversationStats({ messages = [], className }) {
                 <div 
                   className="bg-blue-500 h-full transition-all duration-500" 
                   style={{ width: `${promptPercent}%` }} 
-                  title={`Prompt: ${promptPercent}%`} 
+                  title={`Prompt: ${formatNumber(stats.totalPromptTokens)} (${promptPercent}%)`} 
                 />
                 <div 
                   className="bg-emerald-500 h-full transition-all duration-500" 
                   style={{ width: `${completionPercent}%` }} 
-                  title={`${t('stats.completionOutput')}: ${completionPercent}%`} 
+                  title={`${t('stats.completionOutput')}: ${formatNumber(stats.totalCompletionTokens)} (${completionPercent}%)`} 
                 />
               </div>
             </div>
