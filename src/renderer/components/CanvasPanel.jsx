@@ -41,7 +41,8 @@ import {
   VolumeX,
   Pause,
   Square,
-  AudioLines
+  AudioLines,
+  Trash2
 } from 'lucide-react';
 import { useCanvas } from '../context/CanvasContext';
 import { useLanguage } from '../context/LanguageContext';
@@ -84,7 +85,8 @@ export function CanvasPanel({ onSendPrompt, className }) {
     isAiEditing,
     updateDocument,
     restoreRevision,
-    exportDocument
+    exportDocument,
+    clearCanvas
   } = useCanvas();
 
   const { t, language: appLanguage } = useLanguage();
@@ -709,9 +711,25 @@ export function CanvasPanel({ onSendPrompt, className }) {
 
           <button
             type="button"
+            onClick={() => {
+              if (canvasDoc.content && canvasDoc.content.trim()) {
+                if (!window.confirm(t('canvas.confirmDeleteCanvas') || 'Tem certeza que deseja excluir o documento Canvas desta conversa?')) {
+                  return;
+                }
+              }
+              clearCanvas();
+            }}
+            className="p-1.5 rounded-lg hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors"
+            title={t('canvas.deleteCanvas') || 'Excluir Canvas'}
+          >
+            <Trash2 className="w-4 h-4" />
+          </button>
+
+          <button
+            type="button"
             onClick={closeCanvas}
             className="p-1.5 rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground transition-colors ml-0.5"
-            title={t('common.close')}
+            title={t('canvas.hideCanvas') || t('common.close')}
           >
             <X className="w-4 h-4" />
           </button>

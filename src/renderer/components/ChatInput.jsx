@@ -1,4 +1,4 @@
-import { ArrowRight, Loader2, ImagePlus, Hammer, Upload, Zap, ZapOff, Square, Mic, MicOff, Terminal, Globe, BookOpen, SlidersHorizontal, Camera, Bot, Key, Layout } from "lucide-react";
+import { ArrowRight, Loader2, ImagePlus, Hammer, Upload, Zap, ZapOff, Square, Mic, MicOff, Terminal, Globe, BookOpen, SlidersHorizontal, Camera, Bot, Key, Layout, X } from "lucide-react";
 import React, { useContext, useEffect, useRef, useState, useMemo } from "react";
 import { Link } from "react-router-dom";
 import TextAreaAutosize from "react-textarea-autosize";
@@ -39,7 +39,7 @@ function ChatInput({
 		: (Array.isArray(mcpTools) ? mcpTools.length : 0);
 	const { t, language } = useLanguage();
 	const { activeProject, openKnowledgeBaseModal } = useProjects();
-	const { canvasDoc, isOpen: isCanvasOpen, toggleCanvas, selectedText, setSelectedText } = useCanvas();
+	const { canvasDoc, isOpen: isCanvasOpen, toggleCanvas, selectedText, setSelectedText, clearCanvas } = useCanvas();
 	const [message, setMessage] = useState("");
 	const [suggestion, setSuggestion] = useState("");
 	const [autocompleteEnabled, setAutocompleteEnabled] = useState(true);
@@ -838,29 +838,53 @@ function ChatInput({
 			{canvasDoc && (
 				<div className="flex items-center gap-1.5 px-4 pt-1 select-none animate-in fade-in duration-200">
 					<div 
-						onClick={toggleCanvas}
-						className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 text-xs font-medium cursor-pointer hover:bg-emerald-500/20 transition-all shadow-2xs group"
-						title={isCanvasOpen ? (t('canvas.hideCanvas') || "Ocultar Canvas") : (t('canvas.openCanvas') || "Abrir Canvas")}
+						className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 text-xs font-medium shadow-2xs group"
 					>
-						<Layout className="w-3.5 h-3.5 text-emerald-500 shrink-0 group-hover:scale-110 transition-transform" />
-						<span className="font-semibold">{t('canvas.label') || 'Canvas'}:</span>
-						<span className="truncate max-w-[220px] text-foreground font-normal">{canvasDoc.title || 'Documento'} (v{canvasDoc.version || 1})</span>
-						{selectedText && (
-							<span className="bg-amber-500/20 text-amber-700 dark:text-amber-300 px-1.5 py-0.2 rounded text-[10px] font-mono font-medium">
-								{t('canvas.textSelected') || 'Trecho selecionado'}
-							</span>
-						)}
-					</div>
-					{selectedText && (
 						<button
 							type="button"
-							onClick={() => setSelectedText('')}
-							className="text-[10px] text-muted-foreground hover:text-foreground px-1.5 py-0.5 rounded hover:bg-muted transition-colors"
-							title={t('canvas.clearSelection') || "Limpar seleção"}
+							onClick={toggleCanvas}
+							className="inline-flex items-center gap-1.5 text-left hover:opacity-80 transition-opacity cursor-pointer"
+							title={isCanvasOpen ? (t('canvas.hideCanvas') || "Ocultar Canvas") : (t('canvas.openCanvas') || "Abrir Canvas")}
 						>
-							✕
+							<Layout className="w-3.5 h-3.5 text-emerald-500 shrink-0 group-hover:scale-110 transition-transform" />
+							<span className="font-semibold">{t('canvas.label') || 'Canvas'}:</span>
+							<span className="truncate max-w-[200px] text-foreground font-normal">
+								{canvasDoc.title || 'Documento'} (v{canvasDoc.version || 1})
+							</span>
 						</button>
-					)}
+
+						{selectedText && (
+							<div className="flex items-center gap-1">
+								<span className="bg-amber-500/20 text-amber-700 dark:text-amber-300 px-1.5 py-0.2 rounded text-[10px] font-mono font-medium">
+									{t('canvas.textSelected') || 'Trecho selecionado'}
+								</span>
+								<button
+									type="button"
+									onClick={() => setSelectedText('')}
+									className="text-[10px] text-muted-foreground hover:text-foreground p-0.5 rounded hover:bg-muted transition-colors cursor-pointer"
+									title={t('canvas.clearSelection') || "Limpar seleção"}
+								>
+									<X className="w-3 h-3" />
+								</button>
+							</div>
+						)}
+
+						<button
+							type="button"
+							onClick={() => {
+								if (canvasDoc.content && canvasDoc.content.trim()) {
+									if (!window.confirm(t('canvas.confirmDeleteCanvas') || 'Tem certeza que deseja excluir o documento Canvas desta conversa?')) {
+										return;
+									}
+								}
+								clearCanvas();
+							}}
+							className="p-0.5 ml-0.5 rounded text-emerald-600/70 dark:text-emerald-400/70 hover:text-destructive hover:bg-destructive/15 transition-colors cursor-pointer"
+							title={t('canvas.deleteCanvasTooltip') || "Excluir Canvas da conversa"}
+						>
+							<X className="w-3.5 h-3.5" />
+						</button>
+					</div>
 				</div>
 			)}
 

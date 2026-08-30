@@ -1389,7 +1389,10 @@ export const translations = {
       sendToCanvas: 'Enviar para o Canvas',
       importedFromChat: 'Importado da conversa',
       aiResponseDoc: 'Documento do Assistente',
-      ttsSpeed: 'Velocidade de Leitura'
+      ttsSpeed: 'Velocidade de Leitura',
+      deleteCanvas: 'Excluir Canvas',
+      deleteCanvasTooltip: 'Excluir Canvas da conversa',
+      confirmDeleteCanvas: 'Tem certeza que deseja excluir o documento Canvas desta conversa?'
     }
   },
   en: {
@@ -2782,7 +2785,10 @@ export const translations = {
       sendToCanvas: 'Send to Canvas',
       importedFromChat: 'Imported from chat',
       aiResponseDoc: 'Assistant Document',
-      ttsSpeed: 'Reading Speed'
+      ttsSpeed: 'Reading Speed',
+      deleteCanvas: 'Delete Canvas',
+      deleteCanvasTooltip: 'Delete Canvas from conversation',
+      confirmDeleteCanvas: 'Are you sure you want to delete the Canvas document from this conversation?'
     }
   }
 };

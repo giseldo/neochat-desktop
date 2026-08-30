@@ -284,8 +284,13 @@ export function CanvasProvider({ children }) {
     setSelectedTextState('');
     setSelectionRange(null);
     setActiveRevisionIndex(null);
-    if (currentChatId && window.electron?.chatHistory?.updateCanvas) {
-      window.electron.chatHistory.updateCanvas(currentChatId, null);
+    if (currentChatId) {
+      if (window.electron?.chatHistory?.updateCanvas) {
+        window.electron.chatHistory.updateCanvas(currentChatId, null);
+      }
+      if (window.electron?.canvas?.setActive) {
+        window.electron.canvas.setActive({ chatId: currentChatId, doc: null });
+      }
     }
   }, [currentChatId]);
 
