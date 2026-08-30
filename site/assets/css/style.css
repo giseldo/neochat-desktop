@@ -255,9 +255,11 @@ code, pre { font-family: 'JetBrains Mono', monospace; }
 }
 .nav__inner {
   height: 100%;
+  max-width: 1400px;
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 24px;
 }
 .nav__brand {
   display: flex;
@@ -266,6 +268,8 @@ code, pre { font-family: 'JetBrains Mono', monospace; }
   font-weight: 700;
   font-size: 1.15rem;
   letter-spacing: -0.02em;
+  flex-shrink: 0;
+  white-space: nowrap;
 }
 .nav__logo {
   width: 32px;
@@ -280,20 +284,25 @@ code, pre { font-family: 'JetBrains Mono', monospace; }
 .nav__links {
   display: flex;
   align-items: center;
-  gap: 28px;
+  gap: 18px;
+  flex-shrink: 1;
+  min-width: 0;
 }
 .nav__links a {
-  font-size: 0.92rem;
+  font-size: 0.88rem;
   font-weight: 500;
   color: var(--text-2);
   transition: color 0.2s;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 .nav__links a:hover { color: #fff; }
 
 .nav__actions {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
+  flex-shrink: 0;
 }
 .nav__gh-stars {
   font-size: 0.82rem;
@@ -1347,9 +1356,12 @@ body.no-scroll { overflow: hidden; }
   .footer__inner { grid-template-columns: 1fr; gap: 40px; }
 }
 
-@media (max-width: 768px) {
+@media (max-width: 1220px) {
   .nav__links, .nav__actions .btn { display: none; }
   .nav__toggle { display: flex; }
+}
+
+@media (max-width: 768px) {
   .mode-tabs { grid-template-columns: 1fr; }
   .features-grid { grid-template-columns: 1fr; }
   .download-grid { grid-template-columns: 1fr; }
