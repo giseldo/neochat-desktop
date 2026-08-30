@@ -9,6 +9,8 @@ require('dotenv').config();
 let appInstance; // To store app instance for userData path
 let secretStore;
 
+const DEFAULT_SYSTEM_PROMPT = 'You are a helpful assistant. Format responses using Markdown.';
+
 function normalizeTts(value = {}) {
     const clamp = (number, fallback) => Math.min(2, Math.max(0.5, Number.isFinite(Number(number)) ? Number(number) : fallback));
     return {
