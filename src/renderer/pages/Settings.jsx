@@ -340,7 +340,7 @@ function Settings() {
       enabled: true,
       provider: 'local',
       apiKey: '',
-      maxResults: 5
+      maxResults: 3
     },
     modelFilter: '',
     modelFilterExclude: '',
@@ -952,7 +952,7 @@ function Settings() {
                 enabled: true,
                 provider: 'local',
                 apiKey: '',
-                maxResults: 5
+                maxResults: 3
             };
         }
         if (settingsData.webSearch.provider === 'duckduckgo') {
@@ -1741,7 +1741,7 @@ function Settings() {
 
   const handleWebSearchChange = (field, value) => {
     const updatedWebSearch = {
-      ...(settings.webSearch || { enabled: true, provider: 'local', apiKey: '', maxResults: 5 }),
+      ...(settings.webSearch || { enabled: true, provider: 'local', apiKey: '', maxResults: 3 }),
       [field]: value
     };
     const updatedSettings = {
@@ -1756,7 +1756,7 @@ function Settings() {
     setIsTestingWebSearch(true);
     setWebSearchTestResult(null);
     try {
-      const searchOpts = settings.webSearch || { provider: 'local', apiKey: '', maxResults: 5 };
+      const searchOpts = settings.webSearch || { provider: 'local', apiKey: '', maxResults: 3 };
       const res = await window.electron.testWebSearch('latest technology news', searchOpts);
       if (res && res.resultsCount > 0) {
         setWebSearchTestResult({
@@ -3927,18 +3927,28 @@ function Settings() {
                     {/* Max Results */}
                     <div className="space-y-1.5">
                       <div className="flex items-center justify-between text-xs">
-                        <Label className="font-medium">{t('settings.webSearchMaxResultsLabel')}</Label>
-                        <span className="font-semibold text-primary">{settings.webSearch?.maxResults || 5}</span>
+                        <div className="flex items-center gap-2">
+                          <Label className="font-medium">{t('settings.webSearchMaxResultsLabel')}</Label>
+                          {(settings.webSearch?.maxResults || 3) <= 3 && (
+                            <span className="text-[10px] bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-medium px-1.5 py-0.5 rounded border border-emerald-500/20">
+                              ⚡ Econômico
+                            </span>
+                          )}
+                        </div>
+                        <span className="font-semibold text-primary">{settings.webSearch?.maxResults || 3}</span>
                       </div>
                       <input
                         type="range"
                         min="1"
                         max="10"
                         step="1"
-                        value={settings.webSearch?.maxResults || 5}
+                        value={settings.webSearch?.maxResults || 3}
                         onChange={(e) => handleWebSearchChange('maxResults', parseInt(e.target.value, 10))}
                         className="w-full accent-primary cursor-pointer"
                       />
+                      <p className="text-[11px] text-muted-foreground">
+                        {t('settings.webSearchTokenSaverHelp')}
+                      </p>
                     </div>
 
                     {/* Test Button & Result Box */}

@@ -22,6 +22,24 @@ function decodeHtmlEntities(text) {
 }
 
 /**
+ * Clean, decode HTML entities and trim snippets for token efficiency
+ */
+function cleanAndTrimSnippet(text, maxLength = 220) {
+  if (!text) return '';
+  let clean = decodeHtmlEntities(text)
+    .replace(/[\r\n\t]+/g, ' ')
+    .replace(/\s{2,}/g, ' ')
+    .trim();
+
+  if (clean.length > maxLength) {
+    const truncated = clean.slice(0, maxLength);
+    const lastSpace = truncated.lastIndexOf(' ');
+    clean = (lastSpace > maxLength * 0.7 ? truncated.slice(0, lastSpace) : truncated) + '...';
+  }
+  return clean;
+}
+
+/**
  * Extract domain from a URL
  */
 function getDomainFromUrl(urlString) {
@@ -36,7 +54,7 @@ function getDomainFromUrl(urlString) {
 /**
  * Search Tavily Search API (Optimized for LLMs)
  */
-async function searchTavily(query, apiKey, maxResults = 5) {
+async function searchTavily(query, apiKey, maxResults = 3) {
   if (!apiKey) {
     throw new Error('A chave de API do Tavily é necessária. Obtenha uma chave gratuita em https://tavily.com e adicione nas Configurações.');
   }
@@ -64,22 +82,22 @@ async function searchTavily(query, apiKey, maxResults = 5) {
 
   const data = await response.json();
   const results = (data.results || []).map(r => ({
-    title: r.title || 'Untitled',
+    title: decodeHtmlEntities(r.title || 'Untitled'),
     url: r.url,
-    snippet: r.content || '',
+    snippet: cleanAndTrimSnippet(r.content || '', 220),
     domain: getDomainFromUrl(r.url)
   }));
 
   return {
     results,
-    answer: data.answer || null
+    answer: data.answer ? cleanAndTrimSnippet(data.answer, 300) : null
   };
 }
 
 /**
  * Search Brave Search API
  */
-async function searchBrave(query, apiKey, maxResults = 5) {
+async function searchBrave(query, apiKey, maxResults = 3) {
   if (!apiKey) {
     throw new Error('A chave de API do Brave Search é necessária. Obtenha uma chave gratuita em https://brave.com/search/api e adicione nas Configurações.');
   }
@@ -106,7 +124,7 @@ async function searchBrave(query, apiKey, maxResults = 5) {
   const results = rawResults.map(r => ({
     title: decodeHtmlEntities(r.title || ''),
     url: r.url,
-    snippet: decodeHtmlEntities(r.description || ''),
+    snippet: cleanAndTrimSnippet(r.description || '', 220),
     domain: getDomainFromUrl(r.url)
   }));
 
@@ -133,7 +151,7 @@ function extractRealUrl(rawUrl) {
  * Direct Local Web Search (Zero-Config, Free, No API key or credit card required)
  * Runs directly from the user's computer.
  */
-async function searchLocalDirect(query, maxResults = 5) {
+async function searchLocalDirect(query, maxResults = 3) {
   const url = `https://www.bing.com/search?q=${encodeURIComponent(query)}&setlang=pt-br`;
   const headers = {
     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36',
@@ -171,7 +189,8 @@ async function searchLocalDirect(query, maxResults = 5) {
 
     const snippetMatch = /<(?:p|div)[^>]*class="[^"]*(?:b_lineclamp|b_caption|b_snippet)[^"]*"[^>]*>([\s\S]*?)<\/(?:p|div)>/i.exec(block) ||
                          /<p[^>]*>([\s\S]*?)<\/p>/i.exec(block);
-    const snippet = snippetMatch ? decodeHtmlEntities(snippetMatch[1]) : title;
+    const rawSnippet = snippetMatch ? snippetMatch[1] : title;
+    const snippet = cleanAndTrimSnippet(rawSnippet, 220);
     const domain = getDomainFromUrl(realUrl);
 
     if (title && realUrl && realUrl.startsWith('http') && !results.some(r => r.url === realUrl)) {
@@ -198,14 +217,14 @@ async function executeWebSearch(query, options = {}) {
     provider = 'local';
   }
   const apiKey = options.apiKey || '';
-  const maxResults = Math.min(Math.max(options.maxResults || 5, 1), 10);
+  const maxResults = Math.min(Math.max(options.maxResults || 3, 1), 10);
 
   if (!query || typeof query !== 'string' || !query.trim()) {
     throw new Error('Search query cannot be empty.');
   }
 
   const cleanQuery = query.trim();
-  console.log(`[WebSearch] Executing search for "${cleanQuery}" via provider: ${provider}`);
+  console.log(`[WebSearch] Executing search for "${cleanQuery}" via provider: ${provider} (maxResults: ${maxResults})`);
 
   let results = [];
   let summaryAnswer = null;
@@ -252,7 +271,7 @@ function getWebSearchToolDefinition() {
     type: 'function',
     function: {
       name: 'web_search',
-      description: 'Search the live web for real-time information, news, current events, facts, weather, technical docs, and latest data. Returns search results with titles, URLs, and descriptive snippets.',
+      description: 'Search the live web for real-time information, news, current events, facts, weather, technical docs, and latest data. Returns concise search results with titles, URLs, and descriptive snippets.',
       parameters: {
         type: 'object',
         properties: {
@@ -273,5 +292,6 @@ module.exports = {
   getWebSearchToolDefinition,
   searchLocalDirect,
   searchTavily,
-  searchBrave
+  searchBrave,
+  cleanAndTrimSnippet
 };

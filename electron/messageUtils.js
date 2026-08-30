@@ -50,6 +50,60 @@ function groupMessagesIntoAtomicBlocks(messages) {
 }
 
 /**
+ * Compresses bulky tool responses from previous conversational turns
+ * to save significant tokens during multi-turn chats.
+ */
+function compressHistoricalToolContent(rawContent) {
+  if (!rawContent || typeof rawContent !== 'string') {
+    return rawContent;
+  }
+
+  // If already very short, keep as is
+  if (rawContent.length <= 250) {
+    return rawContent;
+  }
+
+  try {
+    const parsed = JSON.parse(rawContent);
+
+    // Web Search result compression
+    if (parsed && Array.isArray(parsed.results)) {
+      const compactResults = parsed.results.slice(0, 3).map(r => ({
+        title: r.title || 'Untitled',
+        url: r.url || '',
+        snippet: (r.snippet || '').slice(0, 100)
+      }));
+      return JSON.stringify({
+        query: parsed.query || '',
+        results: compactResults,
+        status: 'completed_in_previous_turn'
+      });
+    }
+
+    // Project Knowledge / RAG result compression
+    if (parsed && (Array.isArray(parsed.matches) || Array.isArray(parsed.results) || Array.isArray(parsed.snippets))) {
+      const list = parsed.matches || parsed.results || parsed.snippets;
+      const compactMatches = list.slice(0, 3).map(m => ({
+        path: m.path || m.filePath || m.file || '',
+        snippet: (m.content || m.snippet || '').slice(0, 100)
+      }));
+      return JSON.stringify({
+        query: parsed.query || '',
+        results: compactMatches,
+        status: 'completed_in_previous_turn'
+      });
+    }
+  } catch (e) {
+    // If not JSON but a large text payload from a previous turn, truncate safely
+    if (rawContent.length > 500) {
+      return rawContent.slice(0, 300) + '... [Output compressed for history token savings]';
+    }
+  }
+
+  return rawContent;
+}
+
+/**
  * Sanitizes and repairs message history for OpenAI / Groq / DeepSeek compatible APIs.
  * Ensures:
  * 1. Strips internal runtime fields (reasoning, liveStreaming, etc.)
@@ -57,6 +111,7 @@ function groupMessagesIntoAtomicBlocks(messages) {
  * 3. Enforces that EVERY 'tool' message is preceded by an assistant message containing a matching tool_call_id
  * 4. Drops orphan tool messages that would cause HTTP 400 invalid_request_error
  * 5. Cleans up broken assistant tool_calls that have no corresponding tool responses in the middle of history
+ * 6. Compresses bulky historical tool outputs prior to the active user turn
  *
  * @param {Array} messages - Raw messages array
  * @returns {Array} - Sanitized messages array safe for API submission
@@ -66,8 +121,17 @@ function sanitizeMessageHistory(messages) {
     return [];
   }
 
+  // Find the index of the last user message (active conversational turn)
+  let lastUserIndex = -1;
+  for (let idx = messages.length - 1; idx >= 0; idx--) {
+    if (messages[idx] && messages[idx].role === 'user') {
+      lastUserIndex = idx;
+      break;
+    }
+  }
+
   // Step 1: Clean and normalize individual messages
-  const cleaned = messages.map(msg => {
+  const cleaned = messages.map((msg, index) => {
     if (!msg || typeof msg !== 'object') return null;
 
     const cleanMsg = { ...msg };
@@ -150,6 +214,11 @@ function sanitizeMessageHistory(messages) {
         } catch {
           cleanMsg.content = '[Error stringifying tool content]';
         }
+      }
+
+      // If this tool response belongs to a historical turn prior to the active user prompt, compress it
+      if (lastUserIndex !== -1 && index < lastUserIndex) {
+        cleanMsg.content = compressHistoricalToolContent(cleanMsg.content);
       }
     }
 
@@ -516,5 +585,6 @@ module.exports = {
     sanitizeMessageHistory,
     pruneMessageHistory,
     estimateTokenCount,
-    extractThinking
+    extractThinking,
+    compressHistoricalToolContent
 }; 
