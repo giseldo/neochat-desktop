@@ -360,6 +360,28 @@ function buildApiParams(prunedMessages, modelToUse, settings, tools, modelContex
     });
 
     const webSearchEnabled = settings.webSearch?.enabled === true;
+    const maxSearchesPerTurn = Math.max(1, Math.min(settings.webSearch?.maxSearchesPerTurn ?? 2, 10));
+
+    // Count web_search executions in the active turn (messages after the last user message)
+    let activeTurnSearches = 0;
+    let lastUserIdx = -1;
+    for (let i = prunedMessages.length - 1; i >= 0; i--) {
+        if (prunedMessages[i].role === 'user') {
+            lastUserIdx = i;
+            break;
+        }
+    }
+    if (lastUserIdx !== -1) {
+        for (let i = lastUserIdx + 1; i < prunedMessages.length; i++) {
+            const msg = prunedMessages[i];
+            if (msg.role === 'assistant' && Array.isArray(msg.tool_calls)) {
+                activeTurnSearches += msg.tool_calls.filter(tc => (tc.function?.name === 'web_search' || tc.name === 'web_search')).length;
+            }
+        }
+    }
+
+    const hasReachedSearchLimit = webSearchEnabled && (activeTurnSearches >= maxSearchesPerTurn);
+
     const hasActiveProject = Boolean(
         (settings.activeProject && (settings.activeProject.id || settings.activeProject.name || (settings.activeProject.folders && settings.activeProject.folders.length > 0))) ||
         settings.projectId ||
@@ -379,8 +401,10 @@ function buildApiParams(prunedMessages, modelToUse, settings, tools, modelContex
             ? `You are a helpful assistant capable of using tools. Use tools only when necessary and relevant to the user's request. Format responses using Markdown.\n\nCurrent date and time: ${dateTimeString}`
             : `You are a helpful assistant. Format responses using Markdown.`);
     
-    if (webSearchEnabled) {
+    if (webSearchEnabled && !hasReachedSearchLimit) {
         systemPrompt += `\n\n- Web Search: You have access to the 'web_search' tool. When answering questions that require current information, recent facts, live news, documentation, or when the user asks to search the web, execute 'web_search'. Always cite consulted sources in your response using markdown links [Source Title](URL) or citation markers [1], [2].`;
+    } else if (webSearchEnabled && hasReachedSearchLimit) {
+        systemPrompt += `\n\n- Web Search: You have already reached the maximum allowed web search attempts (${maxSearchesPerTurn}) for this query. Do NOT attempt to search again. Synthesize a complete and helpful final response based on the search results obtained so far.`;
     }
 
     if (hasActiveProject) {
@@ -422,8 +446,12 @@ When the user asks you to create, draft, write, edit, rewrite, improve, format, 
         }
     }
 
-    // Combine MCP tools and built-in tools
-    const allTools = [...tools];
+    // Combine MCP tools and built-in tools (filtering web_search if search limit was reached)
+    let toolsToUse = tools;
+    if (hasReachedSearchLimit) {
+        toolsToUse = tools.filter(t => (t.name !== 'web_search' && t.function?.name !== 'web_search'));
+    }
+    const allTools = [...toolsToUse];
     if (builtInTools.length > 0) {
         // For built-in tools, we add them directly (not as functions)
         allTools.push(...builtInTools);
@@ -2173,5 +2201,11 @@ async function handleCompareChatStream(event, messages, modelA, modelB, settings
     ]);
 }
 
-module.exports = { handleChatStream, handleCompareChatStream, stopChatStream, createGroqClient };
+module.exports = {
+    handleChatStream,
+    handleCompareChatStream,
+    stopChatStream,
+    createGroqClient,
+    _testExports: { buildApiParams }
+};
 

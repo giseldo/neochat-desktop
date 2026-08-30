@@ -1,4 +1,4 @@
-﻿const assert = require('assert');
+const assert = require('assert');
 const { cleanAndTrimSnippet, executeWebSearch } = require('./electron/webSearchService');
 const { sanitizeMessageHistory, compressHistoricalToolContent, estimateTokenCount } = require('./electron/messageUtils');
 const { handleExecuteToolCall } = require('./electron/toolHandler');
@@ -81,6 +81,32 @@ const mockToolCall = {
   assert(histToolMsg.content.includes('completed_in_previous_turn'), 'Historical tool message must have been compressed');
   assert(histToolMsg.content.length < bulkyToolResult.length, 'Historical tool message content length must be reduced');
   console.log('✅ Test 4 passed: Multi-turn chat automatically compressed historical search tool message.');
+
+  // Test 5: Verify buildApiParams enforces maxSearchesPerTurn limit
+  console.log('\n[Test 5] Testing maxSearchesPerTurn enforcement...');
+  const { _testExports } = require('./electron/chatHandler');
+  const buildApiParams = _testExports?.buildApiParams || require('./electron/chatHandler').buildApiParams;
+  
+  if (typeof buildApiParams === 'function') {
+    const messagesWith2Searches = [
+      { role: 'user', content: [{ type: 'text', text: 'Pesquisa com limite' }] },
+      { role: 'assistant', content: '', tool_calls: [{ id: 's1', type: 'function', function: { name: 'web_search', arguments: '{}' } }] },
+      { role: 'tool', tool_call_id: 's1', content: '{"results":[]}' },
+      { role: 'assistant', content: '', tool_calls: [{ id: 's2', type: 'function', function: { name: 'web_search', arguments: '{}' } }] },
+      { role: 'tool', tool_call_id: 's2', content: '{"results":[]}' }
+    ];
+
+    const initialTools = [{ type: 'function', function: { name: 'web_search' } }, { type: 'function', function: { name: 'canvas_get_document' } }];
+    const settingsWithLimit2 = {
+      webSearch: { enabled: true, maxSearchesPerTurn: 2 }
+    };
+
+    const params = buildApiParams(messagesWith2Searches, 'gpt-4o', settingsWithLimit2, initialTools, {});
+    const webSearchPresent = (params.tools || []).some(t => t.name === 'web_search' || t.function?.name === 'web_search');
+    assert.strictEqual(webSearchPresent, false, 'web_search tool must be filtered out after reaching maxSearchesPerTurn (2)');
+    assert(params.messages[0].content.includes('maximum allowed web search attempts'), 'System prompt should instruct model that search limit was reached');
+    console.log('✅ Test 5 passed: web_search tool correctly filtered out once maxSearchesPerTurn limit reached.');
+  }
 
   console.log('\n🎉 ALL WEB SEARCH TOKEN SAVINGS TESTS PASSED! 🎉\n');
 })().catch(err => {

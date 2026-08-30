@@ -81,7 +81,8 @@ function loadSettings() {
                 enabled: false,
                 provider: 'local',
                 apiKey: '',
-                maxResults: 3
+                maxResults: 3,
+                maxSearchesPerTurn: 2
             }
         };
     }
@@ -139,7 +140,8 @@ function loadSettings() {
             enabled: false,
             provider: 'local',
             apiKey: '',
-            maxResults: 3
+            maxResults: 3,
+            maxSearchesPerTurn: 2
         }
     };
 

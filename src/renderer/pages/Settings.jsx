@@ -340,7 +340,8 @@ function Settings() {
       enabled: true,
       provider: 'local',
       apiKey: '',
-      maxResults: 3
+      maxResults: 3,
+      maxSearchesPerTurn: 2
     },
     modelFilter: '',
     modelFilterExclude: '',
@@ -952,7 +953,8 @@ function Settings() {
                 enabled: true,
                 provider: 'local',
                 apiKey: '',
-                maxResults: 3
+                maxResults: 3,
+                maxSearchesPerTurn: 2
             };
         }
         if (settingsData.webSearch.provider === 'duckduckgo') {
@@ -1741,7 +1743,7 @@ function Settings() {
 
   const handleWebSearchChange = (field, value) => {
     const updatedWebSearch = {
-      ...(settings.webSearch || { enabled: true, provider: 'local', apiKey: '', maxResults: 3 }),
+      ...(settings.webSearch || { enabled: true, provider: 'local', apiKey: '', maxResults: 3, maxSearchesPerTurn: 2 }),
       [field]: value
     };
     const updatedSettings = {
@@ -3948,6 +3950,33 @@ function Settings() {
                       />
                       <p className="text-[11px] text-muted-foreground">
                         {t('settings.webSearchTokenSaverHelp')}
+                      </p>
+                    </div>
+
+                    {/* Max Searches per Question (Rounds limit) */}
+                    <div className="space-y-1.5 pt-1">
+                      <div className="flex items-center justify-between text-xs">
+                        <div className="flex items-center gap-2">
+                          <Label className="font-medium">{t('settings.webSearchMaxSearchesPerTurnLabel')}</Label>
+                          {(settings.webSearch?.maxSearchesPerTurn ?? 2) <= 2 && (
+                            <span className="text-[10px] bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-medium px-1.5 py-0.5 rounded border border-emerald-500/20">
+                              ⚡ Recomendado
+                            </span>
+                          )}
+                        </div>
+                        <span className="font-semibold text-primary">{settings.webSearch?.maxSearchesPerTurn ?? 2}</span>
+                      </div>
+                      <input
+                        type="range"
+                        min="1"
+                        max="5"
+                        step="1"
+                        value={settings.webSearch?.maxSearchesPerTurn ?? 2}
+                        onChange={(e) => handleWebSearchChange('maxSearchesPerTurn', parseInt(e.target.value, 10))}
+                        className="w-full accent-primary cursor-pointer"
+                      />
+                      <p className="text-[11px] text-muted-foreground">
+                        {t('settings.webSearchMaxSearchesPerTurnHelp')}
                       </p>
                     </div>
 
