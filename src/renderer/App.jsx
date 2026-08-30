@@ -2773,7 +2773,7 @@ function App() {
                         setIsUserScrolling(false);
                         scrollToBottom(false);
                       }}
-                      className="absolute bottom-28 right-6 z-20 flex items-center justify-center p-2.5 rounded-full bg-card/95 hover:bg-accent text-foreground shadow-lg border border-border/80 backdrop-blur transition-all duration-200 hover:scale-105"
+                      className="absolute bottom-28 left-1/2 -translate-x-1/2 z-20 flex items-center justify-center p-2.5 rounded-full bg-card/95 hover:bg-accent text-foreground shadow-lg border border-border/80 backdrop-blur transition-all duration-200 hover:scale-105"
                       aria-label="Scroll to bottom"
                       title={t('chat.scrollToBottom') || "Rolar para o final"}
                     >
