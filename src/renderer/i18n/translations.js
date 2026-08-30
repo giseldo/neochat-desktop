@@ -893,9 +893,11 @@ export const translations = {
       browserSearchHelp: 'Pesquisa na web para obter informações em tempo real e eventos atuais.',
 
       // Custom System Prompt Card
-      systemPromptTitle: 'Prompt de Sistema Personalizado',
-      systemPromptDesc: 'Adicione instruções personalizadas que serão adicionadas ao prompt de sistema padrão.',
-      systemPromptPlaceholder: 'Opcional: Digite seu prompt de sistema personalizado...',
+      systemPromptTitle: 'Prompt de Sistema Base & Personalizado',
+      systemPromptDesc: 'Defina as instruções fundamentais enviadas no início de todas as conversas. Edite livremente ou restaure o padrão.',
+      systemPromptPlaceholder: 'Digite o prompt de sistema...',
+      systemPromptResetDefault: 'Restaurar Padrão',
+      systemPromptDefaultHint: 'Prompt padrão: "You are a helpful assistant. Format responses using Markdown."',
 
       // MCP Servers Card (Local)
       mcpServersTitle: 'Servidores MCP Locais',
@@ -2278,9 +2280,11 @@ export const translations = {
       browserSearchHelp: 'Search the web for real-time information and current events.',
 
       // Custom System Prompt Card
-      systemPromptTitle: 'Custom System Prompt',
-      systemPromptDesc: 'Add custom instructions that will be appended to the default system prompt.',
-      systemPromptPlaceholder: 'Optional: Enter your custom system prompt...',
+      systemPromptTitle: 'Base & Custom System Prompt',
+      systemPromptDesc: 'Define the fundamental instructions sent at the beginning of all conversations. Edit freely or restore default.',
+      systemPromptPlaceholder: 'Enter system prompt instructions...',
+      systemPromptResetDefault: 'Restore Default',
+      systemPromptDefaultHint: 'Default prompt: "You are a helpful assistant. Format responses using Markdown."',
 
       // MCP Servers Card (Local)
       mcpServersTitle: 'Local MCP Servers',

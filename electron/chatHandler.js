@@ -373,9 +373,11 @@ function buildApiParams(prunedMessages, modelToUse, settings, tools, modelContex
         settings.selectedCanvasText
     );
     
-    let systemPrompt = tools.length > 0
-        ? `You are a helpful assistant capable of using tools. Use tools only when necessary and relevant to the user's request. Format responses using Markdown.\n\nCurrent date and time: ${dateTimeString}`
-        : `You are a helpful assistant. Format responses using Markdown.`;
+    let systemPrompt = (settings.customSystemPrompt && settings.customSystemPrompt.trim())
+        ? settings.customSystemPrompt.trim()
+        : (tools.length > 0
+            ? `You are a helpful assistant capable of using tools. Use tools only when necessary and relevant to the user's request. Format responses using Markdown.\n\nCurrent date and time: ${dateTimeString}`
+            : `You are a helpful assistant. Format responses using Markdown.`);
     
     if (webSearchEnabled) {
         systemPrompt += `\n\n- Web Search: You have access to the 'web_search' tool. When answering questions that require current information, recent facts, live news, documentation, or when the user asks to search the web, execute 'web_search'. Always cite consulted sources in your response using markdown links [Source Title](URL) or citation markers [1], [2].`;
@@ -407,10 +409,6 @@ When the user asks you to create, draft, write, edit, rewrite, improve, format, 
 
     if (settings.isAgentMode || settings.agentMode) {
         systemPrompt += `\n\n- AUTONOMOUS AGENT MODE: You are currently executing in Autonomous Multi-Step Agent Mode. Break down complex requests into logical sequential steps. Proactively invoke the necessary tools (web search, project knowledge, code execution, MCP tools) one after another to research, implement, and verify the user's objective without stopping prematurely. Once all steps are completed, provide a concise, high-quality final summary of your actions and findings.`;
-    }
-
-    if (settings.customSystemPrompt && settings.customSystemPrompt.trim()) {
-        systemPrompt += `\n\n${settings.customSystemPrompt.trim()}`;
     }
 
     // Prepare built-in tools if enabled and supported by the model

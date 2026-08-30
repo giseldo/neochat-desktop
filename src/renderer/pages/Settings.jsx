@@ -17,6 +17,8 @@ import KeyboardShortcutsModal, { formatAccelerator, KeyCombo, KeyBadge } from '.
 import { cn } from '../lib/utils';
 import { getModelGroup, getModelDisplayName, groupModels, parseBulkModelsInput } from '../lib/modelGrouping';
 
+const DEFAULT_SYSTEM_PROMPT = 'You are a helpful assistant. Format responses using Markdown.';
+
 const POPULAR_PROVIDER_PRESETS = [
   {
     id: 'groq',
@@ -322,7 +324,7 @@ function Settings() {
     reasoning_effort: 'medium',
     mcpServers: {},
     disabledMcpServers: [],
-    customSystemPrompt: '',
+    customSystemPrompt: DEFAULT_SYSTEM_PROMPT,
     popupEnabled: true,
     popupShortcut: 'CommandOrControl+Shift+Space',
     customCompletionUrl: '',
@@ -1044,7 +1046,7 @@ function Settings() {
             top_p: 0.95,
             mcpServers: {},
             disabledMcpServers: [],
-            customSystemPrompt: '',
+            customSystemPrompt: DEFAULT_SYSTEM_PROMPT,
             popupEnabled: true,
             customCompletionUrl: '',
             toolOutputLimit: 8000,
@@ -4068,23 +4070,49 @@ function Settings() {
 
         {visibleCardIds.has('systemPrompt') && (
           <Card>
-              <CardHeader>
-                <CardTitle>{t('settings.systemPromptTitle')}</CardTitle>
-                <CardDescription>
-                  {t('settings.systemPromptDesc')}
-                </CardDescription>
+              <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-3">
+                <div className="space-y-1">
+                  <CardTitle className="flex items-center gap-2">
+                    <Sparkles className="w-5 h-5 text-primary" />
+                    {t('settings.systemPromptTitle')}
+                  </CardTitle>
+                  <CardDescription>
+                    {t('settings.systemPromptDesc')}
+                  </CardDescription>
+                </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    handleChange({
+                      target: {
+                        name: 'customSystemPrompt',
+                        value: DEFAULT_SYSTEM_PROMPT
+                      }
+                    });
+                  }}
+                  className="shrink-0 flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground cursor-pointer"
+                  title={t('settings.systemPromptResetDefault')}
+                >
+                  <RotateCcw className="w-3.5 h-3.5" />
+                  <span>{t('settings.systemPromptResetDefault')}</span>
+                </Button>
               </CardHeader>
-              <CardContent>
+              <CardContent className="space-y-3">
                 <div className="space-y-2">
                   <Textarea
                     id="custom-system-prompt"
                     name="customSystemPrompt"
-                    value={settings.customSystemPrompt || ''}
+                    value={settings.customSystemPrompt ?? DEFAULT_SYSTEM_PROMPT}
                     onChange={handleChange}
                     rows={4}
-                    placeholder={t('settings.systemPromptPlaceholder')}
-                    className="min-h-[100px]"
+                    placeholder={DEFAULT_SYSTEM_PROMPT}
+                    className="min-h-[110px] font-mono text-xs leading-relaxed"
                   />
+                  <p className="text-[11px] text-muted-foreground">
+                    {t('settings.systemPromptDefaultHint')}
+                  </p>
                 </div>
               </CardContent>
             </Card>
