@@ -23,7 +23,7 @@ import { useChat } from './context/ChatContext';
 import { useCanvas } from './context/CanvasContext';
 import { useProjects } from './context/ProjectContext';
 import { useLanguage } from './context/LanguageContext';
-import { Settings, PanelLeftClose, PanelLeft, Radio, MessagesSquare, Sparkles, Store, Columns2, X, FolderKanban, BookOpen, Scale, Bot, Workflow, ChevronDown, Keyboard, Key, AlertCircle, PenSquare } from 'lucide-react';
+import { Settings, PanelLeftClose, PanelLeft, Radio, MessagesSquare, Sparkles, Store, Columns2, X, FolderKanban, BookOpen, Scale, Bot, Workflow, ChevronDown, Keyboard, Key, AlertCircle, PenSquare, Terminal } from 'lucide-react';
 import { Button } from './components/ui/button';
 import { cn } from './lib/utils';
 import { groupModels } from './lib/modelGrouping';
@@ -128,22 +128,6 @@ function App() {
   } = useProjects();
   const { t } = useLanguage();
 
-  const handleToggleCanvas = useCallback(() => {
-    if (isCanvasOpen) {
-      closeCanvas();
-    } else {
-      if (canvasDoc) {
-        openCanvas();
-      } else {
-        createNewDocument({
-          title: t('canvas.defaultTitle') || 'Documento Sem Título',
-          language: 'markdown',
-          content: '',
-          summary: 'Documento criado no Canvas'
-        });
-      }
-    }
-  }, [isCanvasOpen, canvasDoc, closeCanvas, openCanvas, createNewDocument, t]);
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('chat'); // 'chat' | 'trajectory'
   const [showTrajectoryTab, setShowTrajectoryTab] = useState(true);
@@ -199,6 +183,42 @@ function App() {
   const [activeArtifact, setActiveArtifact] = useState(null);
   const [isMcpCatalogOpen, setIsMcpCatalogOpen] = useState(false);
   const [isWorkflowsOpen, setIsWorkflowsOpen] = useState(false);
+
+  const handleToggleCanvas = useCallback(() => {
+    if (isCanvasOpen) {
+      closeCanvas();
+    } else {
+      if (activeArtifact) {
+        setActiveArtifact(null);
+      }
+      if (canvasDoc) {
+        openCanvas();
+      } else {
+        createNewDocument({
+          title: t('canvas.defaultTitle') || 'Documento Sem Título',
+          language: 'markdown',
+          content: '',
+          summary: 'Documento criado no Canvas'
+        });
+      }
+    }
+  }, [isCanvasOpen, canvasDoc, closeCanvas, openCanvas, createNewDocument, activeArtifact, t]);
+
+  const handleToggleCodeInterpreter = useCallback(() => {
+    if (activeArtifact) {
+      setActiveArtifact(null);
+    } else {
+      if (isCanvasOpen) {
+        closeCanvas();
+      }
+      setActiveArtifact({
+        id: 'code_interpreter',
+        title: t('header.codeInterpreter') || 'Interpretador de Código (Python / JS)',
+        type: 'python',
+        code: `# Interpretador de Código Python & JS\n# Pressione Ctrl+Enter ou clique em Executar para rodar\n\nprint("Hello, World!")\n`
+      });
+    }
+  }, [activeArtifact, isCanvasOpen, closeCanvas, t]);
 
   useEffect(() => {
     if (activePersona?.id) {
@@ -2266,6 +2286,13 @@ function App() {
         return;
       }
 
+      // Ctrl/Cmd + Shift + X: Toggle Code Interpreter
+      if (isModifier && e.shiftKey && e.key.toLowerCase() === 'x') {
+        e.preventDefault();
+        handleToggleCodeInterpreter();
+        return;
+      }
+
       // '/' outside inputs: Focus Chat Input
       if (!isModifier && !e.altKey && e.key === '/' && !isInputFocused) {
         e.preventDefault();
@@ -2278,7 +2305,7 @@ function App() {
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
     };
-  }, [handleNewChat, toggleSidebar, handleToggleCanvas, navigate]);
+  }, [handleNewChat, toggleSidebar, handleToggleCanvas, handleToggleCodeInterpreter, navigate]);
 
   // Handle when a chat is loaded from history - switch API mode and sync active project if needed
   const handleChatLoaded = useCallback(async (chat) => {
@@ -2465,10 +2492,27 @@ function App() {
                     ? "bg-primary hover:bg-primary/90 text-primary-foreground shadow-xs" 
                     : "text-foreground hover:bg-muted"
                 )}
-                title={isCanvasOpen ? (t('canvas.hideCanvas') || 'Ocultar Canvas') : (t('canvas.openCanvas') || 'Abrir Canvas')}
+                title={isCanvasOpen ? (t('canvas.hideCanvas') || 'Ocultar Canvas (Ctrl+Shift+C)') : (t('canvas.openCanvas') || 'Abrir Canvas (Ctrl+Shift+C)')}
               >
                 <PenSquare className={cn("h-3.5 w-3.5", isCanvasOpen ? "text-primary-foreground" : "text-primary", showButtonLabels && "mr-1.5")} />
                 {showButtonLabels && <span className="hidden md:inline">{t('canvas.label') || 'Canvas'}</span>}
+              </Button>
+
+              {/* Code Interpreter Toggle Button */}
+              <Button
+                variant={activeArtifact ? "default" : "outline"}
+                size="sm"
+                onClick={handleToggleCodeInterpreter}
+                className={cn(
+                  "text-xs border-border transition-colors",
+                  activeArtifact 
+                    ? "bg-purple-600 hover:bg-purple-700 text-white shadow-xs" 
+                    : "text-foreground hover:bg-muted"
+                )}
+                title={activeArtifact ? (t('header.hideCodeInterpreter') || 'Ocultar Interpretador de Código') : (t('header.openCodeInterpreter') || 'Abrir Interpretador de Código (Ctrl+Shift+X)')}
+              >
+                <Terminal className={cn("h-3.5 w-3.5", activeArtifact ? "text-white" : "text-purple-500 dark:text-purple-400", showButtonLabels && "mr-1.5")} />
+                {showButtonLabels && <span className="hidden md:inline">{t('header.codeInterpreter') || 'Código'}</span>}
               </Button>
 
               {isPowerUser && <Button

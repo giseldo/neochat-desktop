@@ -169,6 +169,13 @@ export default function KeyboardShortcutsModal({ isOpen, onClose }) {
         keys: [modKey, shiftKey, 'C']
       },
       {
+        id: 'toggleCodeInterpreter',
+        category: 'navigation',
+        title: t('shortcuts.items.toggleCodeInterpreter'),
+        description: t('shortcuts.items.toggleCodeInterpreterDesc'),
+        keys: [modKey, shiftKey, 'X']
+      },
+      {
         id: 'closeModals',
         category: 'navigation',
         title: t('shortcuts.items.closeModals'),
