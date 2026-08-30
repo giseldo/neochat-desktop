@@ -459,6 +459,8 @@ export const translations = {
       bgThemeTitle: 'Estilo de Fundo',
       fontThemeTitle: 'Tema Tipográfico (Fonte)',
       fontSizeTitle: 'Tamanho da Fonte',
+      chatWidthTitle: 'Largura do Chat',
+      chatWidthDesc: 'Escolha entre layout centralizado com margens ou expandido em tela cheia',
       quickMenuTitle: 'Aparência Rápida',
       tabs: {
         colors: 'Cores',
@@ -513,6 +515,12 @@ export const translations = {
         md: 'Padrão (16px)',
         lg: 'Grande (17.5px)',
         xl: 'Extra Grande (19px)',
+      },
+      chatWidths: {
+        wide: 'Centralizado (Wide)',
+        wideDesc: 'Margens laterais e visual focado',
+        full: 'Tela Cheia (Full)',
+        fullDesc: '100% da largura da janela',
       },
     },
     settings: {
@@ -1828,6 +1836,8 @@ export const translations = {
       bgThemeTitle: 'Background Style',
       fontThemeTitle: 'Typography Theme (Font)',
       fontSizeTitle: 'Font Size',
+      chatWidthTitle: 'Chat Width',
+      chatWidthDesc: 'Choose between centered layout with margins or full width layout',
       quickMenuTitle: 'Quick Appearance',
       tabs: {
         colors: 'Colors',
@@ -1882,6 +1892,12 @@ export const translations = {
         md: 'Default (16px)',
         lg: 'Large (17.5px)',
         xl: 'Extra Large (19px)',
+      },
+      chatWidths: {
+        wide: 'Centered (Wide)',
+        wideDesc: 'Side margins and focused reading',
+        full: 'Full Width (Full)',
+        fullDesc: '100% of window width',
       },
     },
     settings: {

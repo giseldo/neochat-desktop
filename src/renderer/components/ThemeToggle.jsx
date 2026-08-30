@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Sun, Moon, Laptop, Palette, Type, Settings, Check, Sparkles, User, Wrench, SlidersHorizontal } from 'lucide-react';
+import { Sun, Moon, Laptop, Palette, Type, Settings, Check, Sparkles, User, Wrench, SlidersHorizontal, AlignJustify, Maximize2 } from 'lucide-react';
 import { useTheme, COLOR_THEMES, FONT_THEMES, FONT_SIZES } from '../context/ThemeContext';
 import { useLanguage } from '../context/LanguageContext';
 import { cn } from '../lib/utils';
@@ -18,7 +18,9 @@ export function ThemeToggle({ className, interfaceMode: propInterfaceMode, onInt
     fontTheme,
     setFontTheme,
     fontSize,
-    setFontSize
+    setFontSize,
+    chatWidth,
+    setChatWidth
   } = useTheme();
   
   const { t } = useLanguage();
@@ -317,69 +319,136 @@ export function ThemeToggle({ className, interfaceMode: propInterfaceMode, onInt
           )}
 
           {activeTab === 'experience' && (
-            <div className="space-y-2 mb-3">
+            <div className="space-y-3 mb-3">
+              {/* Chat Width Selector: Wide vs Full */}
               <div>
+                <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider block mb-1.5">
+                  {t('theme.chatWidthTitle', 'Largura do Chat')}
+                </label>
+                <div className="grid grid-cols-2 gap-1.5">
+                  <button
+                    type="button"
+                    onClick={() => setChatWidth('wide')}
+                    className={cn(
+                      "flex items-start gap-2 p-2 rounded-xl border text-left transition-all duration-150",
+                      chatWidth === 'wide'
+                        ? "bg-primary/10 border-primary/50 text-foreground ring-1 ring-primary/30 shadow-xs"
+                        : "bg-background/80 border-border/70 text-foreground hover:bg-muted"
+                    )}
+                  >
+                    <div className={cn(
+                      "w-6 h-6 rounded-lg flex items-center justify-center shrink-0 mt-0.5",
+                      chatWidth === 'wide' ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
+                    )}>
+                      <AlignJustify className="w-3.5 h-3.5" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between">
+                        <span className={cn("text-xs font-semibold truncate", chatWidth === 'wide' && "text-primary")}>
+                          {t('theme.chatWidths.wide', 'Wide')}
+                        </span>
+                        {chatWidth === 'wide' && <Check className="w-3 h-3 text-primary shrink-0 ml-1" />}
+                      </div>
+                      <p className="text-[10px] text-muted-foreground leading-tight mt-0.5 truncate">
+                        {t('theme.chatWidths.wideDesc', 'Centralizado')}
+                      </p>
+                    </div>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setChatWidth('full')}
+                    className={cn(
+                      "flex items-start gap-2 p-2 rounded-xl border text-left transition-all duration-150",
+                      chatWidth === 'full'
+                        ? "bg-primary/10 border-primary/50 text-foreground ring-1 ring-primary/30 shadow-xs"
+                        : "bg-background/80 border-border/70 text-foreground hover:bg-muted"
+                    )}
+                  >
+                    <div className={cn(
+                      "w-6 h-6 rounded-lg flex items-center justify-center shrink-0 mt-0.5",
+                      chatWidth === 'full' ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
+                    )}>
+                      <Maximize2 className="w-3.5 h-3.5" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between">
+                        <span className={cn("text-xs font-semibold truncate", chatWidth === 'full' && "text-primary")}>
+                          {t('theme.chatWidths.full', 'Full')}
+                        </span>
+                        {chatWidth === 'full' && <Check className="w-3 h-3 text-primary shrink-0 ml-1" />}
+                      </div>
+                      <p className="text-[10px] text-muted-foreground leading-tight mt-0.5 truncate">
+                        {t('theme.chatWidths.fullDesc', '100% largura')}
+                      </p>
+                    </div>
+                  </button>
+                </div>
+              </div>
+
+              {/* Interface Mode */}
+              <div className="pt-2 border-t border-border/60">
                 <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider block mb-1">
                   {t('settings.interfaceModeTitle')}
                 </label>
-                <p className="text-[11px] text-muted-foreground leading-relaxed mb-2.5">
+                <p className="text-[11px] text-muted-foreground leading-relaxed mb-2">
                   {t('settings.interfaceModeDesc')}
                 </p>
-              </div>
 
-              <div className="space-y-2">
-                {[
-                  {
-                    id: 'user',
-                    icon: User,
-                    title: t('settings.userMode'),
-                    desc: t('settings.userModeDesc')
-                  },
-                  {
-                    id: 'power',
-                    icon: Wrench,
-                    title: t('settings.powerMode'),
-                    desc: t('settings.powerModeDesc')
-                  }
-                ].map(({ id, icon: Icon, title, desc }) => {
-                  const isSelected = currentInterfaceMode === id;
-                  return (
-                    <button
-                      key={id}
-                      type="button"
-                      onClick={() => handleModeSelect(id)}
-                      className={cn(
-                        "w-full flex items-start gap-2.5 p-2.5 rounded-xl border text-left transition-all duration-150 relative group",
-                        isSelected
-                          ? "bg-primary/10 border-primary/50 text-foreground ring-1 ring-primary/30 shadow-xs"
-                          : "bg-background/80 border-border/70 text-foreground hover:bg-muted hover:border-border"
-                      )}
-                    >
-                      <div className={cn(
-                        "w-7 h-7 rounded-lg flex items-center justify-center shrink-0 mt-0.5 transition-colors",
-                        isSelected ? "bg-primary text-primary-foreground shadow-xs" : "bg-muted text-muted-foreground group-hover:text-foreground"
-                      )}>
-                        <Icon className="w-3.5 h-3.5" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center justify-between gap-1 mb-0.5">
-                          <span className={cn("text-xs font-semibold", isSelected && "text-primary")}>
-                            {title}
-                          </span>
-                          {isSelected && (
-                            <span className="flex items-center gap-1 text-[10px] font-medium text-primary bg-primary/15 px-1.5 py-0.5 rounded-full">
-                              <Check className="w-2.5 h-2.5" />
-                              <span>{t('theme.activeBadge', 'Ativo')}</span>
-                            </span>
-                          )}
+                <div className="space-y-2">
+                  {[
+                    {
+                      id: 'user',
+                      icon: User,
+                      title: t('settings.userMode'),
+                      desc: t('settings.userModeDesc')
+                    },
+                    {
+                      id: 'power',
+                      icon: Wrench,
+                      title: t('settings.powerMode'),
+                      desc: t('settings.powerModeDesc')
+                    }
+                  ].map(({ id, icon: Icon, title, desc }) => {
+                    const isSelected = currentInterfaceMode === id;
+                    return (
+                      <button
+                        key={id}
+                        type="button"
+                        onClick={() => handleModeSelect(id)}
+                        className={cn(
+                          "w-full flex items-start gap-2.5 p-2.5 rounded-xl border text-left transition-all duration-150 relative group",
+                          isSelected
+                            ? "bg-primary/10 border-primary/50 text-foreground ring-1 ring-primary/30 shadow-xs"
+                            : "bg-background/80 border-border/70 text-foreground hover:bg-muted hover:border-border"
+                        )}
+                      >
+                        <div className={cn(
+                          "w-7 h-7 rounded-lg flex items-center justify-center shrink-0 mt-0.5 transition-colors",
+                          isSelected ? "bg-primary text-primary-foreground shadow-xs" : "bg-muted text-muted-foreground group-hover:text-foreground"
+                        )}>
+                          <Icon className="w-3.5 h-3.5" />
                         </div>
-                        <p className="text-[10.5px] text-muted-foreground leading-snug line-clamp-2">
-                          {desc}
-                        </p>
-                      </div>
-                    </button>
-                  );
-                })}
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center justify-between gap-1 mb-0.5">
+                            <span className={cn("text-xs font-semibold", isSelected && "text-primary")}>
+                              {title}
+                            </span>
+                            {isSelected && (
+                              <span className="flex items-center gap-1 text-[10px] font-medium text-primary bg-primary/15 px-1.5 py-0.5 rounded-full">
+                                <Check className="w-2.5 h-2.5" />
+                                <span>{t('theme.activeBadge', 'Ativo')}</span>
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-[10.5px] text-muted-foreground leading-snug line-clamp-2">
+                            {desc}
+                          </p>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
             </div>
           )}
@@ -395,7 +464,7 @@ export function ThemeToggle({ className, interfaceMode: propInterfaceMode, onInt
               <span>{t('theme.moreSettings')}</span>
             </Link>
             <span className="text-[10px] text-muted-foreground font-mono">
-              {fontTheme} • {fontSize} • {currentInterfaceMode === 'power' ? t('theme.powerShort', 'Power') : t('theme.userShort', 'Usuário')}
+              {fontTheme} • {fontSize} • {chatWidth.toUpperCase()} • {currentInterfaceMode === 'power' ? t('theme.powerShort', 'Power') : t('theme.userShort', 'Usuário')}
             </span>
           </div>
         </div>

@@ -132,6 +132,7 @@ function loadSettings() {
         googleTokenExpiresAt: null,
         customPromptTemplates: [],
         providerFilterTab: 'active',
+        chatWidth: 'wide',
         webSearch: {
             enabled: false,
             provider: 'local',

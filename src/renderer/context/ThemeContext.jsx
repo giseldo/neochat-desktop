@@ -50,6 +50,8 @@ export const ThemeContext = createContext({
   setFontTheme: () => {},
   fontSize: 'md',
   setFontSize: () => {},
+  chatWidth: 'wide',
+  setChatWidth: () => {},
   resolvedTheme: 'light',
   isDark: false,
 });
@@ -111,6 +113,14 @@ export const ThemeProvider = ({ children }) => {
     }
   });
 
+  const [chatWidth, setChatWidthState] = useState(() => {
+    try {
+      return localStorage.getItem('neochat_chat_width') || 'wide';
+    } catch {
+      return 'wide';
+    }
+  });
+
   const [systemIsDark, setSystemIsDark] = useState(() => {
     if (typeof window !== 'undefined' && window.matchMedia) {
       return window.matchMedia('(prefers-color-scheme: dark)').matches;
@@ -145,12 +155,13 @@ export const ThemeProvider = ({ children }) => {
       root.classList.remove('dark');
     }
 
-    // Data attributes for colors, background, font and font-size
+    // Data attributes for colors, background, font, font-size and chat-width
     root.setAttribute('data-color-theme', colorTheme);
     root.setAttribute('data-bg-theme', effectiveBgTheme);
     root.setAttribute('data-font', fontTheme);
     root.setAttribute('data-font-size', fontSize);
-  }, [isDark, colorTheme, effectiveBgTheme, fontTheme, fontSize]);
+    root.setAttribute('data-chat-width', chatWidth);
+  }, [isDark, colorTheme, effectiveBgTheme, fontTheme, fontSize, chatWidth]);
 
   const setTheme = (newTheme) => {
     setThemeState(newTheme);
@@ -208,6 +219,21 @@ export const ThemeProvider = ({ children }) => {
     }
   };
 
+  const setChatWidth = (newChatWidth) => {
+    const validWidth = newChatWidth === 'full' ? 'full' : 'wide';
+    setChatWidthState(validWidth);
+    try {
+      localStorage.setItem('neochat_chat_width', validWidth);
+    } catch (e) {
+      console.error('Failed to save chat width to localStorage:', e);
+    }
+    if (window.electron?.saveSettings) {
+      window.electron.getSettings().then(current => {
+        window.electron.saveSettings({ ...current, chatWidth: validWidth }).catch(() => {});
+      }).catch(() => {});
+    }
+  };
+
   return (
     <ThemeContext.Provider value={{
       theme,
@@ -220,6 +246,8 @@ export const ThemeProvider = ({ children }) => {
       setFontTheme,
       fontSize,
       setFontSize,
+      chatWidth,
+      setChatWidth,
       resolvedTheme,
       isDark,
     }}>

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { Link, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Search, Eye, EyeOff, Plus, Trash2, Edit3, Save, X, RefreshCw, Key, Settings as SettingsIcon, Zap, Cpu, Server, AlertCircle, CheckCircle, Sun, Moon, Laptop, Languages, Check, Terminal, Globe, Palette, Type, Sparkles, Sliders, ExternalLink, Route, User, Wrench, Download, UploadCloud, BarChart3, GitBranch, Mic, Volume2, Info, Keyboard, Folder, FolderOpen, RotateCcw, Lightbulb, Star, ChevronDown, ChevronUp, HardDrive, Brain, Flame } from 'lucide-react';
+import { ArrowLeft, Search, Eye, EyeOff, Plus, Trash2, Edit3, Save, X, RefreshCw, Key, Settings as SettingsIcon, Zap, Cpu, Server, AlertCircle, CheckCircle, Sun, Moon, Laptop, Languages, Check, Terminal, Globe, Palette, Type, Sparkles, Sliders, ExternalLink, Route, User, Wrench, Download, UploadCloud, BarChart3, GitBranch, Mic, Volume2, Info, Keyboard, Folder, FolderOpen, RotateCcw, Lightbulb, Star, ChevronDown, ChevronUp, HardDrive, Brain, Flame, AlignJustify, Maximize2 } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
@@ -227,6 +227,8 @@ function Settings() {
     setFontTheme,
     fontSize,
     setFontSize,
+    chatWidth,
+    setChatWidth,
     resolvedTheme,
     isDark
   } = useTheme();
@@ -3136,7 +3138,78 @@ function Settings() {
                   </div>
                 </div>
 
-                {/* 6. Live Interactive Preview */}
+                {/* 6. Chat Width Layout Selector */}
+                <div className="space-y-2.5 pt-2 border-t border-border/60">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-sm font-semibold flex items-center gap-2">
+                      <AlignJustify className="w-4 h-4 text-primary" />
+                      <span>{t('theme.chatWidthTitle')}</span>
+                    </Label>
+                    <Badge variant="outline" className="text-xs">
+                      {chatWidth === 'wide' ? t('theme.chatWidths.wide') : t('theme.chatWidths.full')}
+                    </Badge>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    {t('theme.chatWidthDesc')}
+                  </p>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                    <button
+                      type="button"
+                      onClick={() => setChatWidth('wide')}
+                      className={`flex items-start gap-3 p-3.5 rounded-xl border text-left transition-all ${
+                        chatWidth === 'wide'
+                          ? 'border-primary bg-primary/10 shadow-xs ring-1 ring-primary/30'
+                          : 'border-border bg-background hover:bg-muted text-foreground'
+                      }`}
+                    >
+                      <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 mt-0.5 ${
+                        chatWidth === 'wide' ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'
+                      }`}>
+                        <AlignJustify className="w-4 h-4" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between mb-0.5">
+                          <span className={`text-xs font-semibold ${chatWidth === 'wide' ? 'text-primary' : 'text-foreground'}`}>
+                            {t('theme.chatWidths.wide')}
+                          </span>
+                          {chatWidth === 'wide' && <Check className="w-3.5 h-3.5 text-primary shrink-0" />}
+                        </div>
+                        <p className="text-[11px] text-muted-foreground leading-snug">
+                          {t('theme.chatWidths.wideDesc')}
+                        </p>
+                      </div>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setChatWidth('full')}
+                      className={`flex items-start gap-3 p-3.5 rounded-xl border text-left transition-all ${
+                        chatWidth === 'full'
+                          ? 'border-primary bg-primary/10 shadow-xs ring-1 ring-primary/30'
+                          : 'border-border bg-background hover:bg-muted text-foreground'
+                      }`}
+                    >
+                      <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 mt-0.5 ${
+                        chatWidth === 'full' ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'
+                      }`}>
+                        <Maximize2 className="w-4 h-4" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between mb-0.5">
+                          <span className={`text-xs font-semibold ${chatWidth === 'full' ? 'text-primary' : 'text-foreground'}`}>
+                            {t('theme.chatWidths.full')}
+                          </span>
+                          {chatWidth === 'full' && <Check className="w-3.5 h-3.5 text-primary shrink-0" />}
+                        </div>
+                        <p className="text-[11px] text-muted-foreground leading-snug">
+                          {t('theme.chatWidths.fullDesc')}
+                        </p>
+                      </div>
+                    </button>
+                  </div>
+                </div>
+
+                {/* 7. Live Interactive Preview */}
                 <div className="space-y-2.5 pt-2 border-t border-border/60">
                   <Label className="text-sm font-semibold flex items-center gap-2">
                     <Eye className="w-4 h-4 text-primary" />

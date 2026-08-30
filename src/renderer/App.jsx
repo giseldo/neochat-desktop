@@ -23,6 +23,7 @@ import { useChat } from './context/ChatContext';
 import { useCanvas } from './context/CanvasContext';
 import { useProjects } from './context/ProjectContext';
 import { useLanguage } from './context/LanguageContext';
+import { useTheme } from './context/ThemeContext';
 import { Settings, PanelLeftClose, PanelLeft, Radio, MessagesSquare, Sparkles, Store, Columns2, X, FolderKanban, BookOpen, Scale, Bot, Workflow, ChevronDown, Keyboard, Key, AlertCircle, PenSquare, Terminal } from 'lucide-react';
 import { Button } from './components/ui/button';
 import { cn } from './lib/utils';
@@ -127,6 +128,7 @@ function App() {
     closeKnowledgeBaseModal
   } = useProjects();
   const { t } = useLanguage();
+  const { chatWidth } = useTheme();
 
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('chat'); // 'chat' | 'trajectory'
@@ -2615,7 +2617,12 @@ function App() {
       <div className="flex-1 flex overflow-hidden">
         <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
           <div className="flex-1 overflow-y-auto">
-            <div className="max-w-[1600px] mx-auto py-8 px-8 h-full">
+            <div className={cn(
+              "mx-auto h-full transition-all duration-200",
+              chatWidth === 'wide'
+                ? "max-w-4xl lg:max-w-5xl xl:max-w-5xl py-6 px-4 sm:px-6 w-full"
+                : "max-w-[1600px] w-full py-6 px-6 sm:px-8"
+            )}>
               <div className="h-full">
               {isCompareMode ? (
                 /* Multi-Model Compare View */
