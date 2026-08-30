@@ -215,6 +215,76 @@ const POPULAR_PROVIDER_PRESETS = [
   }
 ];
 
+function getKnownApiKeyUrl(id = '', baseUrl = '', name = '') {
+  const normId = (id || '').toLowerCase();
+  const normUrl = (baseUrl || '').toLowerCase();
+  const normName = (name || '').toLowerCase();
+
+  const preset = POPULAR_PROVIDER_PRESETS.find(p => p.id === normId || normName.includes(p.id) || (p.baseUrl && normUrl.includes(p.baseUrl.replace(/\/+$/, ''))));
+  if (preset && preset.keyUrl) {
+    return preset.keyUrl;
+  }
+
+  if (normId.includes('groq') || normUrl.includes('groq.com') || normName.includes('groq')) {
+    return 'https://console.groq.com/keys';
+  }
+  if (normId.includes('gemini') || normId.includes('google') || normUrl.includes('googleapis.com') || normUrl.includes('generativelanguage') || normName.includes('gemini') || normName.includes('google')) {
+    return 'https://aistudio.google.com/app/apikey';
+  }
+  if (normId.includes('openai') || normUrl.includes('openai.com') || normName.includes('openai')) {
+    return 'https://platform.openai.com/api-keys';
+  }
+  if (normId.includes('anthropic') || normId.includes('claude') || normUrl.includes('anthropic.com') || normName.includes('anthropic') || normName.includes('claude')) {
+    return 'https://console.anthropic.com/settings/keys';
+  }
+  if (normId.includes('openrouter') || normUrl.includes('openrouter.ai') || normName.includes('openrouter')) {
+    return 'https://openrouter.ai/keys';
+  }
+  if (normId.includes('deepseek') || normUrl.includes('deepseek.com') || normName.includes('deepseek')) {
+    return 'https://platform.deepseek.com/api_keys';
+  }
+  if (normId.includes('together') || normUrl.includes('together.xyz') || normUrl.includes('together.ai') || normName.includes('together')) {
+    return 'https://api.together.xyz/settings/api-keys';
+  }
+  if (normId.includes('fireworks') || normUrl.includes('fireworks.ai') || normName.includes('fireworks')) {
+    return 'https://fireworks.ai/api-keys';
+  }
+  if (normId.includes('mistral') || normUrl.includes('mistral.ai') || normName.includes('mistral')) {
+    return 'https://console.mistral.ai/api-keys/';
+  }
+  if (normId.includes('grok') || normId.includes('xai') || normUrl.includes('x.ai') || normName.includes('xai') || normName.includes('grok')) {
+    return 'https://console.x.ai/';
+  }
+  if (normId.includes('perplexity') || normUrl.includes('perplexity.ai') || normName.includes('perplexity')) {
+    return 'https://www.perplexity.ai/settings/api';
+  }
+  if (normId.includes('cohere') || normUrl.includes('cohere.com') || normUrl.includes('cohere.ai') || normName.includes('cohere')) {
+    return 'https://dashboard.cohere.com/api-keys';
+  }
+  if (normId.includes('cerebras') || normUrl.includes('cerebras.ai') || normName.includes('cerebras')) {
+    return 'https://cloud.cerebras.ai/';
+  }
+  if (normId.includes('sambanova') || normUrl.includes('sambanova.ai') || normName.includes('sambanova')) {
+    return 'https://cloud.sambanova.ai/';
+  }
+  if (normId.includes('deepinfra') || normUrl.includes('deepinfra.com') || normName.includes('deepinfra')) {
+    return 'https://deepinfra.com/dash/api_keys';
+  }
+  if (normId.includes('novita') || normUrl.includes('novita.ai') || normName.includes('novita')) {
+    return 'https://novita.ai/dashboard/key-management';
+  }
+  if (normId.includes('ai21') || normUrl.includes('ai21.com') || normName.includes('ai21')) {
+    return 'https://studio.ai21.com/account/api-key';
+  }
+  if (normId.includes('voyage') || normUrl.includes('voyageai.com') || normName.includes('voyage')) {
+    return 'https://dash.voyageai.com/api-keys';
+  }
+  if (normId.includes('huggingface') || normId.includes('hf') || normUrl.includes('huggingface.co') || normName.includes('huggingface')) {
+    return 'https://huggingface.co/settings/tokens';
+  }
+  return '';
+}
+
 function Settings() {
   const {
     theme,
@@ -4493,35 +4563,58 @@ function Settings() {
                           <div className="pt-2 border-t border-border/40 space-y-3">
                             <div className="grid grid-cols-1 md:grid-cols-12 gap-3 items-end">
                               {/* API Key Input (if requires key or is custom) */}
-                              {(provider.requiresApiKey !== false || provider.isCustom) && (
-                                <div className={cn(
-                                  provider.isCustom || provider.id === 'custom' ? "md:col-span-6" : "md:col-span-8",
-                                  "space-y-1.5"
-                                )}>
-                                  <Label htmlFor={`api-key-${provider.id}`} className="text-xs font-medium">
-                                    {t('settings.apiKeyLabel')}
-                                  </Label>
-                                  <div className="relative">
-                                    <Input
-                                      type={showKey ? "text" : "password"}
-                                      id={`api-key-${provider.id}`}
-                                      value={currentKey}
-                                      onChange={(e) => handleProviderApiKeyChange(provider.id, e.target.value)}
-                                      placeholder={t('settings.providerCardApiKeyPlaceholder')}
-                                      className="text-xs h-8 pr-8"
-                                    />
-                                    <Button
-                                      type="button"
-                                      variant="ghost"
-                                      size="icon"
-                                      className="absolute right-0 top-0 h-8 w-8 text-muted-foreground"
-                                      onClick={() => toggleProviderApiKeyVisibility(provider.id)}
-                                    >
-                                      {showKey ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
-                                    </Button>
+                              {(provider.requiresApiKey !== false || provider.isCustom) && (() => {
+                                const resolvedKeyUrl = provider.keyUrl || provider.apiKeyUrl || getKnownApiKeyUrl(provider.id, provider.baseUrl, provider.name);
+                                return (
+                                  <div className={cn(
+                                    provider.isCustom || provider.id === 'custom' ? "md:col-span-6" : "md:col-span-8",
+                                    "space-y-1.5"
+                                  )}>
+                                    <div className="flex items-center justify-between gap-2">
+                                      <Label htmlFor={`api-key-${provider.id}`} className="text-xs font-medium">
+                                        {t('settings.apiKeyLabel')}
+                                      </Label>
+                                      {resolvedKeyUrl && (
+                                        <a
+                                          href={resolvedKeyUrl}
+                                          target="_blank"
+                                          rel="noreferrer"
+                                          onClick={(e) => {
+                                            if (window.electron?.openExternal) {
+                                              e.preventDefault();
+                                              window.electron.openExternal(resolvedKeyUrl);
+                                            }
+                                          }}
+                                          className="text-[11px] text-primary hover:underline inline-flex items-center gap-1 font-medium group transition-colors cursor-pointer"
+                                          title={t('settings.getApiKeyTooltip', { provider: provider.name })}
+                                        >
+                                          <span>{t('settings.getApiKey')}</span>
+                                          <ExternalLink className="w-3 h-3 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
+                                        </a>
+                                      )}
+                                    </div>
+                                    <div className="relative">
+                                      <Input
+                                        type={showKey ? "text" : "password"}
+                                        id={`api-key-${provider.id}`}
+                                        value={currentKey}
+                                        onChange={(e) => handleProviderApiKeyChange(provider.id, e.target.value)}
+                                        placeholder={t('settings.providerCardApiKeyPlaceholder')}
+                                        className="text-xs h-8 pr-8"
+                                      />
+                                      <Button
+                                        type="button"
+                                        variant="ghost"
+                                        size="icon"
+                                        className="absolute right-0 top-0 h-8 w-8 text-muted-foreground"
+                                        onClick={() => toggleProviderApiKeyVisibility(provider.id)}
+                                      >
+                                        {showKey ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+                                      </Button>
+                                    </div>
                                   </div>
-                                </div>
-                              )}
+                                );
+                              })()}
 
                               {/* Base URL (if custom or overriding) */}
                               {(provider.isCustom || provider.id === 'custom') && (
@@ -7255,24 +7348,25 @@ function Settings() {
                     </Label>
                     {(() => {
                       const preset = POPULAR_PROVIDER_PRESETS.find(p => p.id === selectedPresetId);
-                      if (preset?.keyUrl) {
+                      const keyUrl = preset?.keyUrl || customProviderForm.keyUrl || getKnownApiKeyUrl(customProviderForm.id, customProviderForm.baseUrl, customProviderForm.name);
+                      if (keyUrl) {
                         return (
                           <a
-                            href={preset.keyUrl}
+                            href={keyUrl}
                             target="_blank"
                             rel="noreferrer"
                             onClick={(e) => {
                               e.preventDefault();
                               if (window.electron?.openExternal) {
-                                window.electron.openExternal(preset.keyUrl);
+                                window.electron.openExternal(keyUrl);
                               } else {
-                                window.open(preset.keyUrl, '_blank');
+                                window.open(keyUrl, '_blank');
                               }
                             }}
                             className="text-[11px] text-primary hover:underline inline-flex items-center gap-1 font-medium cursor-pointer"
                           >
                             <ExternalLink className="w-3 h-3" />
-                            <span>{t('settings.getKeyHelp')} ({preset.keyUrlLabel || preset.name}) ↗</span>
+                            <span>{t('settings.getKeyHelp')} ({preset?.keyUrlLabel || customProviderForm.name || 'Console'}) ↗</span>
                           </a>
                         );
                       }

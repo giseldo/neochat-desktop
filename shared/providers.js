@@ -270,37 +270,116 @@ const PROVIDERS = {
   },
 };
 
-const PROVIDER_LIST = Object.values(PROVIDERS).map((p) => ({
-  id: p.id,
-  name: p.name,
-  baseUrl: p.baseUrl,
-  defaultModel: p.defaultModel,
-  description: p.description,
-  icon: p.icon || 'Server',
-  isLocal: !!p.isLocal,
-  requiresApiKey: p.requiresApiKey !== false,
-  keyUrl: p.keyUrl || '',
-  keyPlaceholder: p.keyPlaceholder || 'sk-...',
-  popularModels: p.popularModels || [],
-}));
+/**
+ * Helper to determine the API key signup/management URL based on provider ID, baseUrl, or name.
+ */
+function getKnownApiKeyUrl(id = '', baseUrl = '', name = '') {
+  const normId = (id || '').toLowerCase();
+  const normUrl = (baseUrl || '').toLowerCase();
+  const normName = (name || '').toLowerCase();
+
+  if (normId.includes('groq') || normUrl.includes('groq.com') || normName.includes('groq')) {
+    return 'https://console.groq.com/keys';
+  }
+  if (normId.includes('gemini') || normId.includes('google') || normUrl.includes('googleapis.com') || normUrl.includes('generativelanguage') || normName.includes('gemini') || normName.includes('google')) {
+    return 'https://aistudio.google.com/app/apikey';
+  }
+  if (normId.includes('openai') || normUrl.includes('openai.com') || normName.includes('openai')) {
+    return 'https://platform.openai.com/api-keys';
+  }
+  if (normId.includes('anthropic') || normId.includes('claude') || normUrl.includes('anthropic.com') || normName.includes('anthropic') || normName.includes('claude')) {
+    return 'https://console.anthropic.com/settings/keys';
+  }
+  if (normId.includes('openrouter') || normUrl.includes('openrouter.ai') || normName.includes('openrouter')) {
+    return 'https://openrouter.ai/keys';
+  }
+  if (normId.includes('deepseek') || normUrl.includes('deepseek.com') || normName.includes('deepseek')) {
+    return 'https://platform.deepseek.com/api_keys';
+  }
+  if (normId.includes('together') || normUrl.includes('together.xyz') || normUrl.includes('together.ai') || normName.includes('together')) {
+    return 'https://api.together.xyz/settings/api-keys';
+  }
+  if (normId.includes('fireworks') || normUrl.includes('fireworks.ai') || normName.includes('fireworks')) {
+    return 'https://fireworks.ai/api-keys';
+  }
+  if (normId.includes('mistral') || normUrl.includes('mistral.ai') || normName.includes('mistral')) {
+    return 'https://console.mistral.ai/api-keys/';
+  }
+  if (normId.includes('grok') || normId.includes('xai') || normUrl.includes('x.ai') || normName.includes('xai') || normName.includes('grok')) {
+    return 'https://console.x.ai/';
+  }
+  if (normId.includes('perplexity') || normUrl.includes('perplexity.ai') || normName.includes('perplexity')) {
+    return 'https://www.perplexity.ai/settings/api';
+  }
+  if (normId.includes('cohere') || normUrl.includes('cohere.com') || normUrl.includes('cohere.ai') || normName.includes('cohere')) {
+    return 'https://dashboard.cohere.com/api-keys';
+  }
+  if (normId.includes('cerebras') || normUrl.includes('cerebras.ai') || normName.includes('cerebras')) {
+    return 'https://cloud.cerebras.ai/';
+  }
+  if (normId.includes('sambanova') || normUrl.includes('sambanova.ai') || normName.includes('sambanova')) {
+    return 'https://cloud.sambanova.ai/';
+  }
+  if (normId.includes('deepinfra') || normUrl.includes('deepinfra.com') || normName.includes('deepinfra')) {
+    return 'https://deepinfra.com/dash/api_keys';
+  }
+  if (normId.includes('novita') || normUrl.includes('novita.ai') || normName.includes('novita')) {
+    return 'https://novita.ai/dashboard/key-management';
+  }
+  if (normId.includes('ai21') || normUrl.includes('ai21.com') || normName.includes('ai21')) {
+    return 'https://studio.ai21.com/account/api-key';
+  }
+  if (normId.includes('voyage') || normUrl.includes('voyageai.com') || normName.includes('voyage')) {
+    return 'https://dash.voyageai.com/api-keys';
+  }
+  if (normId.includes('huggingface') || normId.includes('hf') || normUrl.includes('huggingface.co') || normName.includes('huggingface')) {
+    return 'https://huggingface.co/settings/tokens';
+  }
+  return '';
+}
+
+const PROVIDER_LIST = Object.values(PROVIDERS).map((p) => {
+  const resolvedKeyUrl = p.keyUrl || p.apiKeyUrl || getKnownApiKeyUrl(p.id, p.baseUrl, p.name);
+  return {
+    id: p.id,
+    name: p.name,
+    baseUrl: p.baseUrl,
+    defaultModel: p.defaultModel,
+    description: p.description,
+    icon: p.icon || 'Server',
+    isLocal: !!p.isLocal,
+    requiresApiKey: p.requiresApiKey !== false,
+    keyUrl: resolvedKeyUrl,
+    apiKeyUrl: resolvedKeyUrl,
+    keyPlaceholder: p.keyPlaceholder || 'sk-...',
+    popularModels: p.popularModels || [],
+  };
+});
 
 function getCustomProviders(settings) {
   if (!settings || !Array.isArray(settings.customProviders)) {
     return [];
   }
-  return settings.customProviders.map(p => ({
-    id: p.id,
-    name: p.name || p.id,
-    baseUrl: p.baseUrl || '',
-    modelsUrl: p.modelsUrl || (p.baseUrl ? `${p.baseUrl.replace(/\/+$/, '')}/models` : ''),
-    defaultModel: p.defaultModel || '',
-    description: p.description || 'Provedor personalizado OpenAI-compatible',
-    icon: p.icon || 'Settings',
-    isLocal: Boolean(p.isLocal),
-    requiresApiKey: p.requiresApiKey !== false,
-    isCustom: true,
-    apiKey: p.apiKey || ''
-  }));
+  return settings.customProviders.map(p => {
+    const resolvedKeyUrl = p.keyUrl || p.apiKeyUrl || getKnownApiKeyUrl(p.id, p.baseUrl, p.name);
+    return {
+      id: p.id,
+      name: p.name || p.id,
+      baseUrl: p.baseUrl || '',
+      modelsUrl: p.modelsUrl || (p.baseUrl ? `${p.baseUrl.replace(/\/+$/, '')}/models` : ''),
+      defaultModel: p.defaultModel || '',
+      description: p.description || 'Provedor personalizado OpenAI-compatible',
+      icon: p.icon || 'Settings',
+      isLocal: Boolean(p.isLocal),
+      requiresApiKey: p.requiresApiKey !== false,
+      isCustom: true,
+      apiKey: p.apiKey || '',
+      keyUrl: resolvedKeyUrl,
+      apiKeyUrl: resolvedKeyUrl,
+      keyPlaceholder: p.keyPlaceholder || 'sk-...',
+      popularModels: p.popularModels || [],
+    };
+  });
 }
 
 function getAllProviders(settings = {}) {
@@ -312,10 +391,13 @@ function getAllProviders(settings = {}) {
     const customMatch = customMap.get(p.id);
     const customUrl = settings?.providerUrls?.[p.id] || customMatch?.baseUrl;
     const customKey = customMatch?.apiKey;
+    const resolvedKeyUrl = p.keyUrl || p.apiKeyUrl || getKnownApiKeyUrl(p.id, customUrl || p.baseUrl, p.name);
     return {
       ...p,
       baseUrl: customUrl || p.baseUrl,
-      apiKey: customKey || p.apiKey || ''
+      apiKey: customKey || p.apiKey || '',
+      keyUrl: resolvedKeyUrl,
+      apiKeyUrl: resolvedKeyUrl,
     };
   });
 
@@ -570,4 +652,5 @@ module.exports = {
   getActiveProviders,
   getConfiguredProviders,
   getProviderCandidates,
+  getKnownApiKeyUrl,
 };
