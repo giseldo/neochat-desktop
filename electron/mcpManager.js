@@ -169,7 +169,7 @@ async function connectMcpServerProcess(serverId, connectionDetails, authProvider
     }
 
     // --- Create Client and Transport ---
-    const client = new Client({ name: "groq-desktop", version: appInstance.getVersion(), capabilities: { tools: true } });
+    const client = new Client({ name: "neochat-desktop", version: appInstance.getVersion(), capabilities: { tools: true } });
     let transport;
     mcpServerLogs[serverId] = [];
 

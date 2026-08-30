@@ -16,7 +16,7 @@ async function run() {
     console.log('Testing ConfigDirManager...');
 
     const baseTempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'neochat-configdir-test-'));
-    const defaultUserDataDir = path.join(baseTempDir, 'appData', 'groq-desktop-app');
+    const defaultUserDataDir = path.join(baseTempDir, 'appData', 'neochat-desktop');
     fs.mkdirSync(defaultUserDataDir, { recursive: true });
 
     let activeUserData = defaultUserDataDir;
@@ -32,7 +32,7 @@ async function run() {
                 activeUserData = val;
             }
         },
-        getName: () => 'groq-desktop-app'
+        getName: () => 'neochat-desktop'
     };
 
     try {
@@ -100,7 +100,7 @@ async function run() {
                     freshAppUserData = val;
                 }
             },
-            getName: () => 'groq-desktop-app'
+            getName: () => 'neochat-desktop'
         };
 
         const bootstrappedPath = bootstrapUserDataPath(freshMockApp);
@@ -129,6 +129,38 @@ async function run() {
 
         const afterResetInfo = getConfigDirInfo(mockApp);
         assert.strictEqual(afterResetInfo.isCustom, false);
+
+        // 6. Test Legacy Migration from groq-desktop-app to neochat-desktop
+        const migrationBaseDir = fs.mkdtempSync(path.join(os.tmpdir(), 'neochat-mig-test-'));
+        const legacyDir = path.join(migrationBaseDir, 'appData', 'groq-desktop-app');
+        const newDefaultDir = path.join(migrationBaseDir, 'appData', 'neochat-desktop');
+        fs.mkdirSync(legacyDir, { recursive: true });
+        fs.writeFileSync(path.join(legacyDir, 'settings.json'), JSON.stringify({ legacyMigrated: true }));
+        fs.writeFileSync(path.join(legacyDir, 'secrets.vault'), 'encrypted-data');
+
+        let migrationUserData = newDefaultDir;
+        const migrationMockApp = {
+            getPath: (name) => {
+                if (name === 'appData') return path.join(migrationBaseDir, 'appData');
+                if (name === 'userData') return migrationUserData;
+                return migrationBaseDir;
+            },
+            setPath: (name, val) => {
+                if (name === 'userData') {
+                    migrationUserData = val;
+                }
+            },
+            getName: () => 'neochat-desktop'
+        };
+
+        const migratedPath = bootstrapUserDataPath(migrationMockApp);
+        assert.strictEqual(path.resolve(migratedPath), path.resolve(newDefaultDir));
+        assert.ok(fs.existsSync(path.join(newDefaultDir, 'settings.json')), 'settings.json must be migrated from legacy folder');
+        assert.ok(fs.existsSync(path.join(newDefaultDir, 'secrets.vault')), 'secrets.vault must be migrated from legacy folder');
+        const migratedSettings = JSON.parse(fs.readFileSync(path.join(newDefaultDir, 'settings.json'), 'utf8'));
+        assert.strictEqual(migratedSettings.legacyMigrated, true);
+
+        fs.rmSync(migrationBaseDir, { recursive: true, force: true });
 
         console.log('All ConfigDirManager tests passed successfully!');
     } finally {

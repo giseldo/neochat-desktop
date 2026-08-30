@@ -1,7 +1,7 @@
 {
-  "name": "groq-desktop-app",
+  "name": "neochat-desktop",
   "version": "1.4.1",
-  "description": "A simple Electron app with Groq API integration",
+  "description": "NeoChat Desktop AI Workspace & Chat",
   "main": "electron/main.js",
   "type": "commonjs",
   "packageManager": "pnpm@10.9.0",

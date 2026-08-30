@@ -4,6 +4,12 @@ const path = require('path');
 const { globalShortcut } = require('electron');
 const configDirManager = require('./configDirManager');
 
+// Set application name early so default userData path resolves to neochat-desktop
+app.name = 'neochat-desktop';
+if (typeof app.setName === 'function') {
+  app.setName('neochat-desktop');
+}
+
 // Check and bootstrap custom userData path before logs or other services initialize
 configDirManager.bootstrapUserDataPath(app);
 
