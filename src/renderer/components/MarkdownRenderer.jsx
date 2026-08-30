@@ -9,6 +9,45 @@ import { extractThinking } from '../lib/messageUtils';
 
 const imageFileExtensionsRegex = /\.(jpg|jpeg|png|gif|bmp|webp|svg)$/i;
 
+/**
+ * Preprocesses markdown content for LaTeX math equations while preserving code blocks.
+ * Converts LaTeX display math \[ ... \] to $$ ... $$ and inline math \( ... \) to $ ... $.
+ * Does NOT convert ```latex or ```tex code blocks to math.
+ */
+function preprocessMarkdownMath(content) {
+  if (!content) return '';
+
+  // Split content by code blocks and inline code to protect them from math replacement
+  const parts = content.split(/(```[\s\S]*?```|`[^`\n]*?`)/g);
+
+  return parts
+    .map((part, index) => {
+      // Odd indices are code blocks or inline code
+      if (index % 2 === 1) {
+        // If explicitly tagged as ```math or ```katex, convert to $$ display math
+        const mathBlockMatch = /^```(?:math|katex)\r?\n([\s\S]*?)```$/.exec(part);
+        if (mathBlockMatch) {
+          return `\n$$\n${mathBlockMatch[1].trim()}\n$$\n`;
+        }
+        // Preserve all other code blocks (including ```latex, ```tex, etc.) unchanged
+        return part;
+      }
+
+      let res = part;
+      // Convert LaTeX display math delimiters \[ ... \] to $$ ... $$
+      res = res.replace(/\\\[([\s\S]*?)\\\]/g, (_, math) => `\n$$\n${math.trim()}\n$$\n`);
+
+      // Convert LaTeX inline math delimiters \( ... \) to $ ... $
+      res = res.replace(/\\\(([\s\S]*?)\\\)/g, (_, math) => `$${math.trim()}$`);
+
+      // Escape currency dollar signs ($50, $10.99) so they are not parsed as math
+      res = res.replace(/(^|[^\\])\$(?=\s*\d+([.,]\d+)?)/g, '$1\\$');
+
+      return res;
+    })
+    .join('');
+}
+
 function MarkdownRenderer({ content = '', disableMath = false, onPreviewArtifact }) {
   // Filter out reference lines like 【4†L24-L30】【4†L32-L35】
   let processedContent = String(content || '').replace(/【\d+†L\d+-L\d+】/g, '');
@@ -21,19 +60,14 @@ function MarkdownRenderer({ content = '', disableMath = false, onPreviewArtifact
     processedContent = processedContent.replace(/<\/?\s*(think|thought|thinking)(?:\s[^>]*)?>/gi, '');
   }
 
-  // Only process LaTeX if math rendering is enabled
+  // Process LaTeX math formulas if math rendering is enabled
   if (!disableMath) {
-    processedContent = processedContent
-      .replace(/\\\[/g, "$$$$\n")
-      .replace(/\\\]/g, "\n$$$$")
-      .replace(/\\\(/g, "$$")
-      .replace(/\\\)/g, "$$")
-      .replace(/```latex([\s\S]*?)```/g, "$$$$$1$$$$");
+    processedContent = preprocessMarkdownMath(processedContent);
   }
 
   // Remark & Rehype plugins
-  const remarkPlugins = disableMath ? [remarkGfm] : [remarkGfm, [remarkMath, { singleDollarTextMath: false }]];
-  const rehypePlugins = disableMath ? [] : [rehypeKatex];
+  const remarkPlugins = disableMath ? [remarkGfm] : [remarkGfm, [remarkMath, { singleDollarTextMath: true }]];
+  const rehypePlugins = disableMath ? [] : [[rehypeKatex, { throwOnError: false, strict: 'ignore' }]];
 
   const components = {
     span: ({ node, children, ...props }) => {

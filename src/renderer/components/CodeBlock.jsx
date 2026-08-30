@@ -42,7 +42,10 @@ const formatLanguage = (lang) => {
     php: 'PHP',
     dockerfile: 'Dockerfile',
     mermaid: 'Mermaid Diagram',
-    svg: 'SVG Image'
+    svg: 'SVG Image',
+    latex: 'LaTeX',
+    tex: 'TeX',
+    bibtex: 'BibTeX'
   };
   return map[lang.toLowerCase()] || lang.toUpperCase();
 };
