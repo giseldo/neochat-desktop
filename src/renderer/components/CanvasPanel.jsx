@@ -1086,8 +1086,8 @@ export function CanvasPanel({ onSendPrompt, className }) {
       {/* 4. Interactive AI Quick Actions & Prompt Bar (Bottom) */}
       <div className="p-3 border-t border-border bg-muted/30 shrink-0 space-y-2">
         {/* Quick Action Chips Bar */}
-        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 custom-scrollbar text-[11px] no-scrollbar">
-          <span className="text-[10px] font-semibold text-muted-foreground uppercase flex items-center gap-1 shrink-0">
+        <div className="flex flex-wrap items-center gap-1.5 text-[11px]">
+          <span className="text-[10px] font-semibold text-muted-foreground uppercase flex items-center gap-1 shrink-0 py-0.5 mr-0.5">
             <Sparkles className="w-3 h-3 text-primary" />
             <span>IA:</span>
           </span>
