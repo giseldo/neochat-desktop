@@ -719,22 +719,33 @@ const PopupPage = () => {
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   };
 
-  // Handle Escape key for closing fullscreen image
+  // Handle keyboard shortcuts (Escape for fullscreen image, Ctrl/Cmd+Shift+U/P for interface mode)
   useEffect(() => {
-    const handleKeyDown = (event) => {
+    const handleKeyDown = async (event) => {
       if (event.key === 'Escape' && fullScreenImage) {
         setFullScreenImage(null);
+        return;
+      }
+
+      const isModifier = event.ctrlKey || event.metaKey;
+      if (isModifier && event.shiftKey && (event.key.toLowerCase() === 'u' || event.key.toLowerCase() === 'p')) {
+        event.preventDefault();
+        const nextMode = interfaceMode === 'power' ? 'user' : 'power';
+        setInterfaceMode(nextMode);
+        try {
+          const currentSettings = await window.electron.getSettings();
+          await window.electron.saveSettings({ ...currentSettings, interfaceMode: nextMode });
+        } catch (err) {
+          console.error('Error saving interfaceMode in popup:', err);
+        }
       }
     };
 
-    if (fullScreenImage) {
-      document.addEventListener('keydown', handleKeyDown);
-    }
-
+    window.addEventListener('keydown', handleKeyDown);
     return () => {
-      document.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('keydown', handleKeyDown);
     };
-  }, [fullScreenImage]);
+  }, [fullScreenImage, interfaceMode]);
 
   return (
     <div 

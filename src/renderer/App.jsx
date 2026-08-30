@@ -2295,6 +2295,14 @@ function App() {
         return;
       }
 
+      // Ctrl/Cmd + Shift + U or Ctrl/Cmd + Shift + P: Toggle Interface Mode (User / Power)
+      if (isModifier && e.shiftKey && (e.key.toLowerCase() === 'u' || e.key.toLowerCase() === 'p')) {
+        e.preventDefault();
+        const nextMode = interfaceMode === 'power' ? 'user' : 'power';
+        handleInterfaceModeChange(nextMode);
+        return;
+      }
+
       // '/' outside inputs: Focus Chat Input
       if (!isModifier && !e.altKey && e.key === '/' && !isInputFocused) {
         e.preventDefault();
@@ -2307,7 +2315,7 @@ function App() {
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
     };
-  }, [handleNewChat, toggleSidebar, handleToggleCanvas, handleToggleCodeInterpreter, navigate]);
+  }, [handleNewChat, toggleSidebar, handleToggleCanvas, handleToggleCodeInterpreter, navigate, interfaceMode, handleInterfaceModeChange]);
 
   // Handle when a chat is loaded from history - switch API mode and sync active project if needed
   const handleChatLoaded = useCallback(async (chat) => {
