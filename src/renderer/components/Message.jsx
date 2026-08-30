@@ -560,12 +560,7 @@ function Message({
 
         {/* Action bar and Performance Metrics */}
         {!isUser && (
-          <div className={cn(
-            "flex items-center gap-2 mt-2 pt-2 text-xs text-muted-foreground",
-            isPowerUser 
-              ? "flex-wrap justify-between border-t border-border/70" 
-              : "justify-start opacity-70 hover:opacity-100 transition-opacity"
-          )}>
+          <div className="flex flex-wrap items-center justify-start gap-2 mt-2 pt-1 text-xs text-muted-foreground opacity-80 hover:opacity-100 transition-opacity">
             {/* Speed & Performance Metrics (Power Mode only) */}
             {isPowerUser && (
               <div className="flex flex-wrap items-center gap-2">
@@ -590,24 +585,6 @@ function Message({
                 {durationSec > 0 && (
                   <div className="text-[11px] text-muted-foreground">
                     {durationSec.toFixed(2)}s
-                  </div>
-                )}
-
-                {/* Detailed popover/stats */}
-                {showDetailedStats && (
-                  <div className="w-full mt-1 p-2 rounded-lg bg-card border border-border shadow-md text-xs space-y-1 animate-in fade-in-0">
-                    <div className="flex items-center justify-between text-muted-foreground border-b border-border/50 pb-1 font-medium">
-                      <span className="flex items-center gap-1"><Gauge className="w-3.5 h-3.5 text-primary" /> {t('message.inferenceMetrics')}</span>
-                      <button onClick={() => setShowDetailedStats(false)} className="hover:text-foreground">✕</button>
-                    </div>
-                    <div className="grid grid-cols-2 gap-2 pt-1 text-[11px]">
-                      <div>{t('message.tokensPrompt')} <span className="font-semibold text-foreground">{promptTokens}</span></div>
-                      <div>{t('message.tokensResponse')} <span className="font-semibold text-foreground">{completionTokens}</span></div>
-                      <div>{t('message.totalTokens')} <span className="font-semibold text-foreground">{totalTokens}</span></div>
-                      <div>{t('message.speed')} <span className="font-semibold text-primary">{tokensPerSec} t/s</span></div>
-                      {ttftMs && <div>{t('message.ttft')} <span className="font-semibold text-foreground">{ttftMs}ms</span></div>}
-                      {usage?.queue_time && <div>{t('message.groqQueue')} <span className="font-semibold text-foreground">{(usage.queue_time * 1000).toFixed(0)}ms</span></div>}
-                    </div>
                   </div>
                 )}
               </div>
@@ -657,6 +634,24 @@ function Message({
                 </button>
               )}
             </div>
+
+            {/* Detailed popover/stats (Power Mode only) */}
+            {isPowerUser && showDetailedStats && (
+              <div className="w-full mt-1 p-2 rounded-lg bg-card border border-border shadow-md text-xs space-y-1 animate-in fade-in-0">
+                <div className="flex items-center justify-between text-muted-foreground border-b border-border/50 pb-1 font-medium">
+                  <span className="flex items-center gap-1"><Gauge className="w-3.5 h-3.5 text-primary" /> {t('message.inferenceMetrics')}</span>
+                  <button onClick={() => setShowDetailedStats(false)} className="hover:text-foreground">✕</button>
+                </div>
+                <div className="grid grid-cols-2 gap-2 pt-1 text-[11px]">
+                  <div>{t('message.tokensPrompt')} <span className="font-semibold text-foreground">{promptTokens}</span></div>
+                  <div>{t('message.tokensResponse')} <span className="font-semibold text-foreground">{completionTokens}</span></div>
+                  <div>{t('message.totalTokens')} <span className="font-semibold text-foreground">{totalTokens}</span></div>
+                  <div>{t('message.speed')} <span className="font-semibold text-primary">{tokensPerSec} t/s</span></div>
+                  {ttftMs && <div>{t('message.ttft')} <span className="font-semibold text-foreground">{ttftMs}ms</span></div>}
+                  {usage?.queue_time && <div>{t('message.groqQueue')} <span className="font-semibold text-foreground">{(usage.queue_time * 1000).toFixed(0)}ms</span></div>}
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>
