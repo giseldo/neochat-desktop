@@ -503,7 +503,7 @@ export function CanvasPanel({ onSendPrompt, className }) {
               type="button"
               onClick={() => handleToggleSpeech()}
               className={cn(
-                "flex items-center gap-1.5 px-2 py-1 rounded-md text-xs font-medium transition-all",
+                "p-1.5 rounded-md text-xs font-medium transition-all flex items-center justify-center",
                 isSpeaking
                   ? "bg-primary text-primary-foreground shadow-xs animate-pulse"
                   : "text-muted-foreground hover:text-foreground hover:bg-muted"
@@ -511,15 +511,9 @@ export function CanvasPanel({ onSendPrompt, className }) {
               title={isSpeaking ? (t('canvas.ttsStop') || 'Parar Leitura') : (t('canvas.ttsPlay') || 'Ouvir Documento (TTS)')}
             >
               {isSpeaking ? (
-                <>
-                  <Square className="w-3.5 h-3.5 fill-current" />
-                  <span className="hidden sm:inline text-[11px] font-semibold">{t('canvas.ttsStop') || 'Parar'}</span>
-                </>
+                <Square className="w-3.5 h-3.5 fill-current" />
               ) : (
-                <>
-                  <Volume2 className="w-3.5 h-3.5" />
-                  <span className="hidden sm:inline text-[11px]">{t('canvas.ttsPlay') || 'Ouvir'}</span>
-                </>
+                <Volume2 className="w-3.5 h-3.5" />
               )}
             </button>
 
