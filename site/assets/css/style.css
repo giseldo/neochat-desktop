@@ -1029,112 +1029,50 @@ body.no-scroll { overflow: hidden; }
   line-height: 1.6;
 }
 
-/* ===== Download Cards ===== */
-.download-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-  gap: 28px;
-  margin-bottom: 40px;
+/* ===== Download (single CTA) ===== */
+.download-simple {
+  max-width: 720px;
+  margin: 0 auto;
+  text-align: center;
 }
-.download-card {
+.download-simple__note {
+  margin-top: 16px;
+  font-size: 0.95rem;
+  color: var(--text-2);
+}
+.download-simple__platforms {
+  list-style: none;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  margin-top: 40px;
+  text-align: left;
+}
+.download-simple__platforms li {
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: var(--r-lg);
-  padding: 36px 30px;
-  display: flex;
-  flex-direction: column;
-  position: relative;
-  transition: transform 0.25s, border-color 0.25s;
+  border-radius: var(--r-md);
+  padding: 20px 18px;
 }
-.download-card:hover {
-  transform: translateY(-4px);
-  border-color: var(--border-light);
-}
-.download-card--featured {
-  border-color: var(--brand);
-  background: linear-gradient(180deg, rgba(0, 82, 255, 0.08) 0%, var(--surface) 100%);
-  box-shadow: 0 8px 40px rgba(0, 82, 255, 0.15);
-}
-.download-card__badge {
-  position: absolute;
-  top: -12px; right: 24px;
-  background: var(--brand);
-  color: #fff;
-  font-size: 0.72rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  padding: 4px 12px;
-  border-radius: 999px;
-  letter-spacing: 0.05em;
-}
-.download-card__icon {
-  width: 48px; height: 48px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-bottom: 20px;
-  color: var(--text);
-}
-.download-card__icon svg { width: 36px; height: 36px; }
-.download-card h3 {
-  font-size: 1.35rem;
-  font-weight: 700;
-  margin-bottom: 6px;
-}
-.download-card p {
-  color: var(--text-3);
-  font-size: 0.88rem;
-  margin-bottom: 20px;
-}
-.download-card__meta {
-  font-size: 0.82rem;
-  color: var(--text-2);
-  font-family: 'JetBrains Mono', monospace;
-  margin-bottom: 14px;
-  min-height: 1.2em;
-}
-.brew-note {
-  display: block;
-  margin-top: 8px;
-  color: var(--text-3);
-  line-height: 1.4;
-}
-.brew-note code { font-size: 0.75em; }
-.download-card__files {
-  list-style: none;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  margin-bottom: 24px;
-  margin-top: auto;
-}
-.download-card__files a {
-  display: block;
-  font-size: 0.85rem;
-  font-family: 'JetBrains Mono', monospace;
+.download-simple__platforms svg {
   color: var(--accent);
-  padding: 8px 12px;
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  transition: all 0.2s;
+  margin-bottom: 10px;
 }
-.download-card__files a:hover {
-  background: rgba(0, 212, 255, 0.1);
-  border-color: var(--accent);
+.download-simple__platforms strong {
+  display: block;
+  font-size: 1rem;
+  margin-bottom: 4px;
+}
+.download-simple__platforms small {
+  color: var(--text-3);
+  font-size: 0.82rem;
+  line-height: 1.5;
+  display: block;
+}
+@media (max-width: 700px) {
+  .download-simple__platforms { grid-template-columns: 1fr; }
 }
 
-.brew-command-box {
-  margin-top: 18px;
-  padding-top: 14px;
-  border-top: 1px solid var(--border);
-}
-.brew-command-box small {
-  display: block;
-  font-size: 0.75rem;
-  color: var(--text-3);
-  margin-bottom: 6px;
-}
 .code-copy-row {
   display: flex;
   align-items: center;
@@ -1165,17 +1103,6 @@ body.no-scroll { overflow: hidden; }
 }
 .copy-btn:hover { background: rgba(255, 255, 255, 0.15); }
 .copy-btn.copied { background: var(--green); color: #fff; border-color: var(--green); }
-
-.download-all {
-  text-align: center;
-  font-size: 0.95rem;
-}
-.download-all a {
-  color: var(--accent);
-  font-weight: 600;
-  transition: text-decoration 0.2s;
-}
-.download-all a:hover { text-decoration: underline; }
 
 /* ===== FAQ Accordion ===== */
 .faq {
@@ -1369,7 +1296,6 @@ body.no-scroll { overflow: hidden; }
 @media (max-width: 768px) {
   .mode-tabs { grid-template-columns: 1fr; }
   .features-grid { grid-template-columns: 1fr; }
-  .download-grid { grid-template-columns: 1fr; }
   .footer__links { grid-template-columns: 1fr 1fr; }
   .footer__bottom-inner { flex-direction: column; gap: 12px; text-align: center; }
   .float-card { display: none; }

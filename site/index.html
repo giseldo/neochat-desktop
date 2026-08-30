@@ -680,70 +680,34 @@
         <div class="section__head reveal">
           <span class="badge">Download</span>
           <h2 class="section__title">Baixe o NeoChat Desktop</h2>
-          <p class="section__subtitle">Escolha a versão correspondente ao seu sistema operacional.</p>
+          <p class="section__subtitle">Disponível para Windows, macOS e Linux — gratuito e de código aberto.</p>
         </div>
 
-        <div class="download-grid">
-          <!-- Windows Card -->
-          <article class="download-card download-card--featured reveal" id="card-win">
-            <div class="download-card__badge">Recomendado</div>
-            <div class="download-card__icon">
-              <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M0 3.449L9.75 2.1v9.451H0m10.949-9.602L24 0v11.4H10.949M0 12.6h9.75v9.451L0 20.699M10.949 12.6H24V24l-12.901-1.801"/></svg>
-            </div>
-            <h3>Windows</h3>
-            <p>Windows 10 / 11 (64-bit)</p>
-            <p class="download-card__meta" id="meta-win">Buscando última versão…</p>
-            <ul class="download-card__files" id="dl-win">
-              <li><a href="https://github.com/giseldo/neochat-releases/releases" target="_blank" rel="noopener">.exe (Instalador NSIS)</a></li>
-              <li><a href="https://github.com/giseldo/neochat-releases/releases" target="_blank" rel="noopener">.exe (Versão Portátil)</a></li>
-            </ul>
-            <a href="https://github.com/giseldo/neochat-releases/releases" target="_blank" rel="noopener" class="btn btn--primary btn--block" id="btn-win">Baixar para Windows</a>
-          </article>
-
-          <!-- macOS Card -->
-          <article class="download-card reveal" id="card-mac" data-delay="80">
-            <div class="download-card__icon">
-              <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.81-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83ZM13 3.5c.73-.93 1.92-1.55 2.96-1.5.13 1.18-.33 2.35-1.02 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.01-3.11Z"/></svg>
-            </div>
-            <h3>macOS</h3>
-            <p>Apple Silicon (M1/M2/M3/M4) &amp; Intel</p>
-            <p class="download-card__meta" id="meta-mac">Buscando última versão…</p>
-            <ul class="download-card__files" id="dl-mac">
-              <li><a href="https://github.com/giseldo/neochat-releases/releases" target="_blank" rel="noopener">.dmg (Universal)</a></li>
-              <li><a href="https://github.com/giseldo/neochat-releases/releases" target="_blank" rel="noopener">.zip (Arquivo compactado)</a></li>
-            </ul>
-            <a href="https://github.com/giseldo/neochat-releases/releases" target="_blank" rel="noopener" class="btn btn--primary btn--block" id="btn-mac">Baixar para macOS</a>
-            <div class="brew-command-box">
-              <small>Ou via Homebrew (cask comunitário):</small>
-              <div class="code-copy-row">
-                <code>brew tap ricklamers/neochat-desktop && brew install --cask neochat-desktop</code>
-                <button class="copy-btn" data-code="brew tap ricklamers/neochat-desktop && brew install --cask neochat-desktop" title="Copiar comando">Copiar</button>
-              </div>
-              <small class="brew-note">Cask herda nome anterior <code>groq-desktop</code> — use <code>neochat-desktop</code> quando disponível.</small>
-            </div>
-          </article>
-
-          <!-- Linux Card -->
-          <article class="download-card reveal" id="card-linux" data-delay="160">
-            <div class="download-card__icon">
-              <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12.003 2c-2.458 0-4.47 1.89-4.73 4.298-.44.08-.85.24-1.22.47-.94.59-1.51 1.59-1.51 2.7 0 .54.14 1.05.39 1.5-.66.86-1.03 1.91-1.03 3.03 0 2.74 2.19 4.97 4.93 5.01v.01c.71 1.83 2.35 2.98 4.17 2.98 1.82 0 3.46-1.15 4.17-2.98v-.01c2.74-.04 4.93-2.27 4.93-5.01 0-1.12-.37-2.17-1.03-3.03.25-.45.39-.96.39-1.5 0-1.11-.57-2.11-1.51-2.7-.37-.23-.78-.39-1.22-.47C16.473 3.89 14.461 2 12.003 2z"/></svg>
-            </div>
-            <h3>Linux</h3>
-            <p>Ubuntu, Debian, Fedora, Arch &amp; outros</p>
-            <p class="download-card__meta" id="meta-linux">Buscando última versão…</p>
-            <ul class="download-card__files" id="dl-linux">
-              <li><a href="https://github.com/giseldo/neochat-releases/releases" target="_blank" rel="noopener">.AppImage (Universal)</a></li>
-              <li><a href="https://github.com/giseldo/neochat-releases/releases" target="_blank" rel="noopener">.deb (Debian/Ubuntu)</a> / <a href="https://github.com/giseldo/neochat-releases/releases" target="_blank" rel="noopener">.rpm (Fedora/RHEL)</a></li>
-            </ul>
-            <a href="https://github.com/giseldo/neochat-releases/releases" target="_blank" rel="noopener" class="btn btn--primary btn--block" id="btn-linux">Baixar para Linux</a>
-          </article>
-        </div>
-
-        <p class="download-all reveal">
-          <a href="https://github.com/giseldo/neochat-releases/releases" target="_blank" rel="noopener">
-            Ver todas as versões e notas de lançamento no repositório de releases →
+        <div class="download-simple reveal">
+          <a href="https://github.com/giseldo/neochat-releases/releases" target="_blank" rel="noopener" class="btn btn--primary btn--lg download-simple__btn">
+            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            Baixar NeoChat Desktop
           </a>
-        </p>
+          <p class="download-simple__note">Instaladores para os três sistemas na página de releases, sempre na versão mais recente.</p>
+
+          <ul class="download-simple__platforms">
+            <li>
+              <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor" aria-hidden="true"><path d="M0 3.449L9.75 2.1v9.451H0m10.949-9.602L24 0v11.4H10.949M0 12.6h9.75v9.451L0 20.699M10.949 12.6H24V24l-12.901-1.801"/></svg>
+              <strong>Windows</strong>
+              <small>10 / 11 (64-bit) &middot; .exe instalador ou portátil</small>
+            </li>
+            <li>
+              <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor" aria-hidden="true"><path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.81-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83ZM13 3.5c.73-.93 1.92-1.55 2.96-1.5.13 1.18-.33 2.35-1.02 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.01-3.11Z"/></svg>
+              <strong>macOS</strong>
+              <small>Apple Silicon &amp; Intel &middot; .dmg universal</small>
+            </li>
+            <li>
+              <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor" aria-hidden="true"><path d="M12.003 2c-2.458 0-4.47 1.89-4.73 4.298-.44.08-.85.24-1.22.47-.94.59-1.51 1.59-1.51 2.7 0 .54.14 1.05.39 1.5-.66.86-1.03 1.91-1.03 3.03 0 2.74 2.19 4.97 4.93 5.01v.01c.71 1.83 2.35 2.98 4.17 2.98 1.82 0 3.46-1.15 4.17-2.98v-.01c2.74-.04 4.93-2.27 4.93-5.01 0-1.12-.37-2.17-1.03-3.03.25-.45.39-.96.39-1.5 0-1.11-.57-2.11-1.51-2.7-.37-.23-.78-.39-1.22-.47C16.473 3.89 14.461 2 12.003 2z"/></svg>
+              <strong>Linux</strong>
+              <small>Ubuntu, Debian, Fedora, Arch &middot; .AppImage, .deb, .rpm</small>
+            </li>
+          </ul>
+        </div>
       </div>
     </section>
 
