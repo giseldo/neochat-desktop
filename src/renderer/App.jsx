@@ -23,7 +23,7 @@ import { useChat } from './context/ChatContext';
 import { useCanvas } from './context/CanvasContext';
 import { useProjects } from './context/ProjectContext';
 import { useLanguage } from './context/LanguageContext';
-import { Settings, PanelLeftClose, PanelLeft, Radio, MessagesSquare, Sparkles, Store, Columns2, X, FolderKanban, BookOpen, Scale, Bot, Workflow, ChevronDown, Keyboard, Key, AlertCircle } from 'lucide-react';
+import { Settings, PanelLeftClose, PanelLeft, Radio, MessagesSquare, Sparkles, Store, Columns2, X, FolderKanban, BookOpen, Scale, Bot, Workflow, ChevronDown, Keyboard, Key, AlertCircle, PenSquare } from 'lucide-react';
 import { Button } from './components/ui/button';
 import { cn } from './lib/utils';
 import { groupModels } from './lib/modelGrouping';
@@ -111,6 +111,8 @@ function App() {
     canvasDoc,
     isOpen: isCanvasOpen,
     openCanvas,
+    closeCanvas,
+    createNewDocument,
     loadChatCanvas,
     clearCanvas,
     selectedText
@@ -125,6 +127,23 @@ function App() {
     closeKnowledgeBaseModal
   } = useProjects();
   const { t } = useLanguage();
+
+  const handleToggleCanvas = useCallback(() => {
+    if (isCanvasOpen) {
+      closeCanvas();
+    } else {
+      if (canvasDoc) {
+        openCanvas();
+      } else {
+        createNewDocument({
+          title: t('canvas.defaultTitle') || 'Documento Sem Título',
+          language: 'markdown',
+          content: '',
+          summary: 'Documento criado no Canvas'
+        });
+      }
+    }
+  }, [isCanvasOpen, canvasDoc, closeCanvas, openCanvas, createNewDocument, t]);
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('chat'); // 'chat' | 'trajectory'
   const [showTrajectoryTab, setShowTrajectoryTab] = useState(true);
@@ -2240,6 +2259,13 @@ function App() {
         return;
       }
 
+      // Ctrl/Cmd + Shift + C: Toggle Canvas
+      if (isModifier && e.shiftKey && e.key.toLowerCase() === 'c') {
+        e.preventDefault();
+        handleToggleCanvas();
+        return;
+      }
+
       // '/' outside inputs: Focus Chat Input
       if (!isModifier && !e.altKey && e.key === '/' && !isInputFocused) {
         e.preventDefault();
@@ -2252,7 +2278,7 @@ function App() {
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
     };
-  }, [handleNewChat, toggleSidebar, navigate]);
+  }, [handleNewChat, toggleSidebar, handleToggleCanvas, navigate]);
 
   // Handle when a chat is loaded from history - switch API mode and sync active project if needed
   const handleChatLoaded = useCallback(async (chat) => {
@@ -2428,6 +2454,23 @@ function App() {
             </div>
 
             <div className="flex items-center space-x-2">
+              {/* Canvas Workspace Toggle Button */}
+              <Button
+                variant={isCanvasOpen ? "default" : "outline"}
+                size="sm"
+                onClick={handleToggleCanvas}
+                className={cn(
+                  "text-xs border-border transition-colors",
+                  isCanvasOpen 
+                    ? "bg-primary hover:bg-primary/90 text-primary-foreground shadow-xs" 
+                    : "text-foreground hover:bg-muted"
+                )}
+                title={isCanvasOpen ? (t('canvas.hideCanvas') || 'Ocultar Canvas') : (t('canvas.openCanvas') || 'Abrir Canvas')}
+              >
+                <PenSquare className={cn("h-3.5 w-3.5", isCanvasOpen ? "text-primary-foreground" : "text-primary", showButtonLabels && "mr-1.5")} />
+                {showButtonLabels && <span className="hidden md:inline">{t('canvas.label') || 'Canvas'}</span>}
+              </Button>
+
               {isPowerUser && <Button
                 variant="outline"
                 size="sm"

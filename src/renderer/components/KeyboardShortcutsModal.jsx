@@ -162,6 +162,13 @@ export default function KeyboardShortcutsModal({ isOpen, onClose }) {
         keys: [modKey, 'B']
       },
       {
+        id: 'toggleCanvas',
+        category: 'navigation',
+        title: t('shortcuts.items.toggleCanvas'),
+        description: t('shortcuts.items.toggleCanvasDesc'),
+        keys: [modKey, shiftKey, 'C']
+      },
+      {
         id: 'closeModals',
         category: 'navigation',
         title: t('shortcuts.items.closeModals'),

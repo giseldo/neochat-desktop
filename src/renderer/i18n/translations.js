@@ -1294,6 +1294,8 @@ export const translations = {
         openSettingsDesc: 'Navega diretamente para a tela de configurações',
         toggleSidebar: 'Alternar Barra Lateral',
         toggleSidebarDesc: 'Expande ou recolhe o histórico de conversas',
+        toggleCanvas: 'Alternar Canvas',
+        toggleCanvasDesc: 'Abre ou fecha o painel de edição e visualização do Canvas',
         closeModals: 'Fechar Janelas / Cancelar',
         closeModalsDesc: 'Fecha qualquer modal, menu ou diálogo aberto',
         zoomIn: 'Aumentar Zoom',
@@ -1324,6 +1326,7 @@ export const translations = {
     },
     canvas: {
       label: 'Canvas',
+      defaultTitle: 'Documento Sem Título',
       openCanvas: 'Abrir Canvas',
       hideCanvas: 'Ocultar Canvas',
       openInCanvas: 'Abrir no Canvas',
@@ -2651,6 +2654,8 @@ export const translations = {
         openSettingsDesc: 'Navigates directly to the settings page',
         toggleSidebar: 'Toggle Sidebar',
         toggleSidebarDesc: 'Expands or collapses the conversation history sidebar',
+        toggleCanvas: 'Toggle Canvas',
+        toggleCanvasDesc: 'Opens or closes the Canvas workspace panel',
         closeModals: 'Close Windows / Cancel',
         closeModalsDesc: 'Closes any open modal, menu, or dialog',
         zoomIn: 'Zoom In',
@@ -2681,6 +2686,7 @@ export const translations = {
     },
     canvas: {
       label: 'Canvas',
+      defaultTitle: 'Untitled Document',
       openCanvas: 'Open Canvas',
       hideCanvas: 'Hide Canvas',
       openInCanvas: 'Open in Canvas',
