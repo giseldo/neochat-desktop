@@ -40,7 +40,8 @@
     "test:config-dir": "node test-config-dir.js",
     "test:canvas": "node test-canvas.js",
     "test:canvas-tts": "node test-canvas-tts.js",
-    "test:latex": "node test-latex.js"
+    "test:latex": "node test-latex.js",
+    "test:runtime": "node test-agent-runtime.js"
   },
   "keywords": [
     "electron",

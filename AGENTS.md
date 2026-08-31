@@ -21,6 +21,7 @@ Electron + React 19 desktop AI workspace & chat app with universal multi-provide
 ## Architecture
 
 - `electron/main.js` is the entrypoint and wires every IPC handler. Features live in focused managers: `settingsManager`, `mcpManager`, `chatHandler`, `toolHandler`, `authManager`, `googleOAuthManager`, `contextCapture`, `popupWindow`, `chatHistoryManager`, `commandResolver`, `windowManager`.
+- **Neo Agent Runtime (`electron/agent/`)**: Autonomous agent harness with formal state machine (`agentLoop.js`), typed event bus (`eventBus.js`), multi-provider model routing (`modelRouter.js`), unified tool catalog & executor (`toolRegistry.js`, `toolExecutor.js`), workspace intelligence (`workspaceManager.js`), persistent shell session manager (`shellManager.js`), file checkpoints & undo (`checkpoints.js`), permission engine (`permissionEngine.js`), and context compaction (`compactionManager.js`).
 - Renderer → main only through the `window.electron` bridge in `electron/preload.js` (`contextIsolation: true`, `nodeIntegration: false`). New IPC must be added in both `main.js` (or a manager) and `preload.js`.
 - Chat streaming is push-based over IPC channels. `preload.js` `startChatStream()` calls `cleanupChatStreamListeners()` before registering listeners to prevent duplicate responses on HMR — preserve that behavior.
 - Settings persist to `app.getPath('userData')/settings.json` (outside the repo). `settingsManager.js` merges defaults; env `GROQ_API_KEY` overrides the file. Placeholder for "not set" is `"<replace me>"`.
