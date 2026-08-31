@@ -171,6 +171,19 @@ export function CanvasPanel({ onSendPrompt, className }) {
   const editorScrollRef = useRef(null);
   const [currentSlideIndex, setCurrentSlideIndex] = useState(0);
 
+  const currentLanguage = canvasDoc?.language || 'markdown';
+  const isCode = ['javascript', 'js', 'typescript', 'ts', 'python', 'py', 'html', 'react', 'css', 'json', 'sql'].includes(currentLanguage);
+  const historyList = Array.isArray(canvasDoc?.history) ? canvasDoc.history : [];
+  const activeRev = activeRevisionIndex !== null ? historyList[activeRevisionIndex] : null;
+
+  // Compute diff lines between selected revision and current document (or between history steps)
+  const diffLines = useMemo(() => {
+    if (mode !== 'diff') return [];
+    const baseContent = activeRev ? activeRev.content : (historyList[historyList.length - 2]?.content || '');
+    const currentDocContent = canvasDoc?.content || '';
+    return computeLineDiff(baseContent, currentDocContent);
+  }, [mode, activeRev, historyList, canvasDoc?.content]);
+
   // Parse markdown content into slides
   const slides = useMemo(() => {
     if (!localContent) return [''];
@@ -422,19 +435,6 @@ export function CanvasPanel({ onSendPrompt, className }) {
   };
 
   if (!isOpen || !canvasDoc) return null;
-
-  const currentLanguage = canvasDoc.language || 'markdown';
-  const isCode = ['javascript', 'js', 'typescript', 'ts', 'python', 'py', 'html', 'react', 'css', 'json', 'sql'].includes(currentLanguage);
-  const historyList = Array.isArray(canvasDoc.history) ? canvasDoc.history : [];
-  const activeRev = activeRevisionIndex !== null ? historyList[activeRevisionIndex] : null;
-
-  // Compute diff lines between selected revision and current document (or between history steps)
-  const diffLines = useMemo(() => {
-    if (mode !== 'diff') return [];
-    const baseContent = activeRev ? activeRev.content : (historyList[historyList.length - 2]?.content || '');
-    const currentDocContent = canvasDoc.content || '';
-    return computeLineDiff(baseContent, currentDocContent);
-  }, [mode, activeRev, historyList, canvasDoc.content]);
 
   return (
     <div
