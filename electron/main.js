@@ -665,22 +665,6 @@ app.whenReady().then(async () => {
     };
   });
 
-  // --- Auth IPC Handler ---
-  console.log("[Main Init] Registering auth handler...");
-  ipcMain.handle('start-mcp-auth-flow', async (event, { serverId, serverUrl }) => {
-      if (!serverId || !serverUrl) {
-          throw new Error("Missing serverId or serverUrl for start-mcp-auth-flow");
-      }
-      try {
-          console.log(`[Main] Handling start-mcp-auth-flow for ${serverId}`);
-          const result = await authManager.initiateAuthFlow(serverId, serverUrl);
-          return result;
-      } catch (error) {
-          console.error(`[Main] Error handling start-mcp-auth-flow for ${serverId}:`, error);
-          throw error;
-      }
-  });
-
   // --- Audio Transcription (Whisper) ---
   ipcMain.handle('transcribe-audio', async (event, { audioBase64, mimeType = 'audio/webm' }) => {
     const currentSettings = loadSettings();

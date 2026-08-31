@@ -2,6 +2,12 @@ import React, { Suspense, lazy } from 'react';
 import ReactDOM from 'react-dom/client';
 import { createHashRouter, RouterProvider } from 'react-router-dom';
 import './index.css';
+import { ChatProvider } from './context/ChatContext';
+import { CanvasProvider } from './context/CanvasContext';
+import { ProjectProvider } from './context/ProjectContext';
+import { ThemeProvider } from './context/ThemeContext';
+import { LanguageProvider } from './context/LanguageContext';
+import { ErrorBoundary } from './components/ErrorBoundary';
 
 const App = lazy(() => import('./App'));
 const Settings = lazy(() => import('./pages/Settings'));
