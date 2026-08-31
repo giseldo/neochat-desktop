@@ -1,6 +1,6 @@
 import { useState, useMemo, useRef } from 'react';
 import { useLanguage } from '../context/LanguageContext';
-import { Clock, Layers, Terminal, Search, Download, Check, Sparkles, Zap, Activity } from 'lucide-react';
+import { Clock, Layers, Terminal, Search, Download, Check, Sparkles, Zap, Activity, RotateCcw } from 'lucide-react';
 import TrajectoryTimeline from './TrajectoryTimeline';
 import TrajectoryLedger from './TrajectoryLedger';
 import { Button } from './ui/button';
@@ -18,6 +18,7 @@ export default function TrajectoryView({
   loading: _loading = false,
   onPreviewArtifact,
   onOpenMcpTools,
+  onRollback,
 }) {
   const { t, language } = useLanguage();
   const [viewMode, setViewMode] = useState('duration'); // 'duration' | 'turns' | 'calls'
@@ -407,19 +408,35 @@ export default function TrajectoryView({
           )}
         </div>
 
-        {/* Session Log Export Button */}
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          onClick={handleExportSessionLog}
-          className="h-7 text-xs flex items-center gap-1.5 px-3 border-border hover:bg-muted text-foreground"
-          title={t('trajectory.sessionLog')}
-        >
-          {isExporting ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Download className="w-3.5 h-3.5 text-primary" />}
-          <span>{t('trajectory.sessionLog')}</span>
-          <span className="text-[10px] text-muted-foreground">↓</span>
-        </Button>
+        <div className="flex items-center gap-2">
+          {onRollback && (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={onRollback}
+              className="h-7 text-xs flex items-center gap-1.5 px-2.5 border-border hover:bg-amber-500/10 hover:text-amber-600 dark:hover:text-amber-400 text-foreground"
+              title={t('chat.agentRollbackTooltip')}
+            >
+              <RotateCcw className="w-3.5 h-3.5 text-amber-500" />
+              <span>{t('chat.agentRollback')}</span>
+            </Button>
+          )}
+
+          {/* Session Log Export Button */}
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={handleExportSessionLog}
+            className="h-7 text-xs flex items-center gap-1.5 px-3 border-border hover:bg-muted text-foreground"
+            title={t('trajectory.sessionLog')}
+          >
+            {isExporting ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Download className="w-3.5 h-3.5 text-primary" />}
+            <span>{t('trajectory.sessionLog')}</span>
+            <span className="text-[10px] text-muted-foreground">↓</span>
+          </Button>
+        </div>
       </div>
 
       {/* 2. Control Bar (Duration, Turns, Calls Modes + Search) */}

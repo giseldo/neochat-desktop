@@ -1,4 +1,4 @@
-import { ArrowRight, Loader2, ImagePlus, Hammer, Upload, Zap, ZapOff, Square, Mic, MicOff, Terminal, Globe, BookOpen, SlidersHorizontal, Camera, Bot, Key, Layout, X } from "lucide-react";
+import { ArrowRight, Loader2, ImagePlus, Hammer, Upload, Zap, ZapOff, Square, Mic, MicOff, Terminal, Globe, BookOpen, SlidersHorizontal, Camera, Bot, Key, Layout, X, Code2, Briefcase, MessageSquare, RotateCcw } from "lucide-react";
 import React, { useContext, useEffect, useRef, useState, useMemo } from "react";
 import { Link } from "react-router-dom";
 import TextAreaAutosize from "react-textarea-autosize";
@@ -75,9 +75,16 @@ function ChatInput({
 	const [isTranscribing, setIsTranscribing] = useState(false);
 	const [voiceInputEnabled, setVoiceInputEnabled] = useState(true);
 	const [isSnipModalOpen, setIsSnipModalOpen] = useState(false);
+	const [harnessMode, setHarnessMode] = useState(() => {
+		try {
+			return localStorage.getItem('neochat_harness_mode') || (localStorage.getItem('neochat_agent_mode') === 'true' ? 'code' : 'chat');
+		} catch (e) {
+			return 'chat';
+		}
+	});
 	const [agentModeActive, setAgentModeActive] = useState(() => {
 		try {
-			return localStorage.getItem('neochat_agent_mode') === 'true';
+			return localStorage.getItem('neochat_agent_mode') === 'true' || localStorage.getItem('neochat_harness_mode') === 'code';
 		} catch (e) {
 			return false;
 		}
@@ -1162,33 +1169,88 @@ function ChatInput({
 							</Button>
 						)}
 
-						{/* Agent Mode (Autonomous Loop) Toggle Button */}
-						{powerUserMode && <Button
-							type="button"
-							variant="ghost"
-							size="sm"
-							onClick={() => {
-								const next = !agentModeActive;
-								setAgentModeActive(next);
-								try {
-									localStorage.setItem('neochat_agent_mode', String(next));
-								} catch (e) {}
-							}}
-							className={cn(
-								"transition-all duration-200 rounded-xl px-2.5 py-1.5 text-xs font-medium flex items-center gap-1.5 border flex-shrink-0",
-								agentModeActive
-									? "bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/40 shadow-xs ring-1 ring-amber-500/20 font-semibold"
-									: "text-muted-foreground hover:text-foreground hover:bg-muted/60 border-transparent"
-							)}
-							title={agentModeActive ? t('chat.agentModeActive') : t('chat.agentModeTooltip')}
-							disabled={loading}
-						>
-							<Bot className={cn("w-4 h-4 flex-shrink-0 text-purple-500", agentModeActive && "text-amber-500 animate-bounce")} />
-							{showButtonLabels && <span>{t('chat.agentMode')}</span>}
-							{agentModeActive && (
-								<span className="w-1.5 h-1.5 rounded-full bg-amber-500 flex-shrink-0 animate-pulse"></span>
-							)}
-						</Button>}
+						{/* 3-Mode Harness Selector: Chat | Work | Code */}
+						{powerUserMode && (
+							<div className="inline-flex items-center p-0.5 rounded-xl bg-muted/50 border border-border/40 gap-0.5 flex-shrink-0">
+								<Button
+									type="button"
+									variant="ghost"
+									size="sm"
+									onClick={() => {
+										setHarnessMode('chat');
+										setAgentModeActive(false);
+										try {
+											localStorage.setItem('neochat_harness_mode', 'chat');
+											localStorage.setItem('neochat_agent_mode', 'false');
+										} catch (e) {}
+									}}
+									className={cn(
+										"h-7 px-2 text-xs rounded-lg font-medium transition-all flex items-center gap-1",
+										harnessMode === 'chat'
+											? "bg-background text-foreground shadow-xs font-semibold"
+											: "text-muted-foreground hover:text-foreground hover:bg-muted/40"
+									)}
+									title={t('chat.chatModeChat')}
+									disabled={loading}
+								>
+									<MessageSquare className="w-3.5 h-3.5 text-blue-500" />
+									{showButtonLabels && <span>{t('chat.chatModeChat')}</span>}
+								</Button>
+
+								<Button
+									type="button"
+									variant="ghost"
+									size="sm"
+									onClick={() => {
+										setHarnessMode('work');
+										setAgentModeActive(false);
+										try {
+											localStorage.setItem('neochat_harness_mode', 'work');
+											localStorage.setItem('neochat_agent_mode', 'false');
+										} catch (e) {}
+									}}
+									className={cn(
+										"h-7 px-2 text-xs rounded-lg font-medium transition-all flex items-center gap-1",
+										harnessMode === 'work'
+											? "bg-background text-foreground shadow-xs font-semibold ring-1 ring-indigo-500/20"
+											: "text-muted-foreground hover:text-foreground hover:bg-muted/40"
+									)}
+									title={t('chat.chatModeWork')}
+									disabled={loading}
+								>
+									<Briefcase className="w-3.5 h-3.5 text-indigo-500" />
+									{showButtonLabels && <span>{t('chat.chatModeWork')}</span>}
+								</Button>
+
+								<Button
+									type="button"
+									variant="ghost"
+									size="sm"
+									onClick={() => {
+										setHarnessMode('code');
+										setAgentModeActive(true);
+										try {
+											localStorage.setItem('neochat_harness_mode', 'code');
+											localStorage.setItem('neochat_agent_mode', 'true');
+										} catch (e) {}
+									}}
+									className={cn(
+										"h-7 px-2 text-xs rounded-lg font-medium transition-all flex items-center gap-1",
+										harnessMode === 'code'
+											? "bg-amber-500/15 text-amber-600 dark:text-amber-400 font-semibold ring-1 ring-amber-500/40 shadow-xs"
+											: "text-muted-foreground hover:text-foreground hover:bg-muted/40"
+									)}
+									title={t('chat.chatModeCodeTooltip')}
+									disabled={loading}
+								>
+									<Terminal className={cn("w-3.5 h-3.5", harnessMode === 'code' ? "text-amber-500 animate-pulse" : "text-amber-500/80")} />
+									{showButtonLabels && <span>{t('chat.chatModeCode')}</span>}
+									{harnessMode === 'code' && (
+										<span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
+									)}
+								</Button>
+							</div>
+						)}
 					</div>
 
 					<div className="flex items-center gap-2 flex-shrink-0 ml-auto min-w-0">

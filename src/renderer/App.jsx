@@ -1081,6 +1081,23 @@ function App() {
     };
   }, []); // Empty dependency array - only run on actual mount/unmount
 
+  // Revert the last file change made by the autonomous agent
+  const handleRollback = async () => {
+    try {
+      if (window.electron?.agent?.rollback) {
+        const result = await window.electron.agent.rollback(currentChatId || 'default');
+        if (result?.success) {
+          alert(t('chat.agentRollbackSuccess') || `Restored file: ${result.revertedFile}`);
+        } else {
+          alert(result?.error || t('chat.agentRollbackError', { error: 'No checkpoints available' }));
+        }
+      }
+    } catch (err) {
+      console.error('Error rolling back agent action:', err);
+      alert(`Rollback error: ${err.message}`);
+    }
+  };
+
   // Core function to execute a chat turn (fetch response, handle tools)
   // Refactored from the main loop of handleSendMessage
   const executeChatTurn = async (turnMessages) => {
@@ -2711,6 +2728,7 @@ function App() {
                       loading={loading}
                       onPreviewArtifact={(art) => setActiveArtifact(art)}
                       onOpenMcpTools={() => setIsToolsPanelOpen(true)}
+                      onRollback={handleRollback}
                     />
                   </div>
 
