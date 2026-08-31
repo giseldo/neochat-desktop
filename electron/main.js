@@ -525,21 +525,6 @@ app.whenReady().then(async () => {
     return await screenCaptureService.capturePrimaryScreen();
   });
 
-  // --- Local AI Auto-Detection IPC Handlers ---
-  const { detectLocalAiProviders } = require('./localAiService');
-  ipcMain.handle('local-ai-detect', async () => {
-    return await detectLocalAiProviders();
-  });
-
-  // --- Screen Capture IPC Handlers (Snip & Ask) ---
-  const screenCaptureService = require('./screenCaptureService');
-  ipcMain.handle('screen-capture-get-sources', async () => {
-    return await screenCaptureService.getScreenSources();
-  });
-  ipcMain.handle('screen-capture-fullscreen', async () => {
-    return await screenCaptureService.capturePrimaryScreen();
-  });
-
   // --- Neo Agent Runtime IPC Handlers ---
   console.log("[Main Init] Registering Neo Agent Runtime handlers...");
   ipcMain.handle('agent:create-session', async (_event, options) => {
