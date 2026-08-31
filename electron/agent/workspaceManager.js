@@ -23,11 +23,11 @@ class WorkspaceManager {
   }
 
   /**
-   * Scan workspace root and extract metadata.
+   * Synchronously scan workspace root and extract metadata.
    * @param {string} workspaceRoot
-   * @returns {Promise<object>}
+   * @returns {object}
    */
-  async inspectWorkspace(workspaceRoot) {
+  inspectWorkspaceSync(workspaceRoot) {
     const root = path.resolve(workspaceRoot || process.cwd());
     if (!fs.existsSync(root)) {
       return { root, exists: false };
@@ -59,9 +59,7 @@ class WorkspaceManager {
             content: fs.readFileSync(p, 'utf8')
           };
           break;
-        } catch (err) {
-          // ignore
-        }
+        } catch (err) {}
       }
     }
 
@@ -72,11 +70,9 @@ class WorkspaceManager {
         const readmeContent = fs.readFileSync(readmePath, 'utf8');
         info.readmeDoc = {
           path: readmePath,
-          content: readmeContent.slice(0, 3000) // First 3k chars for summary
+          content: readmeContent.slice(0, 3000)
         };
-      } catch (err) {
-        // ignore
-      }
+      } catch (err) {}
     }
 
     // 3. Look for project manifests (Node, Rust, Python, Go)
@@ -96,9 +92,7 @@ class WorkspaceManager {
           dependencies: pkg.dependencies ? Object.keys(pkg.dependencies).slice(0, 20) : [],
           devDependencies: pkg.devDependencies ? Object.keys(pkg.devDependencies).slice(0, 20) : []
         };
-      } catch (err) {
-        // ignore
-      }
+      } catch (err) {}
     } else if (fs.existsSync(cargoTomlPath)) {
       info.projectType = 'rust';
     } else if (fs.existsSync(pyprojectPath) || fs.existsSync(path.join(root, 'requirements.txt'))) {
@@ -107,10 +101,54 @@ class WorkspaceManager {
       info.projectType = 'go';
     }
 
-    // 4. Git status
+    return info;
+  }
+
+  /**
+   * Synchronous system prompt context builder.
+   * @param {string} workspaceRoot
+   * @returns {string}
+   */
+  getWorkspaceSystemPrompt(workspaceRoot) {
+    const info = this.inspectWorkspaceSync(workspaceRoot);
+    if (!info.exists) return '';
+
+    const lines = [];
+    lines.push(`## Active Workspace Environment`);
+    lines.push(`- **Root Directory**: \`${info.root}\``);
+    lines.push(`- **Project Type**: ${info.projectType}`);
+
+    if (info.manifest?.name) {
+      lines.push(`- **Project Name**: ${info.manifest.name} (v${info.manifest.version || '0.0.0'})`);
+      if (info.manifest.scripts?.length) {
+        lines.push(`- **Available Scripts**: \`${info.manifest.scripts.join('`, `')}\``);
+      }
+    }
+
+    if (info.agentsDoc?.content) {
+      lines.push(`\n### Workspace Rules & Guidelines (${info.agentsDoc.filename})`);
+      lines.push(info.agentsDoc.content);
+    } else if (info.readmeDoc?.content) {
+      lines.push(`\n### Project README Preview`);
+      lines.push(info.readmeDoc.content);
+    }
+
+    return lines.join('\n');
+  }
+
+  /**
+   * Scan workspace root and extract metadata.
+   * @param {string} workspaceRoot
+   * @returns {Promise<object>}
+   */
+  async inspectWorkspace(workspaceRoot) {
+    const info = this.inspectWorkspaceSync(workspaceRoot);
+    if (!info.exists) return info;
+
+    // Async Git status
     try {
-      if (fs.existsSync(path.join(root, '.git'))) {
-        const gitStatus = await getRepositoryStatus(root);
+      if (fs.existsSync(path.join(info.root, '.git'))) {
+        const gitStatus = await getRepositoryStatus(info.root);
         info.git = gitStatus;
       }
     } catch (err) {
