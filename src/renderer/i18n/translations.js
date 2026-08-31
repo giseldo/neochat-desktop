@@ -49,6 +49,9 @@ export const translations = {
       keyboardShortcuts: 'Atalhos de Teclado (Ctrl+/)',
       expandSidebar: 'Expandir barra lateral',
       collapseSidebar: 'Recolher barra lateral',
+      terminal: 'Terminal',
+      backgroundTasks: 'Tarefas em segundo plano',
+      browser: 'Navegador',
     },
     sidebar: {
       chatsSection: 'Chats',
@@ -1460,6 +1463,9 @@ export const translations = {
       keyboardShortcuts: 'Keyboard Shortcuts (Ctrl+/)',
       expandSidebar: 'Expand sidebar',
       collapseSidebar: 'Collapse sidebar',
+      terminal: 'Terminal',
+      backgroundTasks: 'Background Tasks',
+      browser: 'Browser',
     },
     sidebar: {
       chatsSection: 'Chats',

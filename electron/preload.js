@@ -376,6 +376,44 @@ contextBridge.exposeInMainWorld('electron', {
     invoke: (channel, data) => ipcRenderer.invoke(channel, data),
   },
 
+  // --- Interactive Terminal ---
+  terminal: {
+    createSession: (options) => ipcRenderer.invoke('terminal:create', options),
+    listSessions: () => ipcRenderer.invoke('terminal:list'),
+    exec: (sessionId, command, cwd) => ipcRenderer.invoke('terminal:exec', { sessionId, command, cwd }),
+    write: (sessionId, data) => ipcRenderer.invoke('terminal:write', { sessionId, data }),
+    kill: (sessionId) => ipcRenderer.invoke('terminal:kill', { sessionId }),
+    clear: (sessionId) => ipcRenderer.invoke('terminal:clear', { sessionId }),
+    destroySession: (sessionId) => ipcRenderer.invoke('terminal:destroy', { sessionId }),
+    getBuffer: (sessionId) => ipcRenderer.invoke('terminal:get-buffer', { sessionId }),
+    onData: (callback) => {
+      const listener = (_event, payload) => callback(payload);
+      ipcRenderer.on('terminal:data', listener);
+      return () => ipcRenderer.removeListener('terminal:data', listener);
+    }
+  },
+
+  // --- Background Tasks ---
+  tasks: {
+    list: () => ipcRenderer.invoke('tasks:list'),
+    run: (options) => ipcRenderer.invoke('tasks:run', options),
+    kill: (taskId) => ipcRenderer.invoke('tasks:kill', { taskId }),
+    getLogs: (taskId) => ipcRenderer.invoke('tasks:get-logs', { taskId }),
+    clear: () => ipcRenderer.invoke('tasks:clear'),
+    onUpdate: (callback) => {
+      const listener = (_event, payload) => callback(payload);
+      ipcRenderer.on('tasks:event', listener);
+      return () => ipcRenderer.removeListener('tasks:event', listener);
+    }
+  },
+
+  // --- Browser Helpers ---
+  browser: {
+    fetchPage: (url, timeoutMs) => ipcRenderer.invoke('browser:fetch-page', { url, timeoutMs }),
+    openPopout: (url) => ipcRenderer.invoke('browser:open-popout', { url }),
+    openExternal: (url) => ipcRenderer.invoke('browser:open-external', { url })
+  },
+
   // --- Zoom Controls ---
   zoom: {
     zoomIn: () => {

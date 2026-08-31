@@ -75,6 +75,11 @@ const ragService = require('./ragService');
 // Import Canvas manager
 const canvasManager = require('./canvasManager');
 
+// Import Terminal, Task, and Browser managers
+const { terminalManager } = require('./terminalManager');
+const { taskManager } = require('./taskManager');
+const { browserManager } = require('./browserManager');
+
 // Import Neo Agent Runtime
 const { neoAgentRuntime } = require('./agent');
 
@@ -464,6 +469,13 @@ app.whenReady().then(async () => {
   // Initialize RAG / Knowledge Base service
   console.log("[Main Init] Initializing RAG Service...");
   ragService.initialize(app);
+
+  // Initialize Terminal, Task, and Browser Managers
+  console.log("[Main Init] Initializing Terminal, Task, and Browser Managers...");
+  terminalManager.initialize();
+  terminalManager.registerIpcHandlers(ipcMain, () => mainWindow);
+  taskManager.registerIpcHandlers(ipcMain, () => mainWindow);
+  browserManager.registerIpcHandlers(ipcMain);
 
   // --- Google OAuth IPC Handlers --- //
   ipcMain.handle('google-oauth-refresh', async () => {

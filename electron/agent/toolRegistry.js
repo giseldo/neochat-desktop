@@ -322,6 +322,80 @@ const NATIVE_TOOLS = {
     }
   },
 
+  read_url_content: {
+    name: 'read_url_content',
+    type: 'native',
+    description: 'Fetch content, HTML, or API responses from a URL (e.g. "http://localhost:8080/api", "http://localhost:5173", or public documentation).',
+    parameters: {
+      type: 'object',
+      properties: {
+        url: {
+          type: 'string',
+          description: 'The URL to fetch content from.'
+        },
+        timeout_ms: {
+          type: 'integer',
+          description: 'Timeout in milliseconds (default: 10000).'
+        }
+      },
+      required: ['url']
+    }
+  },
+
+  run_background_task: {
+    name: 'run_background_task',
+    type: 'native',
+    description: 'Launch a command as an asynchronous background task (e.g. starting dev servers, background builds, tests).',
+    parameters: {
+      type: 'object',
+      properties: {
+        command: {
+          type: 'string',
+          description: 'The shell or node command string to execute in background.'
+        },
+        name: {
+          type: 'string',
+          description: 'Descriptive title for the background task (e.g. "Verify deploy after push", "Build app").'
+        },
+        runner: {
+          type: 'string',
+          description: 'Runner environment: "PowerShell", "Bash", or "Node".'
+        },
+        cwd: {
+          type: 'string',
+          description: 'Working directory for the task.'
+        }
+      },
+      required: ['command']
+    }
+  },
+
+  list_background_tasks: {
+    name: 'list_background_tasks',
+    type: 'native',
+    description: 'List all running and completed background tasks and their execution statuses.',
+    parameters: {
+      type: 'object',
+      properties: {}
+    }
+  },
+
+  kill_background_task: {
+    name: 'kill_background_task',
+    type: 'native',
+    description: 'Stop or cancel an active background task by its task ID.',
+    parameters: {
+      type: 'object',
+      properties: {
+        task_id: {
+          type: 'string',
+          description: 'The ID of the background task to cancel.'
+        }
+      },
+      required: ['task_id']
+    }
+  },
+
   canvas_get_document: {
     name: 'canvas_get_document',
     type: 'native',
@@ -395,12 +469,17 @@ class ToolRegistry {
         NATIVE_TOOLS.git_status,
         NATIVE_TOOLS.git_diff,
         NATIVE_TOOLS.git_commit,
-        NATIVE_TOOLS.query_project_knowledge
+        NATIVE_TOOLS.query_project_knowledge,
+        NATIVE_TOOLS.run_background_task,
+        NATIVE_TOOLS.list_background_tasks,
+        NATIVE_TOOLS.kill_background_task,
+        NATIVE_TOOLS.read_url_content
       );
     } else {
       // In Chat / Work mode, include lighter reading tools
       selectedTools.push(
-        NATIVE_TOOLS.query_project_knowledge
+        NATIVE_TOOLS.query_project_knowledge,
+        NATIVE_TOOLS.read_url_content
       );
     }
 

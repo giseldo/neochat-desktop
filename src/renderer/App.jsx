@@ -19,12 +19,15 @@ import CompareChatView from './components/CompareChatView';
 import WorkflowsModal from './components/WorkflowsModal';
 import WelcomeScreen from './components/WelcomeScreen';
 import KeyboardShortcutsModal from './components/KeyboardShortcutsModal';
+import TerminalPanel from './components/TerminalPanel';
+import BackgroundTasksPanel from './components/BackgroundTasksPanel';
+import BrowserPanel from './components/BrowserPanel';
 import { useChat } from './context/ChatContext';
 import { useCanvas } from './context/CanvasContext';
 import { useProjects } from './context/ProjectContext';
 import { useLanguage } from './context/LanguageContext';
 import { useTheme } from './context/ThemeContext';
-import { Settings, PanelLeftClose, PanelLeft, Radio, MessagesSquare, Sparkles, Store, Columns2, X, FolderKanban, BookOpen, Scale, Bot, Workflow, ChevronDown, Keyboard, Key, AlertCircle, PenSquare, Terminal, Folder, Briefcase, MessageSquare } from 'lucide-react';
+import { Settings, PanelLeftClose, PanelLeft, Radio, MessagesSquare, Sparkles, Store, Columns2, X, FolderKanban, BookOpen, Scale, Bot, Workflow, ChevronDown, Keyboard, Key, AlertCircle, PenSquare, Terminal, Folder, Briefcase, MessageSquare, Globe, Clock } from 'lucide-react';
 import { Button } from './components/ui/button';
 import { cn } from './lib/utils';
 import { groupModels } from './lib/modelGrouping';
@@ -294,6 +297,58 @@ function App() {
     } catch (e) {}
   }, []);
   // --- End Autonomous Agent & Workspace State ---
+
+  // --- Terminal, Background Tasks & Browser Companion State ---
+  const [isTerminalOpen, setIsTerminalOpen] = useState(false);
+  const [isTerminalMaximized, setIsTerminalMaximized] = useState(false);
+  const [isTasksOpen, setIsTasksOpen] = useState(false);
+  const [isTasksMaximized, setIsTasksMaximized] = useState(false);
+  const [isBrowserOpen, setIsBrowserOpen] = useState(false);
+  const [isBrowserMaximized, setIsBrowserMaximized] = useState(false);
+  const [runningTasksCount, setRunningTasksCount] = useState(0);
+
+  // Monitor running tasks count
+  useEffect(() => {
+    const fetchTasksCount = async () => {
+      if (window.electron?.tasks?.list) {
+        try {
+          const list = await window.electron.tasks.list();
+          const count = (list || []).filter(t => t.status === 'running').length;
+          setRunningTasksCount(count);
+        } catch (_) {}
+      }
+    };
+    fetchTasksCount();
+
+    if (window.electron?.tasks?.onUpdate) {
+      const cleanup = window.electron.tasks.onUpdate(() => {
+        fetchTasksCount();
+      });
+      return () => cleanup();
+    }
+  }, []);
+
+  // Global Keyboard Shortcuts for Companion Panels:
+  // Ctrl+` (Terminal), Ctrl+Shift+B (Browser), Ctrl+Shift+T (Background Tasks)
+  useEffect(() => {
+    const handleGlobalShortcuts = (e) => {
+      if (e.ctrlKey || e.metaKey) {
+        if (e.key === '`') {
+          e.preventDefault();
+          setIsTerminalOpen(prev => !prev);
+        } else if (e.shiftKey && (e.key === 'B' || e.key === 'b')) {
+          e.preventDefault();
+          setIsBrowserOpen(prev => !prev);
+        } else if (e.shiftKey && (e.key === 'T' || e.key === 't')) {
+          e.preventDefault();
+          setIsTasksOpen(prev => !prev);
+        }
+      }
+    };
+    window.addEventListener('keydown', handleGlobalShortcuts);
+    return () => window.removeEventListener('keydown', handleGlobalShortcuts);
+  }, []);
+  // --- End Terminal, Tasks & Browser State ---
 
   // --- Preset Input Message State for Welcome suggestions ---
   const [presetInputMessage, setPresetInputMessage] = useState('');
@@ -2645,6 +2700,62 @@ function App() {
             </div>
 
             <div className="flex items-center space-x-2">
+              {/* Terminal Workspace Toggle Button */}
+              <Button
+                variant={isTerminalOpen ? "default" : "outline"}
+                size="sm"
+                onClick={() => setIsTerminalOpen(!isTerminalOpen)}
+                className={cn(
+                  "text-xs border-border transition-colors font-mono",
+                  isTerminalOpen 
+                    ? "bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs" 
+                    : "text-foreground hover:bg-muted"
+                )}
+                title={isTerminalOpen ? "Ocultar Terminal (Ctrl+`)" : "Abrir Terminal (Ctrl+`)"}
+              >
+                <Terminal className={cn("h-3.5 w-3.5", isTerminalOpen ? "text-white" : "text-emerald-500 dark:text-emerald-400", showButtonLabels && "mr-1.5")} />
+                {showButtonLabels && <span className="hidden md:inline">Terminal</span>}
+              </Button>
+
+              {/* Background Tasks Toggle Button */}
+              <Button
+                variant={isTasksOpen ? "default" : "outline"}
+                size="sm"
+                onClick={() => setIsTasksOpen(!isTasksOpen)}
+                className={cn(
+                  "text-xs border-border transition-colors relative",
+                  isTasksOpen 
+                    ? "bg-blue-600 hover:bg-blue-700 text-white shadow-xs" 
+                    : "text-foreground hover:bg-muted"
+                )}
+                title={isTasksOpen ? "Ocultar Tarefas em Segundo Plano (Ctrl+Shift+T)" : "Abrir Tarefas em Segundo Plano (Ctrl+Shift+T)"}
+              >
+                <Clock className={cn("h-3.5 w-3.5", isTasksOpen ? "text-white" : "text-blue-500 dark:text-blue-400", showButtonLabels && "mr-1.5")} />
+                {showButtonLabels && <span className="hidden md:inline">Tarefas</span>}
+                {runningTasksCount > 0 && (
+                  <span className="absolute -top-1 -right-1 px-1 py-0.2 rounded-full bg-blue-500 text-white text-[9px] font-bold animate-pulse">
+                    {runningTasksCount}
+                  </span>
+                )}
+              </Button>
+
+              {/* In-App Browser Toggle Button */}
+              <Button
+                variant={isBrowserOpen ? "default" : "outline"}
+                size="sm"
+                onClick={() => setIsBrowserOpen(!isBrowserOpen)}
+                className={cn(
+                  "text-xs border-border transition-colors",
+                  isBrowserOpen 
+                    ? "bg-indigo-600 hover:bg-indigo-700 text-white shadow-xs" 
+                    : "text-foreground hover:bg-muted"
+                )}
+                title={isBrowserOpen ? "Ocultar Navegador (Ctrl+Shift+B)" : "Abrir Navegador (Ctrl+Shift+B)"}
+              >
+                <Globe className={cn("h-3.5 w-3.5", isBrowserOpen ? "text-white" : "text-indigo-500 dark:text-indigo-400", showButtonLabels && "mr-1.5")} />
+                {showButtonLabels && <span className="hidden md:inline">Navegador</span>}
+              </Button>
+
               {/* Canvas Workspace Toggle Button */}
               <Button
                 variant={isCanvasOpen ? "default" : "outline"}
@@ -2988,6 +3099,49 @@ function App() {
           <CanvasPanel
             onSendPrompt={(prompt) => handleSendMessage(prompt)}
           />
+        )}
+
+        {/* Side-by-side Interactive Terminal Panel */}
+        {isTerminalOpen && (
+          <div className={cn(
+            "transition-all flex shrink-0 border-l border-border/80 bg-background/50",
+            isTerminalMaximized ? "w-full fixed inset-0 z-50 p-4" : "w-[480px] lg:w-[560px] xl:w-[620px] p-2"
+          )}>
+            <TerminalPanel
+              onClose={() => setIsTerminalOpen(false)}
+              isMaximized={isTerminalMaximized}
+              onToggleMaximize={() => setIsTerminalMaximized(!isTerminalMaximized)}
+              initialCwd={workspacePath}
+            />
+          </div>
+        )}
+
+        {/* Side-by-side Background Tasks Panel */}
+        {isTasksOpen && (
+          <div className={cn(
+            "transition-all flex shrink-0 border-l border-border/80 bg-background/50",
+            isTasksMaximized ? "w-full fixed inset-0 z-50 p-4" : "w-[400px] lg:w-[460px] xl:w-[520px] p-2"
+          )}>
+            <BackgroundTasksPanel
+              onClose={() => setIsTasksOpen(false)}
+              isMaximized={isTasksMaximized}
+              onToggleMaximize={() => setIsTasksMaximized(!isTasksMaximized)}
+            />
+          </div>
+        )}
+
+        {/* Side-by-side Embedded Browser Panel */}
+        {isBrowserOpen && (
+          <div className={cn(
+            "transition-all flex shrink-0 border-l border-border/80 bg-background/50",
+            isBrowserMaximized ? "w-full fixed inset-0 z-50 p-4" : "w-[500px] lg:w-[600px] xl:w-[700px] p-2"
+          )}>
+            <BrowserPanel
+              onClose={() => setIsBrowserOpen(false)}
+              isMaximized={isBrowserMaximized}
+              onToggleMaximize={() => setIsBrowserMaximized(!isBrowserMaximized)}
+            />
+          </div>
         )}
       </div>
 

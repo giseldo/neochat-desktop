@@ -12,6 +12,8 @@ const { runGit, getRepositoryStatus } = require('../gitManager');
 const { shellManager } = require('./shellManager');
 const { checkpointsManager } = require('./checkpoints');
 const { workspaceManager } = require('./workspaceManager');
+const { taskManager } = require('../taskManager');
+const { browserManager } = require('../browserManager');
 
 class ToolExecutor {
   /**
@@ -343,6 +345,53 @@ class ToolExecutor {
         const commit = await runGit(targetRepo, ['commit', '-m', message.trim()]);
         return {
           result: limitContentLength(commit.stdout || 'Committed successfully.', outputLimit),
+          tool_call_id: toolCallId
+        };
+      }
+
+      // 12. Native Browser / URL Fetching
+      if (toolName === 'read_url_content' || toolName === 'fetch_url') {
+        const targetUrl = args.url || args.targetUrl;
+        if (!targetUrl) return { error: 'Missing required argument "url".', tool_call_id: toolCallId };
+        const pageRes = await browserManager.fetchPageContent(targetUrl, args.timeout_ms || 10000);
+        return {
+          result: limitContentLength(JSON.stringify(pageRes, null, 2), outputLimit),
+          tool_call_id: toolCallId
+        };
+      }
+
+      // 13. Native Background Tasks
+      if (toolName === 'run_background_task') {
+        const command = args.command;
+        if (!command) return { error: 'Missing required argument "command".', tool_call_id: toolCallId };
+        const taskCwd = args.cwd ? (path.isAbsolute(args.cwd) ? args.cwd : path.resolve(root, args.cwd)) : root;
+        const taskInfo = taskManager.runTask({
+          command,
+          name: args.name || command,
+          runner: args.runner,
+          cwd: taskCwd
+        });
+        return {
+          result: limitContentLength(JSON.stringify(taskInfo, null, 2), outputLimit),
+          tool_call_id: toolCallId,
+          taskId: taskInfo.id
+        };
+      }
+
+      if (toolName === 'list_background_tasks') {
+        const tasks = taskManager.listTasks();
+        return {
+          result: limitContentLength(JSON.stringify(tasks, null, 2), outputLimit),
+          tool_call_id: toolCallId
+        };
+      }
+
+      if (toolName === 'kill_background_task') {
+        const taskId = args.task_id || args.taskId;
+        if (!taskId) return { error: 'Missing required argument "task_id".', tool_call_id: toolCallId };
+        const killed = taskManager.killTask(taskId);
+        return {
+          result: JSON.stringify({ success: killed, taskId }),
           tool_call_id: toolCallId
         };
       }

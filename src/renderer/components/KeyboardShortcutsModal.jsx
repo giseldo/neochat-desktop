@@ -169,6 +169,27 @@ export default function KeyboardShortcutsModal({ isOpen, onClose }) {
         keys: [modKey, shiftKey, 'C']
       },
       {
+        id: 'toggleTerminal',
+        category: 'navigation',
+        title: 'Alternar Terminal Interativo',
+        description: 'Abre ou fecha o painel de terminal multi-abas com suporte PowerShell e Bash.',
+        keys: [modKey, '`']
+      },
+      {
+        id: 'toggleBrowser',
+        category: 'navigation',
+        title: 'Alternar Navegador Embutido',
+        description: 'Abre ou fecha o navegador in-app com suporte a visualização mobile e localhost.',
+        keys: [modKey, shiftKey, 'B']
+      },
+      {
+        id: 'toggleTasks',
+        category: 'navigation',
+        title: 'Alternar Tarefas em Segundo Plano',
+        description: 'Abre ou fecha a visualização de tarefas em execução e seus logs.',
+        keys: [modKey, shiftKey, 'T']
+      },
+      {
         id: 'toggleCodeInterpreter',
         category: 'navigation',
         title: t('shortcuts.items.toggleCodeInterpreter'),
