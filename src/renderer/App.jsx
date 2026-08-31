@@ -24,6 +24,7 @@ import BackgroundTasksPanel from './components/BackgroundTasksPanel';
 import BrowserPanel from './components/BrowserPanel';
 import CommandPaletteModal from './components/CommandPaletteModal';
 import SwarmTeamModal from './components/SwarmTeamModal';
+import SnipModal from './components/SnipModal';
 import { useChat } from './context/ChatContext';
 import { useCanvas } from './context/CanvasContext';
 import { useProjects } from './context/ProjectContext';
@@ -192,6 +193,21 @@ function App() {
   const [isWorkflowsOpen, setIsWorkflowsOpen] = useState(false);
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
   const [isSwarmModalOpen, setIsSwarmModalOpen] = useState(false);
+  const [isAppSnipModalOpen, setIsAppSnipModalOpen] = useState(false);
+
+  const handleStartSnip = useCallback(() => {
+    setIsAppSnipModalOpen(true);
+  }, []);
+
+  const handleExportChat = useCallback(async () => {
+    if (!messages || messages.length === 0) return;
+    const currentChat = chatList?.find(c => c.id === currentChatId);
+    const title = currentChat?.title || 'conversa';
+    const content = messages.map(m => `### ${m.role === 'user' ? 'Usuário' : 'Assistente'}\n\n${typeof m.content === 'string' ? m.content : JSON.stringify(m.content)}\n`).join('\n---\n\n');
+    if (window.electron?.exportChatFile) {
+      await window.electron.exportChatFile({ format: 'md', title, content });
+    }
+  }, [messages, chatList, currentChatId]);
 
   const handleToggleCanvas = useCallback(() => {
     if (isCanvasOpen) {
@@ -3256,9 +3272,7 @@ function App() {
         activePersona={activePersona}
         onSelectPersona={(p) => setActivePersona(p)}
         onClearChat={handleClearAllMessages}
-        onExportChat={() => {
-          // Trigger chat export
-        }}
+        onExportChat={handleExportChat}
       />
 
       {/* Multi-Agent Swarm Team Modal */}
@@ -3268,6 +3282,18 @@ function App() {
         currentModel={selectedModel}
         onSendToChat={(content) => {
           handleSendMessage(content);
+        }}
+      />
+
+      {/* Snip & Ask Screen Capture Modal */}
+      <SnipModal
+        isOpen={isAppSnipModalOpen}
+        onClose={() => setIsAppSnipModalOpen(false)}
+        onCaptureComplete={(capturedFile) => {
+          setIsAppSnipModalOpen(false);
+          if (capturedFile) {
+            handleSendMessage('', [capturedFile]);
+          }
         }}
       />
 
