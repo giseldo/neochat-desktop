@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import LogViewerModal from './LogViewerModal';
 import { Button } from './ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
@@ -231,9 +232,17 @@ function ToolsPanel({ tools = [], onClose, onDisconnectServer, onReconnectServer
     .filter(server => !toolsByServer[server.id])
     .map(server => server.id);
 
-  return (
-    <div className="fixed inset-0 bg-background/80 backdrop-blur-sm flex items-center justify-center z-50">
-      <Card className="w-full max-w-2xl max-h-[85vh] overflow-hidden flex flex-col">
+  if (typeof document === 'undefined') return null;
+
+  return createPortal(
+    <div 
+      className="fixed inset-0 bg-background/80 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+      onClick={onClose}
+    >
+      <Card 
+        className="w-full max-w-2xl max-h-[85vh] overflow-hidden flex flex-col"
+        onClick={e => e.stopPropagation()}
+      >
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 px-4 pt-4">
           <div className="space-y-0.5">
             <CardTitle className="text-xl">{t('toolsPanel.title')}</CardTitle>
@@ -452,7 +461,8 @@ function ToolsPanel({ tools = [], onClose, onDisconnectServer, onReconnectServer
         )}
 
       </Card>
-    </div>
+    </div>,
+    document.body
   );
 }
 

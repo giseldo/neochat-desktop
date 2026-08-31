@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { 
   Camera, 
   Monitor, 
@@ -45,7 +46,7 @@ export function SnipModal({ isOpen, onClose, onCaptureComplete }) {
     }
   }, [isOpen]);
 
-  if (!isOpen) return null;
+  if (!isOpen || typeof document === 'undefined') return null;
 
   const handleQuickCaptureFullscreen = async () => {
     if (!window.electron?.screenCapture?.captureFullscreen) return;
@@ -85,9 +86,15 @@ export function SnipModal({ isOpen, onClose, onCaptureComplete }) {
     return true;
   });
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-200">
-      <div className="bg-card border border-border rounded-2xl shadow-2xl w-full max-w-2xl max-h-[85vh] flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
+  return createPortal(
+    <div 
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-200"
+      onClick={onClose}
+    >
+      <div 
+        className="bg-card border border-border rounded-2xl shadow-2xl w-full max-w-2xl max-h-[85vh] flex flex-col overflow-hidden animate-in zoom-in-95 duration-200"
+        onClick={(e) => e.stopPropagation()}
+      >
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-3.5 border-b border-border bg-muted/40">
           <div className="flex items-center gap-2.5">
@@ -275,7 +282,8 @@ export function SnipModal({ isOpen, onClose, onCaptureComplete }) {
           </div>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
 

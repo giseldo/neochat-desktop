@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import {
   Search,
   Settings,
@@ -405,9 +406,9 @@ export function CommandPaletteModal({
     }
   }, [selectedIndex]);
 
-  if (!isOpen) return null;
+  if (!isOpen || typeof document === 'undefined') return null;
 
-  return (
+  return createPortal(
     <div
       className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-start justify-center pt-[10vh] px-4 animate-in fade-in duration-150"
       onClick={onClose}
@@ -552,7 +553,8 @@ export function CommandPaletteModal({
           </span>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
 

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import Message from './Message';
 import MarkdownRenderer from './MarkdownRenderer';
 import { Bot } from 'lucide-react';
@@ -199,7 +200,7 @@ function MessageList({
       })}
 
       {/* Fullscreen Image Overlay */}
-      {fullScreenImage && (
+      {fullScreenImage && typeof document !== 'undefined' && createPortal(
         <div 
           className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4 cursor-pointer"
           onClick={() => setFullScreenImage(null)}
@@ -210,7 +211,8 @@ function MessageList({
             className="max-w-full max-h-full object-contain rounded-lg"
             onClick={(e) => e.stopPropagation()}
           />
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );

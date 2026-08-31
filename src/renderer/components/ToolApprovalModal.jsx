@@ -1,4 +1,5 @@
 import React from 'react';
+import { createPortal } from 'react-dom';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import { useLanguage } from '../context/LanguageContext';
@@ -56,7 +57,9 @@ function ToolApprovalModal({ toolCall, onApprove }) {
     never:  `bg-red-900 hover:bg-red-950 focus:ring-red-700 ${baseButtonClass}`,
   };
 
-  return (
+  if (typeof document === 'undefined') return null;
+
+  return createPortal(
     <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4">
       <div className="bg-gray-800 w-full max-w-xl rounded-lg shadow-xl overflow-hidden flex flex-col border border-gray-700">
         <div className="p-4 border-b border-gray-700">
@@ -73,38 +76,34 @@ function ToolApprovalModal({ toolCall, onApprove }) {
           )}
         </div>
 
-        <div className="p-5 overflow-y-auto max-h-[60vh] space-y-4">
-          <div>
-            <label className="block text-xs font-medium text-gray-400 mb-1 uppercase tracking-wider">{t('toolApproval.toolName')}:</label>
-            <div className="bg-gray-900 p-3 rounded text-gray-200 font-mono text-sm border border-gray-700">
-              {toolName}
-            </div>
+        {/* Modal Body */}
+        <div className="p-4 overflow-y-auto max-h-[60vh] text-sm">
+          <p className="text-gray-300 mb-2">{t('toolApproval.message')}</p>
+          <div className="bg-gray-900 rounded p-2 mb-4 border border-gray-700 font-mono text-xs">
+            <span className="text-blue-400 font-semibold">{toolName}</span>
           </div>
 
-          <div>
-            <label className="block text-xs font-medium text-gray-400 mb-1 uppercase tracking-wider">{t('toolApproval.arguments')}:</label>
-            <div className="rounded-md text-sm overflow-x-auto border border-gray-700">
-              <SyntaxHighlighter
-                language="json"
-                style={vscDarkPlus}
-                customStyle={{
-                  borderRadius: '0.3rem',
-                  margin: 0,
-                  padding: '0.75rem',
-                  fontSize: '0.875rem',
-                  backgroundColor: '#1E1E1E'
-                }}
-                codeTagProps={{ style: { fontFamily: "'Fira Code', monospace" } }}
-                wrapLongLines={true}
-              >
-                {JSON.stringify(args, null, 2)}
-              </SyntaxHighlighter>
-            </div>
+          <p className="text-gray-400 mb-1">{t('toolApproval.arguments')}</p>
+          <div className="rounded overflow-hidden border border-gray-700 max-h-60 overflow-y-auto text-xs">
+            <SyntaxHighlighter
+              language="json"
+              style={vscDarkPlus}
+              customStyle={{
+                margin: 0,
+                padding: '0.75rem',
+                fontSize: '0.75rem',
+                backgroundColor: '#1E1E1E',
+                borderRadius: '0.375rem'
+              }}
+            >
+              {JSON.stringify(args, null, 2)}
+            </SyntaxHighlighter>
           </div>
         </div>
 
-        <div className="p-4 border-t border-gray-700 bg-gray-700/30 flex flex-wrap gap-3 justify-end">
-           <button
+        {/* Modal Actions */}
+        <div className="p-4 border-t border-gray-700 flex flex-col sm:flex-row justify-end space-y-2 sm:space-y-0 sm:space-x-2">
+          <button
             onClick={() => handleChoice('once')}
             className={buttonClasses.once}
           >
@@ -116,7 +115,7 @@ function ToolApprovalModal({ toolCall, onApprove }) {
           >
             {t('toolApproval.alwaysAllowTool')}
           </button>
-           <button
+          <button
             onClick={() => handleChoice('yolo')}
             title={t('toolApproval.yoloTitle')}
             className={buttonClasses.yolo}
@@ -137,7 +136,8 @@ function ToolApprovalModal({ toolCall, onApprove }) {
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
 

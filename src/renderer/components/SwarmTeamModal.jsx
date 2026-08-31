@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import {
   Users,
   X,
@@ -201,9 +202,9 @@ export function SwarmTeamModal({
     onClose();
   };
 
-  if (!isOpen) return null;
+  if (!isOpen || typeof document === 'undefined') return null;
 
-  return (
+  return createPortal(
     <div
       className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-150"
       onClick={onClose}
@@ -443,7 +444,8 @@ export function SwarmTeamModal({
           </div>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
 

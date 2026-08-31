@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { X, Search, Globe, FolderTree, Database, Brain, Terminal, Github, Check, Download, AlertCircle, Sparkles } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
 import { cn } from '../lib/utils';
@@ -233,9 +234,17 @@ export function McpCatalogModal({ isOpen, onClose, onServerInstalled, existingSe
     }
   };
 
-  return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center z-[9999] p-4">
-      <div className="bg-card border border-border rounded-2xl w-full max-w-2xl max-h-[85vh] flex flex-col shadow-2xl animate-in zoom-in-95">
+  if (typeof document === 'undefined') return null;
+
+  return createPortal(
+    <div 
+      className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center z-[9999] p-4"
+      onClick={onClose}
+    >
+      <div 
+        className="bg-card border border-border rounded-2xl w-full max-w-2xl max-h-[85vh] flex flex-col shadow-2xl animate-in zoom-in-95"
+        onClick={e => e.stopPropagation()}
+      >
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-border">
           <div className="flex items-center gap-2.5">
@@ -327,7 +336,8 @@ export function McpCatalogModal({ isOpen, onClose, onServerInstalled, existingSe
           })}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
 

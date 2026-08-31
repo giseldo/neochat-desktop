@@ -1,5 +1,6 @@
 import { ArrowRight, Loader2, ImagePlus, Hammer, Upload, Zap, ZapOff, Square, Mic, MicOff, Terminal, Globe, BookOpen, SlidersHorizontal, Camera, Bot, Key, Layout, X, Code2, Briefcase, MessageSquare, RotateCcw } from "lucide-react";
 import React, { useContext, useEffect, useRef, useState, useMemo } from "react";
+import { createPortal } from "react-dom";
 import { Link } from "react-router-dom";
 import TextAreaAutosize from "react-textarea-autosize";
 import { SearchableSelect } from "./ui/SearchableSelect";
@@ -1251,7 +1252,7 @@ function ChatInput({
 		</form>
 
 		{/* Fullscreen Image Modal */}
-		{fullScreenImage && (
+		{fullScreenImage && typeof document !== 'undefined' && createPortal(
 			<div 
 				className="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50 p-4 cursor-pointer"
 				onClick={() => setFullScreenImage(null)}
@@ -1269,7 +1270,8 @@ function ChatInput({
 				>
 					✕
 				</button>
-			</div>
+			</div>,
+			document.body
 		)}
 
 		{/* Lazy-loaded Modals */}

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import AnsiToHtml from 'ansi-to-html';
 import { useLanguage } from '../context/LanguageContext';
 
@@ -108,9 +109,17 @@ function LogViewerModal({ serverId, transportType, onClose }) {
   // Pass transportType to the custom hook
   const { logs, isLoading, error } = useLogViewer(serverId, transportType, t);
 
-  return (
-    <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-[60]"> {/* Higher z-index than ToolsPanel */}
-      <div className="bg-gray-900 w-full max-w-4xl max-h-[90vh] rounded-lg shadow-xl overflow-hidden flex flex-col border border-gray-700">
+  if (typeof document === 'undefined') return null;
+
+  return createPortal(
+    <div 
+      className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-[60]"
+      onClick={onClose}
+    > {/* Higher z-index than ToolsPanel */}
+      <div 
+        className="bg-gray-900 w-full max-w-4xl max-h-[90vh] rounded-lg shadow-xl overflow-hidden flex flex-col border border-gray-700"
+        onClick={e => e.stopPropagation()}
+      >
         {/* Header */}
         <div className="p-4 border-b border-gray-700 flex justify-between items-center bg-gray-800">
           <h2 className="text-lg font-semibold text-white">
@@ -155,7 +164,8 @@ function LogViewerModal({ serverId, transportType, onClose }) {
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
 

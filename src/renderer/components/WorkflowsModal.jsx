@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { 
   ArrowRight,
   BarChart3, 
@@ -199,7 +200,9 @@ export default function WorkflowsModal({ isOpen, onClose, onRun }) {
     setTimeout(() => setSuccess(''), 3000);
   };
 
-  return (
+  if (typeof document === 'undefined') return null;
+
+  return createPortal(
     <div 
       className="fixed inset-0 z-[70] bg-black/60 backdrop-blur-sm flex items-center justify-center p-2 sm:p-4" 
       onMouseDown={(event) => event.target === event.currentTarget && onClose()}
@@ -826,6 +829,7 @@ export default function WorkflowsModal({ isOpen, onClose, onRun }) {
         </div>
 
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
