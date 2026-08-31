@@ -212,12 +212,14 @@ function prepareTools(discoveredTools, isResponsesApi = false, settings = {}) {
         }
     }
 
-    // Add native Canvas tools ONLY if Canvas is active/open or has document
+    // Add native Canvas tools if enabled, in work/code mode, or if Canvas is active/open
     const isCanvasActive = Boolean(
         settings.isCanvasOpen ||
         settings.activeCanvasDoc ||
         settings.canvasDoc ||
-        settings.canvasEnabled ||
+        settings.canvasEnabled !== false ||
+        settings.mode === 'work' ||
+        settings.mode === 'code' ||
         settings.selectedCanvasText
     );
     if (isCanvasActive) {
@@ -391,7 +393,9 @@ function buildApiParams(prunedMessages, modelToUse, settings, tools, modelContex
         settings.isCanvasOpen ||
         settings.activeCanvasDoc ||
         settings.canvasDoc ||
-        settings.canvasEnabled ||
+        settings.canvasEnabled !== false ||
+        settings.mode === 'work' ||
+        settings.mode === 'code' ||
         settings.selectedCanvasText
     );
     
