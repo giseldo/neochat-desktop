@@ -26,69 +26,83 @@ A arquitetura do NeoChat Desktop é guiada por quatro princípios fundamentais:
 
 ## 🧩 Visão Estrutural Macro
 
-O sistema é dividido em três camadas bem definidas:
+O sistema é dividido em camadas modulares com fronteiras de segurança rigorosas:
 
 ```
-+-------------------------------------------------------------------------------+
-|                             SISTEMA OPERACIONAL                               |
-|       (Windows / macOS / Linux - Filesystem, Keychain, Shell, Protocolos)     |
-+-------------------------------------------------------------------------------+
-                                      ▲
-                                      │ Chamadas Nativas & stdio
-                                      ▼
-+-------------------------------------------------------------------------------+
-|                       PROCESSO PRINCIPAL (ELECTRON MAIN)                      |
-|                               (Node.js Runtime)                               |
-|                                                                               |
-|   +-------------------+  +-------------------+  +-------------------------+   |
-|   |    chatHandler    |  |    mcpManager     |  |       ragService        |   |
-|   |  (Streaming/Loop) |  |  (Stdio/SSE MCP)  |  | (Vector Search / Chunks)|   |
-|   +-------------------+  +-------------------+  +-------------------------+   |
-|                                                                               |
-|   +-------------------+  +-------------------+  +-------------------------+   |
-|   |  settingsManager  |  |    secretStore    |  |     canvasManager       |   |
-|   |  & configDirMgr   |  | (safeStorage API) |  |   (Artifacts & TTS)     |   |
-|   +-------------------+  +-------------------+  +-------------------------+   |
-|                                                                               |
-|   +-------------------+  +-------------------+  +-------------------------+   |
-|   |  workflowManager  |  |  schedulerManager |  |  observabilityManager   |   |
-|   +-------------------+  +-------------------+  +-------------------------+   |
-+-------------------------------------------------------------------------------+
-                                      ▲
-                                      │ IPC Bridge Seguro (preload.js)
-                                      │ contextIsolation: true, nodeIntegration: false
-                                      ▼
-+-------------------------------------------------------------------------------+
-|                     PROCESSO DE RENDERIZAÇÃO (FRONTEND)                       |
-|                          (Chromium / React 19 / Vite)                         |
-|                                                                               |
-|   +-------------------+  +-------------------+  +-------------------------+   |
-|   |    Chat Window    |  |   Canvas Editor   |  |     Floating Popup      |   |
-|   | (Markdown + KaTeX)|  |  (Monaco Editor)  |  |      (Quick Query)      |   |
-|   +-------------------+  +-------------------+  +-------------------------+   |
-|                                                                               |
-|   +-----------------------------------------------------------------------+   |
-|   |       State Management, Radix Primitives, Next-Themes, Lucide Icons   |   |
-|   +-----------------------------------------------------------------------+   |
-+-------------------------------------------------------------------------------+
++-----------------------------------------------------------------------------------------------+
+|                                      SISTEMA OPERACIONAL                                      |
+|    (Windows / macOS / Linux - Filesystem, SafeStorage DPAPI/Keychain, Shell PTY, Git, Rede)   |
++-----------------------------------------------------------------------------------------------+
+                                               ▲
+                                               │ Chamadas de Sistema, stdio & Processos
+                                               ▼
++-----------------------------------------------------------------------------------------------+
+|                              PROCESSO PRINCIPAL (ELECTRON MAIN)                               |
+|                                       (Node.js Runtime)                                       |
+|                                                                                               |
+|   +---------------------------------------------------------------------------------------+   |
+|   |                        NEO AGENT RUNTIME (electron/agent/)                            |   |
+|   |   • agentLoop (State Machine)     • modelRouter (Multi-LLM)   • toolRegistry/Executor |   |
+|   |   • permissionEngine              • checkpoints (Undo/Roll)   • shellManager (PTY)    |   |
+|   |   • compactionManager             • workspaceManager          • eventBus (Typed)      |   |
+|   +---------------------------------------------------------------------------------------+   |
+|                                                                                               |
+|   +-------------------+  +-------------------+  +--------------------+  +-----------------+   |
+|   |    chatHandler    |  |    mcpManager     |  |     ragService     |  |  projectManager |   |
+|   |  (Chat Streaming) |  | (Stdio/SSE MCP)   |  | (Embeddings/Chunks)|  | (Workspaces)    |   |
+|   +-------------------+  +-------------------+  +--------------------+  +-----------------+   |
+|                                                                                               |
+|   +-------------------+  +-------------------+  +--------------------+  +-----------------+   |
+|   |    gitManager     |  |    codeRunner     |  |  webSearchService  |  |  screenCapture  |   |
+|   |  (Git Status/Diff)|  | (Python / Node)   |  | (Bing/Tavily/Brave)|  | (Window/Screen) |   |
+|   +-------------------+  +-------------------+  +--------------------+  +-----------------+   |
+|                                                                                               |
+|   +-------------------+  +-------------------+  +--------------------+  +-----------------+   |
+|   |  settingsManager  |  |    secretStore    |  |   backupManager    |  |  canvasManager  |   |
+|   |  & configDirMgr   |  | (safeStorage API) |  | (Export / Recovery)|  | (Monaco / TTS)  |   |
+|   +-------------------+  +-------------------+  +--------------------+  +-----------------+   |
+|                                                                                               |
+|   +-------------------+  +-------------------+  +--------------------+  +-----------------+   |
+|   |  workflowManager  |  |  schedulerManager |  |  systemMonitor     |  |  authManager    |   |
+|   |  (Automations)    |  | (Cron Background) |  | (Hardware Stats)   |  | (OAuth 2.0 MCP) |   |
+|   +-------------------+  +-------------------+  +--------------------+  +-----------------+   |
++-----------------------------------------------------------------------------------------------+
+                                               ▲
+                                               │ IPC Bridge Seguro (preload.js)
+                                               │ contextIsolation: true, nodeIntegration: false
+                                               ▼
++-----------------------------------------------------------------------------------------------+
+|                             PROCESSO DE RENDERIZAÇÃO (FRONTEND)                               |
+|                                  (Chromium / React 19 / Vite)                                 |
+|                                                                                               |
+|   +-------------------+  +-------------------+  +--------------------+  +-----------------+   |
+|   |    Chat Stream    |  |   Agent Harness   |  |   Canvas Editor    |  |   Quick Popup   |   |
+|   | (Markdown/KaTeX)  |  | (Trajectory Ledger|  |  (Monaco Editor +  |  | (Spotlight Ctrl |   |
+|   | & Branching Tree  |  |  & Approvals)     |  |   Live Preview)    |  |  + G Shortcut)  |   |
+|   +-------------------+  +-------------------+  +--------------------+  +-----------------+   |
+|                                                                                               |
+|   +---------------------------------------------------------------------------------------+   |
+|   |         State Contexts, Radix Primitives, Tailwind CSS, Lucide Icons, I18n Engine     |   |
+|   +---------------------------------------------------------------------------------------+   |
++-----------------------------------------------------------------------------------------------+
 ```
 
 ---
 
-## 🔄 Fluxo de Dados de Ponta a Ponta
+## 🔄 Fluxos de Execução
 
-Um ciclo típico de interação do usuário percorre as seguintes etapas:
+O NeoChat opera em dois modos primários de interação:
 
-1. **Entrada do Usuário:** O usuário envia uma mensagem na interface React 19 (com anexos opcionais, arquivos de RAG ou chamadas de ferramentas).
-2. **Ponte IPC:** O componente de chat invoca `window.electron.startChatStream(params)`.
-3. **Orquestração no Main:**
-   - `chatHandler.js` resolve o provedor ativo (`shared/providers.js`) e recupera a chave de API de forma segura do `secretStore.js`.
-   - O histórico de mensagens é podado e compactado de acordo com o context window do modelo (`messageUtils.js`).
-   - Se RAG estiver habilitado, `ragService.js` recupera os fragmentos mais relevantes e os injeta no System Prompt.
-   - O catálogo de ferramentas MCP ativas é montado e passado como `tools` na requisição.
-4. **Streaming de Inferência:** A requisição SSE é aberta contra a API do provedor (ou Ollama local). Conforme os chunks chegam:
-   - Tokens de pensamento (`<think>...</think>`) são extraídos e emitidos via evento `chat-think-chunk`.
-   - Tokens de resposta são emitidos via evento `chat-chunk`.
-5. **Execução de Ferramentas (Tool Loop):**
-   - Se o modelo requisitar chamadas de ferramentas (`tool_calls`), o `chatHandler` valida as permissões com `toolPermissionManager`, delega para o `mcpManager` (que roda o script correspondente via stdio) e reinjeta o retorno no contexto do modelo para gerar a resposta final sintetizada.
-6. **Renderização & Persistência:** O frontend renderiza Markdown em tempo real e, ao final, o diálogo é persistido atomicamente pelo `chatHistoryManager.js`.
+### 1. Modo Conversacional (Chat Stream)
+1. **Disparo:** O usuário submete a mensagem na interface React 19.
+2. **Ponte IPC:** Invocação de `window.electron.startChatStream(params)`.
+3. **Resolução de Contexto:** O `chatHandler.js` recupera credenciais seguras do `secretStore.js`, anexa fragmentos do `ragService` e monta o histórico podado com `messageUtils.js`.
+4. **Streaming Contínuo:** Chunks de raciocínio (`<think>`) e conteúdo são emitidos em tempo real para a interface.
+5. **Persistência Atômica:** A conversa é salva pelo `chatHistoryManager.js` com suporte a ramificação em árvore (Chat Branching).
+
+### 2. Modo Agente Autônomo (Neo Agent Runtime)
+1. **Inicialização de Sessão:** `neoAgentRuntime.createSession({ workspaceRoot, model })` cria uma sessão com barramento tipado (`AgentEventBus`).
+2. **Ciclo ReAct & State Machine:** O `agentLoop.js` transita entre `THINKING` $\rightarrow$ `TOOL_REQUEST` $\rightarrow$ `TOOL_EXECUTION` $\rightarrow$ `OBSERVING`.
+3. **Avaliação de Segurança:** O `permissionEngine.js` valida se a ferramenta é somente leitura (auto-permitida) ou mutante (exibe `ToolApprovalModal` ao usuário).
+4. **Snapshots de Checkpoint:** O `checkpointsManager.js` registra o estado do arquivo antes da edição, permitindo reversão (`rollback`) a qualquer momento.
+5. **Auditoria de Trajetória:** Cada passo, raciocínio e diff de arquivo é registrado no `TrajectoryLedger` e desenhado no `TrajectoryTimeline`.

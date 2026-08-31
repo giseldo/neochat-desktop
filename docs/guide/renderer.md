@@ -10,27 +10,45 @@ A interface é modular e organizada hierarquicamente:
 
 ```
 src/renderer/
-├── main.jsx                  # Ponto de montagem React DOM (React 19 createRoot)
-├── App.jsx                   # Roteador de Modos, Gerenciamento de Estado Central
+├── main.jsx                       # Ponto de montagem React DOM (React 19 createRoot)
+├── App.jsx                        # Roteador de Modos, Gerenciamento de Estado Central
 ├── components/
+│   ├── Agent/
+│   │   ├── TrajectoryView.jsx     # Painel principal de execução autônoma do agente
+│   │   ├── TrajectoryTimeline.jsx # Linha do tempo visual de passos e raciocínio
+│   │   ├── TrajectoryLedger.jsx   # Histórico de auditoria, diffs e chamadas
+│   │   └── ToolApprovalModal.jsx  # Modal interativo de permissão e consentimento
 │   ├── Chat/
-│   │   ├── ChatArea.jsx      # Feed de mensagens com scroll virtualizado
-│   │   ├── ChatInput.jsx     # Caixa de entrada com upload, prompts e seletor de modelos
-│   │   ├── MessageItem.jsx   # Balão de mensagem com renderização de Markdown e Math
-│   │   ├── ReasoningBlock.jsx# Bloco expansível animado para tokens <think>
-│   │   └── ToolCallView.jsx  # Card interativo de execução de ferramentas MCP
+│   │   ├── MessageList.jsx        # Feed de mensagens com scroll virtualizado
+│   │   ├── Message.jsx            # Balão de mensagem com renderização de Markdown e Math
+│   │   ├── ChatInput.jsx          # Input com atalhos (/slash), upload e seletor de modelos
+│   │   ├── ToolCall.jsx           # Card interativo de execução de ferramentas
+│   │   └── SlashCommandsPopover.jsx# Menu dinâmico de slash commands (/canvas, /agent, etc.)
 │   ├── Canvas/
-│   │   ├── CanvasEditor.jsx  # Editor Monaco com syntax highlighting multi-linguagem
-│   │   ├── CanvasPreview.jsx # Visualizador em tempo real (HTML, Markdown, SVG)
-│   │   └── CanvasTTS.jsx     # Controles de reprodução de voz e síntese de texto
-│   ├── Sidebar/
-│   │   ├── HistoryList.jsx   # Lista de conversas anteriores com busca e agrupamento
-│   │   ├── ProjectTree.jsx   # Gestão de pastas e contextos de projeto
-│   │   └── ModelSelector.jsx # Seletor dinâmico com badges de capacidades
-│   └── Settings/
-│       ├── ProvidersTab.jsx  # Configuração de chaves e endpoints de IA
-│       ├── McpServersTab.jsx # Painel de instalação e status de servidores MCP
-│       └── RagTab.jsx        # Gestor de documentos da base de conhecimento
+│   │   ├── CanvasPanel.jsx        # Painel expansível do Monaco Editor com syntax highlighting
+│   │   ├── CanvasCard.jsx         # Card retrátil com live preview (HTML/SVG/Markdown)
+│   │   └── ArtifactsPanel.jsx     # Gestão e alternância de múltiplos artefatos
+│   ├── Projects & Knowledge/
+│   │   ├── ProjectModal.jsx       # Criação e configuração de workspaces
+│   │   ├── MoveToProjectModal.jsx # Atribuição de conversas a projetos
+│   │   ├── KnowledgeBaseModal.jsx # Gerenciamento de fontes RAG do projeto
+│   │   └── KnowledgeSourcesList.jsx# Lista de arquivos indexados e status
+│   ├── Modals & Tools/
+│   │   ├── ToolsPanel.jsx         # Catálogo de ferramentas ativas e toggles
+│   │   ├── McpCatalogModal.jsx    # Descoberta e instalação de servidores MCP
+│   │   ├── CompareChatView.jsx    # Visualização e comparação lado a lado de modelos
+│   │   ├── ConversationStats.jsx  # Métricas de tokens, latência e custos
+│   │   ├── PromptTemplatesModal.jsx# Biblioteca de prompts reutilizáveis
+│   │   └── SnipModal.jsx          # Captura e recorte de tela para modelos de visão
+│   └── Sidebar/
+│       ├── ChatHistorySidebar.jsx # Histórico de conversas com busca, tags e projetos
+│       └── PersonaSelector.jsx    # Seletor dinâmico de personas e modos de IA
+└── context/
+    ├── ChatContext.jsx            # Estado das mensagens, streaming e branching
+    ├── ProjectContext.jsx         # Workspace ativo, regras e fontes de RAG
+    ├── CanvasContext.jsx          # Documentos e seleção do Monaco Editor
+    ├── ThemeContext.jsx           # Alternância Dark/Light e persistência
+    └── LanguageContext.jsx        # Internacionalização (i18n) pt-BR / en-US
 ```
 
 ---

@@ -36,33 +36,47 @@ A única forma de comunicação entre a interface gráfica e o sistema operacion
 const { contextBridge, ipcRenderer } = require('electron');
 
 contextBridge.exposeInMainWorld('electron', {
-  // Chamadas Request / Response seguras
+  // Configurações & Provedores
   getSettings: () => ipcRenderer.invoke('get-settings'),
   saveSettings: (settings) => ipcRenderer.invoke('save-settings', settings),
   getProviders: () => ipcRenderer.invoke('get-providers'),
-  getMcpServers: () => ipcRenderer.invoke('mcp-get-servers'),
   
-  // Streaming de Chat Push com proteção contra Memory Leaks
+  // Streaming de Chat Push
   startChatStream: (params) => {
-    // Garante que listeners anteriores não sejam duplicados em Hot Reload
-    cleanupListeners();
+    cleanupChatStreamListeners();
     return ipcRenderer.invoke('start-chat-stream', params);
   },
-  
-  onChatChunk: (callback) => {
-    const handler = (event, chunk) => callback(chunk);
-    ipcRenderer.on('chat-chunk', handler);
-    return () => ipcRenderer.removeListener('chat-chunk', handler);
-  },
-  
-  onChatThinkChunk: (callback) => {
-    const handler = (event, chunk) => callback(chunk);
-    ipcRenderer.on('chat-think-chunk', handler);
-    return () => ipcRenderer.removeListener('chat-think-chunk', handler);
-  },
-  
-  // Armazenamento Seguro de Segredos
-  setSecureSecret: (key, value) => ipcRenderer.invoke('secret-set', { key, value }),
+  onChatChunk: (callback) => { /* Listener limpo automaticamente */ },
+  onChatThinkChunk: (callback) => { /* Listener limpo automaticamente */ },
+
+  // Neo Agent Runtime (Harness Autônomo)
+  agentPrompt: (params) => ipcRenderer.invoke('agent-prompt', params),
+  agentApproveTool: (sessionId, callId, alwaysAllow) => ipcRenderer.invoke('agent-approve-tool', { sessionId, callId, alwaysAllow }),
+  agentRejectTool: (sessionId, callId, reason) => ipcRenderer.invoke('agent-reject-tool', { sessionId, callId, reason }),
+  agentRollback: (sessionId) => ipcRenderer.invoke('agent-rollback', { sessionId }),
+  agentCancel: (sessionId) => ipcRenderer.invoke('agent-cancel', { sessionId }),
+  onAgentEvent: (sessionId, callback) => { /* Inscrição em tempo real aos eventos do EventBus */ },
+
+  // Projetos & Workspaces
+  listProjects: () => ipcRenderer.invoke('projects-list'),
+  createProject: (data) => ipcRenderer.invoke('projects-create', data),
+  updateProject: (id, data) => ipcRenderer.invoke('projects-update', id, data),
+  deleteProject: (id) => ipcRenderer.invoke('projects-delete', id),
+
+  // Git & Terminal
+  gitStatus: (repoPath) => ipcRenderer.invoke('git-status', repoPath),
+  gitDiff: (repoPath) => ipcRenderer.invoke('git-diff', repoPath),
+  gitCommit: (repoPath, msg) => ipcRenderer.invoke('git-commit', repoPath, msg),
+
+  // Code Runner & Ferramentas Nativas
+  executeLocalCode: (params) => ipcRenderer.invoke('code-runner-execute', params),
+  executeWebSearch: (query, opts) => ipcRenderer.invoke('web-search-execute', { query, ...opts }),
+  capturePrimaryScreen: () => ipcRenderer.invoke('screen-capture-primary'),
+
+  // Backup & Segredos Criptográficos
+  exportBackup: () => ipcRenderer.invoke('backup-export'),
+  importBackup: () => ipcRenderer.invoke('backup-import'),
+  setSecureSecret: (key, val) => ipcRenderer.invoke('secret-set', { key, val }),
   getSecureSecret: (key) => ipcRenderer.invoke('secret-get', { key })
 });
 ```
@@ -89,9 +103,18 @@ Chaves de API (OpenAI, Anthropic, Groq, Gemini) nunca são armazenadas em texto 
 
 ---
 
-## 🚦 Sistema de Permissões Granular de Ferramentas
+## 🚦 Motor de Permissões & Zero-Trust (`permissionEngine.js`)
 
-Para evitar que ferramentas do Model Context Protocol (como exclusão de arquivos, comandos de terminal ou requisições de rede) sejam disparadas sem consentimento, o `toolPermissionManager.js` implementa políticas de aprovação:
+Para garantir que o agente não execute comandos destrutivos inadvertidamente, o `PermissionEngine` aplica uma política de autorização em 3 níveis:
 
-1. **Auto-Permitir (Read-Only):** Ferramentas estritamente de leitura podem ser pré-autorizadas pelo usuário.
-2. **Confirmação Explícita (Destructive / Write):** Chamadas com efeito colateral emitem um evento para a interface solicitando confirmação do usuário antes da execução no processo filho.
+1. **`ALLOW` (Leitura Segura):** Ferramentas inócuas como `read_file`, `list_directory`, `glob_search`, `grep_search`, `git_status` e `query_project_knowledge` são auto-autorizadas em modo agente.
+2. **`PROMPT` (Mutação / Execução):** Ferramentas que modificam arquivos (`write_file`, `edit_file`), rodam comandos no shell (`shell_exec`) ou realizam commits (`git_commit`) disparam uma solicitação visual no frontend (`ToolApprovalModal`).
+3. **`DENY` (Acesso Proibido):** Ferramentas explicitamente bloqueadas nas configurações ou comandos fora do workspace são rejeitados de imediato.
+
+---
+
+## 🛡️ Sandboxing de Diretório & Limites do Workspace
+
+O `ToolExecutor` valida todos os caminhos de arquivo recebidos do modelo para garantir que a execução permaneça restrita aos limites do projeto (`workspaceRoot`):
+- Bloqueio de caminhos maliciosos (`../..` fora da raiz autorizada).
+- Gravação prévia de snapshots com `CheckpointsManager` antes de qualquer alteração, garantindo rollback instantâneo em caso de erro.

@@ -47,58 +47,91 @@ O arquivo `electron/main.js` realiza a inicialização em ordem estrita de depen
 
 ---
 
-## 🗂️ Mapeamento dos Managers Especializados
+## 🗂️ Mapeamento dos Managers e Subsistemas Especializados
 
-Para evitar o anti-padrão de um arquivo `main.js` monolítico, as responsabilidades são estritamente particionadas em módulos especialistas:
+Para manter alta coesão e baixo acoplamento, as responsabilidades do processo principal são rigorosamente particionadas:
 
-### 1. `chatHandler.js`
-- **Responsabilidade:** Motor central de execução de conversas.
+### 1. `electron/agent/` (Neo Agent Runtime)
+- **Responsabilidade:** Motor de execução autônoma multi-turnos com máquina de estados finitos.
+- **Componentes:**
+  - `agentLoop.js`: ReAct loop autônomo com controle de iterações e auto-recuperação.
+  - `eventBus.js`: Barramento de eventos tipados em tempo real (`AGENT_EVENTS`).
+  - `modelRouter.js`: Roteamento inteligente de modelos e normalização de requisições.
+  - `toolRegistry.js` & `toolExecutor.js`: Catálogo unificado de ferramentas nativas e MCP.
+  - `permissionEngine.js`: Políticas de segurança e aprovações interativas do usuário.
+  - `checkpoints.js`: Snapshots de arquivos e rollback instantâneo de mutações.
+  - `shellManager.js`: Terminal persistente com isolamento de processos e timeout.
+  - `compactionManager.js`: Monitoramento de janela de contexto e compactação inteligente.
+  - `workspaceManager.js`: Inspeção de workspaces, `AGENTS.md` e regras de repositório.
+
+### 2. `chatHandler.js` & `messageUtils.js`
+- **Responsabilidade:** Motor central de streaming e poda conversacional.
 - **Funções:**
-  - Montagem de mensagens e injeção de System Prompts dinâmicos.
-  - Streaming push via `webContents.send('chat-chunk', ...)`.
-  - Extração e emissão de raciocínio (`<think>`).
-  - Execução de tool calls do modelo em loop recursivo com servidores MCP.
-  - Poda e compressão de histórico usando `messageUtils.js`.
+  - Injeção dinâmica de System Prompts e resolução do provedor ativo.
+  - Emissão de chunks de raciocínio (`<think>`) e de resposta final.
+  - Poda e cálculo determinístico de tokens para proteção do context window.
 
-### 2. `mcpManager.js`
-- **Responsabilidade:** Gerenciador do ciclo de vida do **Model Context Protocol**.
+### 3. `mcpManager.js` & `authManager.js`
+- **Responsabilidade:** Gerenciamento do ciclo de vida de ferramentas MCP e OAuth 2.0.
 - **Funções:**
-  - Inicialização de processos filhos (stdio) utilizando wrappers de ambiente (`electron/scripts/run-*.cmd|.ps1|.sh`).
-  - Conexão com servidores MCP remotos via Server-Sent Events (SSE).
-  - Descoberta dinâmica de ferramentas (`tools/list`), recursos (`resources/list`) e prompts (`prompts/list`).
-  - Normalização dos esquemas de parâmetros JSON Schema para os formatos esperados pelos provedores de LLM.
+  - Conexão stdio via wrappers (`electron/scripts/run-*.cmd|.ps1|.sh`) e transporte SSE.
+  - Dynamic Client Registration (RFC 7591) e servidor local efêmero de autenticação.
+  - Descoberta e normalização de ferramentas para o formato Function Calling dos provedores.
 
-### 3. `ragService.js`
+### 4. `projectManager.js`
+- **Responsabilidade:** Gerenciamento de múltiplos projetos e workspaces.
+- **Funções:**
+  - Criação, edição, cores de identificação e prompts de sistema customizados por projeto.
+  - Agrupamento de conversas e vinculação de pastas locais.
+
+### 5. `gitManager.js`
+- **Responsabilidade:** Integração com repositórios Git locais.
+- **Funções:**
+  - Inspeciona status do repositório, branches ativas e histórico recente.
+  - Gera diffs unificados e executa commits convencionais com segurança via `execFile`.
+
+### 6. `codeRunner.js`
+- **Responsabilidade:** Execução local e isolada de scripts Python e JavaScript.
+- **Funções:**
+  - Auto-descoberta de interpretadores instalados no PATH do sistema.
+  - Execução controlada em diretório temporário com timeouts estritos e captura de saída.
+
+### 7. `webSearchService.js`
+- **Responsabilidade:** Busca na Web em tempo real.
+- **Funções:**
+  - Provedor local direto (zero-config, Bing scraping) e nuvem (Tavily, Brave).
+  - Sanitização de entidades HTML e condensação de snippets para economia de tokens.
+
+### 8. `screenCaptureService.js` & `contextCapture.js`
+- **Responsabilidade:** Captura visual e contextual do sistema.
+- **Funções:**
+  - Enumeração de telas e janelas abertas para envio de imagens aos modelos de visão.
+  - Captura global de atalho `Ctrl+G` / `Cmd+G` e clipboard para o `popupWindow.js`.
+
+### 9. `ragService.js`
 - **Responsabilidade:** Mecanismo de **Retrieval-Augmented Generation** local.
 - **Funções:**
   - Leitura e extração de texto em formatos binários e estruturados via `officeparser`.
-  - Quebra semântica em chunks com sobreposição de janelas.
-  - Vetorização e cálculo de similaridade de cossenos no espaço de embeddings.
-  - Indexação incremental baseada no hash de modificação dos arquivos.
+  - Chunking semântico com overlap e cálculo de similaridade de cossenos.
+  - Indexação incremental baseada em hashes SHA-256.
 
-### 4. `settingsManager.js` & `secretStore.js`
-- **Responsabilidade:** Persistência de configurações e armazenamento criptográfico de credenciais.
+### 10. `settingsManager.js` & `secretStore.js`
+- **Responsabilidade:** Configurações persistentes e segurança de credenciais.
 - **Funções:**
-  - Armazenamento em `userData/settings.json` com mesclagem atômica de padrões.
-  - Encriptação de chaves de API em repouso através da API `safeStorage` nativa do Electron (Windows DPAPI, macOS Keychain, Linux Secret Service).
+  - Persistência em `userData/settings.json` com fallback em variáveis de ambiente.
+  - Encriptação de chaves em repouso usando a API nativa `safeStorage` (DPAPI/Keychain).
 
-### 5. `canvasManager.js`
-- **Responsabilidade:** Gerenciador de artefatos de trabalho e síntese de voz.
+### 11. `backupManager.js`
+- **Responsabilidade:** Backup e recuperação de desastres.
 - **Funções:**
-  - Salvamento, versionamento e exportação de códigos e documentos editados no Canvas.
-  - Integração com utilitários de síntese de áudio (TTS) para leitura de artefatos.
+  - Exportação JSON completa com sanitização automática de segredos.
+  - Importação segura com criação prévia de snapshot de recuperação.
 
-### 6. `workflowManager.js` & `schedulerManager.js`
-- **Responsabilidade:** Automação de pipelines de prompts e agendamentos.
+### 12. `canvasManager.js`, `workflowManager.js` & `schedulerManager.js`
+- **Responsabilidade:** Produtividade avançada e automação.
 - **Funções:**
-  - Execução encadeada de passos com substituição de variáveis contextuais.
-  - Execução em segundo plano de tarefas programadas (estilo cron) com notificações de sistema.
-
-### 7. `popupWindow.js` & `contextCapture.js`
-- **Responsabilidade:** Interface de acesso rápido global.
-- **Funções:**
-  - Exibição de uma janela flutuante sem bordas disparada por `Ctrl+G` (ou `Cmd+G`).
-  - Captura inteligente do conteúdo do clipboard ou texto selecionado em outros aplicativos para consulta imediata de IA.
+  - Gerenciamento de documentos Monaco Editor e síntese de voz (TTS).
+  - Pipelines automatizados em etapas e agendamentos periódicos em background.
 
 ---
 
@@ -111,7 +144,7 @@ O NeoChat registra esquemas de protocolo de URL customizados (`groq://` e `neoch
 // groq://context?text=Analise%20este%20codigo&title=QueryRapida&source=VSCode
 
 function handleUrlProtocol(url) {
-  if (!url.startsWith('groq://')) return null;
+  if (!url.startsWith('groq://') && !url.startsWith('neochat://')) return null;
   const urlObj = new URL(url);
   if (urlObj.pathname === '/context') {
     return {

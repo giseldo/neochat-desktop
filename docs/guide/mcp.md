@@ -45,31 +45,44 @@ electron/scripts/
 
 ---
 
-## 🔄 Ciclo de Descoberta & Execução de Ferramentas
+## 🔄 Ciclo de Descoberta & Execução Unificada
+
+No NeoChat Desktop, as ferramentas MCP são unificadas com as ferramentas nativas de sistema através do `ToolRegistry` e `ToolExecutor`:
 
 ```
-1. Inicialização ──► mcpManager conecta ao servidor (Handshake JSON-RPC 2.0)
+1. Inicialização ──► mcpManager conecta ao servidor (Handshake JSON-RPC 2.0 stdio ou SSE)
 2. Descoberta    ──► mcpManager invoca tools/list e recebe esquemas JSON Schema
-3. Normalização  ──► Esquemas convertidos para formato Function Calling do provedor
-4. Solicitação   ──► LLM decide invocar tool: { name: "search_files", args: { path: "src" } }
-5. Permissão     ──► toolPermissionManager checa política de segurança
-6. Execução      ──► mcpManager executa a chamada no servidor MCP
-7. Retorno       ──► Resultado injetado como role: "tool" no histórico do LLM
-8. Síntese       ──► LLM gera resposta final amigável com base nos dados reais
+3. Unificação    ──► Injetadas no ToolRegistry com prefixos e metadados de servidor
+4. Normalização  ──► Esquemas convertidos para formato Function Calling (OpenAI/Groq)
+5. Solicitação   ──► LLM decide invocar tool: { name: "github_create_issue", args: { ... } }
+6. Permissão     ──► permissionEngine avalia política (ALLOW, PROMPT com ToolApprovalModal, ou DENY)
+7. Execução      ──► toolExecutor delega ao mcpManager ou handler nativo
+8. Retorno       ──► Resultado injetado como role: "tool" no histórico do AgentLoop
+9. Síntese       ──► LLM prossegue com a próxima iteração autônoma ou gera resposta final
 ```
+
+---
+
+## 🔐 Autenticação OAuth 2.0 para Servidores Remotos (`authManager.js`)
+
+Para servidores MCP em nuvem que exigem autenticação protegida por usuário:
+
+- **RFC 7591 Dynamic Client Registration:** O NeoChat registra-se dinamicamente no servidor de autorização.
+- **PKCE & State:** Geração criptográfica segura de `code_verifier` e `state`.
+- **Servidor Local de Redirecionamento:** O Electron inicializa um listener HTTP em porta dinâmica para capturar o callback com segurança e persistir os tokens criptografados.
 
 ---
 
 ## 🛠️ Exemplo de Configuração de Servidor MCP
 
-No painel de configurações ou via `settings.json`, novos servidores MCP são declarados de forma simples:
+No painel de configurações ou via `settings.json`, novos servidores MCP são declarados de forma declarativa:
 
 ```json
 {
   "mcpServers": {
     "filesystem": {
       "command": "npx",
-      "args": ["-y", "@modelcontextprotocol/server-filesystem", "C:\Users\Workspace"],
+      "args": ["-y", "@modelcontextprotocol/server-filesystem", "C:\\Projetos"],
       "enabled": true
     },
     "github": {
@@ -78,6 +91,11 @@ No painel de configurações ou via `settings.json`, novos servidores MCP são d
       "env": {
         "GITHUB_PERSONAL_ACCESS_TOKEN": "<safeStorage:token>"
       },
+      "enabled": true
+    },
+    "postgres": {
+      "command": "uvx",
+      "args": ["mcp-server-postgres", "--connection-string", "postgresql://localhost/mydb"],
       "enabled": true
     }
   }

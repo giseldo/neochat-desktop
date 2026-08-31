@@ -42,18 +42,27 @@ export function inferModelCapabilities(modelId) {
 
 ---
 
-## ✂️ Gerenciamento Inteligente de Context Window (`messageUtils.js`)
+## 🔀 Roteamento Inteligente & ModelRouter (`electron/agent/modelRouter.js`)
 
-Para evitar falhas por estouro de limite de tokens (`context_length_exceeded`), o `chatHandler` aplica um algoritmo de poda proporcional:
+No Neo Agent Runtime, o `ModelRouter` atua como a ponte unificada de inferência:
+- **Normalização de Parâmetros:** Adapta automaticamente formatos de `tools`, `temperature`, `max_tokens` e `response_format` para as especificidades de cada SDK/provedor.
+- **Transmissão Bidirecional de Streams:** Emite separadamente tokens de pensamento (`onReasoning`) e de conteúdo (`onToken`), permitindo que a interface anime o bloco de raciocínio em tempo real.
+- **Mecanismo de Auto-Recuperação:** Se uma chamada de ferramenta falhar por formatação de JSON do modelo, o roteador gera um aviso estruturado no turno seguinte para auto-correção do LLM.
+
+---
+
+## ✂️ Gerenciamento Inteligente de Context Window (`compactionManager.js` & `messageUtils.js`)
+
+Para prevenir erros de `context_length_exceeded` sem perder o fio da meada:
 
 ```
-Orçamento Total de Tokens do Modelo (Ex: 128.000)
+Orçamento Total de Tokens do Modelo (Ex: 128.000 / 200.000)
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│ [System Prompt + RAG Context]  (Prioridade Alta - Sempre Preservado)       │
+│ [System Prompt + Regras de Workspace] (Prioridade Alta - Sempre Preservado) │
 ├─────────────────────────────────────────────────────────────────────────────┤
-│ [Mensagens Históricas Podadas] (Compactadas conforme o limite restante)     │
+│ [Resumo Compactado de Turnos Anteriores] (Gerado pelo CompactionManager)   │
 ├─────────────────────────────────────────────────────────────────────────────┤
-│ [Últimas Interações do Chat]  (Prioridade Máxima - Integridade Garantida)  │
+│ [Últimas Interações do Agente / Chat] (Prioridade Máxima - Fiel e Completo) │
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -61,4 +70,4 @@ Orçamento Total de Tokens do Modelo (Ex: 128.000)
 
 ## 🔀 Fallback Automático entre Provedores
 
-Caso a requisição para o provedor primário falhe por instabilidade na rede ou rate limit (`HTTP 429`), o sistema ativa transparentemente o provedor secundário configurado pelo usuário, mantendo a sessão de chat sem interrupções.
+Caso a requisição para o provedor primário falhe por instabilidade na rede ou rate limit (`HTTP 429`), o sistema ativa transparentemente o provedor secundário configurado pelo usuário, mantendo a sessão de trabalho sem interrupções.

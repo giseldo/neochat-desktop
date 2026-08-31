@@ -9,11 +9,12 @@ export default defineConfig({
     siteTitle: 'NeoChat Architecture',
     nav: [
       { text: 'Visão Geral', link: '/guide/overview' },
-      { text: 'Arquitetura Web', link: '/guide/web-architecture' },
+      { text: 'Agent Runtime', link: '/guide/agent-runtime' },
       { text: 'Processo Desktop', link: '/guide/main-process' },
       { text: 'Multi-Provider', link: '/guide/llm-engine' },
       { text: 'MCP & Tools', link: '/guide/mcp' },
       { text: 'RAG Local', link: '/guide/rag' },
+      { text: 'Arquitetura Web', link: '/guide/web-architecture' },
       {
         text: 'Acessar & Releases',
         items: [
@@ -30,7 +31,13 @@ export default defineConfig({
         items: [
           { text: 'Visão Geral e Filosofia', link: '/guide/overview' },
           { text: 'Arquitetura Web & Cloud (Next.js/Neon)', link: '/guide/web-architecture' },
-          { text: 'Stack Tecnológica', link: '/guide/tech-stack' }
+          { text: 'Stack Tecnológica & Módulos', link: '/guide/tech-stack' }
+        ]
+      },
+      {
+        text: '🤖 Neo Agent Runtime',
+        items: [
+          { text: 'Harness Autônomo & State Machine', link: '/guide/agent-runtime' }
         ]
       },
       {
@@ -50,8 +57,9 @@ export default defineConfig({
         ]
       },
       {
-        text: '🛠️ Recursos Avançados',
+        text: '🛠️ Recursos Avançados & Sistema',
         items: [
+          { text: 'Projetos, Workspaces & Serviços Nativos', link: '/guide/projects-workspaces' },
           { text: 'Workflows, Canvas & Scheduler', link: '/guide/workflows-canvas' },
           { text: 'Observabilidade & Métricas', link: '/guide/observability' }
         ]
