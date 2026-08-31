@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { 
   CheckCircle2, 
   Clock, 
@@ -21,18 +21,88 @@ import { Button } from './ui/button';
 import { cn } from '../lib/utils';
 import { useLanguage } from '../context/LanguageContext';
 
+const TASKS_WIDTH_KEY = 'neochat_tasks_panel_width';
+const DEFAULT_TASKS_WIDTH = 480;
+const MIN_TASKS_WIDTH = 340;
+
 export default function BackgroundTasksPanel({
   onClose,
   isMaximized,
-  onToggleMaximize
+  onToggleMaximize,
+  className
 }) {
   const { t } = useLanguage();
+
+  // Width & Resize state
+  const [panelWidth, setPanelWidth] = useState(() => {
+    const saved = localStorage.getItem(TASKS_WIDTH_KEY);
+    return saved ? Math.max(MIN_TASKS_WIDTH, parseInt(saved, 10)) : DEFAULT_TASKS_WIDTH;
+  });
+  const [isResizing, setIsResizing] = useState(false);
+  const widthRef = useRef(panelWidth);
+  widthRef.current = panelWidth;
+
+  // Resize Drag Handlers
+  const handleResizeStart = useCallback((e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsResizing(true);
+  }, []);
+
+  const handleResizeReset = useCallback((e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setPanelWidth(DEFAULT_TASKS_WIDTH);
+    localStorage.setItem(TASKS_WIDTH_KEY, String(DEFAULT_TASKS_WIDTH));
+  }, []);
+
+  useEffect(() => {
+    if (!isResizing) return;
+
+    const handleMouseMove = (e) => {
+      const maxWidth = Math.max(MIN_TASKS_WIDTH, window.innerWidth - 320);
+      const newWidth = Math.min(Math.max(window.innerWidth - e.clientX, MIN_TASKS_WIDTH), maxWidth);
+      widthRef.current = newWidth;
+      setPanelWidth(newWidth);
+    };
+
+    const handleMouseUp = () => {
+      setIsResizing(false);
+      localStorage.setItem(TASKS_WIDTH_KEY, String(widthRef.current));
+    };
+
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+    document.body.style.userSelect = 'none';
+    document.body.style.cursor = 'col-resize';
+
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+      document.body.style.userSelect = '';
+      document.body.style.cursor = '';
+    };
+  }, [isResizing]);
+
   const [tasks, setTasks] = useState([]);
   const [statusFilter, setStatusFilter] = useState('all'); // 'all' | 'running' | 'completed' | 'error'
   const [selectedTaskId, setSelectedTaskId] = useState(null);
   const [taskLogs, setTaskLogs] = useState([]);
   const [copied, setCopied] = useState(false);
   const [filterDropdownOpen, setFilterDropdownOpen] = useState(false);
+  const filterDropdownRef = useRef(null);
+
+  // Close filter dropdown on click outside
+  useEffect(() => {
+    if (!filterDropdownOpen) return;
+    const handleClickOutside = (e) => {
+      if (filterDropdownRef.current && !filterDropdownRef.current.contains(e.target)) {
+        setFilterDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [filterDropdownOpen]);
 
   // Load initial tasks list
   const loadTasks = useCallback(async () => {
@@ -113,10 +183,37 @@ export default function BackgroundTasksPanel({
   const selectedTask = tasks.find(t => t.id === selectedTaskId);
 
   return (
-    <div className={cn(
-      "flex flex-col bg-card text-card-foreground border border-border/80 shadow-2xl rounded-2xl overflow-hidden transition-all duration-200",
-      isMaximized ? "fixed inset-4 z-50 rounded-2xl" : "w-full h-full min-h-[420px]"
-    )}>
+    <div 
+      style={!isMaximized ? { width: `${panelWidth}px` } : undefined}
+      className={cn(
+        "relative flex flex-col bg-card text-card-foreground border-l border-border/80 shadow-2xl overflow-hidden transition-all duration-200 shrink-0",
+        isMaximized ? "fixed inset-4 z-50 rounded-2xl border" : "h-full min-w-[340px]",
+        className
+      )}
+    >
+      {/* Left Resize Handle */}
+      {!isMaximized && (
+        <div
+          onMouseDown={handleResizeStart}
+          onDoubleClick={handleResizeReset}
+          className={cn(
+            "absolute top-0 left-0 -ml-1 w-2.5 h-full cursor-col-resize z-50 group select-none flex items-center justify-center transition-colors",
+            isResizing ? "bg-primary/40" : "hover:bg-primary/20"
+          )}
+          title={t('sidebar.dragToResize') || 'Arraste para redimensionar (Duplo clique para redefinir)'}
+        >
+          <div className={cn(
+            "w-1 h-8 rounded-full transition-colors",
+            isResizing ? "bg-primary" : "bg-border group-hover:bg-primary/80"
+          )} />
+        </div>
+      )}
+
+      {/* Resize Overlay */}
+      {isResizing && (
+        <div className="fixed inset-0 z-50 cursor-col-resize select-none pointer-events-auto bg-transparent" />
+      )}
+
       {/* Top Header Bar */}
       <div className="flex items-center justify-between px-3.5 py-2.5 bg-muted/50 border-b border-border select-none">
         <div className="flex items-center gap-2">
@@ -157,7 +254,7 @@ export default function BackgroundTasksPanel({
       {/* Sub-bar: Status Filter & Clear button */}
       <div className="flex items-center justify-between px-3.5 py-2 bg-background/80 border-b border-border/60 text-xs">
         {/* Status Dropdown */}
-        <div className="relative">
+        <div className="relative" ref={filterDropdownRef}>
           <button
             type="button"
             onClick={() => setFilterDropdownOpen(!filterDropdownOpen)}

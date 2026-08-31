@@ -3280,18 +3280,13 @@ function App() {
 
         {/* Side-by-side Background Tasks Panel */}
         {isTasksOpen && (
-          <div className={cn(
-            "transition-all flex shrink-0 border-l border-border/80 bg-background/50",
-            isTasksMaximized ? "w-full fixed inset-0 z-50 p-4" : "w-[400px] lg:w-[460px] xl:w-[520px] p-2"
-          )}>
-            <Suspense fallback={null}>
-              <BackgroundTasksPanel
-                onClose={() => setIsTasksOpen(false)}
-                isMaximized={isTasksMaximized}
-                onToggleMaximize={() => setIsTasksMaximized(!isTasksMaximized)}
-              />
-            </Suspense>
-          </div>
+          <Suspense fallback={null}>
+            <BackgroundTasksPanel
+              onClose={() => setIsTasksOpen(false)}
+              isMaximized={isTasksMaximized}
+              onToggleMaximize={() => setIsTasksMaximized(!isTasksMaximized)}
+            />
+          </Suspense>
         )}
 
         {/* Side-by-side Embedded Browser Panel */}
