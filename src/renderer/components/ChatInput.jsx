@@ -33,6 +33,9 @@ function ChatInput({
 	powerUserMode = false,
 	showButtonLabels = false,
 	presetMessage = "",
+	harnessMode = "chat",
+	workspaceInfo = null,
+	onSelectWorkspace,
 }) {
 	const effectiveToolsCount = typeof toolsCount === 'number' && toolsCount > 0
 		? toolsCount
@@ -75,20 +78,7 @@ function ChatInput({
 	const [isTranscribing, setIsTranscribing] = useState(false);
 	const [voiceInputEnabled, setVoiceInputEnabled] = useState(true);
 	const [isSnipModalOpen, setIsSnipModalOpen] = useState(false);
-	const [harnessMode, setHarnessMode] = useState(() => {
-		try {
-			return localStorage.getItem('neochat_harness_mode') || (localStorage.getItem('neochat_agent_mode') === 'true' ? 'code' : 'chat');
-		} catch (e) {
-			return 'chat';
-		}
-	});
-	const [agentModeActive, setAgentModeActive] = useState(() => {
-		try {
-			return localStorage.getItem('neochat_agent_mode') === 'true' || localStorage.getItem('neochat_harness_mode') === 'code';
-		} catch (e) {
-			return false;
-		}
-	});
+	const agentModeActive = harnessMode === 'code';
 	const mediaRecorderRef = useRef(null);
 	const audioChunksRef = useRef([]);
 	const isRecordingRef = useRef(false);
@@ -778,7 +768,8 @@ function ChatInput({
 	return (
     <div 
 			className={cn(
-				"flex flex-col gap-4 border border-border/80 rounded-2xl w-full p-3 bg-muted/60 dark:bg-muted/30 backdrop-blur-sm relative",
+				"flex flex-col gap-4 border rounded-2xl w-full p-3 bg-muted/60 dark:bg-muted/30 backdrop-blur-sm relative transition-colors",
+				harnessMode === 'code' ? "border-amber-500/40 ring-1 ring-amber-500/20" : (harnessMode === 'work' ? "border-indigo-500/30 ring-1 ring-indigo-500/15" : "border-border/80"),
 				isDragOver 
 					? "border-primary border-2 bg-primary/5 transition-all duration-200" 
 					: ""
@@ -838,6 +829,41 @@ function ChatInput({
 							</div>
 						))}
 					</div>
+				</div>
+			)}
+
+			{/* Active Code Workspace Indicator */}
+			{harnessMode === 'code' && (
+				<div className="flex items-center justify-between gap-2 px-1 pt-0.5 text-xs select-none animate-in fade-in duration-200">
+					<div className="flex items-center gap-1.5 min-w-0">
+						<Terminal className="w-3.5 h-3.5 text-amber-500 shrink-0" />
+						<span className="text-amber-600 dark:text-amber-400 font-semibold shrink-0">
+							{t('chat.chatModeCode')}
+						</span>
+						<span className="text-muted-foreground/50">•</span>
+						<span className="text-muted-foreground truncate font-mono text-[11px]">
+							{workspaceInfo?.name || workspaceInfo?.root || t('chat.noWorkspaceSelected')}
+						</span>
+						{workspaceInfo?.git?.branch && (
+							<span className="px-1.5 py-0.5 rounded bg-muted text-muted-foreground text-[10px] font-mono shrink-0">
+								🌿 {workspaceInfo.git.branch}
+							</span>
+						)}
+						{workspaceInfo?.agentsDoc && (
+							<span className="px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-[10px] font-medium shrink-0">
+								AGENTS.md ✓
+							</span>
+						)}
+					</div>
+					{onSelectWorkspace && (
+						<button
+							type="button"
+							onClick={onSelectWorkspace}
+							className="text-[11px] text-amber-600 dark:text-amber-400 hover:underline font-medium shrink-0 cursor-pointer"
+						>
+							{workspaceInfo?.root ? t('common.edit') : t('chat.selectWorkspace')}
+						</button>
+					)}
 				</div>
 			)}
 
@@ -1167,89 +1193,6 @@ function ChatInput({
 									</span>
 								)}
 							</Button>
-						)}
-
-						{/* 3-Mode Harness Selector: Chat | Work | Code */}
-						{powerUserMode && (
-							<div className="inline-flex items-center p-0.5 rounded-xl bg-muted/50 border border-border/40 gap-0.5 flex-shrink-0">
-								<Button
-									type="button"
-									variant="ghost"
-									size="sm"
-									onClick={() => {
-										setHarnessMode('chat');
-										setAgentModeActive(false);
-										try {
-											localStorage.setItem('neochat_harness_mode', 'chat');
-											localStorage.setItem('neochat_agent_mode', 'false');
-										} catch (e) {}
-									}}
-									className={cn(
-										"h-7 px-2 text-xs rounded-lg font-medium transition-all flex items-center gap-1",
-										harnessMode === 'chat'
-											? "bg-background text-foreground shadow-xs font-semibold"
-											: "text-muted-foreground hover:text-foreground hover:bg-muted/40"
-									)}
-									title={t('chat.chatModeChat')}
-									disabled={loading}
-								>
-									<MessageSquare className="w-3.5 h-3.5 text-blue-500" />
-									{showButtonLabels && <span>{t('chat.chatModeChat')}</span>}
-								</Button>
-
-								<Button
-									type="button"
-									variant="ghost"
-									size="sm"
-									onClick={() => {
-										setHarnessMode('work');
-										setAgentModeActive(false);
-										try {
-											localStorage.setItem('neochat_harness_mode', 'work');
-											localStorage.setItem('neochat_agent_mode', 'false');
-										} catch (e) {}
-									}}
-									className={cn(
-										"h-7 px-2 text-xs rounded-lg font-medium transition-all flex items-center gap-1",
-										harnessMode === 'work'
-											? "bg-background text-foreground shadow-xs font-semibold ring-1 ring-indigo-500/20"
-											: "text-muted-foreground hover:text-foreground hover:bg-muted/40"
-									)}
-									title={t('chat.chatModeWork')}
-									disabled={loading}
-								>
-									<Briefcase className="w-3.5 h-3.5 text-indigo-500" />
-									{showButtonLabels && <span>{t('chat.chatModeWork')}</span>}
-								</Button>
-
-								<Button
-									type="button"
-									variant="ghost"
-									size="sm"
-									onClick={() => {
-										setHarnessMode('code');
-										setAgentModeActive(true);
-										try {
-											localStorage.setItem('neochat_harness_mode', 'code');
-											localStorage.setItem('neochat_agent_mode', 'true');
-										} catch (e) {}
-									}}
-									className={cn(
-										"h-7 px-2 text-xs rounded-lg font-medium transition-all flex items-center gap-1",
-										harnessMode === 'code'
-											? "bg-amber-500/15 text-amber-600 dark:text-amber-400 font-semibold ring-1 ring-amber-500/40 shadow-xs"
-											: "text-muted-foreground hover:text-foreground hover:bg-muted/40"
-									)}
-									title={t('chat.chatModeCodeTooltip')}
-									disabled={loading}
-								>
-									<Terminal className={cn("w-3.5 h-3.5", harnessMode === 'code' ? "text-amber-500 animate-pulse" : "text-amber-500/80")} />
-									{showButtonLabels && <span>{t('chat.chatModeCode')}</span>}
-									{harnessMode === 'code' && (
-										<span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
-									)}
-								</Button>
-							</div>
 						)}
 					</div>
 

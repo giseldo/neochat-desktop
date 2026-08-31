@@ -93,6 +93,7 @@ contextBridge.exposeInMainWorld('electron', {
     cancel: (sessionId) => ipcRenderer.invoke('agent:cancel', sessionId),
     rollback: (sessionId) => ipcRenderer.invoke('agent:rollback', sessionId),
     getWorkspaceInfo: (workspaceRoot) => ipcRenderer.invoke('agent:get-workspace-info', workspaceRoot),
+    selectWorkspace: () => ipcRenderer.invoke('agent:select-workspace'),
     onEvent: (callback) => {
       const handler = (_, data) => callback(data);
       ipcRenderer.on('agent:event', handler);

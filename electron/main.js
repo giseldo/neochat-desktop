@@ -663,6 +663,19 @@ app.whenReady().then(async () => {
     return await neoAgentRuntime.getWorkspaceInfo(workspaceRoot);
   });
 
+  ipcMain.handle('agent:select-workspace', async () => {
+    const result = await dialog.showOpenDialog(mainWindow, {
+      title: 'Select Workspace Directory',
+      properties: ['openDirectory']
+    });
+    if (result.canceled || !result.filePaths[0]) {
+      return { canceled: true };
+    }
+    const folderPath = result.filePaths[0];
+    const info = await neoAgentRuntime.getWorkspaceInfo(folderPath);
+    return { success: true, path: folderPath, info };
+  });
+
   // Model configs handler already registered above during early initialization
   console.log("[Main Init] Continuing with remaining handlers...");
 

@@ -24,7 +24,7 @@ import { useCanvas } from './context/CanvasContext';
 import { useProjects } from './context/ProjectContext';
 import { useLanguage } from './context/LanguageContext';
 import { useTheme } from './context/ThemeContext';
-import { Settings, PanelLeftClose, PanelLeft, Radio, MessagesSquare, Sparkles, Store, Columns2, X, FolderKanban, BookOpen, Scale, Bot, Workflow, ChevronDown, Keyboard, Key, AlertCircle, PenSquare, Terminal } from 'lucide-react';
+import { Settings, PanelLeftClose, PanelLeft, Radio, MessagesSquare, Sparkles, Store, Columns2, X, FolderKanban, BookOpen, Scale, Bot, Workflow, ChevronDown, Keyboard, Key, AlertCircle, PenSquare, Terminal, Folder, Briefcase, MessageSquare } from 'lucide-react';
 import { Button } from './components/ui/button';
 import { cn } from './lib/utils';
 import { groupModels } from './lib/modelGrouping';
@@ -241,9 +241,59 @@ function App() {
   const [streamStateB, setStreamStateB] = useState({ isLoading: false, content: '', reasoning: '', ttft: null, metrics: null, error: null });
   // --- End Multi-Model Comparison State ---
 
-  // --- Autonomous Agent Mode State ---
+  // --- Autonomous Agent & Workspace State ---
   const [agentStep, setAgentStep] = useState(0);
-  // --- End Autonomous Agent Mode State ---
+  const [harnessMode, setHarnessMode] = useState(() => {
+    try {
+      return localStorage.getItem('neochat_harness_mode') || 'chat';
+    } catch (e) {
+      return 'chat';
+    }
+  });
+  const [workspacePath, setWorkspacePath] = useState(() => {
+    try {
+      return localStorage.getItem('neochat_workspace_path') || '';
+    } catch (e) {
+      return '';
+    }
+  });
+  const [workspaceInfo, setWorkspaceInfo] = useState(null);
+
+  useEffect(() => {
+    if (workspacePath && window.electron?.agent?.getWorkspaceInfo) {
+      window.electron.agent.getWorkspaceInfo(workspacePath)
+        .then(info => setWorkspaceInfo(info))
+        .catch(err => console.warn('Could not inspect workspace:', err));
+    } else {
+      setWorkspaceInfo(null);
+    }
+  }, [workspacePath]);
+
+  const handleSelectWorkspace = useCallback(async () => {
+    try {
+      if (window.electron?.agent?.selectWorkspace) {
+        const result = await window.electron.agent.selectWorkspace();
+        if (result?.success && result.path) {
+          setWorkspacePath(result.path);
+          setWorkspaceInfo(result.info);
+          try {
+            localStorage.setItem('neochat_workspace_path', result.path);
+          } catch (e) {}
+        }
+      }
+    } catch (err) {
+      console.error('Error selecting workspace:', err);
+    }
+  }, []);
+
+  const handleModeChange = useCallback((mode) => {
+    setHarnessMode(mode);
+    try {
+      localStorage.setItem('neochat_harness_mode', mode);
+      localStorage.setItem('neochat_agent_mode', String(mode === 'code'));
+    } catch (e) {}
+  }, []);
+  // --- End Autonomous Agent & Workspace State ---
 
   // --- Preset Input Message State for Welcome suggestions ---
   const [presetInputMessage, setPresetInputMessage] = useState('');
@@ -1181,12 +1231,15 @@ function App() {
         };
         setMessages(prev => [...prev, assistantPlaceholder]);
 
-        // Start streaming chat with active runtime context (Canvas, Project, etc.)
+        // Start streaming chat with active runtime context (Canvas, Project, Workspace, etc.)
         const streamOptions = {
             isCanvasOpen: Boolean(isCanvasOpen),
             canvasDoc: isCanvasOpen && canvasDoc ? canvasDoc : null,
             selectedCanvasText: isCanvasOpen ? selectedText : '',
             activeProject: activeProject ? { id: activeProject.id, name: activeProject.name, folders: activeProject.folders } : null,
+            agentModeActive: harnessMode === 'code',
+            mode: harnessMode,
+            workspaceRoot: workspacePath || undefined
         };
         const streamHandler = window.electron.startChatStream(messagesToSend, selectedModel, streamOptions);
 
@@ -2450,6 +2503,84 @@ function App() {
                   </button>
                 </div>
               )}
+
+              {/* 3-Mode Harness Selector: Chat | Work | Code */}
+              {isPowerUser && (
+                <div className="flex items-center gap-0.5 bg-muted/60 p-1 rounded-xl border border-border/70 shadow-2xs">
+                  <button
+                    type="button"
+                    onClick={() => handleModeChange('chat')}
+                    className={cn(
+                      "px-2.5 py-1 text-xs font-semibold rounded-lg transition-all flex items-center gap-1.5 cursor-pointer",
+                      harnessMode === 'chat'
+                        ? "bg-background text-foreground shadow-xs font-bold"
+                        : "text-muted-foreground hover:text-foreground"
+                    )}
+                    title={t('chat.chatModeChat')}
+                  >
+                    <MessageSquare className="w-3.5 h-3.5 text-blue-500" />
+                    <span className="hidden md:inline">{t('chat.chatModeChat')}</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => handleModeChange('work')}
+                    className={cn(
+                      "px-2.5 py-1 text-xs font-semibold rounded-lg transition-all flex items-center gap-1.5 cursor-pointer",
+                      harnessMode === 'work'
+                        ? "bg-background text-foreground shadow-xs ring-1 ring-indigo-500/20 font-bold"
+                        : "text-muted-foreground hover:text-foreground"
+                    )}
+                    title={t('chat.chatModeWork')}
+                  >
+                    <Briefcase className="w-3.5 h-3.5 text-indigo-500" />
+                    <span className="hidden md:inline">{t('chat.chatModeWork')}</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => handleModeChange('code')}
+                    className={cn(
+                      "px-2.5 py-1 text-xs font-semibold rounded-lg transition-all flex items-center gap-1.5 cursor-pointer",
+                      harnessMode === 'code'
+                        ? "bg-amber-500/15 text-amber-600 dark:text-amber-400 shadow-xs ring-1 ring-amber-500/40 font-bold"
+                        : "text-muted-foreground hover:text-foreground"
+                    )}
+                    title={t('chat.chatModeCodeTooltip')}
+                  >
+                    <Terminal className="w-3.5 h-3.5 text-amber-500" />
+                    <span className="hidden md:inline">{t('chat.chatModeCode')}</span>
+                    {harnessMode === 'code' && (
+                      <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
+                    )}
+                  </button>
+                </div>
+              )}
+
+              {/* In Code Mode: Workspace Directory Selector Button */}
+              {isPowerUser && harnessMode === 'code' && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={handleSelectWorkspace}
+                  className="h-8 px-2.5 text-xs flex items-center gap-1.5 rounded-xl border-amber-500/40 bg-amber-500/10 hover:bg-amber-500/20 text-amber-600 dark:text-amber-400 font-medium shadow-2xs transition-all cursor-pointer"
+                  title={t('chat.selectWorkspaceTooltip')}
+                >
+                  <Folder className="w-3.5 h-3.5 text-amber-500 shrink-0" />
+                  <span className="max-w-[140px] sm:max-w-[200px] truncate font-semibold">
+                    {workspaceInfo?.name || (workspacePath ? workspacePath.split(/[/\\]/).pop() : t('chat.selectWorkspace'))}
+                  </span>
+                  {workspaceInfo?.git?.branch && (
+                    <span className="hidden sm:inline px-1.5 py-0.5 rounded bg-amber-500/20 text-[10px] font-mono shrink-0">
+                      🌿 {workspaceInfo.git.branch}
+                    </span>
+                  )}
+                  {workspaceInfo?.agentsDoc && (
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" title={t('chat.agentsDocDetected')} />
+                  )}
+                </Button>
+              )}
               
               {/* Persona Selector */}
               {isPowerUser && (
@@ -2673,6 +2804,9 @@ function App() {
                       onModelConfigUpdated={handleModelConfigUpdated}
                       powerUserMode={isPowerUser}
                       showButtonLabels={showButtonLabels}
+                      harnessMode={harnessMode}
+                      workspaceInfo={workspaceInfo}
+                      onSelectWorkspace={handleSelectWorkspace}
                     />
                   </div>
                 </div>
@@ -2709,6 +2843,9 @@ function App() {
                       powerUserMode={isPowerUser}
                       showButtonLabels={showButtonLabels}
                       presetMessage={presetInputMessage}
+                      harnessMode={harnessMode}
+                      workspaceInfo={workspaceInfo}
+                      onSelectWorkspace={handleSelectWorkspace}
                     />
                   </div>
                 </div>
@@ -2748,6 +2885,9 @@ function App() {
                       onModelConfigUpdated={handleModelConfigUpdated}
                       powerUserMode={isPowerUser}
                       showButtonLabels={showButtonLabels}
+                      harnessMode={harnessMode}
+                      workspaceInfo={workspaceInfo}
+                      onSelectWorkspace={handleSelectWorkspace}
                     />
                   </div>
                 </div>
@@ -2822,6 +2962,9 @@ function App() {
                       onModelConfigUpdated={handleModelConfigUpdated}
                       powerUserMode={isPowerUser}
                       showButtonLabels={showButtonLabels}
+                      harnessMode={harnessMode}
+                      workspaceInfo={workspaceInfo}
+                      onSelectWorkspace={handleSelectWorkspace}
                     />
                   </div>
                 </div>
