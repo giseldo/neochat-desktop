@@ -7,11 +7,13 @@ import MessageItem from '@/components/MessageItem';
 import ChatInput from '@/components/ChatInput';
 import SettingsModal from '@/components/SettingsModal';
 import PromptTemplatesModal from '@/components/PromptTemplatesModal';
+import { NeoSymbol } from '@/components/NeoSymbol';
 import { PROVIDERS, DEFAULT_PROVIDER, DEFAULT_MODEL } from '@/lib/providers';
-import { Sparkles, Code2, Sigma, Shield, ArrowRight, Key } from 'lucide-react';
+import { Code2, Sigma, Key, ArrowRight } from 'lucide-react';
 
 export default function NeoChatWebApp() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [colorTheme, setColorTheme] = useState('orange');
   const [provider, setProvider] = useState(DEFAULT_PROVIDER);
   const [model, setModel] = useState(DEFAULT_MODEL);
   const [systemPrompt, setSystemPrompt] = useState('');
@@ -38,6 +40,9 @@ export default function NeoChatWebApp() {
   // Carregar dados salvos do localStorage
   useEffect(() => {
     try {
+      const savedTheme = localStorage.getItem('neochat_web_color_theme');
+      if (savedTheme) setColorTheme(savedTheme);
+
       const savedKeys = localStorage.getItem('neochat_web_api_keys');
       if (savedKeys) setApiKeys(JSON.parse(savedKeys));
 
@@ -66,6 +71,11 @@ export default function NeoChatWebApp() {
       console.error('Erro ao ler localStorage:', e);
     }
   }, []);
+
+  const handleChangeColorTheme = (themeId) => {
+    setColorTheme(themeId);
+    localStorage.setItem('neochat_web_color_theme', themeId);
+  };
 
   // Salvar conversas no localStorage quando alteradas
   const persistConversations = (newConvs) => {
@@ -157,7 +167,6 @@ export default function NeoChatWebApp() {
     const messageContent = (textToSend || input).trim();
     if (!messageContent || isLoading) return;
 
-    // Garante que exista uma conversa ativa
     let activeChatId = currentChatId;
     let activeConversations = [...conversations];
 
@@ -174,7 +183,6 @@ export default function NeoChatWebApp() {
       activeConversations = [newChat, ...activeConversations];
       setCurrentChatId(activeChatId);
     } else {
-      // Atualiza título se for a primeira mensagem
       activeConversations = activeConversations.map((c) => {
         if (c.id === activeChatId && (!c.messages || c.messages.length === 0)) {
           return {
@@ -199,13 +207,11 @@ export default function NeoChatWebApp() {
     setStreamingContent('');
     setStreamingReasoning('');
 
-    // Atualiza conversa no array
     const updatedConvs = activeConversations.map((c) =>
       c.id === activeChatId ? { ...c, messages: newMessages } : c
     );
     persistConversations(updatedConvs);
 
-    // Inicia a requisição de streaming
     abortControllerRef.current = new AbortController();
 
     try {
@@ -262,13 +268,12 @@ export default function NeoChatWebApp() {
                 setStreamingReasoning(accumulatedReasoning);
               }
             } catch (e) {
-              // ignore json parse error
+              // ignore
             }
           }
         }
       }
 
-      // Mensagem final do assistente
       const assistantMessage = {
         role: 'assistant',
         content: accumulated,
@@ -289,7 +294,7 @@ export default function NeoChatWebApp() {
       if (err.name !== 'AbortError') {
         const errorMessage = {
           role: 'assistant',
-          content: `⚠️ **Erro na geração:** ${err.message}\n\n*Dica: Verifique se sua chave de API para o provedor **${provider.toUpperCase()}** está configurada e válida no botão BYOK.*`,
+          content: `⚠️ **Erro na geração:** ${err.message}\n\n*Dica: Configure sua chave de API para **${provider.toUpperCase()}** no botão BYOK.*`,
           model,
           provider,
         };
@@ -304,14 +309,12 @@ export default function NeoChatWebApp() {
     }
   };
 
-  // Interromper streaming
   const handleStop = () => {
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
     }
   };
 
-  // Aplicar template
   const handleSelectTemplate = (template) => {
     setSystemPrompt(template.systemPrompt);
     localStorage.setItem('neochat_web_system_prompt', template.systemPrompt);
@@ -320,10 +323,13 @@ export default function NeoChatWebApp() {
   const hasKey = Boolean(apiKeys[provider]);
 
   return (
-    <div className="flex h-screen w-full bg-[#090d16] text-slate-100 overflow-hidden relative">
-      {/* Background Decorativo */}
-      <div className="ambient-glow bg-blue-600 top-0 left-1/4 w-96 h-96" />
-      <div className="ambient-glow bg-purple-600 bottom-0 right-1/4 w-96 h-96" />
+    <div
+      data-color-theme={colorTheme}
+      className="flex h-screen w-full bg-background text-foreground overflow-hidden relative font-sans"
+    >
+      {/* Background Decorativo Suave */}
+      <div className="ambient-glow bg-primary top-0 left-1/4 w-96 h-96" />
+      <div className="ambient-glow bg-primary/40 bottom-0 right-1/4 w-96 h-96" />
 
       {/* Sidebar */}
       <Sidebar
@@ -362,63 +368,64 @@ export default function NeoChatWebApp() {
           onClearChat={handleClearChat}
           hasMessages={messages.length > 0}
           hasKey={hasKey}
+          colorTheme={colorTheme}
+          onChangeColorTheme={handleChangeColorTheme}
         />
 
         {/* Área de Mensagens / Tela de Boas-Vindas */}
         <div className="flex-1 overflow-y-auto">
           {messages.length === 0 && !streamingContent ? (
             <div className="max-w-3xl mx-auto px-4 py-12 flex flex-col items-center justify-center min-h-[75vh] text-center">
-              <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 p-0.5 shadow-xl shadow-blue-500/20 mb-6">
-                <div className="w-full h-full bg-slate-950 rounded-2xl flex items-center justify-center">
-                  <img src="/icon.png" alt="NeoChat" className="w-10 h-10 rounded-xl" />
-                </div>
+              {/* Logo Central Giratória do NeoChat Desktop */}
+              <div className="w-16 h-16 rounded-2xl bg-card border border-border p-2 shadow-xl shadow-primary/10 mb-5 flex items-center justify-center">
+                <NeoSymbol className="w-10 h-10" speed="normal" />
               </div>
 
-              <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-white mb-2">
-                NeoChat <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-indigo-400">Web</span>
+              <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground mb-2">
+                NEOCHAT <span className="text-primary">WEB</span>
               </h1>
-              <p className="text-sm text-slate-400 max-w-lg mb-8 leading-relaxed">
+              <p className="text-xs sm:text-sm text-muted-foreground max-w-md mb-8 leading-relaxed">
                 Workspace universal de IA com acesso direto a múltiplos provedores via modelo seguro <strong>BYOK</strong> (Bring Your Own Key), renderização de LaTeX e Markdown em tempo real.
               </p>
 
               {/* Sugestões Rápidas */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full max-w-2xl mb-8">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full max-w-xl mb-6">
                 <button
                   onClick={() => handleSendMessage('Explique o que é o Teorema de Bell e escreva as fórmulas matemáticas fundamentais em LaTeX.')}
-                  className="p-3.5 rounded-xl bg-slate-900/80 border border-slate-800 hover:border-blue-500/50 hover:bg-slate-800/60 text-left transition-all group"
+                  className="p-3.5 rounded-xl bg-card border border-border hover:border-primary/50 hover:bg-secondary/60 text-left transition-all group shadow-xs"
                 >
-                  <div className="flex items-center gap-2 text-xs font-semibold text-slate-200 group-hover:text-blue-300 mb-1">
-                    <Sigma className="w-3.5 h-3.5 text-purple-400" />
-                    <span>Fórmulas e Matemática em LaTeX</span>
+                  <div className="flex items-center gap-2 text-xs font-bold text-foreground group-hover:text-primary mb-1">
+                    <Sigma className="w-3.5 h-3.5 text-primary" />
+                    <span>Fórmulas & Matemática em LaTeX</span>
                   </div>
-                  <p className="text-[11px] text-slate-400 leading-snug">
+                  <p className="text-[11px] text-muted-foreground leading-snug">
                     Teorema de Bell e equações quânticas formatadas com KaTeX.
                   </p>
                 </button>
 
                 <button
                   onClick={() => handleSendMessage('Crie um componente React com TypeScript e Tailwind CSS para um dashboard moderno com gráficos.')}
-                  className="p-3.5 rounded-xl bg-slate-900/80 border border-slate-800 hover:border-blue-500/50 hover:bg-slate-800/60 text-left transition-all group"
+                  className="p-3.5 rounded-xl bg-card border border-border hover:border-primary/50 hover:bg-secondary/60 text-left transition-all group shadow-xs"
                 >
-                  <div className="flex items-center gap-2 text-xs font-semibold text-slate-200 group-hover:text-blue-300 mb-1">
-                    <Code2 className="w-3.5 h-3.5 text-emerald-400" />
+                  <div className="flex items-center gap-2 text-xs font-bold text-foreground group-hover:text-primary mb-1">
+                    <Code2 className="w-3.5 h-3.5 text-primary" />
                     <span>Desenvolvimento & Clean Code</span>
                   </div>
-                  <p className="text-[11px] text-slate-400 leading-snug">
+                  <p className="text-[11px] text-muted-foreground leading-snug">
                     Componente React moderno com realce de sintaxe e boas práticas.
                   </p>
                 </button>
               </div>
 
               {!hasKey && (
-                <div className="p-4 rounded-xl bg-amber-500/10 border border-amber-500/30 text-xs text-amber-200 flex items-center justify-between gap-4 max-w-xl text-left">
-                  <div className="flex items-center gap-3">
-                    <Key className="w-5 h-5 text-amber-400 shrink-0" />
-                    <span>Configure sua chave de API para começar a conversar (Groq, OpenAI, Claude, etc.).</span>
+                <div className="p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-xs text-amber-300 flex items-center justify-between gap-4 max-w-xl text-left">
+                  <div className="flex items-center gap-2.5">
+                    <Key className="w-4 h-4 text-amber-400 shrink-0" />
+                    <span>Configure sua chave de API para conversar (Groq, OpenAI, Claude, etc.).</span>
                   </div>
                   <button
                     onClick={() => setSettingsOpen(true)}
-                    className="px-3 py-1.5 rounded-lg bg-amber-500 text-slate-950 font-bold text-xs hover:bg-amber-400 transition-colors shrink-0"
+                    className="px-3 py-1 rounded-lg bg-amber-500 text-slate-950 font-bold text-xs hover:bg-amber-400 transition-colors shrink-0"
                   >
                     Configurar
                   </button>
@@ -426,7 +433,7 @@ export default function NeoChatWebApp() {
               )}
             </div>
           ) : (
-            <div className="divide-y divide-slate-800/20">
+            <div className="divide-y divide-border/20">
               {messages.map((msg, idx) => (
                 <MessageItem key={idx} message={msg} />
               ))}
@@ -446,9 +453,9 @@ export default function NeoChatWebApp() {
 
               {/* Indicador de Carregamento */}
               {isLoading && !streamingContent && !streamingReasoning && (
-                <div className="py-6 px-4 md:px-6 bg-slate-900/40">
-                  <div className="max-w-4xl mx-auto flex items-center gap-3 text-slate-400 text-xs">
-                    <div className="w-2 h-2 rounded-full bg-blue-500 animate-ping" />
+                <div className="py-5 px-4 md:px-6 bg-card/30">
+                  <div className="max-w-4xl mx-auto flex items-center gap-2.5 text-muted-foreground text-xs font-medium">
+                    <div className="w-2 h-2 rounded-full bg-primary animate-ping" />
                     <span>Aguardando resposta do modelo...</span>
                   </div>
                 </div>
