@@ -385,8 +385,13 @@ function App() {
       setIsCompareMode(false);
       setIsToolsPanelOpen(false);
       setIsMcpCatalogOpen(false);
+      setIsTerminalOpen(false);
+      setIsTasksOpen(false);
+      setIsBrowserOpen(false);
+      closeCanvas();
+      setActiveArtifact(null);
     }
-  }, [isPowerUser]);
+  }, [isPowerUser, closeCanvas]);
 
   const currentChatTitle = useMemo(() => {
     if (!currentChatId || !chatList) return '';
@@ -2724,116 +2729,130 @@ function App() {
 
             <div className="flex items-center space-x-2">
               {/* Terminal Workspace Toggle Button */}
-              <Button
-                variant={isTerminalOpen ? "default" : "outline"}
-                size="sm"
-                onClick={() => setIsTerminalOpen(!isTerminalOpen)}
-                className={cn(
-                  "text-xs border-border transition-colors font-mono",
-                  isTerminalOpen 
-                    ? "bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs" 
-                    : "text-foreground hover:bg-muted"
-                )}
-                title={isTerminalOpen ? "Ocultar Terminal (Ctrl+`)" : "Abrir Terminal (Ctrl+`)"}
-              >
-                <Terminal className={cn("h-3.5 w-3.5", isTerminalOpen ? "text-white" : "text-emerald-500 dark:text-emerald-400", showButtonLabels && "mr-1.5")} />
-                {showButtonLabels && <span className="hidden md:inline">Terminal</span>}
-              </Button>
+              {isPowerUser && (
+                <Button
+                  variant={isTerminalOpen ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setIsTerminalOpen(!isTerminalOpen)}
+                  className={cn(
+                    "text-xs border-border transition-colors font-mono",
+                    isTerminalOpen 
+                      ? "bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs" 
+                      : "text-foreground hover:bg-muted"
+                  )}
+                  title={isTerminalOpen ? "Ocultar Terminal (Ctrl+`)" : "Abrir Terminal (Ctrl+`)"}
+                >
+                  <Terminal className={cn("h-3.5 w-3.5", isTerminalOpen ? "text-white" : "text-emerald-500 dark:text-emerald-400", showButtonLabels && "mr-1.5")} />
+                  {showButtonLabels && <span className="hidden md:inline">Terminal</span>}
+                </Button>
+              )}
 
               {/* Background Tasks Toggle Button */}
-              <Button
-                variant={isTasksOpen ? "default" : "outline"}
-                size="sm"
-                onClick={() => setIsTasksOpen(!isTasksOpen)}
-                className={cn(
-                  "text-xs border-border transition-colors relative",
-                  isTasksOpen 
-                    ? "bg-blue-600 hover:bg-blue-700 text-white shadow-xs" 
-                    : "text-foreground hover:bg-muted"
-                )}
-                title={isTasksOpen ? "Ocultar Tarefas em Segundo Plano (Ctrl+Shift+T)" : "Abrir Tarefas em Segundo Plano (Ctrl+Shift+T)"}
-              >
-                <Clock className={cn("h-3.5 w-3.5", isTasksOpen ? "text-white" : "text-blue-500 dark:text-blue-400", showButtonLabels && "mr-1.5")} />
-                {showButtonLabels && <span className="hidden md:inline">Tarefas</span>}
-                {runningTasksCount > 0 && (
-                  <span className="absolute -top-1 -right-1 px-1 py-0.2 rounded-full bg-blue-500 text-white text-[9px] font-bold animate-pulse">
-                    {runningTasksCount}
-                  </span>
-                )}
-              </Button>
+              {isPowerUser && (
+                <Button
+                  variant={isTasksOpen ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setIsTasksOpen(!isTasksOpen)}
+                  className={cn(
+                    "text-xs border-border transition-colors relative",
+                    isTasksOpen 
+                      ? "bg-blue-600 hover:bg-blue-700 text-white shadow-xs" 
+                      : "text-foreground hover:bg-muted"
+                  )}
+                  title={isTasksOpen ? "Ocultar Tarefas em Segundo Plano (Ctrl+Shift+T)" : "Abrir Tarefas em Segundo Plano (Ctrl+Shift+T)"}
+                >
+                  <Clock className={cn("h-3.5 w-3.5", isTasksOpen ? "text-white" : "text-blue-500 dark:text-blue-400", showButtonLabels && "mr-1.5")} />
+                  {showButtonLabels && <span className="hidden md:inline">Tarefas</span>}
+                  {runningTasksCount > 0 && (
+                    <span className="absolute -top-1 -right-1 px-1 py-0.2 rounded-full bg-blue-500 text-white text-[9px] font-bold animate-pulse">
+                      {runningTasksCount}
+                    </span>
+                  )}
+                </Button>
+              )}
 
               {/* In-App Browser Toggle Button */}
-              <Button
-                variant={isBrowserOpen ? "default" : "outline"}
-                size="sm"
-                onClick={() => setIsBrowserOpen(!isBrowserOpen)}
-                className={cn(
-                  "text-xs border-border transition-colors",
-                  isBrowserOpen 
-                    ? "bg-indigo-600 hover:bg-indigo-700 text-white shadow-xs" 
-                    : "text-foreground hover:bg-muted"
-                )}
-                title={isBrowserOpen ? "Ocultar Navegador (Ctrl+Shift+B)" : "Abrir Navegador (Ctrl+Shift+B)"}
-              >
-                <Globe className={cn("h-3.5 w-3.5", isBrowserOpen ? "text-white" : "text-indigo-500 dark:text-indigo-400", showButtonLabels && "mr-1.5")} />
-                {showButtonLabels && <span className="hidden md:inline">Navegador</span>}
-              </Button>
+              {isPowerUser && (
+                <Button
+                  variant={isBrowserOpen ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setIsBrowserOpen(!isBrowserOpen)}
+                  className={cn(
+                    "text-xs border-border transition-colors",
+                    isBrowserOpen 
+                      ? "bg-indigo-600 hover:bg-indigo-700 text-white shadow-xs" 
+                      : "text-foreground hover:bg-muted"
+                  )}
+                  title={isBrowserOpen ? "Ocultar Navegador (Ctrl+Shift+B)" : "Abrir Navegador (Ctrl+Shift+B)"}
+                >
+                  <Globe className={cn("h-3.5 w-3.5", isBrowserOpen ? "text-white" : "text-indigo-500 dark:text-indigo-400", showButtonLabels && "mr-1.5")} />
+                  {showButtonLabels && <span className="hidden md:inline">Navegador</span>}
+                </Button>
+              )}
 
               {/* Canvas Workspace Toggle Button */}
-              <Button
-                variant={isCanvasOpen ? "default" : "outline"}
-                size="sm"
-                onClick={handleToggleCanvas}
-                className={cn(
-                  "text-xs border-border transition-colors",
-                  isCanvasOpen 
-                    ? "bg-primary hover:bg-primary/90 text-primary-foreground shadow-xs" 
-                    : "text-foreground hover:bg-muted"
-                )}
-                title={isCanvasOpen ? (t('canvas.hideCanvas') || 'Ocultar Canvas (Ctrl+Shift+C)') : (t('canvas.openCanvas') || 'Abrir Canvas (Ctrl+Shift+C)')}
-              >
-                <PenSquare className={cn("h-3.5 w-3.5", isCanvasOpen ? "text-primary-foreground" : "text-primary", showButtonLabels && "mr-1.5")} />
-                {showButtonLabels && <span className="hidden md:inline">{t('canvas.label') || 'Canvas'}</span>}
-              </Button>
+              {isPowerUser && (
+                <Button
+                  variant={isCanvasOpen ? "default" : "outline"}
+                  size="sm"
+                  onClick={handleToggleCanvas}
+                  className={cn(
+                    "text-xs border-border transition-colors",
+                    isCanvasOpen 
+                      ? "bg-primary hover:bg-primary/90 text-primary-foreground shadow-xs" 
+                      : "text-foreground hover:bg-muted"
+                  )}
+                  title={isCanvasOpen ? (t('canvas.hideCanvas') || 'Ocultar Canvas (Ctrl+Shift+C)') : (t('canvas.openCanvas') || 'Abrir Canvas (Ctrl+Shift+C)')}
+                >
+                  <PenSquare className={cn("h-3.5 w-3.5", isCanvasOpen ? "text-primary-foreground" : "text-primary", showButtonLabels && "mr-1.5")} />
+                  {showButtonLabels && <span className="hidden md:inline">{t('canvas.label') || 'Canvas'}</span>}
+                </Button>
+              )}
 
               {/* Code Interpreter Toggle Button */}
-              <Button
-                variant={activeArtifact ? "default" : "outline"}
-                size="sm"
-                onClick={handleToggleCodeInterpreter}
-                className={cn(
-                  "text-xs border-border transition-colors",
-                  activeArtifact 
-                    ? "bg-purple-600 hover:bg-purple-700 text-white shadow-xs" 
-                    : "text-foreground hover:bg-muted"
-                )}
-                title={activeArtifact ? (t('header.hideCodeInterpreter') || 'Ocultar Interpretador de Código') : (t('header.openCodeInterpreter') || 'Abrir Interpretador de Código (Ctrl+Shift+X)')}
-              >
-                <Terminal className={cn("h-3.5 w-3.5", activeArtifact ? "text-white" : "text-purple-500 dark:text-purple-400", showButtonLabels && "mr-1.5")} />
-                {showButtonLabels && <span className="hidden md:inline">{t('header.codeInterpreter') || 'Código'}</span>}
-              </Button>
+              {isPowerUser && (
+                <Button
+                  variant={activeArtifact ? "default" : "outline"}
+                  size="sm"
+                  onClick={handleToggleCodeInterpreter}
+                  className={cn(
+                    "text-xs border-border transition-colors",
+                    activeArtifact 
+                      ? "bg-purple-600 hover:bg-purple-700 text-white shadow-xs" 
+                      : "text-foreground hover:bg-muted"
+                  )}
+                  title={activeArtifact ? (t('header.hideCodeInterpreter') || 'Ocultar Interpretador de Código') : (t('header.openCodeInterpreter') || 'Abrir Interpretador de Código (Ctrl+Shift+X)')}
+                >
+                  <Terminal className={cn("h-3.5 w-3.5", activeArtifact ? "text-white" : "text-purple-500 dark:text-purple-400", showButtonLabels && "mr-1.5")} />
+                  {showButtonLabels && <span className="hidden md:inline">{t('header.codeInterpreter') || 'Código'}</span>}
+                </Button>
+              )}
 
-              {isPowerUser && <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setIsSwarmModalOpen(true)}
-                className="text-xs text-foreground border-border hover:bg-muted"
-                title="Multi-Agent Swarm Team (Equipe de Subagentes)"
-              >
-                <Bot className={cn("h-3.5 w-3.5 text-indigo-400", showButtonLabels && "mr-1.5")} />
-                {showButtonLabels && <span className="hidden lg:inline">Swarm</span>}
-              </Button>}
+              {isPowerUser && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setIsSwarmModalOpen(true)}
+                  className="text-xs text-foreground border-border hover:bg-muted"
+                  title="Multi-Agent Swarm Team (Equipe de Subagentes)"
+                >
+                  <Bot className={cn("h-3.5 w-3.5 text-indigo-400", showButtonLabels && "mr-1.5")} />
+                  {showButtonLabels && <span className="hidden lg:inline">Swarm</span>}
+                </Button>
+              )}
 
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setIsCommandPaletteOpen(true)}
-                className="text-xs text-foreground border-border hover:bg-muted"
-                title="Command Palette (Ctrl+K)"
-              >
-                <Keyboard className={cn("h-3.5 w-3.5 text-primary", showButtonLabels && "mr-1.5")} />
-                {showButtonLabels && <span className="hidden md:inline">Ctrl+K</span>}
-              </Button>
+              {isPowerUser && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setIsCommandPaletteOpen(true)}
+                  className="text-xs text-foreground border-border hover:bg-muted"
+                  title="Command Palette (Ctrl+K)"
+                >
+                  <Keyboard className={cn("h-3.5 w-3.5 text-primary", showButtonLabels && "mr-1.5")} />
+                  {showButtonLabels && <span className="hidden md:inline">Ctrl+K</span>}
+                </Button>
+              )}
 
               {isPowerUser && <Button
                 variant="outline"

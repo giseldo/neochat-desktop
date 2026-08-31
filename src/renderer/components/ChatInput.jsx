@@ -868,7 +868,7 @@ function ChatInput({
 			)}
 
 			{/* Active Canvas Document Chip */}
-			{canvasDoc && (
+			{powerUserMode && canvasDoc && (
 				<div className="flex items-center gap-1.5 px-4 pt-1 select-none animate-in fade-in duration-200">
 					<div 
 						className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 text-xs font-medium shadow-2xs group"
@@ -1145,28 +1145,30 @@ function ChatInput({
 						</Button>
 
 						{/* Canvas Toggle Button */}
-						<Button
-							type="button"
-							variant="ghost"
-							size="sm"
-							onClick={toggleCanvas}
-							className={cn(
-								"transition-all duration-200 rounded-xl px-2.5 py-1.5 text-xs font-medium flex items-center gap-1.5 flex-shrink-0",
-								isCanvasOpen
-									? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 shadow-xs ring-1 ring-emerald-500/20"
-									: canvasDoc
-									? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 shadow-2xs"
-									: "text-muted-foreground hover:text-foreground hover:bg-muted/60 hover:shadow-xs"
-							)}
-							title={isCanvasOpen ? (t('canvas.hideCanvas') || 'Ocultar Canvas') : (t('canvas.openCanvas') || 'Abrir Canvas')}
-							disabled={loading}
-						>
-							<Layout className={cn("w-4 h-4 flex-shrink-0 text-emerald-500", isCanvasOpen && "animate-pulse")} />
-							{showButtonLabels && <span>{t('canvas.label') || 'Canvas'}</span>}
-							{canvasDoc && (
-								<span className="w-1.5 h-1.5 rounded-full bg-emerald-500 flex-shrink-0"></span>
-							)}
-						</Button>
+						{powerUserMode && (
+							<Button
+								type="button"
+								variant="ghost"
+								size="sm"
+								onClick={toggleCanvas}
+								className={cn(
+									"transition-all duration-200 rounded-xl px-2.5 py-1.5 text-xs font-medium flex items-center gap-1.5 flex-shrink-0",
+									isCanvasOpen
+										? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 shadow-xs ring-1 ring-emerald-500/20"
+										: canvasDoc
+										? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 shadow-2xs"
+										: "text-muted-foreground hover:text-foreground hover:bg-muted/60 hover:shadow-xs"
+								)}
+								title={isCanvasOpen ? (t('canvas.hideCanvas') || 'Ocultar Canvas') : (t('canvas.openCanvas') || 'Abrir Canvas')}
+								disabled={loading}
+							>
+								<Layout className={cn("w-4 h-4 flex-shrink-0 text-emerald-500", isCanvasOpen && "animate-pulse")} />
+								{showButtonLabels && <span>{t('canvas.label') || 'Canvas'}</span>}
+								{canvasDoc && (
+									<span className="w-1.5 h-1.5 rounded-full bg-emerald-500 flex-shrink-0"></span>
+								)}
+							</Button>
+						)}
 
 						{/* Knowledge Base (RAG) Button */}
 						{powerUserMode && activeProject && openKnowledgeBaseModal && (
