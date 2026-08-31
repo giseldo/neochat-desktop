@@ -308,6 +308,11 @@ export const translations = {
       saveChanges: 'Salvar Alterações',
       resetDefault: 'Restaurar Padrão',
       defaultPersonaDesc: 'Persona personalizada',
+      deactivateButton: 'Desativar',
+      deactivateTitle: 'Desativar persona ativa (voltar ao Assistente Geral)',
+      clickToDeactivate: 'Clique para desativar esta persona',
+      deactivateCommand: 'Desativar Persona Ativa',
+      deactivateCommandDesc: 'Voltar para o Assistente Geral (sem instruções especializadas)',
       // Default Persona definitions
       pDefaultName: 'Assistente Geral',
       pDefaultDesc: 'Assistente versátil para todas as tarefas',
@@ -1720,6 +1725,11 @@ export const translations = {
       saveChanges: 'Save Changes',
       resetDefault: 'Reset to Default',
       defaultPersonaDesc: 'Custom persona',
+      deactivateButton: 'Deactivate',
+      deactivateTitle: 'Deactivate active persona (revert to General Assistant)',
+      clickToDeactivate: 'Click to deactivate this persona',
+      deactivateCommand: 'Deactivate Active Persona',
+      deactivateCommandDesc: 'Revert to General Assistant (no specialized persona)',
       // Default Persona definitions
       pDefaultName: 'General Assistant',
       pDefaultDesc: 'Versatile assistant for all daily tasks',

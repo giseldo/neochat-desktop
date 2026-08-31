@@ -6,7 +6,7 @@ import ToolsPanel from './components/ToolsPanel';
 import ToolApprovalModal from './components/ToolApprovalModal';
 import ChatHistorySidebar from './components/ChatHistorySidebar';
 import ThemeToggle from './components/ThemeToggle';
-import PersonaSelector, { DEFAULT_PERSONAS, getStoredActivePersona, ACTIVE_PERSONA_STORAGE_KEY } from './components/PersonaSelector';
+import PersonaSelector, { DEFAULT_PERSONAS, getStoredActivePersona, getStoredPersonas, ACTIVE_PERSONA_STORAGE_KEY } from './components/PersonaSelector';
 import ArtifactsPanel from './components/ArtifactsPanel';
 import CanvasPanel from './components/CanvasPanel';
 import McpCatalogModal from './components/McpCatalogModal';
@@ -3288,7 +3288,7 @@ function App() {
         availableModels={models}
         currentModel={selectedModel}
         onSelectModel={(m) => setSelectedModel(m)}
-        personas={DEFAULT_PERSONAS}
+        personas={getStoredPersonas(t)}
         activePersona={activePersona}
         onSelectPersona={(p) => setActivePersona(p)}
         onClearChat={clearCurrentChat}

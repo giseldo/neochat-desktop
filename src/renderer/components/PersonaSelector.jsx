@@ -351,6 +351,32 @@ export function PersonaSelector({ activePersona, onSelectPersona, className }) {
     setIsModalOpen(false);
   };
 
+  const handleDeactivate = (e) => {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    const defaultP = defaultPersonas[0] || DEFAULT_PERSONAS[0];
+    onSelectPersona(defaultP);
+    try {
+      localStorage.setItem(ACTIVE_PERSONA_STORAGE_KEY, defaultP.id);
+    } catch (err) {}
+    setIsOpen(false);
+  };
+
+  const handleSelectPersona = (p) => {
+    // If clicking on the currently active persona and it is not default, toggle/deactivate it to default
+    if (currentPersona.id === p.id && p.id !== 'default') {
+      handleDeactivate();
+      return;
+    }
+    onSelectPersona(p);
+    try {
+      localStorage.setItem(ACTIVE_PERSONA_STORAGE_KEY, p.id);
+    } catch (err) {}
+    setIsOpen(false);
+  };
+
   const handleDeletePersona = (e, id) => {
     e.stopPropagation();
     const updatedCustom = customPersonas.filter(p => p.id !== id);
@@ -385,41 +411,66 @@ export function PersonaSelector({ activePersona, onSelectPersona, className }) {
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-border bg-background hover:bg-muted text-foreground transition-colors text-xs font-medium shadow-xs"
-        title={t('personas.buttonTitle')}
+        className={cn(
+          "flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-xs font-medium transition-colors shadow-xs group/btn",
+          currentPersona.id !== 'default'
+            ? "border-primary/40 bg-primary/10 text-primary hover:bg-primary/15 font-semibold"
+            : "border-border bg-background hover:bg-muted text-foreground"
+        )}
+        title={currentPersona.id !== 'default' ? `${currentPersona.name} • ${t('personas.clickToDeactivate') || 'Clique para desativar'}` : t('personas.buttonTitle')}
       >
-        <IconComponent className="w-3.5 h-3.5 text-primary" />
+        <IconComponent className="w-3.5 h-3.5 text-primary shrink-0" />
         <span className="max-w-[110px] truncate">{currentPersona.name}</span>
+        {currentPersona.id !== 'default' && (
+          <span
+            role="button"
+            tabIndex={0}
+            onClick={handleDeactivate}
+            className="ml-0.5 -mr-1 p-0.5 rounded hover:bg-primary/20 text-primary/70 hover:text-primary transition-colors cursor-pointer"
+            title={t('personas.deactivateTitle')}
+          >
+            <X className="w-3 h-3" />
+          </span>
+        )}
       </button>
 
       {isOpen && (
         <div className="absolute left-0 mt-2 w-68 rounded-xl border border-border bg-popover p-1.5 shadow-xl z-50 animate-in fade-in-0 zoom-in-95">
           <div className="px-2 py-1 text-[10px] font-semibold text-muted-foreground uppercase border-b border-border mb-1 flex items-center justify-between">
             <span>{t('personas.dropdownTitle')}</span>
-            <button
-              onClick={handleOpenCreate}
-              className="text-primary hover:underline flex items-center gap-0.5 font-medium"
-            >
-              <Plus className="w-3 h-3" /> {t('personas.createButton')}
-            </button>
+            <div className="flex items-center gap-2">
+              {currentPersona.id !== 'default' && (
+                <button
+                  type="button"
+                  onClick={handleDeactivate}
+                  className="text-muted-foreground hover:text-destructive flex items-center gap-0.5 font-medium transition-colors"
+                  title={t('personas.deactivateTitle')}
+                >
+                  <X className="w-3 h-3" /> {t('personas.deactivateButton')}
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={handleOpenCreate}
+                className="text-primary hover:underline flex items-center gap-0.5 font-medium"
+              >
+                <Plus className="w-3 h-3" /> {t('personas.createButton')}
+              </button>
+            </div>
           </div>
 
           <div className="max-h-64 overflow-y-auto space-y-1">
             {personas.map((p) => {
               const ItemIcon = getPersonaIcon(p.icon);
+              const isSelected = currentPersona.id === p.id;
               return (
                 <div
                   key={p.id}
-                  onClick={() => {
-                    onSelectPersona(p);
-                    try {
-                      localStorage.setItem(ACTIVE_PERSONA_STORAGE_KEY, p.id);
-                    } catch (err) {}
-                    setIsOpen(false);
-                  }}
+                  onClick={() => handleSelectPersona(p)}
+                  title={isSelected && p.id !== 'default' ? t('personas.clickToDeactivate') : undefined}
                   className={cn(
                     "flex items-center justify-between p-2 rounded-lg cursor-pointer transition-colors text-left group",
-                    currentPersona.id === p.id ? "bg-primary/10 text-primary font-semibold" : "hover:bg-muted text-popover-foreground"
+                    isSelected ? "bg-primary/10 text-primary font-semibold" : "hover:bg-muted text-popover-foreground"
                   )}
                 >
                   <div className="flex items-start gap-2 min-w-0 pr-2">
@@ -448,7 +499,14 @@ export function PersonaSelector({ activePersona, onSelectPersona, className }) {
                         <Trash2 className="w-3 h-3" />
                       </button>
                     )}
-                    {currentPersona.id === p.id && <Check className="w-3.5 h-3.5 text-primary flex-shrink-0 ml-0.5" />}
+                    {isSelected && (
+                      <span
+                        className="flex items-center"
+                        title={p.id !== 'default' ? t('personas.clickToDeactivate') : undefined}
+                      >
+                        <Check className="w-3.5 h-3.5 text-primary flex-shrink-0 ml-0.5" />
+                      </span>
+                    )}
                   </div>
                 </div>
               );
