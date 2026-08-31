@@ -369,6 +369,8 @@ contextBridge.exposeInMainWorld('electron', {
     clearMessages: (chatId) => ipcRenderer.invoke('chat-history-clear-messages', chatId),
     generateTitle: (userMessage) => ipcRenderer.invoke('chat-history-generate-title', userMessage),
     searchContent: (query) => ipcRenderer.invoke('chat-history-search-content', query),
+    togglePin: (chatId, isPinned) => ipcRenderer.invoke('chat-history-toggle-pin', chatId, isPinned),
+    toggleArchive: (chatId, isArchived) => ipcRenderer.invoke('chat-history-toggle-archive', chatId, isArchived),
   },
 
   // --- Canvas Functions ---

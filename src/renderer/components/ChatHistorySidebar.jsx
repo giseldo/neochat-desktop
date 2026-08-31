@@ -25,13 +25,24 @@ import {
   FolderOpen,
   Folder,
   Pencil,
-  Check
+  Check,
+  Star,
+  Archive,
+  ArchiveRestore,
+  SlidersHorizontal,
+  LayoutList
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 
 // LocalStorage keys
 const SIDEBAR_WIDTH_KEY = 'chat_sidebar_width';
 const EXPANDED_PROJECTS_KEY = 'neochat_expanded_projects';
+const COMPACT_MODE_KEY = 'chat_sidebar_compact_mode';
+const SORT_ORDER_KEY = 'chat_sidebar_sort_order';
+const GROUP_BY_DATE_KEY = 'chat_sidebar_group_by_date';
+const COLLAPSED_DATE_GROUPS_KEY = 'chat_sidebar_collapsed_date_groups';
+const COLLAPSED_FAVORITES_KEY = 'chat_sidebar_collapsed_favorites';
+
 const MIN_SIDEBAR_WIDTH = 230;
 const MAX_SIDEBAR_WIDTH = 500;
 const DEFAULT_SIDEBAR_WIDTH = 280;
@@ -52,6 +63,41 @@ function formatRelativeTime(dateString, t, language) {
   if (diffDays < 7) return t('sidebar.daysAgo', { count: diffDays });
   
   return date.toLocaleDateString(language === 'pt' ? 'pt-BR' : 'en-US', { month: 'short', day: 'numeric' });
+}
+
+// Short format for compact mode (e.g. 5m, 2h, 3d, 12/mai)
+function formatCompactTime(dateString) {
+  if (!dateString) return '';
+  const date = new Date(dateString);
+  const now = new Date();
+  const diffMs = now - date;
+  const diffMins = Math.floor(diffMs / 60000);
+  const diffHours = Math.floor(diffMs / 3600000);
+  const diffDays = Math.floor(diffMs / 86400000);
+
+  if (diffMins < 1) return 'agora';
+  if (diffMins < 60) return `${diffMins}m`;
+  if (diffHours < 24) return `${diffHours}h`;
+  if (diffDays < 7) return `${diffDays}d`;
+  
+  return `${date.getDate()}/${date.getMonth() + 1}`;
+}
+
+// Sort chats according to selected sort order
+function sortChats(chats, sortOrder) {
+  if (!Array.isArray(chats)) return [];
+  const list = [...chats];
+  switch (sortOrder) {
+    case 'oldest':
+      return list.sort((a, b) => new Date(a.updatedAt || a.createdAt || 0) - new Date(b.updatedAt || b.createdAt || 0));
+    case 'title-asc':
+      return list.sort((a, b) => (a.title || '').localeCompare(b.title || '', undefined, { sensitivity: 'base' }));
+    case 'title-desc':
+      return list.sort((a, b) => (b.title || '').localeCompare(a.title || '', undefined, { sensitivity: 'base' }));
+    case 'newest':
+    default:
+      return list.sort((a, b) => new Date(b.updatedAt || b.createdAt || 0) - new Date(a.updatedAt || a.createdAt || 0));
+  }
 }
 
 // Highlight occurrences of query in text
@@ -87,7 +133,7 @@ function highlightMatch(text, query) {
 }
 
 // Group chats by time period
-function groupChatsByDate(chats) {
+function groupChatsByDate(chats, sortOrder = 'newest') {
   const groups = {
     today: [],
     yesterday: [],
@@ -116,6 +162,11 @@ function groupChatsByDate(chats) {
     } else {
       groups.older.push(chat);
     }
+  });
+
+  // Apply sorting inside each group
+  Object.keys(groups).forEach(key => {
+    groups[key] = sortChats(groups[key], sortOrder);
   });
 
   return groups;
@@ -180,6 +231,8 @@ function ChatHistorySidebar({ onNewChat, onChatLoaded, loading }) {
     deleteChat, 
     deleteAllChats,
     renameChat,
+    togglePinChat,
+    toggleArchiveChat,
     isSidebarCollapsed, 
     toggleSidebar,
     isLoadingChats 
@@ -212,6 +265,43 @@ function ChatHistorySidebar({ onNewChat, onChatLoaded, loading }) {
   const menuButtonRefs = useRef({});
   const editInputRef = useRef(null);
 
+  // Active view tab: 'active' | 'archived'
+  const [activeViewTab, setActiveViewTab] = useState('active');
+
+  // Compact Mode density state (persisted in localStorage)
+  const [isCompactMode, setIsCompactMode] = useState(() => {
+    try {
+      const saved = localStorage.getItem(COMPACT_MODE_KEY);
+      if (saved !== null) return JSON.parse(saved);
+    } catch (e) {}
+    return false;
+  });
+
+  // Sort Order state (persisted in localStorage)
+  const [sortOrder, setSortOrder] = useState(() => {
+    try {
+      const saved = localStorage.getItem(SORT_ORDER_KEY);
+      if (saved && ['newest', 'oldest', 'title-asc', 'title-desc'].includes(saved)) {
+        return saved;
+      }
+    } catch (e) {}
+    return 'newest';
+  });
+
+  // Group by Date toggle (persisted in localStorage)
+  const [groupByDate, setGroupByDate] = useState(() => {
+    try {
+      const saved = localStorage.getItem(GROUP_BY_DATE_KEY);
+      if (saved !== null) return JSON.parse(saved);
+    } catch (e) {}
+    return true;
+  });
+
+  // Options / Filter Popover open state
+  const [isOptionsOpen, setIsOptionsOpen] = useState(false);
+  const optionsButtonRef = useRef(null);
+  const optionsMenuRef = useRef(null);
+
   // Expanded project IDs set (persisted in localStorage)
   const [expandedProjects, setExpandedProjects] = useState(() => {
     try {
@@ -223,6 +313,24 @@ function ChatHistorySidebar({ onNewChat, onChatLoaded, loading }) {
       console.error('Error loading expanded projects:', e);
     }
     return new Set();
+  });
+
+  // Collapsed date groups set
+  const [collapsedDateGroups, setCollapsedDateGroups] = useState(() => {
+    try {
+      const saved = localStorage.getItem(COLLAPSED_DATE_GROUPS_KEY);
+      if (saved) return new Set(JSON.parse(saved));
+    } catch (e) {}
+    return new Set();
+  });
+
+  // Collapsed favorites section state
+  const [isFavoritesOpen, setIsFavoritesOpen] = useState(() => {
+    try {
+      const saved = localStorage.getItem(COLLAPSED_FAVORITES_KEY);
+      if (saved !== null) return JSON.parse(saved);
+    } catch (e) {}
+    return true;
   });
 
   // Track "Mostrar mais" state for projects with many chats
@@ -247,14 +355,38 @@ function ChatHistorySidebar({ onNewChat, onChatLoaded, loading }) {
     return map;
   }, [projects]);
 
-  // Group chats by project and identify unassigned chats
+  // Separate active and archived chats, and identify pinned ones
+  const { activeChats, archivedChats, pinnedChats } = useMemo(() => {
+    const active = [];
+    const archived = [];
+    const pinned = [];
+
+    (chatList || []).forEach(chat => {
+      if (chat.archived) {
+        archived.push(chat);
+      } else {
+        active.push(chat);
+        if (chat.pinned) {
+          pinned.push(chat);
+        }
+      }
+    });
+
+    return {
+      activeChats: sortChats(active, sortOrder),
+      archivedChats: sortChats(archived, sortOrder),
+      pinnedChats: sortChats(pinned, sortOrder)
+    };
+  }, [chatList, sortOrder]);
+
+  // Group active chats by project and identify unassigned chats
   const { projectChatsMap, unassignedChats } = useMemo(() => {
     const map = new Map();
     const unassigned = [];
 
     (projects || []).forEach(p => map.set(p.id, []));
 
-    (chatList || []).forEach(chat => {
+    activeChats.forEach(chat => {
       if (chat.projectId && map.has(chat.projectId)) {
         map.get(chat.projectId).push(chat);
       } else {
@@ -262,8 +394,18 @@ function ChatHistorySidebar({ onNewChat, onChatLoaded, loading }) {
       }
     });
 
-    return { projectChatsMap: map, unassignedChats: unassigned };
-  }, [chatList, projects]);
+    // Sort chats within each project
+    map.forEach((chats, projId) => {
+      map.set(projId, sortChats(chats, sortOrder));
+    });
+
+    return { projectChatsMap: map, unassignedChats: sortChats(unassigned, sortOrder) };
+  }, [activeChats, projects, sortOrder]);
+
+  // Group unassigned chats by date if enabled
+  const groupedUnassigned = useMemo(() => {
+    return groupChatsByDate(unassignedChats, sortOrder);
+  }, [unassignedChats, sortOrder]);
 
   // Auto-expand project when active chat is in that project
   useEffect(() => {
@@ -297,6 +439,91 @@ function ChatHistorySidebar({ onNewChat, onChatLoaded, loading }) {
       return next;
     });
   }, []);
+
+  // Toggle compact mode
+  const toggleCompactMode = useCallback(() => {
+    setIsCompactMode(prev => {
+      const next = !prev;
+      try {
+        localStorage.setItem(COMPACT_MODE_KEY, JSON.stringify(next));
+      } catch (e) {}
+      return next;
+    });
+  }, []);
+
+  // Toggle date grouping
+  const toggleGroupByDate = useCallback(() => {
+    setGroupByDate(prev => {
+      const next = !prev;
+      try {
+        localStorage.setItem(GROUP_BY_DATE_KEY, JSON.stringify(next));
+      } catch (e) {}
+      return next;
+    });
+  }, []);
+
+  // Change sort order
+  const handleSetSortOrder = useCallback((order) => {
+    setSortOrder(order);
+    try {
+      localStorage.setItem(SORT_ORDER_KEY, order);
+    } catch (e) {}
+  }, []);
+
+  // Toggle specific date group collapse
+  const toggleDateGroup = useCallback((groupKey) => {
+    setCollapsedDateGroups(prev => {
+      const next = new Set(prev);
+      if (next.has(groupKey)) {
+        next.delete(groupKey);
+      } else {
+        next.add(groupKey);
+      }
+      try {
+        localStorage.setItem(COLLAPSED_DATE_GROUPS_KEY, JSON.stringify(Array.from(next)));
+      } catch (e) {}
+      return next;
+    });
+  }, []);
+
+  // Toggle favorites section collapse
+  const toggleFavoritesSection = useCallback(() => {
+    setIsFavoritesOpen(prev => {
+      const next = !prev;
+      try {
+        localStorage.setItem(COLLAPSED_FAVORITES_KEY, JSON.stringify(next));
+      } catch (e) {}
+      return next;
+    });
+  }, []);
+
+  // Close options menu on outside click
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (isOptionsOpen && 
+          optionsMenuRef.current && 
+          !optionsMenuRef.current.contains(e.target) &&
+          optionsButtonRef.current &&
+          !optionsButtonRef.current.contains(e.target)) {
+        setIsOptionsOpen(false);
+      }
+    };
+    if (isOptionsOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
+    }
+  }, [isOptionsOpen]);
+
+  const handleTogglePin = (e, chatId, currentPinned) => {
+    e.stopPropagation();
+    togglePinChat(chatId, !currentPinned);
+  };
+
+  const handleToggleArchive = (e, chatId, currentArchived) => {
+    e.stopPropagation();
+    setMenuOpenChatId(null);
+    toggleArchiveChat(chatId, !currentArchived);
+  };
 
   // Deep Search effect with debounce
   useEffect(() => {
@@ -516,7 +743,7 @@ function ChatHistorySidebar({ onNewChat, onChatLoaded, loading }) {
         const rect = button.getBoundingClientRect();
         setMenuPosition({
           top: rect.bottom + 4,
-          left: Math.max(10, rect.right - 175),
+          left: Math.max(10, rect.right - 185),
         });
       }
       setMenuOpenChatId(chatId);
@@ -530,18 +757,21 @@ function ChatHistorySidebar({ onNewChat, onChatLoaded, loading }) {
     const isHovered = hoveredChatId === chat.id;
     const isMenuOpen = menuOpenChatId === chat.id;
     const isEditing = editingChatId === chat.id;
+    const isPinned = Boolean(chat.pinned);
+    const isArchived = Boolean(chat.archived);
 
     return (
       <div
         key={chat.id}
         className={cn(
           "group relative flex items-center justify-between rounded-lg cursor-pointer transition-all duration-150 select-none",
-          isIndented 
-            ? "py-1.5 px-2 text-xs" 
-            : "py-2 px-2.5 mx-2 text-xs",
+          isCompactMode
+            ? (isIndented ? "py-1 px-2 text-xs" : "py-1 px-2 mx-1.5 text-xs")
+            : (isIndented ? "py-1.5 px-2 text-xs" : "py-1.5 px-2.5 mx-2 text-xs"),
           isCurrent 
             ? "bg-muted text-foreground font-medium shadow-2xs border-l-2 border-primary" 
             : "hover:bg-muted/60 text-muted-foreground hover:text-foreground",
+          isPinned && !isCurrent && "bg-amber-500/5 hover:bg-amber-500/10",
           isDeleting && "opacity-50"
         )}
         onClick={() => {
@@ -553,12 +783,30 @@ function ChatHistorySidebar({ onNewChat, onChatLoaded, loading }) {
           if (menuOpenChatId === chat.id) setMenuOpenChatId(null);
         }}
       >
-        <div className="flex items-center gap-2 min-w-0 flex-1 pr-1">
+        <div className="flex items-center gap-1.5 min-w-0 flex-1 pr-1">
+          {/* Pin star button / icon */}
+          {!isArchived && (
+            <button
+              type="button"
+              onClick={(e) => handleTogglePin(e, chat.id, isPinned)}
+              className={cn(
+                "p-0.5 rounded transition-transform shrink-0",
+                isPinned 
+                  ? "text-amber-500 hover:scale-110" 
+                  : (isHovered ? "opacity-40 hover:opacity-100 hover:text-amber-500" : "hidden")
+              )}
+              title={isPinned ? t('sidebar.unpinChat') : t('sidebar.pinChat')}
+            >
+              <Star className={cn("h-3 w-3", isPinned && "fill-amber-500")} />
+            </button>
+          )}
+
           <MessageSquare className={cn(
             "flex-shrink-0 transition-colors",
             isIndented ? "h-3.5 w-3.5 text-muted-foreground/50 group-hover:text-primary" : "h-3.5 w-3.5 text-muted-foreground/60 group-hover:text-primary",
             isCurrent && "text-primary font-semibold"
           )} />
+
           {isEditing ? (
             <div className="flex items-center gap-1 min-w-0 flex-1" onClick={(e) => e.stopPropagation()}>
               <input
@@ -616,14 +864,29 @@ function ChatHistorySidebar({ onNewChat, onChatLoaded, loading }) {
               className="min-w-0 flex-1"
               onDoubleClick={(e) => handleStartRename(e, chat)}
             >
-              <div className="truncate text-xs font-normal" title={chat.title || t('sidebar.newChat')}>
-                {chat.title || t('sidebar.newChat')}
-              </div>
-              {!isIndented && (
-                <div className="flex items-center gap-1 text-[10px] text-muted-foreground/70 mt-0.5">
-                  <Clock className="h-2.5 w-2.5" />
-                  <span>{formatRelativeTime(chat.updatedAt, t, language)}</span>
+              {isCompactMode ? (
+                <div className="flex items-center justify-between gap-1.5">
+                  <span className="truncate text-xs font-normal" title={chat.title || t('sidebar.newChat')}>
+                    {chat.title || t('sidebar.newChat')}
+                  </span>
+                  {!isHovered && !isMenuOpen && (
+                    <span className="text-[10px] text-muted-foreground/60 shrink-0 font-mono">
+                      {formatCompactTime(chat.updatedAt || chat.createdAt)}
+                    </span>
+                  )}
                 </div>
+              ) : (
+                <>
+                  <div className="truncate text-xs font-normal" title={chat.title || t('sidebar.newChat')}>
+                    {chat.title || t('sidebar.newChat')}
+                  </div>
+                  {!isIndented && (
+                    <div className="flex items-center gap-1 text-[10px] text-muted-foreground/70 mt-0.5">
+                      <Clock className="h-2.5 w-2.5" />
+                      <span>{formatRelativeTime(chat.updatedAt || chat.createdAt, t, language)}</span>
+                    </div>
+                  )}
+                </>
               )}
             </div>
           )}
@@ -631,15 +894,47 @@ function ChatHistorySidebar({ onNewChat, onChatLoaded, loading }) {
 
         {/* Action buttons on hover */}
         {!isEditing && (isHovered || isMenuOpen || chatToDelete?.id === chat.id) && (
-          <div className="absolute right-1.5 top-1/2 -translate-y-1/2 flex items-center gap-0.5 bg-background/90 backdrop-blur-xs px-1 py-0.5 rounded-md border border-border/50 shadow-2xs">
-            <button
-              type="button"
-              onClick={(e) => handleStartRename(e, chat)}
-              className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
-              title={t('sidebar.renameChat')}
-            >
-              <Pencil className="h-3 w-3" />
-            </button>
+          <div className="absolute right-1.5 top-1/2 -translate-y-1/2 flex items-center gap-0.5 bg-background/90 backdrop-blur-xs px-1 py-0.5 rounded-md border border-border/50 shadow-2xs z-10">
+            {isArchived ? (
+              <button
+                type="button"
+                onClick={(e) => handleToggleArchive(e, chat.id, true)}
+                className="p-1 rounded hover:bg-muted text-primary hover:text-primary/90 transition-colors"
+                title={t('sidebar.unarchiveChat')}
+              >
+                <ArchiveRestore className="h-3 w-3" />
+              </button>
+            ) : (
+              <>
+                <button
+                  type="button"
+                  onClick={(e) => handleTogglePin(e, chat.id, isPinned)}
+                  className={cn(
+                    "p-1 rounded hover:bg-muted transition-colors",
+                    isPinned ? "text-amber-500 fill-amber-500" : "text-muted-foreground hover:text-amber-500"
+                  )}
+                  title={isPinned ? t('sidebar.unpinChat') : t('sidebar.pinChat')}
+                >
+                  <Star className={cn("h-3 w-3", isPinned && "fill-amber-500")} />
+                </button>
+                <button
+                  type="button"
+                  onClick={(e) => handleStartRename(e, chat)}
+                  className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
+                  title={t('sidebar.renameChat')}
+                >
+                  <Pencil className="h-3 w-3" />
+                </button>
+                <button
+                  type="button"
+                  onClick={(e) => handleToggleArchive(e, chat.id, false)}
+                  className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
+                  title={t('sidebar.archiveChat')}
+                >
+                  <Archive className="h-3 w-3" />
+                </button>
+              </>
+            )}
             <button
               type="button"
               onClick={(e) => handlePromptDelete(e, chat)}
@@ -662,12 +957,26 @@ function ChatHistorySidebar({ onNewChat, onChatLoaded, loading }) {
         {/* Dropdown menu */}
         {isMenuOpen && (
           <div 
-            className="fixed py-1 bg-popover border border-border rounded-xl shadow-xl w-48 z-[9999] text-xs animate-in fade-in-0 zoom-in-95"
+            className="fixed py-1 bg-popover border border-border rounded-xl shadow-xl w-52 z-[9999] text-xs animate-in fade-in-0 zoom-in-95"
             style={{ 
               top: menuPosition.top, 
               left: menuPosition.left,
             }}
           >
+            {/* Pin / Unpin */}
+            {!isArchived && (
+              <button
+                onClick={(e) => {
+                  setMenuOpenChatId(null);
+                  handleTogglePin(e, chat.id, isPinned);
+                }}
+                className="w-full flex items-center gap-2 px-3 py-1.5 hover:bg-muted text-foreground transition-colors text-left font-medium"
+              >
+                <Star className={cn("h-3.5 w-3.5 text-amber-500", isPinned && "fill-amber-500")} />
+                <span>{isPinned ? t('sidebar.unpinChat') : t('sidebar.pinChat')}</span>
+              </button>
+            )}
+
             {/* Rename */}
             <button
               onClick={(e) => handleStartRename(e, chat)}
@@ -678,12 +987,32 @@ function ChatHistorySidebar({ onNewChat, onChatLoaded, loading }) {
             </button>
 
             {/* Move to Project */}
+            {!isArchived && (
+              <button
+                onClick={(e) => handleOpenMoveModal(e, chat)}
+                className="w-full flex items-center gap-2 px-3 py-1.5 hover:bg-muted text-foreground transition-colors text-left font-medium"
+              >
+                <FolderKanban className="h-3.5 w-3.5 text-primary" />
+                <span>{t('sidebar.moveToProject')}</span>
+              </button>
+            )}
+
+            {/* Archive / Unarchive */}
             <button
-              onClick={(e) => handleOpenMoveModal(e, chat)}
+              onClick={(e) => handleToggleArchive(e, chat.id, isArchived)}
               className="w-full flex items-center gap-2 px-3 py-1.5 hover:bg-muted text-foreground transition-colors text-left font-medium"
             >
-              <FolderKanban className="h-3.5 w-3.5 text-primary" />
-              <span>{t('sidebar.moveToProject')}</span>
+              {isArchived ? (
+                <>
+                  <ArchiveRestore className="h-3.5 w-3.5 text-primary" />
+                  <span>{t('sidebar.unarchiveChat')}</span>
+                </>
+              ) : (
+                <>
+                  <Archive className="h-3.5 w-3.5 text-primary" />
+                  <span>{t('sidebar.archiveChat')}</span>
+                </>
+              )}
             </button>
 
             <div className="my-1 border-t border-border" />
@@ -828,7 +1157,7 @@ function ChatHistorySidebar({ onNewChat, onChatLoaded, loading }) {
                         <div className="flex items-center gap-2 text-[10px] text-muted-foreground mt-0.5">
                           <div className="flex items-center gap-1">
                             <Clock className="h-2.5 w-2.5" />
-                            <span>{formatRelativeTime(chat.updatedAt, t, language)}</span>
+                            <span>{formatRelativeTime(chat.updatedAt || chat.createdAt, t, language)}</span>
                           </div>
                           {project && (
                             <span
@@ -881,11 +1210,88 @@ function ChatHistorySidebar({ onNewChat, onChatLoaded, loading }) {
     );
   };
 
+  // Render a collapsible date section
+  const renderDateSection = (groupKey, label, chats) => {
+    if (!chats || chats.length === 0) return null;
+    const isCollapsed = collapsedDateGroups.has(groupKey);
+
+    return (
+      <div key={groupKey} className="space-y-0.5">
+        <button
+          type="button"
+          onClick={() => toggleDateGroup(groupKey)}
+          className="w-full flex items-center justify-between px-3 py-1 text-[10px] font-semibold text-muted-foreground/80 hover:text-foreground uppercase tracking-wider transition-colors select-none"
+        >
+          <div className="flex items-center gap-1">
+            <ChevronDown className={cn("w-2.5 h-2.5 transition-transform duration-150", isCollapsed && "-rotate-90")} />
+            <span>{label}</span>
+          </div>
+          <span className="text-[9px] px-1.5 py-0.2 rounded-full bg-muted/60 text-muted-foreground font-normal">
+            {chats.length}
+          </span>
+        </button>
+        {!isCollapsed && (
+          <div className="space-y-0.5">
+            {chats.map(c => renderChatItem(c))}
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  // Render archived chats tab content
+  const renderArchivedView = () => {
+    return (
+      <div className="space-y-2 px-1">
+        <div className="flex items-center justify-between px-2.5 py-1.5 bg-muted/30 rounded-lg border border-border/50">
+          <div className="flex items-center gap-1.5">
+            <Archive className="h-3.5 w-3.5 text-primary" />
+            <span className="text-xs font-semibold text-foreground">{t('sidebar.archivedTitle')}</span>
+          </div>
+          <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-primary/10 text-primary font-semibold">
+            {archivedChats.length}
+          </span>
+        </div>
+
+        {archivedChats.length === 0 ? (
+          <div className="px-4 py-8 text-center text-xs text-muted-foreground">
+            <Archive className="h-8 w-8 mx-auto mb-2 opacity-30 text-muted-foreground" />
+            <p className="font-medium text-foreground/80">{t('sidebar.noArchived')}</p>
+            <p className="text-[11px] mt-1 text-muted-foreground/70">{t('sidebar.noArchivedDesc')}</p>
+          </div>
+        ) : (
+          <div className="space-y-0.5">
+            {archivedChats.map(chat => {
+              const project = chat.projectId ? projectMap.get(chat.projectId) : null;
+              return (
+                <div key={chat.id} className="relative">
+                  {renderChatItem(chat)}
+                  {project && !isCompactMode && (
+                    <div className="px-3 pb-1 -mt-0.5">
+                      <span
+                        className="inline-flex items-center gap-0.5 px-1.5 py-0.2 rounded-full text-[9px] font-medium"
+                        style={{
+                          backgroundColor: `${project.color || '#f55036'}18`,
+                          color: project.color || '#f55036'
+                        }}
+                      >
+                        <span>{project.icon || '📁'}</span>
+                        <span>{project.name}</span>
+                      </span>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    );
+  };
+
   if (isSidebarCollapsed) {
     return null;
   }
-
-  const groupedUnassigned = groupChatsByDate(unassignedChats);
 
   return (
     <div 
@@ -911,9 +1317,11 @@ function ChatHistorySidebar({ onNewChat, onChatLoaded, loading }) {
       />
 
       {/* Header */}
-      <div className="flex items-center justify-between p-3 border-b border-border/80 bg-background/50">
-        <h2 className="font-semibold text-xs text-foreground uppercase tracking-wider">{t('sidebar.title')}</h2>
+      <div className="flex items-center justify-between p-2.5 border-b border-border/80 bg-background/50">
+        <h2 className="font-semibold text-xs text-foreground uppercase tracking-wider pl-1">{t('sidebar.title')}</h2>
+        
         <div className="flex items-center gap-0.5">
+          {/* New Project button */}
           <Button
             variant="ghost"
             size="icon"
@@ -923,6 +1331,8 @@ function ChatHistorySidebar({ onNewChat, onChatLoaded, loading }) {
           >
             <FolderPlus className="h-3.5 w-3.5" />
           </Button>
+
+          {/* New Chat button */}
           <Button
             variant="ghost"
             size="icon"
@@ -932,6 +1342,99 @@ function ChatHistorySidebar({ onNewChat, onChatLoaded, loading }) {
           >
             <Plus className="h-4 w-4" />
           </Button>
+
+          {/* Quick Density Toggle */}
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={toggleCompactMode}
+            className={cn(
+              "h-7 w-7 rounded-lg transition-colors",
+              isCompactMode ? "text-primary bg-primary/10 hover:bg-primary/20" : "text-muted-foreground hover:text-foreground hover:bg-muted/80"
+            )}
+            title={isCompactMode ? t('sidebar.comfortableMode') : t('sidebar.compactMode')}
+          >
+            <LayoutList className="h-3.5 w-3.5" />
+          </Button>
+
+          {/* Options / Sort & Filter Menu Trigger */}
+          <div className="relative">
+            <Button
+              ref={optionsButtonRef}
+              variant="ghost"
+              size="icon"
+              onClick={() => setIsOptionsOpen(prev => !prev)}
+              className={cn(
+                "h-7 w-7 rounded-lg transition-colors",
+                isOptionsOpen || sortOrder !== 'newest' || !groupByDate 
+                  ? "text-primary bg-primary/10" 
+                  : "text-muted-foreground hover:text-foreground hover:bg-muted/80"
+              )}
+              title={t('sidebar.sort')}
+            >
+              <SlidersHorizontal className="h-3.5 w-3.5" />
+            </Button>
+
+            {/* Options Dropdown Menu */}
+            {isOptionsOpen && (
+              <div
+                ref={optionsMenuRef}
+                className="absolute right-0 top-full mt-1.5 w-48 bg-popover border border-border rounded-xl shadow-xl p-1 z-[9999] text-xs animate-in fade-in-0 zoom-in-95 space-y-1"
+              >
+                <div className="px-2 py-1 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
+                  {t('sidebar.sort')}
+                </div>
+                {[
+                  { id: 'newest', label: t('sidebar.sortNewest') },
+                  { id: 'oldest', label: t('sidebar.sortOldest') },
+                  { id: 'title-asc', label: t('sidebar.sortAZ') },
+                  { id: 'title-desc', label: t('sidebar.sortZA') },
+                ].map(opt => (
+                  <button
+                    key={opt.id}
+                    type="button"
+                    onClick={() => {
+                      handleSetSortOrder(opt.id);
+                      setIsOptionsOpen(false);
+                    }}
+                    className={cn(
+                      "w-full flex items-center justify-between px-2.5 py-1.5 rounded-md text-left transition-colors",
+                      sortOrder === opt.id 
+                        ? "bg-primary/15 text-primary font-medium" 
+                        : "hover:bg-muted text-foreground/90"
+                    )}
+                  >
+                    <span>{opt.label}</span>
+                    {sortOrder === opt.id && <Check className="w-3 h-3 text-primary" />}
+                  </button>
+                ))}
+
+                <div className="my-1 border-t border-border" />
+
+                <div className="px-2 py-1 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
+                  {t('sidebar.grouping')}
+                </div>
+                <button
+                  type="button"
+                  onClick={toggleGroupByDate}
+                  className="w-full flex items-center justify-between px-2.5 py-1.5 rounded-md hover:bg-muted text-foreground/90 transition-colors text-left"
+                >
+                  <span>{t('sidebar.groupByDate')}</span>
+                  {groupByDate && <Check className="w-3 h-3 text-primary" />}
+                </button>
+                <button
+                  type="button"
+                  onClick={toggleCompactMode}
+                  className="w-full flex items-center justify-between px-2.5 py-1.5 rounded-md hover:bg-muted text-foreground/90 transition-colors text-left"
+                >
+                  <span>{t('sidebar.compactMode')}</span>
+                  {isCompactMode && <Check className="w-3 h-3 text-primary" />}
+                </button>
+              </div>
+            )}
+          </div>
+
+          {/* Delete All button */}
           {chatList.length > 0 && (
             <Button
               variant="ghost"
@@ -943,6 +1446,8 @@ function ChatHistorySidebar({ onNewChat, onChatLoaded, loading }) {
               <Trash2 className="h-3.5 w-3.5" />
             </Button>
           )}
+
+          {/* Collapse sidebar */}
           <Button
             variant="ghost"
             size="icon"
@@ -955,8 +1460,8 @@ function ChatHistorySidebar({ onNewChat, onChatLoaded, loading }) {
         </div>
       </div>
 
-      {/* Search Input */}
-      <div className="px-3 pt-2.5 pb-2">
+      {/* Search Input & View Tab Switch */}
+      <div className="px-2.5 pt-2 pb-1.5 space-y-2">
         <div className="relative">
           <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
           <input
@@ -975,18 +1480,78 @@ function ChatHistorySidebar({ onNewChat, onChatLoaded, loading }) {
             </button>
           )}
         </div>
+
+        {/* Tab switch: Ativas vs Arquivadas (if there are archived chats or user switched) */}
+        {!searchQuery.trim() && (archivedChats.length > 0 || activeViewTab === 'archived') && (
+          <div className="flex items-center p-0.5 bg-muted/50 rounded-lg border border-border/60 text-xs">
+            <button
+              type="button"
+              onClick={() => setActiveViewTab('active')}
+              className={cn(
+                "flex-1 py-1 px-2 rounded-md font-medium text-center transition-all flex items-center justify-center gap-1.5",
+                activeViewTab === 'active' 
+                  ? "bg-background text-foreground shadow-2xs font-semibold" 
+                  : "text-muted-foreground hover:text-foreground"
+              )}
+            >
+              <span>{t('sidebar.activeTab')}</span>
+              <span className="text-[10px] opacity-70">({activeChats.length})</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveViewTab('archived')}
+              className={cn(
+                "flex-1 py-1 px-2 rounded-md font-medium text-center transition-all flex items-center justify-center gap-1.5",
+                activeViewTab === 'archived' 
+                  ? "bg-background text-foreground shadow-2xs font-semibold" 
+                  : "text-muted-foreground hover:text-foreground"
+              )}
+            >
+              <Archive className="w-3 h-3 text-muted-foreground" />
+              <span>{t('sidebar.archivedTab')}</span>
+              <span className="text-[10px] opacity-70">({archivedChats.length})</span>
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Main Content Area */}
-      <div className="flex-1 overflow-y-auto px-1 py-1 space-y-3">
+      <div className="flex-1 overflow-y-auto px-1 py-1 space-y-2.5">
         {isLoadingChats ? (
           <div className="flex items-center justify-center py-10">
             <div className="loading-spinner" />
           </div>
         ) : searchQuery.trim() ? (
           renderSearchResults()
+        ) : activeViewTab === 'archived' ? (
+          renderArchivedView()
         ) : (
           <>
+            {/* --- SECTION: ⭐ FAVORITOS / FIXADOS --- */}
+            {pinnedChats.length > 0 && (
+              <div className="space-y-0.5">
+                <div className="flex items-center justify-between px-2.5 py-1 text-muted-foreground group">
+                  <button
+                    type="button"
+                    onClick={toggleFavoritesSection}
+                    className="flex items-center gap-1.5 text-[11px] font-semibold text-amber-500 uppercase tracking-wider transition-colors"
+                  >
+                    <ChevronDown className={cn("w-3 h-3 transition-transform duration-200", !isFavoritesOpen && "-rotate-90")} />
+                    <Star className="w-3 h-3 fill-amber-500 text-amber-500" />
+                    <span>{t('sidebar.pinnedSection')}</span>
+                    <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400 font-normal">
+                      {pinnedChats.length}
+                    </span>
+                  </button>
+                </div>
+                {isFavoritesOpen && (
+                  <div className="space-y-0.5">
+                    {pinnedChats.map(c => renderChatItem(c))}
+                  </div>
+                )}
+              </div>
+            )}
+
             {/* --- SECTION 1: PROJETOS --- */}
             <div className="space-y-1">
               {/* Projects Section Header */}
@@ -1165,7 +1730,7 @@ function ChatHistorySidebar({ onNewChat, onChatLoaded, loading }) {
             </div>
 
             {/* --- SECTION 2: CHATS (Gerais / Sem Projeto) --- */}
-            <div className="space-y-1 pt-2">
+            <div className="space-y-1 pt-1">
               {/* Chats Section Header */}
               <div className="flex items-center justify-between px-2.5 py-1 text-muted-foreground group">
                 <button
@@ -1194,7 +1759,7 @@ function ChatHistorySidebar({ onNewChat, onChatLoaded, loading }) {
               {/* Unassigned Chats List */}
               {isChatsSectionOpen && (
                 <div>
-                  {unassignedChats.length === 0 && projects.length === 0 ? (
+                  {unassignedChats.length === 0 && projects.length === 0 && pinnedChats.length === 0 ? (
                     <div className="px-4 py-8 text-center text-sm text-muted-foreground">
                       <MessageSquare className="h-7 w-7 mx-auto mb-2 opacity-40 text-primary" />
                       <p className="text-xs font-medium">{t('sidebar.emptyTitle')}</p>
@@ -1212,48 +1777,19 @@ function ChatHistorySidebar({ onNewChat, onChatLoaded, loading }) {
                     <div className="px-3 py-2 text-[11px] text-muted-foreground/70">
                       {t('sidebar.emptySubtitle')}
                     </div>
+                  ) : groupByDate ? (
+                    /* Grouped by date view */
+                    <div className="space-y-1.5">
+                      {renderDateSection('today', t('sidebar.today'), groupedUnassigned.today)}
+                      {renderDateSection('yesterday', t('sidebar.yesterday'), groupedUnassigned.yesterday)}
+                      {renderDateSection('thisWeek', t('sidebar.thisWeek'), groupedUnassigned.thisWeek)}
+                      {renderDateSection('thisMonth', t('sidebar.thisMonth'), groupedUnassigned.thisMonth)}
+                      {renderDateSection('older', t('sidebar.older'), groupedUnassigned.older)}
+                    </div>
                   ) : (
-                    <div className="space-y-2">
-                      {groupedUnassigned.today.length > 0 && (
-                        <div>
-                          <div className="px-3 py-0.5 text-[10px] font-semibold text-muted-foreground/80 uppercase">
-                            {t('sidebar.today')}
-                          </div>
-                          {groupedUnassigned.today.map(c => renderChatItem(c))}
-                        </div>
-                      )}
-                      {groupedUnassigned.yesterday.length > 0 && (
-                        <div>
-                          <div className="px-3 py-0.5 text-[10px] font-semibold text-muted-foreground/80 uppercase">
-                            {t('sidebar.yesterday')}
-                          </div>
-                          {groupedUnassigned.yesterday.map(c => renderChatItem(c))}
-                        </div>
-                      )}
-                      {groupedUnassigned.thisWeek.length > 0 && (
-                        <div>
-                          <div className="px-3 py-0.5 text-[10px] font-semibold text-muted-foreground/80 uppercase">
-                            {t('sidebar.thisWeek')}
-                          </div>
-                          {groupedUnassigned.thisWeek.map(c => renderChatItem(c))}
-                        </div>
-                      )}
-                      {groupedUnassigned.thisMonth.length > 0 && (
-                        <div>
-                          <div className="px-3 py-0.5 text-[10px] font-semibold text-muted-foreground/80 uppercase">
-                            {t('sidebar.thisMonth')}
-                          </div>
-                          {groupedUnassigned.thisMonth.map(c => renderChatItem(c))}
-                        </div>
-                      )}
-                      {groupedUnassigned.older.length > 0 && (
-                        <div>
-                          <div className="px-3 py-0.5 text-[10px] font-semibold text-muted-foreground/80 uppercase">
-                            {t('sidebar.older')}
-                          </div>
-                          {groupedUnassigned.older.map(c => renderChatItem(c))}
-                        </div>
-                      )}
+                    /* Flat continuous list */
+                    <div className="space-y-0.5">
+                      {unassignedChats.map(c => renderChatItem(c))}
                     </div>
                   )}
                 </div>

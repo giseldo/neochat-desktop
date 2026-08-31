@@ -290,6 +290,52 @@ export const ChatProvider = ({ children }) => {
     return null;
   }, [loadChatList]);
 
+  // Toggle or set chat pinned (favorite) status
+  const togglePinChat = useCallback(async (chatId, explicitPinned) => {
+    if (!chatId) return null;
+    try {
+      // Optimistic update
+      setChatList(prev => prev.map(chat => {
+        if (chat.id !== chatId) return chat;
+        const nextPinned = typeof explicitPinned === 'boolean' ? explicitPinned : !chat.pinned;
+        return {
+          ...chat,
+          pinned: nextPinned,
+          pinnedAt: nextPinned ? new Date().toISOString() : null
+        };
+      }));
+      const result = await window.electron.chatHistory.togglePin(chatId, explicitPinned);
+      return result;
+    } catch (error) {
+      console.error('Error toggling pin on chat:', error);
+      await loadChatList();
+    }
+    return null;
+  }, [loadChatList]);
+
+  // Toggle or set chat archived status
+  const toggleArchiveChat = useCallback(async (chatId, explicitArchived) => {
+    if (!chatId) return null;
+    try {
+      // Optimistic update
+      setChatList(prev => prev.map(chat => {
+        if (chat.id !== chatId) return chat;
+        const nextArchived = typeof explicitArchived === 'boolean' ? explicitArchived : !chat.archived;
+        return {
+          ...chat,
+          archived: nextArchived,
+          archivedAt: nextArchived ? new Date().toISOString() : null
+        };
+      }));
+      const result = await window.electron.chatHistory.toggleArchive(chatId, explicitArchived);
+      return result;
+    } catch (error) {
+      console.error('Error toggling archive on chat:', error);
+      await loadChatList();
+    }
+    return null;
+  }, [loadChatList]);
+
   // Provide the state and methods to children
   const value = {
     messages,
@@ -307,6 +353,8 @@ export const ChatProvider = ({ children }) => {
     clearCurrentChat,
     updateChatProject,
     renameChat,
+    togglePinChat,
+    toggleArchiveChat,
     startFreshChat,
     toggleSidebar,
     needsTitleGeneration,

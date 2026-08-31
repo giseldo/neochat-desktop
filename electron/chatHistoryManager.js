@@ -63,6 +63,10 @@ function createChat(model = 'llama-3.3-70b-versatile', useResponsesApi = false, 
         model: model,
         useResponsesApi: useResponsesApi,
         projectId: projectId || null,
+        pinned: false,
+        pinnedAt: null,
+        archived: false,
+        archivedAt: null,
         messages: []
     };
     
@@ -192,6 +196,10 @@ function listChats() {
                         messageCount: chat.messages?.length || 0,
                         useResponsesApi: chat.useResponsesApi || false,
                         projectId: chat.projectId || null,
+                        pinned: Boolean(chat.pinned),
+                        pinnedAt: chat.pinnedAt || null,
+                        archived: Boolean(chat.archived),
+                        archivedAt: chat.archivedAt || null,
                         parentChatId: chat.parentChatId || null,
                         rootChatId: chat.rootChatId || null,
                         branchPoint: chat.branchPoint || null
@@ -278,6 +286,46 @@ function updateChatCanvasDoc(chatId, canvasDoc) {
     }
 
     chat.canvasDoc = canvasDoc || null;
+    saveChat(chat);
+    return chat;
+}
+
+/**
+ * Toggle or set pinned status for a chat
+ * @param {string} chatId - The chat ID
+ * @param {boolean} [isPinned] - Optional explicit boolean, if omitted toggles current state
+ * @returns {Object|null} The updated chat object
+ */
+function togglePinChat(chatId, isPinned) {
+    const chat = loadChat(chatId);
+    if (!chat) {
+        console.error(`Chat ${chatId} not found for togglePin`);
+        return null;
+    }
+
+    const nextPinned = typeof isPinned === 'boolean' ? isPinned : !chat.pinned;
+    chat.pinned = nextPinned;
+    chat.pinnedAt = nextPinned ? new Date().toISOString() : null;
+    saveChat(chat);
+    return chat;
+}
+
+/**
+ * Toggle or set archived status for a chat
+ * @param {string} chatId - The chat ID
+ * @param {boolean} [isArchived] - Optional explicit boolean, if omitted toggles current state
+ * @returns {Object|null} The updated chat object
+ */
+function toggleArchiveChat(chatId, isArchived) {
+    const chat = loadChat(chatId);
+    if (!chat) {
+        console.error(`Chat ${chatId} not found for toggleArchive`);
+        return null;
+    }
+
+    const nextArchived = typeof isArchived === 'boolean' ? isArchived : !chat.archived;
+    chat.archived = nextArchived;
+    chat.archivedAt = nextArchived ? new Date().toISOString() : null;
     saveChat(chat);
     return chat;
 }
@@ -467,6 +515,16 @@ function initializeChatHistoryHandlers(ipcMain) {
     ipcMain.handle('chat-history-update-canvas', async (event, chatId, canvasDoc) => {
         return updateChatCanvasDoc(chatId, canvasDoc);
     });
+
+    // Toggle chat pin / favorite
+    ipcMain.handle('chat-history-toggle-pin', async (event, chatId, isPinned) => {
+        return togglePinChat(chatId, isPinned);
+    });
+
+    // Toggle chat archive
+    ipcMain.handle('chat-history-toggle-archive', async (event, chatId, isArchived) => {
+        return toggleArchiveChat(chatId, isArchived);
+    });
     
     // Delete a chat
     ipcMain.handle('chat-history-delete', async (event, chatId) => {
@@ -603,6 +661,10 @@ function searchChatsContent(query) {
                         updatedAt: chat.updatedAt,
                         model: chat.model,
                         projectId: chat.projectId || null,
+                        pinned: Boolean(chat.pinned),
+                        pinnedAt: chat.pinnedAt || null,
+                        archived: Boolean(chat.archived),
+                        archivedAt: chat.archivedAt || null,
                         messageCount: messages.length,
                         matchCount: totalMatches,
                         titleMatch: titleMatch,
@@ -690,7 +752,9 @@ module.exports = {
     unassignProjectFromChats,
     generateChatTitle,
     searchChatsContent,
-    createChatBranch
+    createChatBranch,
+    togglePinChat,
+    toggleArchiveChat
 };
 
 
