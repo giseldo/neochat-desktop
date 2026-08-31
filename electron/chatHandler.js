@@ -212,17 +212,57 @@ function prepareTools(discoveredTools, isResponsesApi = false, settings = {}) {
         }
     }
 
-    // In 'chat' mode: Canvas is only included if actively open on screen with a document or open panel
-    // In 'work' or 'code' mode: Canvas tools are always available
+    // In 'code' mode or agent mode: register full native filesystem, shell and git tools
+    if (settings.mode === 'code' || settings.agentModeActive || settings.agentMode || settings.isAgentMode) {
+        const { NATIVE_TOOLS } = require('./agent/toolRegistry');
+        const codeTools = [
+            NATIVE_TOOLS.read_file,
+            NATIVE_TOOLS.write_file,
+            NATIVE_TOOLS.edit_file,
+            NATIVE_TOOLS.list_directory,
+            NATIVE_TOOLS.glob_search,
+            NATIVE_TOOLS.grep_search,
+            NATIVE_TOOLS.shell_exec,
+            NATIVE_TOOLS.git_status,
+            NATIVE_TOOLS.git_diff,
+            NATIVE_TOOLS.git_commit
+        ];
+
+        for (const nt of codeTools) {
+            const hasAlready = tools.some(t => t.name === nt.name || t.function?.name === nt.name);
+            if (!hasAlready) {
+                if (isResponsesApi) {
+                    tools.push({
+                        type: "function",
+                        name: nt.name,
+                        description: nt.description,
+                        parameters: nt.parameters
+                    });
+                } else {
+                    tools.push({
+                        type: "function",
+                        function: {
+                            name: nt.name,
+                            description: nt.description,
+                            parameters: nt.parameters
+                        }
+                    });
+                }
+            }
+        }
+    }
+
+    // In 'chat' or 'code' mode: Canvas is only included if actively open on screen with a document or open panel
+    // In 'work' mode: Canvas tools are always available
     const isCanvasExplicitlyOpen = Boolean(
         settings.isCanvasOpen ||
         settings.activeCanvasDoc ||
         settings.canvasDoc ||
         settings.selectedCanvasText
     );
-    const isCanvasActive = (settings.mode === 'chat' || !settings.mode)
-        ? (isCanvasExplicitlyOpen && settings.canvasEnabled !== false)
-        : (isCanvasExplicitlyOpen || settings.mode === 'work' || settings.mode === 'code' || settings.canvasEnabled === true);
+    const isCanvasActive = (settings.mode === 'work')
+        ? (isCanvasExplicitlyOpen || settings.canvasEnabled !== false)
+        : (isCanvasExplicitlyOpen && settings.canvasEnabled !== false);
     if (isCanvasActive) {
         const canvasTools = getCanvasTools(isResponsesApi);
         for (const ct of canvasTools) {
@@ -390,17 +430,17 @@ function buildApiParams(prunedMessages, modelToUse, settings, tools, modelContex
         settings.projectId ||
         (settings.projectKnowledgeEnabled && settings.currentProject)
     );
-    // In 'chat' mode: Canvas is only included if actively open on screen with a document or open panel
-    // In 'work' or 'code' mode: Canvas tools are always available
+    // In 'chat' or 'code' mode: Canvas is only included if actively open on screen with a document or open panel
+    // In 'work' mode: Canvas tools are always available
     const isCanvasExplicitlyOpen = Boolean(
         settings.isCanvasOpen ||
         settings.activeCanvasDoc ||
         settings.canvasDoc ||
         settings.selectedCanvasText
     );
-    const isCanvasActive = (settings.mode === 'chat' || !settings.mode)
-        ? (isCanvasExplicitlyOpen && settings.canvasEnabled !== false)
-        : (isCanvasExplicitlyOpen || settings.mode === 'work' || settings.mode === 'code' || settings.canvasEnabled === true);
+    const isCanvasActive = (settings.mode === 'work')
+        ? (isCanvasExplicitlyOpen || settings.canvasEnabled !== false)
+        : (isCanvasExplicitlyOpen && settings.canvasEnabled !== false);
     
     let systemPrompt = (settings.customSystemPrompt && settings.customSystemPrompt.trim())
         ? settings.customSystemPrompt.trim()
@@ -435,6 +475,31 @@ When the user asks you to create, draft, write, edit, rewrite, improve, format, 
                 systemPrompt += `User Selected Text in Canvas:\n"""\n${settings.selectedCanvasText}\n"""\n`;
             }
             systemPrompt += `Current Content:\n\`\`\`${activeCanvas.language || ''}\n${activeCanvas.content}\n\`\`\`\n==============================\n`;
+        }
+    }
+
+    // Coding Agent Harness System Instructions
+    if (settings.mode === 'code' || settings.agentModeActive || settings.agentMode || settings.isAgentMode) {
+        const { workspaceManager } = require('./agent/workspaceManager');
+        const workspaceRoot = settings.workspaceRoot || process.cwd();
+        const workspaceInfoPrompt = workspaceManager.getWorkspaceSystemPrompt(workspaceRoot);
+
+        systemPrompt += `\n\n- CODING AGENT HARNESS (Native Filesystem & Shell):
+You are an autonomous Software Engineering Agent operating inside the user's project workspace.
+You have direct access to native filesystem, shell, and Git tools:
+- 'read_file': Read local file content with line numbers (can specify start_line and end_line).
+- 'write_file': Create new files or completely overwrite existing files on disk. (CRITICAL: When asked to create, save or write files to the workspace/project directory, ALWAYS use 'write_file', NEVER canvas_create_document).
+- 'edit_file': Edit a precise block of text in an existing file using exact matching (target_content -> replacement_content).
+- 'list_directory': Inspect directory contents and child folders.
+- 'glob_search': Search for files matching a glob pattern (e.g. '**/*.js', 'src/**/*.tsx').
+- 'grep_search': Search across codebase for regex or string matches with line numbers.
+- 'shell_exec': Execute commands in a persistent shell terminal (PowerShell on Windows, Bash on Unix).
+- 'git_status', 'git_diff', 'git_commit': Inspect repository state, view diffs, and create commits.
+
+Always prioritize creating and editing files directly on disk using 'write_file' and 'edit_file'.`;
+
+        if (workspaceInfoPrompt) {
+            systemPrompt += `\n\n${workspaceInfoPrompt}`;
         }
     }
 

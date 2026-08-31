@@ -2,6 +2,7 @@ const { limitContentLength } = require('./utils');
 const { executeWebSearch } = require('./webSearchService');
 const { queryKnowledge, readFileContent } = require('./ragService');
 const { handleCanvasToolCall } = require('./canvasManager');
+const { toolExecutor } = require('./agent/toolExecutor');
 
 /**
  * Handles the 'execute-tool-call' IPC event.
@@ -24,6 +25,36 @@ async function handleExecuteToolCall(event, toolCall, discoveredTools, mcpClient
 
   const toolName = toolCall.function.name;
   const toolCallId = toolCall.id;
+
+  // Handle Native Coding Tools (read_file, write_file, edit_file, list_directory, glob_search, grep_search, shell_exec, git_status, git_diff, git_commit)
+  const isNativeCodeTool = [
+    'read_file', 'write_file', 'edit_file', 'list_directory',
+    'glob_search', 'grep_search', 'shell_exec',
+    'git_status', 'git_diff', 'git_commit'
+  ].includes(toolName);
+
+  if (isNativeCodeTool) {
+    try {
+      const workspaceRoot = settings?.workspaceRoot || process.cwd();
+      const sessionId = settings?.currentChatId || 'default';
+      const result = await toolExecutor.execute({
+        sessionId,
+        toolCall,
+        toolDef: { name: toolName },
+        settings,
+        mcpClients,
+        discoveredTools,
+        workspaceRoot
+      });
+      return result;
+    } catch (codeToolError) {
+      console.error(`Error executing native code tool "${toolName}":`, codeToolError);
+      return {
+        error: limitContentLength(`Code tool error: ${codeToolError.message}`, settings?.toolOutputLimit || 8000),
+        tool_call_id: toolCallId
+      };
+    }
+  }
 
   // Helper to parse arguments
   let args = {};
