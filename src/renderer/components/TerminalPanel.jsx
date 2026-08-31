@@ -207,6 +207,7 @@ export default function TerminalPanel({
 
   const handleCopyLogs = () => {
     const raw = (logs[activeSessionId] || []).join('');
+    // eslint-disable-next-line no-control-regex
     const plainText = raw.replace(/\x1b\[[0-9;]*m/g, '');
     navigator.clipboard.writeText(plainText);
     setCopied(true);

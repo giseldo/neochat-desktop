@@ -1,3 +1,4 @@
+/* eslint-disable react/no-unknown-property */
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { 
   Globe, 

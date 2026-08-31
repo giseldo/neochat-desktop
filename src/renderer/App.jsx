@@ -3252,7 +3252,7 @@ function App() {
         isOpen={isCommandPaletteOpen}
         onClose={() => setIsCommandPaletteOpen(false)}
         onOpenSettings={() => navigate('/settings')}
-        onOpenKnowledgeBase={() => setIsKnowledgeBaseModalOpen(true)}
+        onOpenKnowledgeBase={openKnowledgeBaseModal}
         onOpenWorkflows={() => setIsWorkflowsOpen(true)}
         onOpenProjects={openCreateProjectModal}
         onOpenMcpCatalog={() => setIsMcpCatalogOpen(true)}

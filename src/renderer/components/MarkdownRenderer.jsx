@@ -227,7 +227,7 @@ function MarkdownRenderer({ content = '', sources = [], disableMath = false, onP
       const isCitationBadge = /^\[?\d+\]?$/.test(childStr);
 
       if (isCitationBadge) {
-        const cleanNumber = childStr.replace(/[\[\]]/g, '');
+        const cleanNumber = childStr.replace(/[[\]]/g, '');
         return (
           <a
             href={href}

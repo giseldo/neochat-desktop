@@ -149,6 +149,33 @@ const PopupPage = () => {
   const fileInputRef = useRef(null);
   const popupRef = useRef(null);
 
+  const scrollToBottom = useCallback((instant = false) => {
+    if (userScrollingRef.current) return;
+    const container = messagesContainerRef.current;
+    if (!container) return;
+
+    isProgrammaticScrollRef.current = true;
+
+    if (instant) {
+      container.scrollTop = container.scrollHeight;
+      lastScrollTopRef.current = container.scrollTop;
+      requestAnimationFrame(() => {
+        if (container) {
+          lastScrollTopRef.current = container.scrollTop;
+        }
+        isProgrammaticScrollRef.current = false;
+      });
+    } else {
+      container.scrollTo({ top: container.scrollHeight, behavior: 'smooth' });
+      setTimeout(() => {
+        if (container) {
+          lastScrollTopRef.current = container.scrollTop;
+        }
+        isProgrammaticScrollRef.current = false;
+      }, 350);
+    }
+  }, []);
+
   // Load models and context on mount
   useEffect(() => {
     initializePopup();
@@ -392,33 +419,6 @@ const PopupPage = () => {
       console.error('Error updating model:', error);
     }
   };
-
-  const scrollToBottom = useCallback((instant = false) => {
-    if (userScrollingRef.current) return;
-    const container = messagesContainerRef.current;
-    if (!container) return;
-
-    isProgrammaticScrollRef.current = true;
-
-    if (instant) {
-      container.scrollTop = container.scrollHeight;
-      lastScrollTopRef.current = container.scrollTop;
-      requestAnimationFrame(() => {
-        if (container) {
-          lastScrollTopRef.current = container.scrollTop;
-        }
-        isProgrammaticScrollRef.current = false;
-      });
-    } else {
-      container.scrollTo({ top: container.scrollHeight, behavior: 'smooth' });
-      setTimeout(() => {
-        if (container) {
-          lastScrollTopRef.current = container.scrollTop;
-        }
-        isProgrammaticScrollRef.current = false;
-      }, 350);
-    }
-  }, []);
 
   const closePopup = () => {
     window.close();

@@ -1027,8 +1027,6 @@ export const translations = {
       disableAllModels: 'Desativar Todos',
       searchModelsPlaceholder: 'Filtrar modelos por nome, ID ou provedor...',
       noModelsAvailable: 'Nenhum modelo disponível para os provedores configurados. É necessário cadastrar uma chave de API nas configurações.',
-      statusActive: 'Ativo',
-      statusInactive: 'Desativado',
 
       // Model Filters
       modelFilterInclusionTitle: 'Filtro de Modelos',
@@ -2441,8 +2439,6 @@ export const translations = {
       disableAllModels: 'Disable All',
       searchModelsPlaceholder: 'Filter models by name, ID, or provider...',
       noModelsAvailable: 'No models available for configured providers. You need to configure an API key in settings.',
-      statusActive: 'Active',
-      statusInactive: 'Disabled',
 
       // Model Filters
       modelFilterInclusionTitle: 'Model Filter',

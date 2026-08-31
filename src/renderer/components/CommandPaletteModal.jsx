@@ -442,7 +442,7 @@ export function CommandPaletteModal({
         <div ref={listRef} className="flex-1 overflow-y-auto p-2 divide-y divide-zinc-800/30 space-y-1">
           {filteredItems.length === 0 ? (
             <div className="py-12 text-center text-zinc-500 text-sm">
-              Nenhum comando ou resultado encontrado para "<span className="text-zinc-400">{query}</span>"
+              Nenhum comando ou resultado encontrado para &ldquo;<span className="text-zinc-400">{query}</span>&rdquo;
             </div>
           ) : (
             filteredItems.map((item, idx) => {
