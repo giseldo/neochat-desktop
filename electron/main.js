@@ -40,48 +40,27 @@ const { PROVIDER_LIST, getAllProviders, getActiveProvider, getActiveApiKey, getP
 const chatHandler = require('./chatHandler');
 const toolHandler = require('./toolHandler');
 
-// Import new manager modules
+// Import core manager modules
 const { initializeSettingsHandlers, loadSettings, saveSettings } = require('./settingsManager');
-const { initializeCommandResolver, resolveCommandPath } = require('./commandResolver');
+const { initializeCommandResolver } = require('./commandResolver');
 const mcpManager = require('./mcpManager');
 const { initializeWindowManager } = require('./windowManager');
-const authManager = require('./authManager');
 const googleOAuthManager = require('./googleOAuthManager');
 const { initializeToolPermissionHandlers } = require('./toolPermissionManager');
-const { initializeBackupHandlers } = require('./backupManager');
-const workflowManager = require('./workflowManager');
-const schedulerManager = require('./schedulerManager');
 const { autoUpdater } = require('electron-updater');
 const { initializeUpdateManager } = require('./updateManager');
-const { initializeObservabilityHandlers } = require('./observabilityManager');
-const { initializeGitHandlers } = require('./gitManager');
+const { pluginManager } = require('./pluginManager');
 
 // Import context capture system
 const ContextCapture = require('./contextCapture');
 const PopupWindowManager = require('./popupWindow');
 
-// Import chat history manager
+// Import chat history and project managers
 const chatHistoryManager = require('./chatHistoryManager');
-
-// Import project manager
 const projectManager = require('./projectManager');
 
-// Import code runner
-const codeRunner = require('./codeRunner');
-
-// Import RAG / Knowledge Base service
-const ragService = require('./ragService');
-
-// Import Canvas manager
-const canvasManager = require('./canvasManager');
-
-// Import Terminal, Task, and Browser managers
-const { terminalManager } = require('./terminalManager');
-const { taskManager } = require('./taskManager');
-const { browserManager } = require('./browserManager');
-
 // Import Neo Agent Runtime
-const { neoAgentRuntime, swarmManager } = require('./agent');
+const { neoAgentRuntime } = require('./agent');
 
 // Global variable to hold the main window instance
 let mainWindow;
@@ -429,12 +408,7 @@ app.whenReady().then(async () => {
     }
   });
   initializeToolPermissionHandlers(ipcMain, loadSettings, saveSettings);
-  initializeBackupHandlers(ipcMain, app, dialog, () => mainWindow, loadSettings, saveSettings);
-  workflowManager.initializeHandlers(ipcMain, app);
-  schedulerManager.initializeHandlers(ipcMain, app, () => mainWindow, workflowManager, Notification);
   initializeUpdateManager({ ipcMain, app, autoUpdater, getWindow: () => mainWindow, loadSettings });
-  initializeObservabilityHandlers(ipcMain, app, dialog, loadSettings);
-  initializeGitHandlers(ipcMain, dialog);
 
   // Initialize chat history manager
   chatHistoryManager.initialize(app, loadSettings);
@@ -446,36 +420,9 @@ app.whenReady().then(async () => {
   projectManager.initializeProjectHandlers(ipcMain);
   console.log("[Main Init] Project manager initialized");
 
-  // Initialize MCP handlers (use module object)
-  mcpManager.initializeMcpHandlers(ipcMain, app, mainWindow, loadSettings, resolveCommandPath);
-
-  // Initialize Auth Manager (check will now work)
-  console.log("[Main Init] Initializing Auth Manager...");
-  if (mcpManager && typeof mcpManager.retryConnectionAfterAuth === 'function') {
-      authManager.initialize(mcpManager.retryConnectionAfterAuth);
-  } else {
-       console.error("[Main] CRITICAL: mcpManager or retryConnectionAfterAuth not available for AuthManager initialization!");
-  }
-
   // Initialize Google OAuth Manager
   console.log("[Main Init] Initializing Google OAuth Manager...");
   googleOAuthManager.initialize(app, saveSettings);
-
-  // Initialize Code Runner
-  console.log("[Main Init] Initializing Code Runner...");
-  codeRunner.initialize(app);
-  codeRunner.initializeCodeRunnerHandlers(ipcMain);
-
-  // Initialize RAG / Knowledge Base service
-  console.log("[Main Init] Initializing RAG Service...");
-  ragService.initialize(app);
-
-  // Initialize Terminal, Task, and Browser Managers
-  console.log("[Main Init] Initializing Terminal, Task, and Browser Managers...");
-  terminalManager.initialize();
-  terminalManager.registerIpcHandlers(ipcMain, () => mainWindow);
-  taskManager.registerIpcHandlers(ipcMain, () => mainWindow);
-  browserManager.registerIpcHandlers(ipcMain);
 
   // --- Google OAuth IPC Handlers --- //
   ipcMain.handle('google-oauth-refresh', async () => {
@@ -493,25 +440,16 @@ app.whenReady().then(async () => {
     return googleOAuthManager.validateCredentials(currentSettings);
   });
 
-  // --- Canvas IPC Handlers --- //
-  ipcMain.handle('canvas-compute-diff', async (_event, { oldText, newText }) => {
-    return canvasManager.computeLineDiff(oldText, newText);
-  });
-
-  ipcMain.handle('canvas-calculate-stats', async (_event, { content }) => {
-    return canvasManager.calculateDocStats(content);
-  });
-
-  ipcMain.handle('canvas-get-active', async (_event, chatId) => {
-    return canvasManager.getActiveCanvasDocument(chatId);
-  });
-
-  ipcMain.handle('canvas-set-active', async (_event, { chatId, doc }) => {
-    return canvasManager.setActiveCanvasDocument(chatId, doc);
-  });
-
-  ipcMain.handle('canvas-export-pdf', async (_event, { title, content, language, htmlContent } = {}) => {
-    return canvasManager.exportCanvasToPdf({ title, content, language, htmlContent, parentWindow: mainWindow });
+  // --- Initialize Modular Plugin Subsystem (Micro-Kernel Architecture) --- //
+  console.log("[Main Init] Initializing Plugin Manager...");
+  await pluginManager.initialize({
+    app,
+    ipcMain,
+    getMainWindow: () => mainWindow,
+    dialog,
+    shell,
+    loadSettings,
+    saveSettings
   });
 
   // --- Register Core App IPC Handlers --- //
@@ -552,8 +490,6 @@ app.whenReady().then(async () => {
     chatHandler.stopChatStream(); // Stop all active streams
   });
 
-  // NOTE: MCP approval response handler removed - Groq does not yet support mcp_approval_response
-
   // Tool execution (use module object)
   console.log("[Main Init] Registering execute-tool-call...");
   ipcMain.handle('execute-tool-call', async (event, toolCall) => {
@@ -574,38 +510,19 @@ app.whenReady().then(async () => {
     return await executeWebSearch(query, searchOptions);
   });
 
-  // --- RAG / Knowledge Base IPC Handlers ---
-  console.log("[Main Init] Registering RAG handlers...");
-  ipcMain.handle('rag-select-folder', async () => {
-    return ragService.selectFolderDialog(mainWindow);
+  // --- Local AI Auto-Detection IPC Handlers ---
+  const { detectLocalAiProviders } = require('./localAiService');
+  ipcMain.handle('local-ai-detect', async () => {
+    return await detectLocalAiProviders();
   });
 
-  ipcMain.handle('rag-index-folder', async (event, folderPath, projectId) => {
-    return await ragService.indexFolder(folderPath, projectId, (progress) => {
-      if (mainWindow && !mainWindow.isDestroyed()) {
-        mainWindow.webContents.send('rag-indexing-progress', progress);
-      }
-    });
+  // --- Screen Capture IPC Handlers (Snip & Ask) ---
+  const screenCaptureService = require('./screenCaptureService');
+  ipcMain.handle('screen-capture-get-sources', async () => {
+    return await screenCaptureService.getScreenSources();
   });
-
-  ipcMain.handle('rag-query-knowledge', async (event, query, options) => {
-    return ragService.queryKnowledge(query, options);
-  });
-
-  ipcMain.handle('rag-get-project-stats', async (event, projectId) => {
-    return ragService.getProjectKnowledgeStats(projectId);
-  });
-
-  ipcMain.handle('rag-remove-folder', async (event, projectId, folderPath) => {
-    return ragService.removeFolderFromProject(projectId, folderPath);
-  });
-
-  ipcMain.handle('rag-read-file', async (event, filePath, startLine, endLine) => {
-    return ragService.readFileContent(filePath, startLine, endLine);
-  });
-
-  ipcMain.handle('rag-open-folder', async (event, folderPath) => {
-    return ragService.openFolderInExplorer(folderPath);
+  ipcMain.handle('screen-capture-fullscreen', async () => {
+    return await screenCaptureService.capturePrimaryScreen();
   });
 
   // --- Local AI Auto-Detection IPC Handlers ---
@@ -686,31 +603,6 @@ app.whenReady().then(async () => {
     const folderPath = result.filePaths[0];
     const info = await neoAgentRuntime.getWorkspaceInfo(folderPath);
     return { success: true, path: folderPath, info };
-  });
-
-  // Swarm Multi-Agent Team Handlers
-  ipcMain.handle('agent:swarm:get-roles', async () => {
-    return {
-      roles: swarmManager.getRoles(),
-      modes: swarmManager.getModes()
-    };
-  });
-
-  ipcMain.handle('agent:swarm:run', async (event, params = {}) => {
-    const currentSettings = loadSettings();
-    return await swarmManager.runTeam({
-      ...params,
-      settings: { ...currentSettings, ...(params.settings || {}) },
-      onProgress: (data) => {
-        if (event.sender && !event.sender.isDestroyed()) {
-          event.sender.send('agent:swarm:event', data);
-        }
-      }
-    });
-  });
-
-  ipcMain.handle('agent:swarm:cancel', async (_event, swarmId) => {
-    return { success: swarmManager.cancel(swarmId) };
   });
 
   // Model configs handler already registered above during early initialization

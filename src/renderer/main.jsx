@@ -1,29 +1,45 @@
-import React from 'react';
+import React, { Suspense, lazy } from 'react';
 import ReactDOM from 'react-dom/client';
 import { createHashRouter, RouterProvider } from 'react-router-dom';
 import './index.css';
-import App from './App';
-import Settings from './pages/Settings';
-import PopupPage from './pages/PopupPage';
-import { ChatProvider } from './context/ChatContext';
-import { CanvasProvider } from './context/CanvasContext';
-import { ProjectProvider } from './context/ProjectContext';
-import { ThemeProvider } from './context/ThemeContext';
-import { LanguageProvider } from './context/LanguageContext';
-import { ErrorBoundary } from './components/ErrorBoundary';
+
+const App = lazy(() => import('./App'));
+const Settings = lazy(() => import('./pages/Settings'));
+const PopupPage = lazy(() => import('./pages/PopupPage'));
+
+const PageLoader = () => (
+  <div className="flex items-center justify-center h-screen w-screen bg-background text-muted-foreground">
+    <div className="flex flex-col items-center gap-3">
+      <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+      <span className="text-xs font-mono tracking-wider opacity-70">NEOCHAT</span>
+    </div>
+  </div>
+);
 
 const router = createHashRouter([
   {
     path: '/',
-    element: <App />,
+    element: (
+      <Suspense fallback={<PageLoader />}>
+        <App />
+      </Suspense>
+    ),
   },
   {
     path: '/settings',
-    element: <Settings />,
+    element: (
+      <Suspense fallback={<PageLoader />}>
+        <Settings />
+      </Suspense>
+    ),
   },
   {
     path: '/popup',
-    element: <PopupPage />,
+    element: (
+      <Suspense fallback={<PageLoader />}>
+        <PopupPage />
+      </Suspense>
+    ),
   },
 ]);
 

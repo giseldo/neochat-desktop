@@ -1,30 +1,11 @@
-import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback, lazy, Suspense } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import MessageList from './components/MessageList';
 import ChatInput from './components/ChatInput';
-import ToolsPanel from './components/ToolsPanel';
-import ToolApprovalModal from './components/ToolApprovalModal';
 import ChatHistorySidebar from './components/ChatHistorySidebar';
 import ThemeToggle from './components/ThemeToggle';
 import PersonaSelector, { DEFAULT_PERSONAS, getStoredActivePersona, getStoredPersonas, ACTIVE_PERSONA_STORAGE_KEY } from './components/PersonaSelector';
-import ArtifactsPanel from './components/ArtifactsPanel';
-import CanvasPanel from './components/CanvasPanel';
-import McpCatalogModal from './components/McpCatalogModal';
-import ConversationStats from './components/ConversationStats';
-import TrajectoryView from './components/TrajectoryView';
-import ProjectModal from './components/ProjectModal';
-import MoveToProjectModal from './components/MoveToProjectModal';
-import KnowledgeBaseModal from './components/KnowledgeBaseModal';
-import CompareChatView from './components/CompareChatView';
-import WorkflowsModal from './components/WorkflowsModal';
 import WelcomeScreen from './components/WelcomeScreen';
-import KeyboardShortcutsModal from './components/KeyboardShortcutsModal';
-import TerminalPanel from './components/TerminalPanel';
-import BackgroundTasksPanel from './components/BackgroundTasksPanel';
-import BrowserPanel from './components/BrowserPanel';
-import CommandPaletteModal from './components/CommandPaletteModal';
-import SwarmTeamModal from './components/SwarmTeamModal';
-import SnipModal from './components/SnipModal';
 import { useChat } from './context/ChatContext';
 import { useCanvas } from './context/CanvasContext';
 import { useProjects } from './context/ProjectContext';
@@ -35,6 +16,28 @@ import { Button } from './components/ui/button';
 import { cn } from './lib/utils';
 import { groupModels } from './lib/modelGrouping';
 import { extractThinking } from './lib/messageUtils';
+import { createStreamThrottler } from './lib/streamThrottler';
+
+// Lazy-loaded heavy panels & modals for maximum startup speed and memory efficiency
+const ToolsPanel = lazy(() => import('./components/ToolsPanel'));
+const ToolApprovalModal = lazy(() => import('./components/ToolApprovalModal'));
+const ArtifactsPanel = lazy(() => import('./components/ArtifactsPanel'));
+const CanvasPanel = lazy(() => import('./components/CanvasPanel'));
+const McpCatalogModal = lazy(() => import('./components/McpCatalogModal'));
+const ConversationStats = lazy(() => import('./components/ConversationStats'));
+const TrajectoryView = lazy(() => import('./components/TrajectoryView'));
+const ProjectModal = lazy(() => import('./components/ProjectModal'));
+const MoveToProjectModal = lazy(() => import('./components/MoveToProjectModal'));
+const KnowledgeBaseModal = lazy(() => import('./components/KnowledgeBaseModal'));
+const CompareChatView = lazy(() => import('./components/CompareChatView'));
+const WorkflowsModal = lazy(() => import('./components/WorkflowsModal'));
+const KeyboardShortcutsModal = lazy(() => import('./components/KeyboardShortcutsModal'));
+const TerminalPanel = lazy(() => import('./components/TerminalPanel'));
+const BackgroundTasksPanel = lazy(() => import('./components/BackgroundTasksPanel'));
+const BrowserPanel = lazy(() => import('./components/BrowserPanel'));
+const CommandPaletteModal = lazy(() => import('./components/CommandPaletteModal'));
+const SwarmTeamModal = lazy(() => import('./components/SwarmTeamModal'));
+const SnipModal = lazy(() => import('./components/SnipModal'));
 
 // LocalStorage keys
 const TOOL_APPROVAL_PREFIX = 'tool_approval_';
@@ -1346,6 +1349,23 @@ function App() {
         };
 
         // Setup event handlers for streaming
+        const streamThrottler = createStreamThrottler((latestState) => {
+            setMessages(prev => {
+                const newMessages = [...prev];
+                const idx = newMessages.findIndex(msg => msg.role === 'assistant' && msg.isStreaming);
+                if (idx !== -1) {
+                    newMessages[idx] = { 
+                        ...newMessages[idx], 
+                        content: latestState.content,
+                        reasoningDuration: latestState.reasoningDuration,
+                        liveReasoning: latestState.liveReasoning,
+                        reasoningSummaries: [...latestState.reasoningSummaries]
+                    };
+                }
+                return newMessages;
+            });
+        }, 16);
+
         streamHandler.onStart(() => { /* Placeholder exists */ });
 
         streamHandler.onContent(({ content }) => {
@@ -1367,23 +1387,16 @@ function App() {
                 }
             }
             
-            setMessages(prev => {
-                const newMessages = [...prev];
-                const idx = newMessages.findIndex(msg => msg.role === 'assistant' && msg.isStreaming);
-                if (idx !== -1) {
-                    newMessages[idx] = { 
-                        ...newMessages[idx], 
-                        content: finalAssistantData.content,
-                        reasoningDuration: finalAssistantData.reasoningDuration,
-                        liveReasoning: finalAssistantData.liveReasoning,
-                        reasoningSummaries: [...finalAssistantData.reasoningSummaries]
-                    };
-                }
-                return newMessages;
+            streamThrottler.push({
+                content: finalAssistantData.content,
+                reasoningDuration: finalAssistantData.reasoningDuration,
+                liveReasoning: finalAssistantData.liveReasoning,
+                reasoningSummaries: finalAssistantData.reasoningSummaries
             });
         });
 
         streamHandler.onToolCalls(({ tool_calls }) => {
+            streamThrottler.flush();
             finalAssistantData.tool_calls = tool_calls;
             setMessages(prev => {
                 const newMessages = [...prev];
@@ -1561,6 +1574,7 @@ function App() {
                     injectedContext: turnInjectedContext
                 };
                 turnAssistantMessage = finalAssistantData; // Store the completed message
+                streamThrottler.cancel();
 
                 setMessages(prev => {
                     const newMessages = [...prev];
@@ -1578,6 +1592,7 @@ function App() {
             });
 
             streamHandler.onError(({ error }) => {
+                streamThrottler.cancel();
                 console.error('Stream error received:', error);
                 console.log('Error details:', { error });
                 // Replace placeholder with error
@@ -1596,6 +1611,7 @@ function App() {
             });
 
             streamHandler.onCancelled(() => {
+                streamThrottler.cancel();
                 console.log('Stream was cancelled by user');
                 // Remove the streaming placeholder or mark it as cancelled
                 setMessages(prev => {
@@ -2724,7 +2740,11 @@ function App() {
               )}
 
               {/* Total Conversation Metrics & Token Summation */}
-              {isPowerUser && <ConversationStats messages={messages} />}
+              {isPowerUser && (
+                <Suspense fallback={null}>
+                  <ConversationStats messages={messages} />
+                </Suspense>
+              )}
             </div>
 
             <div className="flex items-center space-x-2">
@@ -2955,17 +2975,19 @@ function App() {
                 /* Multi-Model Compare View */
                 <div className="flex flex-col h-full min-h-0">
                   <div className="flex-1 overflow-hidden min-h-0 mb-4">
-                    <CompareChatView
-                      modelA={compareModelA}
-                      modelB={compareModelB}
-                      onModelAChange={setCompareModelA}
-                      onModelBChange={setCompareModelB}
-                      availableModels={sortedModels.map(id => ({ id, displayName: modelConfigs[id]?.displayName || id }))}
-                      streamStateA={streamStateA}
-                      streamStateB={streamStateB}
-                      onSelectWinningResponse={handleSelectWinningResponse}
-                      onPreviewArtifact={(art) => setActiveArtifact(art)}
-                    />
+                    <Suspense fallback={<div className="flex items-center justify-center h-full p-8"><div className="w-5 h-5 border-2 border-primary border-t-transparent rounded-full animate-spin" /></div>}>
+                      <CompareChatView
+                        modelA={compareModelA}
+                        modelB={compareModelB}
+                        onModelAChange={setCompareModelA}
+                        onModelBChange={setCompareModelB}
+                        availableModels={sortedModels.map(id => ({ id, displayName: modelConfigs[id]?.displayName || id }))}
+                        streamStateA={streamStateA}
+                        streamStateB={streamStateB}
+                        onSelectWinningResponse={handleSelectWinningResponse}
+                        onPreviewArtifact={(art) => setActiveArtifact(art)}
+                      />
+                    </Suspense>
                   </div>
                   <div className="flex-shrink-0 bg-background/95 backdrop-blur pt-3 max-w-4xl lg:max-w-5xl mx-auto w-full">
                     <ChatInput
@@ -3032,20 +3054,22 @@ function App() {
                 /* Trajectory View */
                 <div className="flex flex-col h-full min-h-0">
                   <div className="flex-1 overflow-hidden min-h-0 mb-4">
-                    <TrajectoryView
-                      messages={messages}
-                      currentChatTitle={currentChatTitle}
-                      activeProject={activeProject}
-                      activePersona={activePersona}
-                      canvasDoc={canvasDoc}
-                      selectedText={selectedText}
-                      selectedModel={selectedModel}
-                      mcpTools={mcpTools}
-                      loading={loading}
-                      onPreviewArtifact={(art) => setActiveArtifact(art)}
-                      onOpenMcpTools={() => setIsToolsPanelOpen(true)}
-                      onRollback={handleRollback}
-                    />
+                    <Suspense fallback={<div className="flex items-center justify-center h-full p-8"><div className="w-5 h-5 border-2 border-primary border-t-transparent rounded-full animate-spin" /></div>}>
+                      <TrajectoryView
+                        messages={messages}
+                        currentChatTitle={currentChatTitle}
+                        activeProject={activeProject}
+                        activePersona={activePersona}
+                        canvasDoc={canvasDoc}
+                        selectedText={selectedText}
+                        selectedModel={selectedModel}
+                        mcpTools={mcpTools}
+                        loading={loading}
+                        onPreviewArtifact={(art) => setActiveArtifact(art)}
+                        onOpenMcpTools={() => setIsToolsPanelOpen(true)}
+                        onRollback={handleRollback}
+                      />
+                    </Suspense>
                   </div>
 
                   <div className="flex-shrink-0 bg-background/95 backdrop-blur pt-3">
@@ -3155,17 +3179,21 @@ function App() {
 
         {/* Side-by-side Artifacts Panel */}
         {activeArtifact && !isCanvasOpen && (
-          <ArtifactsPanel
-            artifact={activeArtifact}
-            onClose={() => setActiveArtifact(null)}
-          />
+          <Suspense fallback={null}>
+            <ArtifactsPanel
+              artifact={activeArtifact}
+              onClose={() => setActiveArtifact(null)}
+            />
+          </Suspense>
         )}
 
         {/* Side-by-side Canvas Panel */}
         {isCanvasOpen && canvasDoc && (
-          <CanvasPanel
-            onSendPrompt={(prompt) => handleSendMessage(prompt)}
-          />
+          <Suspense fallback={null}>
+            <CanvasPanel
+              onSendPrompt={(prompt) => handleSendMessage(prompt)}
+            />
+          </Suspense>
         )}
 
         {/* Side-by-side Interactive Terminal Panel */}
@@ -3174,12 +3202,14 @@ function App() {
             "transition-all flex shrink-0 border-l border-border/80 bg-background/50",
             isTerminalMaximized ? "w-full fixed inset-0 z-50 p-4" : "w-[480px] lg:w-[560px] xl:w-[620px] p-2"
           )}>
-            <TerminalPanel
-              onClose={() => setIsTerminalOpen(false)}
-              isMaximized={isTerminalMaximized}
-              onToggleMaximize={() => setIsTerminalMaximized(!isTerminalMaximized)}
-              initialCwd={workspacePath}
-            />
+            <Suspense fallback={null}>
+              <TerminalPanel
+                onClose={() => setIsTerminalOpen(false)}
+                isMaximized={isTerminalMaximized}
+                onToggleMaximize={() => setIsTerminalMaximized(!isTerminalMaximized)}
+                initialCwd={workspacePath}
+              />
+            </Suspense>
           </div>
         )}
 
@@ -3189,11 +3219,13 @@ function App() {
             "transition-all flex shrink-0 border-l border-border/80 bg-background/50",
             isTasksMaximized ? "w-full fixed inset-0 z-50 p-4" : "w-[400px] lg:w-[460px] xl:w-[520px] p-2"
           )}>
-            <BackgroundTasksPanel
-              onClose={() => setIsTasksOpen(false)}
-              isMaximized={isTasksMaximized}
-              onToggleMaximize={() => setIsTasksMaximized(!isTasksMaximized)}
-            />
+            <Suspense fallback={null}>
+              <BackgroundTasksPanel
+                onClose={() => setIsTasksOpen(false)}
+                isMaximized={isTasksMaximized}
+                onToggleMaximize={() => setIsTasksMaximized(!isTasksMaximized)}
+              />
+            </Suspense>
           </div>
         )}
 
@@ -3203,119 +3235,123 @@ function App() {
             "transition-all flex shrink-0 border-l border-border/80 bg-background/50",
             isBrowserMaximized ? "w-full fixed inset-0 z-50 p-4" : "w-[500px] lg:w-[600px] xl:w-[700px] p-2"
           )}>
-            <BrowserPanel
-              onClose={() => setIsBrowserOpen(false)}
-              isMaximized={isBrowserMaximized}
-              onToggleMaximize={() => setIsBrowserMaximized(!isBrowserMaximized)}
-            />
+            <Suspense fallback={null}>
+              <BrowserPanel
+                onClose={() => setIsBrowserOpen(false)}
+                isMaximized={isBrowserMaximized}
+                onToggleMaximize={() => setIsBrowserMaximized(!isBrowserMaximized)}
+              />
+            </Suspense>
           </div>
         )}
       </div>
 
       {/* Modals */}
-      {isToolsPanelOpen && (
-        <ToolsPanel
-          tools={mcpTools}
-          onClose={() => setIsToolsPanelOpen(false)}
-          onDisconnectServer={disconnectMcpServer}
-          onReconnectServer={reconnectMcpServer}
-        />
-      )}
+      <Suspense fallback={null}>
+        {isToolsPanelOpen && (
+          <ToolsPanel
+            tools={mcpTools}
+            onClose={() => setIsToolsPanelOpen(false)}
+            onDisconnectServer={disconnectMcpServer}
+            onReconnectServer={reconnectMcpServer}
+          />
+        )}
 
-      {pendingApprovalCall && (
-        <ToolApprovalModal
-          toolCall={pendingApprovalCall}
-          onApprove={handleToolApproval}
-        />
-      )}
+        {pendingApprovalCall && (
+          <ToolApprovalModal
+            toolCall={pendingApprovalCall}
+            onApprove={handleToolApproval}
+          />
+        )}
 
-      {isMcpCatalogOpen && (
-        <McpCatalogModal
-          isOpen={isMcpCatalogOpen}
-          onClose={() => setIsMcpCatalogOpen(false)}
-          onServerInstalled={async () => {
-            await refreshMcpTools();
+        {isMcpCatalogOpen && (
+          <McpCatalogModal
+            isOpen={isMcpCatalogOpen}
+            onClose={() => setIsMcpCatalogOpen(false)}
+            onServerInstalled={async () => {
+              await refreshMcpTools();
+            }}
+          />
+        )}
+
+        <WorkflowsModal
+          isOpen={isWorkflowsOpen}
+          onClose={() => setIsWorkflowsOpen(false)}
+          onRun={async (workflow) => {
+            const result = await window.electron.workflows.buildPrompt(workflow.id, {});
+            if (!result?.success) return;
+            localStorage.setItem('neochat_agent_mode', 'true');
+            setIsWorkflowsOpen(false);
+            await handleSendMessage(result.prompt);
           }}
         />
-      )}
 
-      <WorkflowsModal
-        isOpen={isWorkflowsOpen}
-        onClose={() => setIsWorkflowsOpen(false)}
-        onRun={async (workflow) => {
-          const result = await window.electron.workflows.buildPrompt(workflow.id, {});
-          if (!result?.success) return;
-          localStorage.setItem('neochat_agent_mode', 'true');
-          setIsWorkflowsOpen(false);
-          await handleSendMessage(result.prompt);
-        }}
-      />
+        {/* Project Modals */}
+        <ProjectModal />
+        <MoveToProjectModal />
+        <KnowledgeBaseModal
+          isOpen={isKnowledgeBaseModalOpen}
+          onClose={closeKnowledgeBaseModal}
+          projectId={activeProjectId}
+          projectName={activeProject?.name}
+        />
 
-      {/* Project Modals */}
-      <ProjectModal />
-      <MoveToProjectModal />
-      <KnowledgeBaseModal
-        isOpen={isKnowledgeBaseModalOpen}
-        onClose={closeKnowledgeBaseModal}
-        projectId={activeProjectId}
-        projectName={activeProject?.name}
-      />
+        {/* Keyboard Shortcuts Central Modal */}
+        <KeyboardShortcutsModal
+          isOpen={isShortcutsModalOpen}
+          onClose={() => setIsShortcutsModalOpen(false)}
+        />
 
-      {/* Keyboard Shortcuts Central Modal */}
-      <KeyboardShortcutsModal
-        isOpen={isShortcutsModalOpen}
-        onClose={() => setIsShortcutsModalOpen(false)}
-      />
+        {/* Command Palette Global Launcher (Ctrl+K) */}
+        <CommandPaletteModal
+          isOpen={isCommandPaletteOpen}
+          onClose={() => setIsCommandPaletteOpen(false)}
+          onOpenSettings={() => navigate('/settings')}
+          onOpenKnowledgeBase={openKnowledgeBaseModal}
+          onOpenWorkflows={() => setIsWorkflowsOpen(true)}
+          onOpenProjects={openCreateProjectModal}
+          onOpenMcpCatalog={() => setIsMcpCatalogOpen(true)}
+          onToggleCompareMode={() => setIsCompareMode(prev => !prev)}
+          onToggleTerminal={() => setIsTerminalOpen(prev => !prev)}
+          onToggleBackgroundTasks={() => setIsTasksOpen(prev => !prev)}
+          onToggleBrowser={() => setIsBrowserOpen(prev => !prev)}
+          onOpenSwarmModal={() => setIsSwarmModalOpen(true)}
+          onTriggerSnip={handleStartSnip}
+          onTriggerVoice={() => {
+            // Trigger voice push-to-talk
+          }}
+          availableModels={models}
+          currentModel={selectedModel}
+          onSelectModel={(m) => setSelectedModel(m)}
+          personas={getStoredPersonas(t)}
+          activePersona={activePersona}
+          onSelectPersona={(p) => setActivePersona(p)}
+          onClearChat={clearCurrentChat}
+          onExportChat={handleExportChat}
+        />
 
-      {/* Command Palette Global Launcher (Ctrl+K) */}
-      <CommandPaletteModal
-        isOpen={isCommandPaletteOpen}
-        onClose={() => setIsCommandPaletteOpen(false)}
-        onOpenSettings={() => navigate('/settings')}
-        onOpenKnowledgeBase={openKnowledgeBaseModal}
-        onOpenWorkflows={() => setIsWorkflowsOpen(true)}
-        onOpenProjects={openCreateProjectModal}
-        onOpenMcpCatalog={() => setIsMcpCatalogOpen(true)}
-        onToggleCompareMode={() => setIsCompareMode(prev => !prev)}
-        onToggleTerminal={() => setIsTerminalOpen(prev => !prev)}
-        onToggleBackgroundTasks={() => setIsTasksOpen(prev => !prev)}
-        onToggleBrowser={() => setIsBrowserOpen(prev => !prev)}
-        onOpenSwarmModal={() => setIsSwarmModalOpen(true)}
-        onTriggerSnip={handleStartSnip}
-        onTriggerVoice={() => {
-          // Trigger voice push-to-talk
-        }}
-        availableModels={models}
-        currentModel={selectedModel}
-        onSelectModel={(m) => setSelectedModel(m)}
-        personas={getStoredPersonas(t)}
-        activePersona={activePersona}
-        onSelectPersona={(p) => setActivePersona(p)}
-        onClearChat={clearCurrentChat}
-        onExportChat={handleExportChat}
-      />
+        {/* Multi-Agent Swarm Team Modal */}
+        <SwarmTeamModal
+          isOpen={isSwarmModalOpen}
+          onClose={() => setIsSwarmModalOpen(false)}
+          currentModel={selectedModel}
+          onSendToChat={(content) => {
+            handleSendMessage(content);
+          }}
+        />
 
-      {/* Multi-Agent Swarm Team Modal */}
-      <SwarmTeamModal
-        isOpen={isSwarmModalOpen}
-        onClose={() => setIsSwarmModalOpen(false)}
-        currentModel={selectedModel}
-        onSendToChat={(content) => {
-          handleSendMessage(content);
-        }}
-      />
-
-      {/* Snip & Ask Screen Capture Modal */}
-      <SnipModal
-        isOpen={isAppSnipModalOpen}
-        onClose={() => setIsAppSnipModalOpen(false)}
-        onCaptureComplete={(capturedFile) => {
-          setIsAppSnipModalOpen(false);
-          if (capturedFile) {
-            handleSendMessage('', [capturedFile]);
-          }
-        }}
-      />
+        {/* Snip & Ask Screen Capture Modal */}
+        <SnipModal
+          isOpen={isAppSnipModalOpen}
+          onClose={() => setIsAppSnipModalOpen(false)}
+          onCaptureComplete={(capturedFile) => {
+            setIsAppSnipModalOpen(false);
+            if (capturedFile) {
+              handleSendMessage('', [capturedFile]);
+            }
+          }}
+        />
+      </Suspense>
 
       </div>
     </div>

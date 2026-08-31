@@ -269,4 +269,4 @@ function MarkdownRenderer({ content = '', sources = [], disableMath = false, onP
   );
 }
 
-export default MarkdownRenderer;
+export default React.memo(MarkdownRenderer);

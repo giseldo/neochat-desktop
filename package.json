@@ -45,7 +45,8 @@
     "test:browser": "node test-browser-panel.js",
     "test:swarm": "node test-swarm-manager.js",
     "test:workflow-triggers": "node test-workflow-triggers.js",
-    "test:prompt-caching": "node test-prompt-caching-metrics.js"
+    "test:prompt-caching": "node test-prompt-caching-metrics.js",
+    "test:plugins": "node test-plugin-manager.js"
   },
   "keywords": [
     "electron",

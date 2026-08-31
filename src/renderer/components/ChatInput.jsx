@@ -10,9 +10,9 @@ import { useCanvas } from "../context/CanvasContext";
 import { useLanguage } from "../context/LanguageContext";
 import { useProjects } from "../context/ProjectContext";
 import SlashCommandsPopover from "./SlashCommandsPopover";
-import PromptTemplatesModal from "./PromptTemplatesModal";
-import ModelParametersModal from "./ModelParametersModal";
-import SnipModal from "./SnipModal";
+const PromptTemplatesModal = React.lazy(() => import("./PromptTemplatesModal"));
+const ModelParametersModal = React.lazy(() => import("./ModelParametersModal"));
+const SnipModal = React.lazy(() => import("./SnipModal"));
 import { getAllPromptCommands, PROMPT_TEMPLATES_STORAGE_KEY } from "../lib/defaultPromptCommands";
 import { getModelGroup, getModelDisplayName as getModelDisplayNameLib, groupModels } from "../lib/modelGrouping";
 
@@ -1272,28 +1272,31 @@ function ChatInput({
 			</div>
 		)}
 
-		{/* Prompt Templates Management Modal */}
-		<PromptTemplatesModal
-			isOpen={isPromptTemplatesModalOpen}
-			onClose={() => setIsPromptTemplatesModalOpen(false)}
-			onTemplatesUpdated={(updated) => setCustomTemplates(updated)}
-		/>
+		{/* Lazy-loaded Modals */}
+		<React.Suspense fallback={null}>
+			{/* Prompt Templates Management Modal */}
+			<PromptTemplatesModal
+				isOpen={isPromptTemplatesModalOpen}
+				onClose={() => setIsPromptTemplatesModalOpen(false)}
+				onTemplatesUpdated={(updated) => setCustomTemplates(updated)}
+			/>
 
-		{/* Model Parameters Modal */}
-		<ModelParametersModal
-			isOpen={isModelParamsModalOpen}
-			onClose={() => setIsModelParamsModalOpen(false)}
-			selectedModel={selectedModel}
-			modelConfigs={modelConfigs}
-			onModelConfigUpdated={onModelConfigUpdated}
-		/>
+			{/* Model Parameters Modal */}
+			<ModelParametersModal
+				isOpen={isModelParamsModalOpen}
+				onClose={() => setIsModelParamsModalOpen(false)}
+				selectedModel={selectedModel}
+				modelConfigs={modelConfigs}
+				onModelConfigUpdated={onModelConfigUpdated}
+			/>
 
-		{/* Snip & Ask Screen Capture Modal */}
-		<SnipModal
-			isOpen={isSnipModalOpen}
-			onClose={() => setIsSnipModalOpen(false)}
-			onCaptureComplete={(capturedFile) => setFiles(prev => [...prev, capturedFile])}
-		/>
+			{/* Snip & Ask Screen Capture Modal */}
+			<SnipModal
+				isOpen={isSnipModalOpen}
+				onClose={() => setIsSnipModalOpen(false)}
+				onCaptureComplete={(capturedFile) => setFiles(prev => [...prev, capturedFile])}
+			/>
+		</React.Suspense>
     </div>
 	);
 }
