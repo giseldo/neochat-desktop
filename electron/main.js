@@ -75,6 +75,9 @@ const ragService = require('./ragService');
 // Import Canvas manager
 const canvasManager = require('./canvasManager');
 
+// Import Neo Agent Runtime
+const { neoAgentRuntime } = require('./agent');
+
 // Global variable to hold the main window instance
 let mainWindow;
 
@@ -606,6 +609,58 @@ app.whenReady().then(async () => {
   });
   ipcMain.handle('screen-capture-fullscreen', async () => {
     return await screenCaptureService.capturePrimaryScreen();
+  });
+
+  // --- Neo Agent Runtime IPC Handlers ---
+  console.log("[Main Init] Registering Neo Agent Runtime handlers...");
+  ipcMain.handle('agent:create-session', async (_event, options) => {
+    const session = neoAgentRuntime.createSession(options);
+    return { sessionId: session.sessionId, workspaceRoot: session.workspaceRoot };
+  });
+
+  ipcMain.handle('agent:prompt', async (event, sessionId, userMessage, options = {}) => {
+    const currentSettings = loadSettings();
+    const { discoveredTools, mcpClients } = mcpManager.getMcpState();
+    
+    // Forward all agent events directly to the caller webContents
+    const unsubscribe = neoAgentRuntime.subscribe(sessionId, (data) => {
+      if (event.sender && !event.sender.isDestroyed()) {
+        event.sender.send('agent:event', data);
+      }
+    });
+
+    try {
+      const result = await neoAgentRuntime.prompt(sessionId, userMessage, {
+        ...options,
+        settings: { ...currentSettings, ...(options.settings || {}) },
+        mcpClients,
+        discoveredTools
+      });
+      return result;
+    } finally {
+      unsubscribe();
+    }
+  });
+
+  ipcMain.handle('agent:approve-tool', async (_event, sessionId, callId, alwaysAllow) => {
+    return neoAgentRuntime.approveTool(sessionId, callId, alwaysAllow);
+  });
+
+  ipcMain.handle('agent:reject-tool', async (_event, sessionId, callId, reason) => {
+    return neoAgentRuntime.rejectTool(sessionId, callId, reason);
+  });
+
+  ipcMain.handle('agent:cancel', async (_event, sessionId) => {
+    neoAgentRuntime.cancel(sessionId);
+    return { success: true };
+  });
+
+  ipcMain.handle('agent:rollback', async (_event, sessionId) => {
+    return neoAgentRuntime.rollback(sessionId);
+  });
+
+  ipcMain.handle('agent:get-workspace-info', async (_event, workspaceRoot) => {
+    return await neoAgentRuntime.getWorkspaceInfo(workspaceRoot);
   });
 
   // Model configs handler already registered above during early initialization

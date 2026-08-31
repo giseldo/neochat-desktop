@@ -84,6 +84,21 @@ contextBridge.exposeInMainWorld('electron', {
     setGlobal: (updates) => ipcRenderer.invoke('tool-permissions-set-global', updates),
     reset: () => ipcRenderer.invoke('tool-permissions-reset')
   },
+  // Neo Agent Runtime API
+  agent: {
+    createSession: (options) => ipcRenderer.invoke('agent:create-session', options),
+    prompt: (sessionId, message, options) => ipcRenderer.invoke('agent:prompt', sessionId, message, options),
+    approveTool: (sessionId, callId, alwaysAllow) => ipcRenderer.invoke('agent:approve-tool', sessionId, callId, alwaysAllow),
+    rejectTool: (sessionId, callId, reason) => ipcRenderer.invoke('agent:reject-tool', sessionId, callId, reason),
+    cancel: (sessionId) => ipcRenderer.invoke('agent:cancel', sessionId),
+    rollback: (sessionId) => ipcRenderer.invoke('agent:rollback', sessionId),
+    getWorkspaceInfo: (workspaceRoot) => ipcRenderer.invoke('agent:get-workspace-info', workspaceRoot),
+    onEvent: (callback) => {
+      const handler = (_, data) => callback(data);
+      ipcRenderer.on('agent:event', handler);
+      return () => ipcRenderer.removeListener('agent:event', handler);
+    }
+  },
   // Chat API - streaming only
   executeToolCall: (toolCall) => ipcRenderer.invoke('execute-tool-call', toolCall),
   testWebSearch: (query, options) => ipcRenderer.invoke('test-web-search', query, options),
