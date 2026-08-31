@@ -1208,44 +1208,42 @@ function ChatInput({
 						)}
 						
 						{/* Model Selector & Parameters */}
-						{powerUserMode && (
-							(!models || models.length === 0) ? (
-								<Link
-									to="/settings"
-									className="flex items-center gap-1.5 px-2.5 py-1 text-xs rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/30 transition-colors font-medium shrink-0"
-									title={t('chat.noModelsAlert')}
+						{(!models || models.length === 0) ? (
+							<Link
+								to="/settings"
+								className="flex items-center gap-1.5 px-2.5 py-1 text-xs rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/30 transition-colors font-medium shrink-0"
+								title={t('chat.noModelsAlert')}
+							>
+								<Key className="w-3.5 h-3.5 flex-shrink-0 text-amber-500" />
+								<span className="truncate">{t('common.configureApiKey')}</span>
+							</Link>
+						) : (
+							<div className="flex items-center gap-1">
+								<SearchableSelect
+									value={selectedModel}
+									onValueChange={onModelChange}
+									options={sortedModels}
+									placeholder={t('chat.selectModel')}
+									className="w-36 sm:w-48 max-w-[200px] min-w-[110px]"
+									disabled={loading}
+									getDisplayValue={(value) => getModelDisplayName(value)}
+									getOptionLabel={(model) => getModelDisplayName(model)}
+									getOptionValue={(model) => model}
+									groupBy={(model) => getModelGroup(model, modelConfigs[model])}
+									dropdownWidthClass="w-72 sm:w-80"
+								/>
+								<Button
+									type="button"
+									variant="ghost"
+									size="icon"
+									onClick={() => setIsModelParamsModalOpen(true)}
+									title={t('chat.modelParameters') || 'Parâmetros do Modelo'}
+									className="h-8 w-8 text-muted-foreground hover:text-foreground hover:bg-muted/80 rounded-md transition-colors flex-shrink-0"
+									disabled={loading || !selectedModel}
 								>
-									<Key className="w-3.5 h-3.5 flex-shrink-0 text-amber-500" />
-									<span className="truncate">{t('common.configureApiKey')}</span>
-								</Link>
-							) : (
-								<div className="flex items-center gap-1">
-									<SearchableSelect
-										value={selectedModel}
-										onValueChange={onModelChange}
-										options={sortedModels}
-										placeholder={t('chat.selectModel')}
-										className="w-36 sm:w-48 max-w-[200px] min-w-[110px]"
-										disabled={loading}
-										getDisplayValue={(value) => getModelDisplayName(value)}
-										getOptionLabel={(model) => getModelDisplayName(model)}
-										getOptionValue={(model) => model}
-										groupBy={(model) => getModelGroup(model, modelConfigs[model])}
-										dropdownWidthClass="w-72 sm:w-80"
-									/>
-									<Button
-										type="button"
-										variant="ghost"
-										size="icon"
-										onClick={() => setIsModelParamsModalOpen(true)}
-										title={t('chat.modelParameters') || 'Parâmetros do Modelo'}
-										className="h-8 w-8 text-muted-foreground hover:text-foreground hover:bg-muted/80 rounded-md transition-colors flex-shrink-0"
-										disabled={loading || !selectedModel}
-									>
-										<SlidersHorizontal className="w-3.5 h-3.5" />
-									</Button>
-								</div>
-							)
+									<SlidersHorizontal className="w-3.5 h-3.5" />
+								</Button>
+							</div>
 						)}
 					</div>
 				</div>
