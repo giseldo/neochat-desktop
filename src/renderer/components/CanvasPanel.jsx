@@ -30,6 +30,7 @@ import {
   CheckSquare,
   Wand2,
   ChevronDown,
+  MoreHorizontal,
   Languages,
   Clock,
   Type,
@@ -55,6 +56,15 @@ import MarkdownRenderer from './MarkdownRenderer';
 import { cn } from '../lib/utils';
 import { computeLineDiff } from '../lib/diffUtils';
 import { playSpeech, stopSpeech, pauseSpeech, resumeSpeech } from '../lib/ttsUtils';
+
+const QUICK_AI_ACTIONS = [
+  { id: 'improve', label: 'Melhorar Escrita', desc: 'Reescrever com mais clareza e fluidez', icon: Sparkles, prompt: 'Reescrever e melhorar a clareza, fluidez e qualidade do texto' },
+  { id: 'expand', label: 'Expandir Conteúdo', desc: 'Adicionar mais detalhes e explicações', icon: Plus, prompt: 'Expandir o documento adicionando mais seções, detalhes e explicações' },
+  { id: 'summarize', label: 'Resumir', desc: 'Encurtar mantendo os pontos principais', icon: Scissors, prompt: 'Resumir e encurtar o documento, mantendo apenas os pontos principais' },
+  { id: 'grammar', label: 'Corrigir Gramática', desc: 'Revisar erros ortográficos e de pontuação', icon: FileCheck, prompt: 'Revisar e corrigir todos os erros gramaticais e de pontuação' },
+  { id: 'formal', label: 'Tom Formal', desc: 'Adaptar para tom corporativo e profissional', icon: Wand2, prompt: 'Reescrever o documento em tom formal e profissional' },
+  { id: 'translate', label: 'Traduzir (EN)', desc: 'Traduzir o documento para o inglês', icon: Languages, prompt: 'Traduzir todo o documento para o Inglês' },
+];
 
 const SUPPORTED_LANGUAGES = [
   { id: 'markdown', label: 'Markdown (.md)', icon: FileText },
@@ -152,7 +162,15 @@ export function CanvasPanel({ onSendPrompt, className }) {
   const [aiPromptInput, setAiPromptInput] = useState('');
   const [isLanguageMenuOpen, setIsLanguageMenuOpen] = useState(false);
   const [isExportMenuOpen, setIsExportMenuOpen] = useState(false);
+  const [isMoreMenuOpen, setIsMoreMenuOpen] = useState(false);
+  const [isAiActionsMenuOpen, setIsAiActionsMenuOpen] = useState(false);
   const [diffComparisonVersion, setDiffComparisonVersion] = useState(null);
+
+  // Refs for dropdowns
+  const moreMenuRef = useRef(null);
+  const exportMenuRef = useRef(null);
+  const languageMenuRef = useRef(null);
+  const aiActionsMenuRef = useRef(null);
 
   // Floating selection menu state
   const [floatingMenuPos, setFloatingMenuPos] = useState(null);
@@ -164,6 +182,27 @@ export function CanvasPanel({ onSendPrompt, className }) {
   const [ttsPitch, setTtsPitch] = useState(1.0);
   const [ttsVoiceURI, setTtsVoiceURI] = useState('');
   const [isTtsSpeedMenuOpen, setIsTtsSpeedMenuOpen] = useState(false);
+
+  // Click outside listener for all popovers
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (moreMenuRef.current && !moreMenuRef.current.contains(e.target)) {
+        setIsMoreMenuOpen(false);
+      }
+      if (exportMenuRef.current && !exportMenuRef.current.contains(e.target)) {
+        setIsExportMenuOpen(false);
+      }
+      if (languageMenuRef.current && !languageMenuRef.current.contains(e.target)) {
+        setIsLanguageMenuOpen(false);
+      }
+      if (aiActionsMenuRef.current && !aiActionsMenuRef.current.contains(e.target)) {
+        setIsAiActionsMenuOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   const editorTextareaRef = useRef(null);
   const monacoEditorRef = useRef(null);
@@ -465,8 +504,8 @@ export function CanvasPanel({ onSendPrompt, className }) {
       )}
 
       {/* 1. Header Bar */}
-      <div className="flex items-center justify-between px-4 py-2.5 border-b border-border bg-muted/40 gap-2 select-none shrink-0">
-        <div className="flex items-center gap-2.5 min-w-0 flex-1">
+      <div className="flex items-center justify-between px-3.5 py-2 border-b border-border bg-muted/30 gap-2 select-none shrink-0">
+        <div className="flex items-center gap-2 min-w-0 flex-1">
           {/* Canvas Icon with pulse animation when AI is editing */}
           <div className={cn(
             "p-1.5 rounded-lg bg-primary/10 text-primary shrink-0 transition-all",
@@ -489,7 +528,7 @@ export function CanvasPanel({ onSendPrompt, className }) {
                   }}
                   onBlur={handleTitleSubmit}
                   autoFocus
-                  className="px-2 py-0.5 text-xs font-semibold rounded bg-background border border-primary text-foreground focus:outline-none w-full max-w-[280px]"
+                  className="px-2 py-0.5 text-xs font-semibold rounded bg-background border border-primary text-foreground focus:outline-none w-full max-w-[240px]"
                 />
                 <button
                   type="button"
@@ -505,7 +544,7 @@ export function CanvasPanel({ onSendPrompt, className }) {
                 className="flex items-center gap-1.5 cursor-pointer group/title"
                 title={t('canvas.clickToRename') || 'Clique para renomear'}
               >
-                <h3 className="font-semibold text-xs text-foreground truncate max-w-[260px]">
+                <h3 className="font-semibold text-xs text-foreground truncate max-w-[220px]">
                   {canvasDoc.title || 'Documento Sem Título'}
                 </h3>
                 <Edit3 className="w-3 h-3 text-muted-foreground opacity-0 group-hover/title:opacity-100 transition-opacity" />
@@ -519,7 +558,7 @@ export function CanvasPanel({ onSendPrompt, className }) {
               </span>
               
               {/* Language Selector Dropdown */}
-              <div className="relative">
+              <div className="relative" ref={languageMenuRef}>
                 <button
                   type="button"
                   onClick={() => setIsLanguageMenuOpen(!isLanguageMenuOpen)}
@@ -530,12 +569,12 @@ export function CanvasPanel({ onSendPrompt, className }) {
                 </button>
 
                 {isLanguageMenuOpen && (
-                  <div className="absolute left-0 mt-1 w-44 rounded-lg bg-popover border border-border shadow-lg py-1 z-50 animate-in fade-in zoom-in-95 text-xs">
+                  <div className="absolute left-0 mt-1 w-44 rounded-xl bg-popover border border-border shadow-xl py-1 z-50 animate-in fade-in zoom-in-95 text-xs">
                     {SUPPORTED_LANGUAGES.map((l) => (
                       <button
                         key={l.id}
                         type="button"
-                        onClick={() => handleLanguageChange(l.id)}
+                        onClick={() => { handleLanguageChange(l.id); setIsLanguageMenuOpen(false); }}
                         className={cn(
                           "w-full text-left px-3 py-1.5 hover:bg-muted flex items-center gap-2 text-xs transition-colors",
                           currentLanguage === l.id && "font-semibold text-primary bg-primary/5"
@@ -559,256 +598,274 @@ export function CanvasPanel({ onSendPrompt, className }) {
           </div>
         </div>
 
-        {/* Mode Switcher Pills */}
-        <div className="flex items-center bg-muted/80 rounded-lg p-0.5 border border-border text-xs shrink-0">
+        {/* Center: Core Mode Switcher Pills (Editor | Preview | Split) */}
+        <div className="flex items-center bg-muted/80 rounded-xl p-0.5 border border-border/80 text-xs shrink-0 shadow-2xs">
           <button
             type="button"
             onClick={() => { setMode('edit'); handleSaveContent(); }}
             className={cn(
-              "flex items-center gap-1 px-2.5 py-1 rounded-md font-medium transition-colors",
+              "flex items-center gap-1 px-2.5 py-1 rounded-lg font-medium transition-colors text-xs",
               mode === 'edit' ? "bg-background text-foreground shadow-xs" : "text-muted-foreground hover:text-foreground"
             )}
             title={t('canvas.tabEditor') || 'Editor'}
           >
             <Edit3 className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">{t('canvas.tabEditor') || 'Editor'}</span>
+            <span className="hidden md:inline">{t('canvas.tabEditor') || 'Editor'}</span>
           </button>
 
           <button
             type="button"
             onClick={() => { setMode('preview'); handleSaveContent(); }}
             className={cn(
-              "flex items-center gap-1 px-2.5 py-1 rounded-md font-medium transition-colors",
+              "flex items-center gap-1 px-2.5 py-1 rounded-lg font-medium transition-colors text-xs",
               mode === 'preview' ? "bg-background text-foreground shadow-xs" : "text-muted-foreground hover:text-foreground"
             )}
             title={t('canvas.tabPreview') || 'Visualização'}
           >
             <Eye className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">{t('canvas.tabPreview') || 'Visualizar'}</span>
+            <span className="hidden md:inline">{t('canvas.tabPreview') || 'Visualizar'}</span>
           </button>
 
           <button
             type="button"
             onClick={() => { setMode('split'); handleSaveContent(); }}
             className={cn(
-              "flex items-center gap-1 px-2.5 py-1 rounded-md font-medium transition-colors",
+              "flex items-center gap-1 px-2.5 py-1 rounded-lg font-medium transition-colors text-xs",
               mode === 'split' ? "bg-background text-foreground shadow-xs" : "text-muted-foreground hover:text-foreground"
             )}
             title={t('canvas.tabSplit') || 'Dividido'}
           >
             <Columns2 className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">{t('canvas.tabSplit') || 'Dividido'}</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => { setMode('diff'); handleSaveContent(); }}
-            className={cn(
-              "flex items-center gap-1 px-2.5 py-1 rounded-md font-medium transition-colors relative",
-              mode === 'diff' ? "bg-background text-foreground shadow-xs" : "text-muted-foreground hover:text-foreground"
-            )}
-            title={t('canvas.tabHistory') || 'Histórico / Versões'}
-          >
-            <History className="w-3.5 h-3.5 text-primary" />
-            <span className="hidden sm:inline">{t('canvas.tabHistory') || 'Versões'}</span>
-            {historyList.length > 1 && (
-              <span className="text-[9px] px-1 rounded-full bg-primary/20 text-primary font-mono ml-0.5">
-                {historyList.length}
-              </span>
-            )}
-          </button>
-
-          <button
-            type="button"
-            onClick={() => { setMode('sandbox'); handleSaveContent(); }}
-            className={cn(
-              "flex items-center gap-1 px-2.5 py-1 rounded-md font-medium transition-colors",
-              mode === 'sandbox' ? "bg-background text-foreground shadow-xs" : "text-muted-foreground hover:text-foreground"
-            )}
-            title="Live Web Sandbox"
-          >
-            <PlaySquare className="w-3.5 h-3.5 text-emerald-500" />
-            <span className="hidden sm:inline">Sandbox</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => { setMode('slides'); handleSaveContent(); }}
-            className={cn(
-              "flex items-center gap-1 px-2.5 py-1 rounded-md font-medium transition-colors",
-              mode === 'slides' ? "bg-background text-foreground shadow-xs" : "text-muted-foreground hover:text-foreground"
-            )}
-            title="Modo Apresentação de Slides"
-          >
-            <Presentation className="w-3.5 h-3.5 text-purple-500" />
-            <span className="hidden sm:inline">Slides</span>
+            <span className="hidden md:inline">{t('canvas.tabSplit') || 'Dividido'}</span>
           </button>
         </div>
 
-        {/* Action Controls */}
-        <div className="flex items-center gap-1.5 shrink-0">
-          {/* TTS Audio Controls */}
-          <div className="flex items-center gap-0.5 bg-muted/70 rounded-lg p-0.5 border border-border/60">
-            <button
-              type="button"
-              onClick={() => handleToggleSpeech()}
-              className={cn(
-                "p-1.5 rounded-md text-xs font-medium transition-all flex items-center justify-center",
-                isSpeaking
-                  ? "bg-primary text-primary-foreground shadow-xs animate-pulse"
-                  : "text-muted-foreground hover:text-foreground hover:bg-muted"
-              )}
-              title={isSpeaking ? (t('canvas.ttsStop') || 'Parar Leitura') : (t('canvas.ttsPlay') || 'Ouvir Documento (TTS)')}
-            >
-              {isSpeaking ? (
-                <Square className="w-3.5 h-3.5 fill-current" />
-              ) : (
-                <Volume2 className="w-3.5 h-3.5" />
-              )}
-            </button>
-
-            {isSpeaking && (
-              <button
-                type="button"
-                onClick={handleTogglePause}
-                className="p-1 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
-                title={isPaused ? (t('canvas.ttsResume') || 'Continuar') : (t('canvas.ttsPause') || 'Pausar')}
-              >
-                {isPaused ? <Play className="w-3.5 h-3.5 text-primary fill-primary" /> : <Pause className="w-3.5 h-3.5" />}
-              </button>
-            )}
-
-            {/* Speed selection dropdown */}
-            <div className="relative">
-              <button
-                type="button"
-                onClick={() => setIsTtsSpeedMenuOpen(!isTtsSpeedMenuOpen)}
-                className="px-1.5 py-0.5 text-[10px] font-mono text-muted-foreground hover:text-foreground hover:bg-muted rounded transition-colors"
-                title={t('canvas.ttsSpeed') || 'Velocidade de Leitura'}
-              >
-                {ttsRate}x
-              </button>
-
-              {isTtsSpeedMenuOpen && (
-                <div className="absolute right-0 mt-1 w-24 rounded-lg bg-popover border border-border shadow-lg py-1 z-50 animate-in fade-in zoom-in-95 text-xs">
-                  {[0.75, 1.0, 1.25, 1.5, 1.75, 2.0].map((rate) => (
-                    <button
-                      key={rate}
-                      type="button"
-                      onClick={() => handleSpeedChange(rate)}
-                      className={cn(
-                        "w-full text-left px-3 py-1 text-xs hover:bg-muted font-mono transition-colors",
-                        ttsRate === rate && "font-bold text-primary bg-primary/10"
-                      )}
-                    >
-                      {rate}x {rate === 1.0 ? '(Normal)' : ''}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-
+        {/* Right Action Controls: Copy, Export, More Menu (...), Maximize, Close */}
+        <div className="flex items-center gap-1 shrink-0">
+          {/* Copy Button */}
           <button
             type="button"
             onClick={handleCopy}
             className="p-1.5 rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
-            title={t('common.copy')}
+            title={t('common.copy') || 'Copiar conteúdo'}
           >
-            {copied ? <Check className="w-4 h-4 text-green-500" /> : <Copy className="w-4 h-4" />}
+            {copied ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5" />}
           </button>
 
           {/* Export Dropdown */}
-          <div className="relative">
+          <div className="relative" ref={exportMenuRef}>
             <button
               type="button"
               onClick={() => setIsExportMenuOpen(!isExportMenuOpen)}
-              className="p-1.5 rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
-              title={t('canvas.exportDocument') || 'Exportar'}
+              className={cn(
+                "p-1.5 rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground transition-colors",
+                isExportMenuOpen && "bg-muted text-foreground"
+              )}
+              title={t('canvas.exportDocument') || 'Exportar Documento'}
             >
-              <Download className="w-4 h-4" />
+              <Download className="w-3.5 h-3.5" />
             </button>
 
             {isExportMenuOpen && (
-              <div className="absolute right-0 mt-1 w-40 rounded-lg bg-popover border border-border shadow-lg py-1 z-50 animate-in fade-in zoom-in-95 text-xs">
+              <div className="absolute right-0 mt-1 w-44 rounded-xl bg-popover border border-border shadow-xl py-1 z-50 animate-in fade-in zoom-in-95 text-xs">
                 <button
                   type="button"
                   onClick={() => { exportDocument('markdown'); setIsExportMenuOpen(false); }}
-                  className="w-full text-left px-3 py-1.5 hover:bg-muted flex items-center justify-between text-xs"
+                  className="w-full text-left px-3 py-1.5 hover:bg-muted flex items-center justify-between text-xs transition-colors"
                 >
                   <span>Markdown</span>
-                  <span className="text-[10px] text-muted-foreground">.md</span>
+                  <span className="text-[10px] text-muted-foreground font-mono">.md</span>
                 </button>
                 <button
                   type="button"
                   onClick={() => { exportDocument('text'); setIsExportMenuOpen(false); }}
-                  className="w-full text-left px-3 py-1.5 hover:bg-muted flex items-center justify-between text-xs"
+                  className="w-full text-left px-3 py-1.5 hover:bg-muted flex items-center justify-between text-xs transition-colors"
                 >
                   <span>Texto Simples</span>
-                  <span className="text-[10px] text-muted-foreground">.txt</span>
+                  <span className="text-[10px] text-muted-foreground font-mono">.txt</span>
                 </button>
                 <button
                   type="button"
                   onClick={() => { exportDocument('html'); setIsExportMenuOpen(false); }}
-                  className="w-full text-left px-3 py-1.5 hover:bg-muted flex items-center justify-between text-xs"
+                  className="w-full text-left px-3 py-1.5 hover:bg-muted flex items-center justify-between text-xs transition-colors"
                 >
                   <span>HTML Document</span>
-                  <span className="text-[10px] text-muted-foreground">.html</span>
+                  <span className="text-[10px] text-muted-foreground font-mono">.html</span>
                 </button>
                 <button
                   type="button"
                   onClick={() => { exportDocument('pdf'); setIsExportMenuOpen(false); }}
-                  className="w-full text-left px-3 py-1.5 hover:bg-muted flex items-center justify-between text-xs"
+                  className="w-full text-left px-3 py-1.5 hover:bg-muted flex items-center justify-between text-xs transition-colors"
                 >
                   <span>{t('canvas.exportPdf') || 'Documento PDF'}</span>
-                  <span className="text-[10px] text-muted-foreground">.pdf</span>
+                  <span className="text-[10px] text-muted-foreground font-mono">.pdf</span>
                 </button>
                 {isCode && (
                   <button
                     type="button"
                     onClick={() => { exportDocument(currentLanguage); setIsExportMenuOpen(false); }}
-                    className="w-full text-left px-3 py-1.5 hover:bg-muted flex items-center justify-between text-xs"
+                    className="w-full text-left px-3 py-1.5 hover:bg-muted flex items-center justify-between text-xs transition-colors"
                   >
                     <span>Código Fonte</span>
-                    <span className="text-[10px] text-muted-foreground">.{currentLanguage}</span>
+                    <span className="text-[10px] text-muted-foreground font-mono">.{currentLanguage}</span>
                   </button>
                 )}
               </div>
             )}
           </div>
 
+          {/* More Options Dropdown (TTS, History, Sandbox, Slides, Clear) */}
+          <div className="relative" ref={moreMenuRef}>
+            <button
+              type="button"
+              onClick={() => setIsMoreMenuOpen(!isMoreMenuOpen)}
+              className={cn(
+                "p-1.5 rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground transition-colors relative",
+                (isMoreMenuOpen || ['diff', 'sandbox', 'slides'].includes(mode) || isSpeaking) && "bg-muted text-foreground"
+              )}
+              title="Mais Opções e Modos"
+            >
+              <MoreHorizontal className="w-3.5 h-3.5" />
+              {isSpeaking && <span className="absolute top-1 right-1 w-1.5 h-1.5 rounded-full bg-primary animate-ping" />}
+            </button>
+
+            {isMoreMenuOpen && (
+              <div className="absolute right-0 mt-1 w-56 p-1.5 rounded-xl bg-popover border border-border text-popover-foreground shadow-2xl z-50 animate-in fade-in-0 zoom-in-95 space-y-0.5 text-xs">
+                {/* TTS Audio Row */}
+                <div className="p-2 rounded-lg bg-muted/40 border border-border/50 mb-1">
+                  <div className="flex items-center justify-between mb-1.5">
+                    <span className="text-[11px] font-medium text-foreground flex items-center gap-1.5">
+                      <Volume2 className="w-3.5 h-3.5 text-primary" />
+                      Leitura em Voz Alta
+                    </span>
+                    <span className="text-[10px] font-mono text-muted-foreground">{ttsRate}x</span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <button
+                      type="button"
+                      onClick={() => handleToggleSpeech()}
+                      className={cn(
+                        "flex-1 py-1 px-2 rounded-md text-[11px] font-medium flex items-center justify-center gap-1 transition-colors",
+                        isSpeaking ? "bg-primary text-primary-foreground" : "bg-background border border-border hover:bg-muted text-foreground"
+                      )}
+                    >
+                      {isSpeaking ? <Square className="w-3 h-3 fill-current" /> : <Play className="w-3 h-3 fill-current" />}
+                      <span>{isSpeaking ? "Parar" : "Ouvir"}</span>
+                    </button>
+                    {isSpeaking && (
+                      <button
+                        type="button"
+                        onClick={handleTogglePause}
+                        className="py-1 px-2 rounded-md bg-background border border-border hover:bg-muted text-foreground text-[11px]"
+                      >
+                        {isPaused ? <Play className="w-3 h-3" /> : <Pause className="w-3 h-3" />}
+                      </button>
+                    )}
+                    {/* Speed cycle button */}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const rates = [0.75, 1.0, 1.25, 1.5, 2.0];
+                        const nextRate = rates[(rates.indexOf(ttsRate) + 1) % rates.length] || 1.0;
+                        handleSpeedChange(nextRate);
+                      }}
+                      className="py-1 px-1.5 rounded-md bg-background border border-border hover:bg-muted text-foreground text-[10px] font-mono"
+                      title="Alterar Velocidade"
+                    >
+                      {ttsRate}x
+                    </button>
+                  </div>
+                </div>
+
+                {/* History / Diff Mode */}
+                <button
+                  type="button"
+                  onClick={() => { setMode('diff'); handleSaveContent(); setIsMoreMenuOpen(false); }}
+                  className={cn(
+                    "w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg hover:bg-muted text-foreground transition-colors text-left text-xs",
+                    mode === 'diff' && "bg-primary/10 text-primary font-semibold"
+                  )}
+                >
+                  <div className="flex items-center gap-2">
+                    <History className="w-3.5 h-3.5 text-primary" />
+                    <span>Histórico de Versões</span>
+                  </div>
+                  {historyList.length > 0 && (
+                    <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-primary/20 text-primary font-mono">
+                      {historyList.length}
+                    </span>
+                  )}
+                </button>
+
+                {/* Sandbox Mode */}
+                <button
+                  type="button"
+                  onClick={() => { setMode('sandbox'); handleSaveContent(); setIsMoreMenuOpen(false); }}
+                  className={cn(
+                    "w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg hover:bg-muted text-foreground transition-colors text-left text-xs",
+                    mode === 'sandbox' && "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-semibold"
+                  )}
+                >
+                  <PlaySquare className="w-3.5 h-3.5 text-emerald-500" />
+                  <span>Sandbox Web Interativo</span>
+                </button>
+
+                {/* Slides Mode */}
+                <button
+                  type="button"
+                  onClick={() => { setMode('slides'); handleSaveContent(); setIsMoreMenuOpen(false); }}
+                  className={cn(
+                    "w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg hover:bg-muted text-foreground transition-colors text-left text-xs",
+                    mode === 'slides' && "bg-purple-500/10 text-purple-600 dark:text-purple-400 font-semibold"
+                  )}
+                >
+                  <Presentation className="w-3.5 h-3.5 text-purple-500" />
+                  <span>Modo Slides / Apresentação</span>
+                </button>
+
+                <div className="my-1 border-t border-border/60" />
+
+                {/* Clear / Delete Document */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsMoreMenuOpen(false);
+                    if (canvasDoc.content && canvasDoc.content.trim()) {
+                      if (!window.confirm(t('canvas.confirmDeleteCanvas') || 'Tem certeza que deseja excluir o documento Canvas desta conversa?')) {
+                        return;
+                      }
+                    }
+                    clearCanvas();
+                  }}
+                  className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors text-left text-xs"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                  <span>{t('canvas.deleteCanvas') || 'Limpar Documento'}</span>
+                </button>
+              </div>
+            )}
+          </div>
+
+          <div className="h-4 w-px bg-border/80 mx-0.5" />
+
+          {/* Fullscreen Toggle */}
           <button
             type="button"
             onClick={toggleFullscreen}
             className="p-1.5 rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
             title={isFullscreen ? t('canvas.exitFullscreen') || 'Sair da tela cheia' : t('canvas.fullscreen') || 'Tela cheia'}
           >
-            {isFullscreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
+            {isFullscreen ? <Minimize2 className="w-3.5 h-3.5" /> : <Maximize2 className="w-3.5 h-3.5" />}
           </button>
 
-          <button
-            type="button"
-            onClick={() => {
-              if (canvasDoc.content && canvasDoc.content.trim()) {
-                if (!window.confirm(t('canvas.confirmDeleteCanvas') || 'Tem certeza que deseja excluir o documento Canvas desta conversa?')) {
-                  return;
-                }
-              }
-              clearCanvas();
-            }}
-            className="p-1.5 rounded-lg hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors"
-            title={t('canvas.deleteCanvas') || 'Excluir Canvas'}
-          >
-            <Trash2 className="w-4 h-4" />
-          </button>
-
+          {/* Close Canvas */}
           <button
             type="button"
             onClick={closeCanvas}
-            className="p-1.5 rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground transition-colors ml-0.5"
+            className="p-1.5 rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
             title={t('canvas.hideCanvas') || t('common.close')}
           >
-            <X className="w-4 h-4" />
+            <X className="w-3.5 h-3.5" />
           </button>
         </div>
       </div>
@@ -1241,92 +1298,78 @@ export function CanvasPanel({ onSendPrompt, className }) {
         )}
       </div>
 
-      {/* 4. Interactive AI Quick Actions & Prompt Bar (Bottom) */}
-      <div className="p-3 border-t border-border bg-muted/30 shrink-0 space-y-2">
-        {/* Quick Action Chips Bar */}
-        <div className="flex flex-wrap items-center gap-1.5 text-[11px]">
-          <span className="text-[10px] font-semibold text-muted-foreground uppercase flex items-center gap-1 shrink-0 py-0.5 mr-0.5">
-            <Sparkles className="w-3 h-3 text-primary" />
-            <span>IA:</span>
-          </span>
+      {/* 4. Interactive AI Prompt Bar (Bottom) */}
+      <div className="p-3 border-t border-border bg-muted/20 shrink-0">
+        <form onSubmit={handleCustomAiPromptSubmit} className="relative flex items-center bg-background border border-border/80 hover:border-primary/50 focus-within:border-primary focus-within:ring-1 focus-within:ring-primary rounded-xl shadow-xs transition-all p-1">
+          {/* Quick AI Actions Popover Trigger */}
+          <div className="relative shrink-0" ref={aiActionsMenuRef}>
+            <button
+              type="button"
+              onClick={() => setIsAiActionsMenuOpen(!isAiActionsMenuOpen)}
+              className={cn(
+                "flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors",
+                isAiActionsMenuOpen ? "bg-primary text-primary-foreground" : "bg-primary/10 text-primary hover:bg-primary/20"
+              )}
+              title="Ações Rápidas de IA"
+            >
+              <Sparkles className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline font-semibold">Ações IA</span>
+              <ChevronDown className={cn("w-3 h-3 transition-transform duration-200", isAiActionsMenuOpen && "rotate-180")} />
+            </button>
 
-          <button
-            type="button"
-            onClick={() => handleSendQuickAction('Reescrever e melhorar a clareza, fluidez e qualidade do texto')}
-            className="px-2.5 py-1 rounded-full bg-background border border-border/80 hover:border-primary/60 text-foreground hover:bg-primary/5 transition-colors shrink-0 shadow-2xs font-medium"
-          >
-            ✨ Melhorar Escrita
-          </button>
-
-          <button
-            type="button"
-            onClick={() => handleSendQuickAction('Expandir o documento adicionando mais seções, detalhes e explicações')}
-            className="px-2.5 py-1 rounded-full bg-background border border-border/80 hover:border-primary/60 text-foreground hover:bg-primary/5 transition-colors shrink-0 shadow-2xs font-medium"
-          >
-            ➕ Expandir Conteúdo
-          </button>
-
-          <button
-            type="button"
-            onClick={() => handleSendQuickAction('Resumir e encurtar o documento, mantendo apenas os pontos principais')}
-            className="px-2.5 py-1 rounded-full bg-background border border-border/80 hover:border-primary/60 text-foreground hover:bg-primary/5 transition-colors shrink-0 shadow-2xs font-medium"
-          >
-            ✂️ Resumir
-          </button>
-
-          <button
-            type="button"
-            onClick={() => handleSendQuickAction('Revisar e corrigir todos os erros gramaticais e de pontuação')}
-            className="px-2.5 py-1 rounded-full bg-background border border-border/80 hover:border-primary/60 text-foreground hover:bg-primary/5 transition-colors shrink-0 shadow-2xs font-medium"
-          >
-            🔍 Corrigir Gramática
-          </button>
-
-          <button
-            type="button"
-            onClick={() => handleSendQuickAction('Reescrever o documento em tom formal e profissional')}
-            className="px-2.5 py-1 rounded-full bg-background border border-border/80 hover:border-primary/60 text-foreground hover:bg-primary/5 transition-colors shrink-0 shadow-2xs font-medium"
-          >
-            👔 Tom Formal
-          </button>
-
-          <button
-            type="button"
-            onClick={() => handleSendQuickAction('Traduzir todo o documento para o Inglês')}
-            className="px-2.5 py-1 rounded-full bg-background border border-border/80 hover:border-primary/60 text-foreground hover:bg-primary/5 transition-colors shrink-0 shadow-2xs font-medium"
-          >
-            🌐 Traduzir (EN)
-          </button>
-        </div>
-
-        {/* Custom AI Prompt Input Bar */}
-        <form onSubmit={handleCustomAiPromptSubmit} className="flex items-center gap-1.5">
-          <div className="relative flex-1">
-            <input
-              type="text"
-              value={aiPromptInput}
-              onChange={(e) => setAiPromptInput(e.target.value)}
-              placeholder={
-                selectedText
-                  ? `Pedir alteração no trecho selecionado (${selectedText.slice(0, 25)}...)...`
-                  : t('canvas.aiPromptPlaceholder') || 'Peça ao chatbot para alterar ou editar o documento...'
-              }
-              className="w-full px-3.5 py-2 rounded-xl bg-background border border-border text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary shadow-inner"
-            />
+            {/* Quick Actions Dropdown Menu */}
+            {isAiActionsMenuOpen && (
+              <div className="absolute bottom-full left-0 mb-2 w-64 p-1.5 rounded-xl bg-popover border border-border text-popover-foreground shadow-2xl z-50 animate-in fade-in zoom-in-95 space-y-0.5 text-xs">
+                <div className="px-2 py-1 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
+                  {selectedText ? 'Ações no Trecho Selecionado' : 'Ações no Documento'}
+                </div>
+                {QUICK_AI_ACTIONS.map(action => (
+                  <button
+                    key={action.id}
+                    type="button"
+                    onClick={() => {
+                      setIsAiActionsMenuOpen(false);
+                      handleSendQuickAction(action.prompt);
+                    }}
+                    className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg hover:bg-muted text-foreground transition-colors text-left"
+                  >
+                    <action.icon className="w-3.5 h-3.5 text-primary shrink-0" />
+                    <div className="min-w-0 flex-1">
+                      <div className="font-semibold text-xs">{action.label}</div>
+                      <div className="text-[10px] text-muted-foreground truncate">{action.desc}</div>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
 
+          {/* Text Input */}
+          <input
+            type="text"
+            value={aiPromptInput}
+            onChange={(e) => setAiPromptInput(e.target.value)}
+            placeholder={
+              selectedText
+                ? `Pedir alteração no trecho selecionado (${selectedText.slice(0, 25)}...)...`
+                : t('canvas.aiPromptPlaceholder') || 'Peça ao chatbot para alterar ou editar o documento...'
+            }
+            className="flex-1 px-2.5 py-1.5 bg-transparent text-xs text-foreground placeholder:text-muted-foreground focus:outline-none"
+          />
+
+          {/* Submit Button */}
           <button
             type="submit"
             disabled={!aiPromptInput.trim()}
             className={cn(
-              "p-2 rounded-xl transition-all shadow-xs",
+              "p-1.5 rounded-lg transition-all shrink-0",
               aiPromptInput.trim()
-                ? "bg-primary text-primary-foreground hover:bg-primary/90 hover:scale-105 active:scale-95"
-                : "bg-muted text-muted-foreground cursor-not-allowed opacity-60"
+                ? "bg-primary text-primary-foreground hover:bg-primary/90 hover:scale-105 active:scale-95 shadow-xs"
+                : "bg-transparent text-muted-foreground/40 cursor-not-allowed"
             )}
             title={t('canvas.sendToAi') || 'Pedir alteração à IA'}
           >
-            <Send className="w-4 h-4" />
+            <Send className="w-3.5 h-3.5" />
           </button>
         </form>
       </div>
