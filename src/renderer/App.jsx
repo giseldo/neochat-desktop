@@ -2894,22 +2894,25 @@ function App() {
               </Button>}
 
               {/* Theme & Quick Appearance / Mode Toggle */}
-              <ThemeToggle
-                interfaceMode={interfaceMode}
-                onInterfaceModeChange={handleInterfaceModeChange}
-              />
+              {isPowerUser && (
+                <ThemeToggle
+                  interfaceMode={interfaceMode}
+                  onInterfaceModeChange={handleInterfaceModeChange}
+                />
+              )}
 
-              
               {/* Keyboard Shortcuts Button */}
-              <Button 
-                variant="ghost" 
-                size="icon" 
-                onClick={() => setIsShortcutsModalOpen(true)}
-                className="text-foreground hover:bg-muted" 
-                title={t('header.keyboardShortcuts')}
-              >
-                <Keyboard className="h-5 w-5" />
-              </Button>
+              {isPowerUser && (
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  onClick={() => setIsShortcutsModalOpen(true)}
+                  className="text-foreground hover:bg-muted" 
+                  title={t('header.keyboardShortcuts')}
+                >
+                  <Keyboard className="h-5 w-5" />
+                </Button>
+              )}
 
               <Link to="/settings">
                 <Button variant="ghost" size="icon" className="text-foreground hover:bg-muted" title={t('header.settings')}>
