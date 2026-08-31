@@ -95,6 +95,7 @@ class BrowserManager {
       height: 768,
       minWidth: 400,
       minHeight: 300,
+      resizable: true,
       title: `Neo Browser - ${url}`,
       webPreferences: {
         nodeIntegration: false,

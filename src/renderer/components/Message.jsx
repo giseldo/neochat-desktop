@@ -172,7 +172,7 @@ function Message({
   const messageClasses = `flex ${isUser ? 'justify-end' : 'justify-start'}`;
   const bubbleClasses = isUser
     ? `relative overflow-x-auto px-4 py-3 rounded-2xl max-w-xl max-h-[500px] overflow-y-auto bg-primary/10 border border-primary/20 text-foreground shadow-xs`
-    : `relative w-full text-foreground`;
+    : `relative w-full text-foreground group`;
   const wrapperClasses = `message-content-wrapper text-foreground break-words text-sm overflow-hidden leading-relaxed`;
 
   const toggleReasoning = () => setShowReasoning(!showReasoning);
@@ -511,7 +511,7 @@ function Message({
 
         {/* Action bar and Performance Metrics */}
         {!isUser && (
-          <div className="flex flex-wrap items-center justify-start gap-2 mt-2 pt-1 text-xs text-muted-foreground opacity-80 hover:opacity-100 transition-opacity">
+          <div className="flex flex-wrap items-center justify-start gap-2 mt-2 pt-1 text-xs text-muted-foreground opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity duration-200">
             {/* Speed & Performance Metrics (Power Mode only) */}
             {isPowerUser && (
               <div className="flex flex-wrap items-center gap-2">

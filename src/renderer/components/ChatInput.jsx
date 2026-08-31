@@ -1,4 +1,4 @@
-import { ArrowRight, Loader2, ImagePlus, Hammer, Upload, Zap, ZapOff, Square, Mic, MicOff, Terminal, Globe, BookOpen, SlidersHorizontal, Camera, Bot, Key, Layout, X, Code2, Briefcase, MessageSquare, RotateCcw } from "lucide-react";
+import { ArrowRight, Loader2, ImagePlus, Hammer, Upload, Zap, ZapOff, Square, Mic, MicOff, Terminal, Globe, BookOpen, SlidersHorizontal, Camera, Bot, Key, Layout, X, Code2, Briefcase, MessageSquare, RotateCcw, Plus, Check } from "lucide-react";
 import React, { useContext, useEffect, useRef, useState, useMemo } from "react";
 import { createPortal } from "react-dom";
 import { Link } from "react-router-dom";
@@ -79,6 +79,8 @@ function ChatInput({
 	const [isTranscribing, setIsTranscribing] = useState(false);
 	const [voiceInputEnabled, setVoiceInputEnabled] = useState(true);
 	const [isSnipModalOpen, setIsSnipModalOpen] = useState(false);
+	const [isPlusMenuOpen, setIsPlusMenuOpen] = useState(false);
+	const plusMenuRef = useRef(null);
 	const agentModeActive = harnessMode === 'code';
 	const mediaRecorderRef = useRef(null);
 	const audioChunksRef = useRef([]);
@@ -88,6 +90,20 @@ function ChatInput({
 	const loadingRef = useRef(loading);
 	const isHoldingVoiceRef = useRef(false);
 	const shouldStopImmediatelyRef = useRef(false);
+
+	useEffect(() => {
+		const handleClickOutside = (e) => {
+			if (plusMenuRef.current && !plusMenuRef.current.contains(e.target)) {
+				setIsPlusMenuOpen(false);
+			}
+		};
+		if (isPlusMenuOpen) {
+			document.addEventListener("mousedown", handleClickOutside);
+		}
+		return () => {
+			document.removeEventListener("mousedown", handleClickOutside);
+		};
+	}, [isPlusMenuOpen]);
 
 	useEffect(() => {
 		isRecordingRef.current = isRecording;
@@ -1001,38 +1017,8 @@ function ChatInput({
 
 				{/* Bottom Controls */}
 				<div className="flex items-center justify-between gap-2 px-1 sm:px-2 min-w-0">
-					<div className="flex items-center gap-1 sm:gap-1.5 min-w-0 overflow-x-auto no-scrollbar py-0.5">
-						{/* File Upload Button */}
-						{files.length < 5 && (
-							<Button
-								type="button"
-								variant="ghost"
-								size="sm"
-								onClick={() => fileInputRef.current?.click()}
-								className="text-muted-foreground hover:text-foreground hover:bg-muted/60 hover:shadow-sm transition-all duration-200 rounded-xl px-2.5 py-1.5 text-xs font-medium flex-shrink-0"
-								title={visionSupported ? t('chat.uploadTooltipVision') : t('chat.uploadTooltipNoVision')}
-								disabled={loading}
-							>
-								<ImagePlus className={cn("w-4 h-4 flex-shrink-0 text-emerald-500", showButtonLabels && "mr-1.5")} />
-								{showButtonLabels && <span>{t('chat.upload')}</span>}
-							</Button>
-						)}
-
-						{/* Snip & Ask (Screen Capture) Button */}
-						{files.length < 5 && (
-							<Button
-								type="button"
-								variant="ghost"
-								size="sm"
-								onClick={() => setIsSnipModalOpen(true)}
-								className="text-muted-foreground hover:text-foreground hover:bg-muted/60 hover:shadow-sm transition-all duration-200 rounded-xl px-2.5 py-1.5 text-xs font-medium flex-shrink-0"
-								title={t('chat.snipTooltip')}
-								disabled={loading}
-							>
-								<Camera className={cn("w-4 h-4 flex-shrink-0 text-cyan-500", showButtonLabels && "mr-1.5")} />
-								{showButtonLabels && <span>{t('chat.snip')}</span>}
-							</Button>
-						)}
+					<div className="flex items-center gap-1.5 min-w-0 flex-wrap py-0.5" ref={plusMenuRef}>
+						{/* Hidden File Input */}
 						<input
 							type="file"
 							ref={fileInputRef}
@@ -1043,29 +1029,188 @@ function ChatInput({
 							disabled={loading || files.length >= 5}
 						/>
 
-						{/* Slash Commands (/) Button */}
-						{powerUserMode && <Button
-							type="button"
-							variant="ghost"
-							size="sm"
-							onClick={() => {
-								if (!message) {
-									setMessage("/");
-									setIsSlashMenuOpen(true);
-									setSlashFilterQuery("");
-									setSelectedSlashIndex(0);
-									textareaRef.current?.focus();
-								} else {
-									setIsPromptTemplatesModalOpen(true);
-								}
-							}}
-							className="text-muted-foreground hover:text-foreground hover:bg-muted/60 hover:shadow-sm transition-all duration-200 rounded-xl px-2 py-1.5 font-mono text-xs flex-shrink-0"
-							title={t('slashCommands.buttonTooltip')}
-							disabled={loading}
-						>
-							<Terminal className={cn("w-4 h-4 text-primary flex-shrink-0", showButtonLabels && "mr-1")} />
-							{showButtonLabels && <span>/</span>}
-						</Button>}
+						{/* Unified "+" Action Button with Popover Menu */}
+						<div className="relative">
+							<Button
+								type="button"
+								variant={isPlusMenuOpen ? "default" : "ghost"}
+								size="sm"
+								onClick={() => setIsPlusMenuOpen(!isPlusMenuOpen)}
+								className={cn(
+									"h-8 w-8 p-0 rounded-xl transition-all duration-200 flex items-center justify-center flex-shrink-0 cursor-pointer shadow-2xs",
+									isPlusMenuOpen
+										? "bg-primary text-primary-foreground shadow-xs"
+										: "text-muted-foreground hover:text-foreground hover:bg-muted/80 bg-background/60 border border-border/70"
+								)}
+								title={t('chat.moreActions') || 'Adicionar anexo ou ferramentas (+)'}
+								disabled={loading}
+							>
+								<Plus className={cn("w-4 h-4 transition-transform duration-200", isPlusMenuOpen && "rotate-45")} />
+							</Button>
+
+							{/* Dropdown Menu */}
+							{isPlusMenuOpen && (
+								<div className="absolute bottom-full left-0 mb-2 w-72 p-1.5 rounded-2xl bg-popover border border-border text-popover-foreground shadow-2xl z-50 animate-in fade-in-0 zoom-in-95 space-y-0.5 text-xs">
+									{/* Anexar Arquivo */}
+									{files.length < 5 && (
+										<button
+											type="button"
+											onClick={() => {
+												setIsPlusMenuOpen(false);
+												fileInputRef.current?.click();
+											}}
+											className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-muted/80 text-foreground transition-colors text-left"
+										>
+											<ImagePlus className="w-4 h-4 text-emerald-500 shrink-0" />
+											<div className="flex-1 min-w-0">
+												<div className="font-semibold text-foreground">{t('chat.upload') || 'Anexar Arquivo'}</div>
+												<div className="text-[10px] text-muted-foreground truncate">{visionSupported ? t('chat.uploadTooltipVision') : t('chat.uploadTooltipNoVision')}</div>
+											</div>
+										</button>
+									)}
+
+									{/* Capturar Tela (Snip) */}
+									{files.length < 5 && (
+										<button
+											type="button"
+											onClick={() => {
+												setIsPlusMenuOpen(false);
+												setIsSnipModalOpen(true);
+											}}
+											className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-muted/80 text-foreground transition-colors text-left"
+										>
+											<Camera className="w-4 h-4 text-cyan-500 shrink-0" />
+											<div className="flex-1 min-w-0">
+												<div className="font-semibold text-foreground">{t('chat.snip') || 'Capturar Tela (Snip)'}</div>
+												<div className="text-[10px] text-muted-foreground truncate">{t('chat.snipTooltip') || 'Capturar seleção da tela'}</div>
+											</div>
+										</button>
+									)}
+
+									{/* Pesquisa na Web */}
+									<button
+										type="button"
+										onClick={() => {
+											handleToggleWebSearch();
+										}}
+										className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-muted/80 text-foreground transition-colors text-left"
+									>
+										<Globe className={cn("w-4 h-4 text-blue-500 shrink-0", webSearchActive && "animate-pulse")} />
+										<div className="flex-1 min-w-0">
+											<div className="font-semibold text-foreground flex items-center gap-1.5">
+												<span>{t('chat.webSearch') || 'Pesquisa na Web'}</span>
+												{webSearchActive && <span className="w-1.5 h-1.5 rounded-full bg-blue-500" />}
+											</div>
+											<div className="text-[10px] text-muted-foreground truncate">
+												{webSearchActive ? 'Ativada (busca em tempo real)' : 'Desativada'}
+											</div>
+										</div>
+										<div className={cn(
+											"px-2 py-0.5 rounded-md text-[10px] font-medium border",
+											webSearchActive 
+												? "bg-blue-500/20 text-blue-600 dark:text-blue-400 border-blue-500/30 font-semibold" 
+												: "bg-muted text-muted-foreground border-border/60"
+										)}>
+											{webSearchActive ? 'ON' : 'OFF'}
+										</div>
+									</button>
+
+									{/* Ferramentas MCP */}
+									{powerUserMode && onOpenMcpTools && (
+										<button
+											type="button"
+											onClick={() => {
+												setIsPlusMenuOpen(false);
+												onOpenMcpTools();
+											}}
+											className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-muted/80 text-foreground transition-colors text-left"
+										>
+											<Hammer className="w-4 h-4 text-amber-500 shrink-0" />
+											<div className="flex-1 min-w-0">
+												<div className="font-semibold text-foreground flex items-center gap-1.5">
+													<span>{t('chat.tools') || 'Ferramentas MCP'}</span>
+													{effectiveToolsCount > 0 && (
+														<span className="px-1.5 py-0.2 rounded-full bg-amber-500/15 text-amber-600 dark:text-amber-400 font-mono text-[9px] font-bold">
+															{effectiveToolsCount}
+														</span>
+													)}
+												</div>
+												<div className="text-[10px] text-muted-foreground truncate">{t('chat.toolsTooltip') || 'Integrações e funções'}</div>
+											</div>
+										</button>
+									)}
+
+									{/* Canvas Workspace */}
+									{powerUserMode && (
+										<button
+											type="button"
+											onClick={() => {
+												setIsPlusMenuOpen(false);
+												toggleCanvas();
+											}}
+											className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-muted/80 text-foreground transition-colors text-left"
+										>
+											<Layout className="w-4 h-4 text-emerald-500 shrink-0" />
+											<div className="flex-1 min-w-0">
+												<div className="font-semibold text-foreground flex items-center gap-1.5">
+													<span>{t('canvas.label') || 'Espaço Canvas'}</span>
+													{isCanvasOpen && <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />}
+												</div>
+												<div className="text-[10px] text-muted-foreground truncate">{isCanvasOpen ? 'Painel aberto' : 'Editor de texto e código lado a lado'}</div>
+											</div>
+										</button>
+									)}
+
+									{/* Knowledge Base */}
+									{powerUserMode && activeProject && openKnowledgeBaseModal && (
+										<button
+											type="button"
+											onClick={() => {
+												setIsPlusMenuOpen(false);
+												openKnowledgeBaseModal();
+											}}
+											className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-muted/80 text-foreground transition-colors text-left"
+										>
+											<BookOpen className="w-4 h-4 text-indigo-500 shrink-0" />
+											<div className="flex-1 min-w-0">
+												<div className="font-semibold text-foreground">{t('rag.knowledgeBase') || 'Base de Conhecimento'}</div>
+												<div className="text-[10px] text-muted-foreground truncate">
+													{activeProject.folders?.length > 0
+														? `${activeProject.folders.length} ${activeProject.folders.length === 1 ? 'pasta vinculada' : 'pastas vinculadas'}`
+														: 'Indexar documentos do projeto'}
+												</div>
+											</div>
+										</button>
+									)}
+
+									{/* Slash Commands & Prompts */}
+									{powerUserMode && (
+										<button
+											type="button"
+											onClick={() => {
+												setIsPlusMenuOpen(false);
+												if (!message) {
+													setMessage("/");
+													setIsSlashMenuOpen(true);
+													setSlashFilterQuery("");
+													setSelectedSlashIndex(0);
+													textareaRef.current?.focus();
+												} else {
+													setIsPromptTemplatesModalOpen(true);
+												}
+											}}
+											className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-muted/80 text-foreground transition-colors text-left"
+										>
+											<Terminal className="w-4 h-4 text-primary shrink-0" />
+											<div className="flex-1 min-w-0">
+												<div className="font-semibold text-foreground">Comandos Rápidos (/)</div>
+												<div className="text-[10px] text-muted-foreground truncate">Prompts e ações rápidas</div>
+											</div>
+										</button>
+									)}
+								</div>
+							)}
+						</div>
 
 						{/* Voice Dictation (Whisper) Button */}
 						{voiceInputEnabled && (
@@ -1075,127 +1220,59 @@ function ChatInput({
 								size="sm"
 								onClick={toggleRecording}
 								className={cn(
-									"transition-all duration-200 rounded-xl px-2.5 py-1.5 text-xs font-medium flex-shrink-0",
+									"h-8 px-2.5 rounded-xl text-xs font-medium flex-shrink-0 transition-all duration-200",
 									isRecording
-										? "bg-red-500/20 text-red-500 animate-pulse border border-red-500/40"
+										? "bg-red-500/20 text-red-500 animate-pulse border border-red-500/40 shadow-xs"
 										: isTranscribing
 											? "text-primary animate-pulse"
-											: "text-muted-foreground hover:text-foreground hover:bg-muted/60 hover:shadow-sm"
+											: "text-muted-foreground hover:text-foreground hover:bg-muted/80"
 								)}
 								title={isRecording ? t('chat.voiceRecordingTooltip') : isTranscribing ? t('chat.voiceTranscribingTooltip') : t('chat.voiceTooltip')}
 								disabled={loading || isTranscribing}
 							>
 								{isTranscribing ? (
-									<Loader2 className={cn("w-4 h-4 animate-spin flex-shrink-0 text-primary", showButtonLabels && "mr-1.5")} />
+									<Loader2 className="w-4 h-4 animate-spin text-primary flex-shrink-0" />
 								) : isRecording ? (
-									<MicOff className={cn("w-4 h-4 text-red-500 flex-shrink-0", showButtonLabels && "mr-1.5")} />
+									<MicOff className="w-4 h-4 text-red-500 flex-shrink-0" />
 								) : (
-									<Mic className={cn("w-4 h-4 flex-shrink-0 text-rose-500", showButtonLabels && "mr-1.5")} />
+									<Mic className="w-4 h-4 text-rose-500 flex-shrink-0" />
 								)}
 								{showButtonLabels && (
-									<span>{isRecording ? t('chat.recording') : isTranscribing ? t('chat.transcribing') : t('chat.voice')}</span>
+									<span className="ml-1.5">{isRecording ? t('chat.recording') : isTranscribing ? t('chat.transcribing') : t('chat.voice')}</span>
 								)}
 							</Button>
 						)}
 
-						{/* MCP Tools Button */}
-						{powerUserMode && onOpenMcpTools && (
-							<Button
-								type="button"
-								variant="ghost"
-								size="sm"
-								onClick={onOpenMcpTools}
-								className="text-muted-foreground hover:text-foreground hover:bg-muted/60 hover:shadow-sm transition-all duration-200 rounded-xl px-2.5 py-1.5 text-xs font-medium flex-shrink-0"
-								title={t('chat.toolsTooltip')}
-								disabled={loading}
-							>
-								<Hammer className={cn("w-4 h-4 flex-shrink-0 text-amber-500", showButtonLabels && "mr-1.5")} />
-								{showButtonLabels ? (
-									<span>
-										{t('chat.tools')}
-										{effectiveToolsCount > 0 ? ` (${effectiveToolsCount})` : ''}
-									</span>
-								) : effectiveToolsCount > 0 ? (
-									<span className="text-[10px] font-semibold text-muted-foreground ml-0.5">
-										{effectiveToolsCount}
-									</span>
-								) : null}
-							</Button>
+						{/* Active State Chip: Web Search */}
+						{webSearchActive && (
+							<div className="flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-blue-500/15 text-blue-600 dark:text-blue-400 border border-blue-500/30 text-xs font-medium animate-in fade-in-0 shadow-2xs">
+								<Globe className="w-3.5 h-3.5" />
+								<span className="font-semibold">{t('chat.webSearch')}</span>
+								<button
+									type="button"
+									onClick={handleToggleWebSearch}
+									className="ml-0.5 hover:bg-blue-500/20 rounded-full p-0.5 transition-colors cursor-pointer"
+									title={t('chat.disableWebSearch') || 'Desativar busca web'}
+								>
+									<X className="w-3 h-3" />
+								</button>
+							</div>
 						)}
 
-						{/* Web Search Toggle Button */}
-						<Button
-							type="button"
-							variant="ghost"
-							size="sm"
-							onClick={handleToggleWebSearch}
-							className={cn(
-								"transition-all duration-200 rounded-xl px-2.5 py-1.5 text-xs font-medium flex items-center gap-1.5 flex-shrink-0",
-								webSearchActive
-									? "bg-blue-500/15 text-blue-600 dark:text-blue-400 border border-blue-500/30 shadow-xs"
-									: "text-muted-foreground hover:text-foreground hover:bg-muted/60 hover:shadow-xs"
-							)}
-							title={webSearchActive ? t('chat.webSearchActive') : t('chat.webSearchTooltip')}
-							disabled={loading}
-						>
-							<Globe className={cn("w-4 h-4 flex-shrink-0 text-blue-500", webSearchActive && "animate-pulse")} />
-							{showButtonLabels && <span>{t('chat.webSearch')}</span>}
-							{webSearchActive && (
-								<span className="w-1.5 h-1.5 rounded-full bg-blue-500 flex-shrink-0"></span>
-							)}
-						</Button>
-
-						{/* Canvas Toggle Button */}
-						{powerUserMode && (
-							<Button
-								type="button"
-								variant="ghost"
-								size="sm"
-								onClick={toggleCanvas}
-								className={cn(
-									"transition-all duration-200 rounded-xl px-2.5 py-1.5 text-xs font-medium flex items-center gap-1.5 flex-shrink-0",
-									isCanvasOpen
-										? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 shadow-xs ring-1 ring-emerald-500/20"
-										: canvasDoc
-										? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 shadow-2xs"
-										: "text-muted-foreground hover:text-foreground hover:bg-muted/60 hover:shadow-xs"
-								)}
-								title={isCanvasOpen ? (t('canvas.hideCanvas') || 'Ocultar Canvas') : (t('canvas.openCanvas') || 'Abrir Canvas')}
-								disabled={loading}
-							>
-								<Layout className={cn("w-4 h-4 flex-shrink-0 text-emerald-500", isCanvasOpen && "animate-pulse")} />
-								{showButtonLabels && <span>{t('canvas.label') || 'Canvas'}</span>}
-								{canvasDoc && (
-									<span className="w-1.5 h-1.5 rounded-full bg-emerald-500 flex-shrink-0"></span>
-								)}
-							</Button>
-						)}
-
-						{/* Knowledge Base (RAG) Button */}
-						{powerUserMode && activeProject && openKnowledgeBaseModal && (
-							<Button
-								type="button"
-								variant="ghost"
-								size="sm"
-								onClick={openKnowledgeBaseModal}
-								className={cn(
-									"transition-all duration-200 rounded-xl px-2.5 py-1.5 text-xs font-medium flex items-center gap-1.5 flex-shrink-0",
-									(activeProject.folders?.length || 0) > 0
-										? "bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/25 shadow-xs"
-										: "text-muted-foreground hover:text-foreground hover:bg-muted/60 hover:shadow-xs"
-								)}
-								title={t('rag.viewKnowledge')}
-								disabled={loading}
-							>
-								<BookOpen className={cn("w-4 h-4 flex-shrink-0 text-indigo-500")} />
-								{showButtonLabels && (
-									<span>
-										{activeProject.folders?.length > 0
-											? `${activeProject.folders.length} ${activeProject.folders.length === 1 ? 'pasta' : 'pastas'}`
-											: t('rag.knowledgeBase')}
-									</span>
-								)}
-							</Button>
+						{/* Active State Chip: Canvas */}
+						{isCanvasOpen && (
+							<div className="flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 text-xs font-medium animate-in fade-in-0 shadow-2xs">
+								<Layout className="w-3.5 h-3.5" />
+								<span className="font-semibold">{t('canvas.label') || 'Canvas'}</span>
+								<button
+									type="button"
+									onClick={toggleCanvas}
+									className="ml-0.5 hover:bg-emerald-500/20 rounded-full p-0.5 transition-colors cursor-pointer"
+									title={t('canvas.hideCanvas') || 'Ocultar Canvas'}
+								>
+									<X className="w-3 h-3" />
+								</button>
+							</div>
 						)}
 					</div>
 

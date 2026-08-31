@@ -190,7 +190,7 @@ function MarkdownRenderer({ content = '', sources = [], disableMath = false, onP
       );
     },
     blockquote: ({ node: _, children, ...props }) => (
-      <blockquote className="border-l-4 border-primary/60 bg-muted/40 pl-3.5 py-1 my-3 text-muted-foreground italic rounded-r" {...props}>
+      <blockquote className="border-l-3 border-primary/70 bg-primary/5 dark:bg-primary/10 pl-4 py-2.5 my-3.5 text-foreground/90 rounded-r-xl not-italic shadow-2xs font-normal border-y border-r border-border/40" {...props}>
         {children}
       </blockquote>
     ),

@@ -556,8 +556,8 @@ function ChatHistorySidebar({ onNewChat, onChatLoaded, loading }) {
         <div className="flex items-center gap-2 min-w-0 flex-1 pr-1">
           <MessageSquare className={cn(
             "flex-shrink-0 transition-colors",
-            isIndented ? "h-3.5 w-3.5 text-muted-foreground/70 group-hover:text-primary" : "h-3.5 w-3.5 text-primary/80",
-            isCurrent && "text-primary"
+            isIndented ? "h-3.5 w-3.5 text-muted-foreground/50 group-hover:text-primary" : "h-3.5 w-3.5 text-muted-foreground/60 group-hover:text-primary",
+            isCurrent && "text-primary font-semibold"
           )} />
           {isEditing ? (
             <div className="flex items-center gap-1 min-w-0 flex-1" onClick={(e) => e.stopPropagation()}>
@@ -911,43 +911,43 @@ function ChatHistorySidebar({ onNewChat, onChatLoaded, loading }) {
       />
 
       {/* Header */}
-      <div className="flex items-center justify-between p-3 border-b border-border">
-        <h2 className="font-semibold text-sm text-foreground">{t('sidebar.title')}</h2>
-        <div className="flex items-center gap-1">
-          {chatList.length > 0 && (
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => setIsDeletingAllModalOpen(true)}
-              className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-muted"
-              title={t('sidebar.deleteAllChats')}
-            >
-              <Trash2 className="h-4 w-4" />
-            </Button>
-          )}
+      <div className="flex items-center justify-between p-3 border-b border-border/80 bg-background/50">
+        <h2 className="font-semibold text-xs text-foreground uppercase tracking-wider">{t('sidebar.title')}</h2>
+        <div className="flex items-center gap-0.5">
           <Button
             variant="ghost"
             size="icon"
             onClick={openCreateProjectModal}
-            className="h-8 w-8 text-muted-foreground hover:text-primary hover:bg-muted"
+            className="h-7 w-7 text-muted-foreground hover:text-primary hover:bg-muted/80 rounded-lg"
             title={t('projects.newProject')}
           >
-            <FolderPlus className="h-4 w-4" />
+            <FolderPlus className="h-3.5 w-3.5" />
           </Button>
           <Button
             variant="ghost"
             size="icon"
             onClick={() => onNewChat()}
-            className="h-8 w-8 text-foreground hover:bg-muted"
+            className="h-7 w-7 text-foreground hover:bg-muted/80 rounded-lg hover:text-primary"
             title={t('sidebar.newChat')}
           >
             <Plus className="h-4 w-4" />
           </Button>
+          {chatList.length > 0 && (
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setIsDeletingAllModalOpen(true)}
+              className="h-7 w-7 text-muted-foreground hover:text-destructive hover:bg-muted/80 rounded-lg"
+              title={t('sidebar.deleteAllChats')}
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+            </Button>
+          )}
           <Button
             variant="ghost"
             size="icon"
             onClick={toggleSidebar}
-            className="h-8 w-8 text-foreground hover:bg-muted"
+            className="h-7 w-7 text-muted-foreground hover:text-foreground hover:bg-muted/80 rounded-lg"
             title={t('header.collapseSidebar')}
           >
             <ChevronLeft className="h-4 w-4" />
@@ -1117,16 +1117,14 @@ function ChatHistorySidebar({ onNewChat, onChatLoaded, loading }) {
                           {isExpanded && (
                             <div className="ml-4 pl-2.5 border-l border-border/60 my-0.5 space-y-0.5">
                               {projChats.length === 0 ? (
-                                <div className="py-2 px-2 text-[11px] text-muted-foreground/70 flex items-center justify-between">
-                                  <span>{t('projects.noChatsYet')}</span>
-                                  <button
-                                    type="button"
-                                    onClick={() => onNewChat(project.id)}
-                                    className="text-primary hover:underline font-medium flex items-center gap-0.5"
-                                  >
-                                    <Plus className="w-3 h-3" /> {t('sidebar.newChat')}
-                                  </button>
-                                </div>
+                                <button
+                                  type="button"
+                                  onClick={() => onNewChat(project.id)}
+                                  className="w-full text-left py-1.5 px-2 text-[11px] text-muted-foreground/70 hover:text-primary hover:bg-muted/40 rounded-md transition-colors flex items-center gap-1.5 cursor-pointer"
+                                >
+                                  <Plus className="w-3 h-3 text-primary" />
+                                  <span>{t('sidebar.newChat') || 'Nova conversa'}</span>
+                                </button>
                               ) : (
                                 <>
                                   {displayChats.map((chat) => renderChatItem(chat, true))}

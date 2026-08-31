@@ -11,7 +11,7 @@ import { useCanvas } from './context/CanvasContext';
 import { useProjects } from './context/ProjectContext';
 import { useLanguage } from './context/LanguageContext';
 import { useTheme } from './context/ThemeContext';
-import { Settings, PanelLeftClose, PanelLeft, Radio, MessagesSquare, Sparkles, Store, Columns2, X, FolderKanban, BookOpen, Scale, Bot, Workflow, ChevronDown, Keyboard, Key, AlertCircle, PenSquare, Terminal, Folder, Briefcase, MessageSquare, Globe, Clock, Activity } from 'lucide-react';
+import { Settings, PanelLeftClose, PanelLeft, Radio, MessagesSquare, Sparkles, Store, Columns2, X, FolderKanban, BookOpen, Scale, Bot, Workflow, ChevronDown, Keyboard, Key, AlertCircle, PenSquare, Terminal, Folder, Briefcase, MessageSquare, Globe, Clock, Activity, LayoutGrid, MoreHorizontal } from 'lucide-react';
 import { Button } from './components/ui/button';
 import { cn } from './lib/utils';
 import { groupModels } from './lib/modelGrouping';
@@ -199,6 +199,22 @@ function App() {
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
   const [isSwarmModalOpen, setIsSwarmModalOpen] = useState(false);
   const [isAppSnipModalOpen, setIsAppSnipModalOpen] = useState(false);
+  const [isToolsDropdownOpen, setIsToolsDropdownOpen] = useState(false);
+  const toolsDropdownRef = useRef(null);
+
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (toolsDropdownRef.current && !toolsDropdownRef.current.contains(e.target)) {
+        setIsToolsDropdownOpen(false);
+      }
+    };
+    if (isToolsDropdownOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isToolsDropdownOpen]);
 
   const handleStartSnip = useCallback(() => {
     setIsAppSnipModalOpen(true);
@@ -2747,18 +2763,18 @@ function App() {
               )}
             </div>
 
-            <div className="flex items-center space-x-2">
-              {/* Terminal Workspace Toggle Button */}
+            <div className="flex items-center space-x-1.5 sm:space-x-2">
+              {/* Primary Active Panel Toggles: Terminal & Canvas */}
               {isPowerUser && (
                 <Button
                   variant={isTerminalOpen ? "default" : "outline"}
                   size="sm"
                   onClick={() => setIsTerminalOpen(!isTerminalOpen)}
                   className={cn(
-                    "text-xs border-border transition-colors font-mono",
+                    "h-8 px-2.5 text-xs border-border transition-colors font-mono rounded-xl shadow-2xs",
                     isTerminalOpen 
                       ? "bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs" 
-                      : "text-foreground hover:bg-muted"
+                      : "text-foreground hover:bg-muted/80 bg-background/80"
                   )}
                   title={isTerminalOpen ? "Ocultar Terminal (Ctrl+`)" : "Abrir Terminal (Ctrl+`)"}
                 >
@@ -2767,60 +2783,16 @@ function App() {
                 </Button>
               )}
 
-              {/* Background Tasks Toggle Button */}
-              {isPowerUser && (
-                <Button
-                  variant={isTasksOpen ? "default" : "outline"}
-                  size="sm"
-                  onClick={() => setIsTasksOpen(!isTasksOpen)}
-                  className={cn(
-                    "text-xs border-border transition-colors relative",
-                    isTasksOpen 
-                      ? "bg-blue-600 hover:bg-blue-700 text-white shadow-xs" 
-                      : "text-foreground hover:bg-muted"
-                  )}
-                  title={isTasksOpen ? "Ocultar Tarefas em Segundo Plano (Ctrl+Shift+T)" : "Abrir Tarefas em Segundo Plano (Ctrl+Shift+T)"}
-                >
-                  <Clock className={cn("h-3.5 w-3.5", isTasksOpen ? "text-white" : "text-blue-500 dark:text-blue-400", showButtonLabels && "mr-1.5")} />
-                  {showButtonLabels && <span className="hidden md:inline">Tarefas</span>}
-                  {runningTasksCount > 0 && (
-                    <span className="absolute -top-1 -right-1 px-1 py-0.2 rounded-full bg-blue-500 text-white text-[9px] font-bold animate-pulse">
-                      {runningTasksCount}
-                    </span>
-                  )}
-                </Button>
-              )}
-
-              {/* In-App Browser Toggle Button */}
-              {isPowerUser && (
-                <Button
-                  variant={isBrowserOpen ? "default" : "outline"}
-                  size="sm"
-                  onClick={() => setIsBrowserOpen(!isBrowserOpen)}
-                  className={cn(
-                    "text-xs border-border transition-colors",
-                    isBrowserOpen 
-                      ? "bg-indigo-600 hover:bg-indigo-700 text-white shadow-xs" 
-                      : "text-foreground hover:bg-muted"
-                  )}
-                  title={isBrowserOpen ? "Ocultar Navegador (Ctrl+Shift+B)" : "Abrir Navegador (Ctrl+Shift+B)"}
-                >
-                  <Globe className={cn("h-3.5 w-3.5", isBrowserOpen ? "text-white" : "text-indigo-500 dark:text-indigo-400", showButtonLabels && "mr-1.5")} />
-                  {showButtonLabels && <span className="hidden md:inline">Navegador</span>}
-                </Button>
-              )}
-
-              {/* Canvas Workspace Toggle Button */}
               {isPowerUser && (
                 <Button
                   variant={isCanvasOpen ? "default" : "outline"}
                   size="sm"
                   onClick={handleToggleCanvas}
                   className={cn(
-                    "text-xs border-border transition-colors",
+                    "h-8 px-2.5 text-xs border-border transition-colors rounded-xl shadow-2xs",
                     isCanvasOpen 
                       ? "bg-primary hover:bg-primary/90 text-primary-foreground shadow-xs" 
-                      : "text-foreground hover:bg-muted"
+                      : "text-foreground hover:bg-muted/80 bg-background/80"
                   )}
                   title={isCanvasOpen ? (t('canvas.hideCanvas') || 'Ocultar Canvas (Ctrl+Shift+C)') : (t('canvas.openCanvas') || 'Abrir Canvas (Ctrl+Shift+C)')}
                 >
@@ -2829,89 +2801,193 @@ function App() {
                 </Button>
               )}
 
-              {/* Code Interpreter Toggle Button */}
+              {/* Consolidated Tools Menu Popover */}
               {isPowerUser && (
-                <Button
-                  variant={activeArtifact ? "default" : "outline"}
-                  size="sm"
-                  onClick={handleToggleCodeInterpreter}
-                  className={cn(
-                    "text-xs border-border transition-colors",
-                    activeArtifact 
-                      ? "bg-purple-600 hover:bg-purple-700 text-white shadow-xs" 
-                      : "text-foreground hover:bg-muted"
+                <div className="relative" ref={toolsDropdownRef}>
+                  <Button
+                    variant={isToolsDropdownOpen ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setIsToolsDropdownOpen(!isToolsDropdownOpen)}
+                    className={cn(
+                      "h-8 px-2.5 text-xs border-border transition-all rounded-xl shadow-2xs flex items-center gap-1.5",
+                      isToolsDropdownOpen
+                        ? "bg-primary text-primary-foreground shadow-xs"
+                        : "text-foreground hover:bg-muted/80 bg-background/80"
+                    )}
+                    title={t('header.toolsMenu') || 'Ferramentas e Recursos'}
+                  >
+                    <LayoutGrid className={cn("h-3.5 w-3.5", isToolsDropdownOpen ? "text-primary-foreground" : "text-primary")} />
+                    <span className="hidden lg:inline font-medium">{t('header.tools') || 'Ferramentas'}</span>
+                    {runningTasksCount > 0 && (
+                      <span className="px-1.5 py-0.2 rounded-full bg-blue-500 text-white text-[9px] font-bold animate-pulse">
+                        {runningTasksCount}
+                      </span>
+                    )}
+                    <ChevronDown className={cn("w-3 h-3 text-muted-foreground transition-transform duration-200", isToolsDropdownOpen && "rotate-180 text-primary-foreground")} />
+                  </Button>
+
+                  {/* Dropdown Menu */}
+                  {isToolsDropdownOpen && (
+                    <div className="absolute right-0 mt-2 w-64 p-1.5 rounded-2xl bg-popover border border-border text-popover-foreground shadow-xl z-50 animate-in fade-in-0 zoom-in-95 space-y-0.5 text-xs">
+                      {/* Swarm */}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsToolsDropdownOpen(false);
+                          setIsSwarmModalOpen(true);
+                        }}
+                        className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-muted/80 text-foreground transition-colors text-left"
+                      >
+                        <Bot className="w-4 h-4 text-indigo-500 shrink-0" />
+                        <div className="flex-1 min-w-0">
+                          <div className="font-semibold text-foreground">Equipe Swarm</div>
+                          <div className="text-[10px] text-muted-foreground truncate">Multi-agentes autônomos</div>
+                        </div>
+                      </button>
+
+                      {/* MCP Catalog */}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsToolsDropdownOpen(false);
+                          setIsMcpCatalogOpen(true);
+                        }}
+                        className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-muted/80 text-foreground transition-colors text-left"
+                      >
+                        <Store className="w-4 h-4 text-primary shrink-0" />
+                        <div className="flex-1 min-w-0">
+                          <div className="font-semibold text-foreground">{t('mcpCatalog.title') || 'Loja MCP'}</div>
+                          <div className="text-[10px] text-muted-foreground truncate">Servidores de ferramentas e integrações</div>
+                        </div>
+                      </button>
+
+                      {/* Workflows */}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsToolsDropdownOpen(false);
+                          setIsWorkflowsOpen(true);
+                        }}
+                        className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-muted/80 text-foreground transition-colors text-left"
+                      >
+                        <Workflow className="w-4 h-4 text-emerald-500 shrink-0" />
+                        <div className="flex-1 min-w-0">
+                          <div className="font-semibold text-foreground">{t('workflows.title') || 'Workflows'}</div>
+                          <div className="text-[10px] text-muted-foreground truncate">Fluxos de trabalho automatizados</div>
+                        </div>
+                      </button>
+
+                      {/* Compare Models */}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsToolsDropdownOpen(false);
+                          setIsCompareMode(!isCompareMode);
+                        }}
+                        className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-muted/80 text-foreground transition-colors text-left"
+                      >
+                        <Scale className="w-4 h-4 text-purple-500 shrink-0" />
+                        <div className="flex-1 min-w-0">
+                          <div className="font-semibold text-foreground">{t('header.compareModels') || 'Comparar Modelos'}</div>
+                          <div className="text-[10px] text-muted-foreground truncate">Visualização lado a lado</div>
+                        </div>
+                        {isCompareMode && <span className="w-2 h-2 rounded-full bg-purple-500" />}
+                      </button>
+
+                      {/* In-App Browser */}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsToolsDropdownOpen(false);
+                          setIsBrowserOpen(!isBrowserOpen);
+                        }}
+                        className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-muted/80 text-foreground transition-colors text-left"
+                      >
+                        <Globe className="w-4 h-4 text-indigo-500 shrink-0" />
+                        <div className="flex-1 min-w-0">
+                          <div className="font-semibold text-foreground">Navegador Web</div>
+                          <div className="text-[10px] text-muted-foreground truncate">Painel de navegação embutido</div>
+                        </div>
+                        {isBrowserOpen && <span className="w-2 h-2 rounded-full bg-indigo-500" />}
+                      </button>
+
+                      {/* Background Tasks */}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsToolsDropdownOpen(false);
+                          setIsTasksOpen(!isTasksOpen);
+                        }}
+                        className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-muted/80 text-foreground transition-colors text-left"
+                      >
+                        <Clock className="w-4 h-4 text-blue-500 shrink-0" />
+                        <div className="flex-1 min-w-0">
+                          <div className="font-semibold text-foreground">Tarefas em Segundo Plano</div>
+                          <div className="text-[10px] text-muted-foreground truncate">Monitor de processos e cron</div>
+                        </div>
+                        {runningTasksCount > 0 ? (
+                          <span className="px-1.5 py-0.2 rounded-full bg-blue-500 text-white text-[9px] font-bold">
+                            {runningTasksCount}
+                          </span>
+                        ) : isTasksOpen ? (
+                          <span className="w-2 h-2 rounded-full bg-blue-500" />
+                        ) : null}
+                      </button>
+
+                      {/* Code Interpreter */}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsToolsDropdownOpen(false);
+                          handleToggleCodeInterpreter();
+                        }}
+                        className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-muted/80 text-foreground transition-colors text-left"
+                      >
+                        <Terminal className="w-4 h-4 text-purple-500 shrink-0" />
+                        <div className="flex-1 min-w-0">
+                          <div className="font-semibold text-foreground">{t('header.codeInterpreter') || 'Interpretador de Código'}</div>
+                          <div className="text-[10px] text-muted-foreground truncate">Python & JavaScript interativo</div>
+                        </div>
+                        {activeArtifact && <span className="w-2 h-2 rounded-full bg-purple-500" />}
+                      </button>
+
+                      <div className="my-1 border-t border-border/60" />
+
+                      {/* Command Palette */}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsToolsDropdownOpen(false);
+                          setIsCommandPaletteOpen(true);
+                        }}
+                        className="w-full flex items-center justify-between px-3 py-1.5 rounded-xl hover:bg-muted/80 text-foreground transition-colors text-left text-[11px]"
+                      >
+                        <div className="flex items-center gap-2">
+                          <Keyboard className="w-3.5 h-3.5 text-muted-foreground" />
+                          <span className="font-medium">Paleta de Comandos</span>
+                        </div>
+                        <kbd className="px-1.5 py-0.5 text-[10px] font-mono bg-muted border border-border/80 rounded text-muted-foreground">Ctrl+K</kbd>
+                      </button>
+
+                      {/* Keyboard Shortcuts */}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsToolsDropdownOpen(false);
+                          setIsShortcutsModalOpen(true);
+                        }}
+                        className="w-full flex items-center justify-between px-3 py-1.5 rounded-xl hover:bg-muted/80 text-foreground transition-colors text-left text-[11px]"
+                      >
+                        <div className="flex items-center gap-2">
+                          <Keyboard className="w-3.5 h-3.5 text-muted-foreground" />
+                          <span className="font-medium">{t('header.keyboardShortcuts') || 'Atalhos de Teclado'}</span>
+                        </div>
+                        <kbd className="px-1.5 py-0.5 text-[10px] font-mono bg-muted border border-border/80 rounded text-muted-foreground">?</kbd>
+                      </button>
+                    </div>
                   )}
-                  title={activeArtifact ? (t('header.hideCodeInterpreter') || 'Ocultar Interpretador de Código') : (t('header.openCodeInterpreter') || 'Abrir Interpretador de Código (Ctrl+Shift+X)')}
-                >
-                  <Terminal className={cn("h-3.5 w-3.5", activeArtifact ? "text-white" : "text-purple-500 dark:text-purple-400", showButtonLabels && "mr-1.5")} />
-                  {showButtonLabels && <span className="hidden md:inline">{t('header.codeInterpreter') || 'Código'}</span>}
-                </Button>
+                </div>
               )}
-
-              {isPowerUser && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setIsSwarmModalOpen(true)}
-                  className="text-xs text-foreground border-border hover:bg-muted"
-                  title="Multi-Agent Swarm Team (Equipe de Subagentes)"
-                >
-                  <Bot className={cn("h-3.5 w-3.5 text-indigo-400", showButtonLabels && "mr-1.5")} />
-                  {showButtonLabels && <span className="hidden lg:inline">Swarm</span>}
-                </Button>
-              )}
-
-              {isPowerUser && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setIsCommandPaletteOpen(true)}
-                  className="text-xs text-foreground border-border hover:bg-muted"
-                  title="Command Palette (Ctrl+K)"
-                >
-                  <Keyboard className={cn("h-3.5 w-3.5 text-primary", showButtonLabels && "mr-1.5")} />
-                  {showButtonLabels && <span className="hidden md:inline">Ctrl+K</span>}
-                </Button>
-              )}
-
-              {isPowerUser && <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setIsWorkflowsOpen(true)}
-                className="text-xs text-foreground border-border hover:bg-muted"
-                title={t('workflows.title')}
-              >
-                <Workflow className={cn("h-3.5 w-3.5 text-primary", showButtonLabels && "mr-1.5")} />
-                {showButtonLabels && <span className="hidden lg:inline">{t('workflows.title')}</span>}
-              </Button>}
-              {/* MCP Catalog Button */}
-              {isPowerUser && <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setIsMcpCatalogOpen(true)}
-                className="text-xs text-foreground border-border hover:bg-muted"
-                title={t('mcpCatalog.title')}
-              >
-                <Store className={cn("h-3.5 w-3.5 text-primary", showButtonLabels && "mr-1.5")} />
-                {showButtonLabels && <span className="hidden md:inline">{t('header.mcpStore')}</span>}
-              </Button>}
-
-              {/* Compare Mode Toggle Button */}
-              {isPowerUser && <Button
-                variant={isCompareMode ? "default" : "outline"}
-                size="sm"
-                onClick={() => setIsCompareMode(!isCompareMode)}
-                className={cn(
-                  "text-xs border-border transition-colors",
-                  isCompareMode 
-                    ? "bg-purple-600 hover:bg-purple-700 text-white shadow-xs" 
-                    : "text-foreground hover:bg-muted"
-                )}
-                title={t('header.compareModels')}
-              >
-                <Scale className={cn("h-3.5 w-3.5 text-purple-400", showButtonLabels && "mr-1.5")} />
-                {showButtonLabels && <span className="hidden md:inline">{t('header.compareModels')}</span>}
-              </Button>}
 
               {/* Theme & Quick Appearance / Mode Toggle */}
               {isPowerUser && (
@@ -2921,22 +2997,9 @@ function App() {
                 />
               )}
 
-              {/* Keyboard Shortcuts Button */}
-              {isPowerUser && (
-                <Button 
-                  variant="ghost" 
-                  size="icon" 
-                  onClick={() => setIsShortcutsModalOpen(true)}
-                  className="text-foreground hover:bg-muted" 
-                  title={t('header.keyboardShortcuts')}
-                >
-                  <Keyboard className="h-5 w-5" />
-                </Button>
-              )}
-
               <Link to="/settings">
-                <Button variant="ghost" size="icon" className="text-foreground hover:bg-muted" title={t('header.settings')}>
-                  <Settings className="h-5 w-5" />
+                <Button variant="ghost" size="icon" className="h-8 w-8 text-foreground hover:bg-muted rounded-xl" title={t('header.settings')}>
+                  <Settings className="h-4 w-4" />
                 </Button>
               </Link>
             </div>
@@ -3231,18 +3294,13 @@ function App() {
 
         {/* Side-by-side Embedded Browser Panel */}
         {isBrowserOpen && (
-          <div className={cn(
-            "transition-all flex shrink-0 border-l border-border/80 bg-background/50",
-            isBrowserMaximized ? "w-full fixed inset-0 z-50 p-4" : "w-[500px] lg:w-[600px] xl:w-[700px] p-2"
-          )}>
-            <Suspense fallback={null}>
-              <BrowserPanel
-                onClose={() => setIsBrowserOpen(false)}
-                isMaximized={isBrowserMaximized}
-                onToggleMaximize={() => setIsBrowserMaximized(!isBrowserMaximized)}
-              />
-            </Suspense>
-          </div>
+          <Suspense fallback={null}>
+            <BrowserPanel
+              onClose={() => setIsBrowserOpen(false)}
+              isMaximized={isBrowserMaximized}
+              onToggleMaximize={() => setIsBrowserMaximized(!isBrowserMaximized)}
+            />
+          </Suspense>
         )}
       </div>
 

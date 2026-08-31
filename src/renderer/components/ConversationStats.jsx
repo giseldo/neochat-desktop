@@ -102,32 +102,19 @@ export function ConversationStats({ messages = [], className }) {
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center gap-2 px-2.5 py-1 rounded-lg border border-border bg-background/80 hover:bg-muted text-foreground transition-all text-xs font-medium shadow-xs group"
+        className="flex items-center gap-1.5 px-2.5 py-1 rounded-xl border border-border/70 bg-background/60 hover:bg-muted text-foreground transition-all text-xs font-medium shadow-2xs group cursor-pointer"
         title={t('stats.buttonTitle')}
       >
-        <div className="flex items-center gap-1.5">
-          <Activity className="w-3.5 h-3.5 text-primary shrink-0" />
-          <div className="flex items-center gap-1.5 text-xs font-mono">
-            <span className="flex items-center gap-0.5 text-blue-600 dark:text-blue-400 font-semibold" title={t('stats.promptInput')}>
-              <ArrowUp className="w-3 h-3" />
-              <span>{formatNumber(stats.totalPromptTokens)}</span>
-            </span>
-            <span className="text-muted-foreground/30 font-light">/</span>
-            <span className="flex items-center gap-0.5 text-emerald-600 dark:text-emerald-400 font-semibold" title={t('stats.completionOutput')}>
-              <ArrowDown className="w-3 h-3" />
-              <span>{formatNumber(stats.totalCompletionTokens)}</span>
-            </span>
-          </div>
-          <span className="text-[10px] text-muted-foreground font-mono">({formatNumber(stats.totalTokens)})</span>
-        </div>
-
+        <Activity className="w-3.5 h-3.5 text-primary shrink-0" />
+        <span className="font-mono text-xs font-semibold text-foreground">
+          {formatNumber(stats.totalTokens)} tk
+        </span>
         {stats.avgTokensPerSec > 0 && (
-          <div className="flex items-center gap-0.5 text-amber-500 border-l border-border pl-2">
-            <Zap className="w-3 h-3" />
-            <span className="font-semibold text-[11px]">{stats.avgTokensPerSec} t/s</span>
-          </div>
+          <span className="flex items-center gap-0.5 text-amber-500 font-mono text-[11px] font-semibold border-l border-border/60 pl-1.5">
+            <Zap className="w-3 h-3 fill-amber-500/20" />
+            {stats.avgTokensPerSec} t/s
+          </span>
         )}
-
         <ChevronDown className={cn("w-3 h-3 text-muted-foreground transition-transform duration-200", isOpen && "rotate-180")} />
       </button>
 
