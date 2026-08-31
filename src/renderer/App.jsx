@@ -110,6 +110,7 @@ function App() {
     loadChat,
     loadChatList,
     startFreshChat,
+    clearCurrentChat,
     isSidebarCollapsed,
     toggleSidebar,
     needsTitleGeneration
@@ -128,6 +129,7 @@ function App() {
     activeProject,
     activeProjectId,
     setActiveProjectId,
+    openCreateProjectModal,
     openEditProjectModal,
     isKnowledgeBaseModalOpen,
     openKnowledgeBaseModal,
@@ -3252,9 +3254,7 @@ function App() {
         onOpenSettings={() => navigate('/settings')}
         onOpenKnowledgeBase={() => setIsKnowledgeBaseModalOpen(true)}
         onOpenWorkflows={() => setIsWorkflowsOpen(true)}
-        onOpenProjects={() => {
-          // Open projects if needed
-        }}
+        onOpenProjects={openCreateProjectModal}
         onOpenMcpCatalog={() => setIsMcpCatalogOpen(true)}
         onToggleCompareMode={() => setIsCompareMode(prev => !prev)}
         onToggleTerminal={() => setIsTerminalOpen(prev => !prev)}
@@ -3271,7 +3271,7 @@ function App() {
         personas={DEFAULT_PERSONAS}
         activePersona={activePersona}
         onSelectPersona={(p) => setActivePersona(p)}
-        onClearChat={handleClearAllMessages}
+        onClearChat={clearCurrentChat}
         onExportChat={handleExportChat}
       />
 
