@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { Link, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Search, Eye, EyeOff, Plus, Trash2, Edit3, Save, X, RefreshCw, Key, Settings as SettingsIcon, Zap, Cpu, Server, AlertCircle, CheckCircle, Sun, Moon, Laptop, Languages, Check, Terminal, Globe, Palette, Type, Sparkles, Sliders, ExternalLink, Route, User, Wrench, Download, UploadCloud, BarChart3, GitBranch, Mic, Volume2, Info, Keyboard, Folder, FolderOpen, RotateCcw, Lightbulb, Star, ChevronDown, ChevronUp, HardDrive, Brain, Flame, AlignJustify, Maximize2 } from 'lucide-react';
+import { ArrowLeft, Search, Eye, EyeOff, Plus, Trash2, Edit3, Save, X, RefreshCw, Key, Settings as SettingsIcon, Zap, Cpu, Server, AlertCircle, CheckCircle, Sun, Moon, Laptop, Languages, Check, Terminal, Globe, Palette, Type, Sparkles, Sliders, ExternalLink, Route, User, Wrench, Download, UploadCloud, BarChart3, GitBranch, Mic, Volume2, Info, Keyboard, Folder, FolderOpen, RotateCcw, Lightbulb, Star, ChevronDown, ChevronUp, HardDrive, Brain, Flame, AlignJustify, Maximize2, Blocks } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
@@ -311,6 +311,8 @@ function Settings() {
   const [isPromptTemplatesModalOpen, setIsPromptTemplatesModalOpen] = useState(false);
   const [isTestingWebSearch, setIsTestingWebSearch] = useState(false);
   const [webSearchTestResult, setWebSearchTestResult] = useState(null);
+  const [pluginList, setPluginList] = useState([]);
+  const [isTogglingPlugin, setIsTogglingPlugin] = useState(null);
   const [settings, setSettings] = useState({
     language: 'pt',
     interfaceMode: 'user',
@@ -621,6 +623,7 @@ function Settings() {
   const CATEGORIES = useMemo(() => [
     { id: 'all', label: t('settings.navAll') || 'Todas', icon: Sliders, desc: 'Todas as configurações do aplicativo' },
     { id: 'interface', label: t('settings.navInterface') || 'Interface & Aparência', icon: Palette, desc: 'Personalize o modo de uso, temas, cores, tipografia e abas da tela' },
+    { id: 'plugins', label: 'Módulos & Plugins', icon: Sparkles, desc: 'Gerenciamento de módulos e plugins com lazy-loading e zero overhead em repouso' },
     { id: 'features', label: t('settings.navFeatures') || 'Ativar/Desativar Recursos', icon: Zap, desc: 'Controle de voz Whisper, leitura TTS, busca web, ferramentas e atalhos' },
     { id: 'models', label: t('settings.navModels') || 'Modelos & Provedores', icon: Cpu, desc: 'Provedores de IA, chaves de API, parâmetros e catálogo de modelos' },
     { id: 'integrations', label: t('settings.navIntegrations') || 'Integrações & MCP', icon: Server, desc: 'Servidores MCP locais e remotos, conectores Google e permissões' },
@@ -628,6 +631,14 @@ function Settings() {
   ], [t]);
 
   const CARDS_METADATA = useMemo(() => [
+    {
+      id: 'pluginsHub',
+      category: 'plugins',
+      title: 'Módulos & Extensões (Plugins Hub)',
+      desc: 'Ative ou desative módulos individuais para economizar recursos e memória',
+      keywords: 'plugins modulos extensoes arena debate sandbox live preview podcast studio grafo conhecimento briefing vision',
+      isPowerOnly: false
+    },
     {
       id: 'interfaceMode',
       category: 'interface',
@@ -938,6 +949,12 @@ function Settings() {
       try {
         const settingsData = await window.electron.getSettings();
         const providerList = await loadProviders(settingsData);
+        if (window.electron?.plugins?.list) {
+          try {
+            const pList = await window.electron.plugins.list();
+            setPluginList(pList || []);
+          } catch (e) {}
+        }
         if (!settingsData.disabledMcpServers) {
             settingsData.disabledMcpServers = [];
         }
@@ -2871,8 +2888,113 @@ function Settings() {
     }
   };
 
+  const handleTogglePluginSetting = async (pluginId, currentEnabled) => {
+    if (!window.electron?.plugins?.toggle) return;
+    setIsTogglingPlugin(pluginId);
+    try {
+      const res = await window.electron.plugins.toggle(pluginId, !currentEnabled);
+      if (res && res.success) {
+        setPluginList(prev => prev.map(p => p.id === pluginId ? { ...p, enabled: !currentEnabled } : p));
+      }
+    } catch (e) {
+      console.error('Failed to toggle plugin:', e);
+    } finally {
+      setIsTogglingPlugin(null);
+    }
+  };
 
   // --- Section Render Helpers ---
+  const renderPluginsSection = () => {
+    const hasVisible = visibleCardIds.has('pluginsHub');
+    if (!hasVisible && activeCategory !== 'plugins' && activeCategory !== 'all') return null;
+
+    return (
+      <div className="space-y-6">
+        {(activeCategory === 'all' || activeCategory === 'plugins') && !searchQuery && (
+          <div className="flex items-center gap-2 pb-2 border-b border-border/60">
+            <Sparkles className="w-5 h-5 text-primary" />
+            <div>
+              <h2 className="text-base font-bold text-foreground">Módulos & Extensões (Plugins Hub)</h2>
+              <p className="text-xs text-muted-foreground">
+                Arquitetura sob demanda (Lazy Loading). Módulos inativos consomem 0 MB de memória em repouso.
+              </p>
+            </div>
+          </div>
+        )}
+
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div className="space-y-1">
+                <CardTitle className="flex items-center gap-2 text-base">
+                  <Blocks className="w-5 h-5 text-primary" />
+                  <span>Central de Módulos & Extensões</span>
+                </CardTitle>
+                <CardDescription>
+                  Ative ou desative módulos individuais dinamicamente. Zero sobrecarga quando inativo.
+                </CardDescription>
+              </div>
+              <Badge variant="outline" className="text-xs border-primary/30 text-primary bg-primary/10">
+                {pluginList.filter(p => p.enabled !== false).length} de {pluginList.length} ativos
+              </Badge>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              {pluginList.map(plugin => {
+                const isEnabled = plugin.enabled !== false;
+                const isToggling = isTogglingPlugin === plugin.id;
+
+                return (
+                  <div
+                    key={plugin.id}
+                    className={cn(
+                      'p-3.5 rounded-xl border transition-all flex flex-col justify-between gap-3',
+                      isEnabled
+                        ? 'bg-card border-border hover:border-primary/40'
+                        : 'bg-muted/30 border-border/40 opacity-70'
+                    )}
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="space-y-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span className="font-semibold text-xs text-foreground truncate">{plugin.name}</span>
+                          <Badge variant="outline" className="text-[9px] px-1 py-0 border-border text-muted-foreground">
+                            v{plugin.version || '1.0'}
+                          </Badge>
+                        </div>
+                        <p className="text-[11px] text-muted-foreground line-clamp-2 leading-relaxed">
+                          {plugin.description}
+                        </p>
+                      </div>
+
+                      <Switch
+                        checked={isEnabled}
+                        disabled={isToggling}
+                        onChange={() => handleTogglePluginSetting(plugin.id, isEnabled)}
+                      />
+                    </div>
+
+                    <div className="flex items-center justify-between pt-2 border-t border-border/50 text-[10px]">
+                      <span className={cn(
+                        'inline-flex items-center gap-1 font-medium',
+                        isEnabled ? 'text-emerald-500' : 'text-muted-foreground'
+                      )}>
+                        <span className={cn('w-1.5 h-1.5 rounded-full', isEnabled ? 'bg-emerald-500 animate-pulse' : 'bg-muted-foreground')} />
+                        {isEnabled ? 'Ativo (Lazy)' : 'Inativo (0 MB)'}
+                      </span>
+                      <span className="text-muted-foreground capitalize font-mono">{plugin.category}</span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  };
+
   const renderInterfaceSection = () => {
     const hasVisible =
       visibleCardIds.has('interfaceMode') ||
@@ -7038,6 +7160,7 @@ function Settings() {
 
             {/* Render sections according to active filter / category */}
             {(activeCategory === 'all' || activeCategory === 'interface' || searchQuery) && renderInterfaceSection()}
+            {(activeCategory === 'all' || activeCategory === 'plugins' || searchQuery) && renderPluginsSection()}
             {(activeCategory === 'all' || activeCategory === 'features' || searchQuery) && renderFeaturesSection()}
             {(activeCategory === 'all' || activeCategory === 'models' || searchQuery) && renderModelsSection()}
             {(activeCategory === 'all' || activeCategory === 'integrations' || searchQuery) && renderIntegrationsSection()}

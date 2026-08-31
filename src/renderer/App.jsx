@@ -38,6 +38,14 @@ const BrowserPanel = lazy(() => import('./components/BrowserPanel'));
 const CommandPaletteModal = lazy(() => import('./components/CommandPaletteModal'));
 const SwarmTeamModal = lazy(() => import('./components/SwarmTeamModal'));
 const SnipModal = lazy(() => import('./components/SnipModal'));
+const PluginsManagerModal = lazy(() => import('./components/PluginsManagerModal'));
+const ArenaModal = lazy(() => import('./components/ArenaModal'));
+const LiveSandboxModal = lazy(() => import('./components/LiveSandboxModal'));
+const PodcastStudioModal = lazy(() => import('./components/PodcastStudioModal'));
+const KnowledgeGraphModal = lazy(() => import('./components/KnowledgeGraphModal'));
+const DailyBriefingModal = lazy(() => import('./components/DailyBriefingModal'));
+const McpHubModal = lazy(() => import('./components/McpHubModal'));
+const ComputerVisionModal = lazy(() => import('./components/ComputerVisionModal'));
 
 // LocalStorage keys
 const TOOL_APPROVAL_PREFIX = 'tool_approval_';
@@ -199,6 +207,14 @@ function App() {
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
   const [isSwarmModalOpen, setIsSwarmModalOpen] = useState(false);
   const [isAppSnipModalOpen, setIsAppSnipModalOpen] = useState(false);
+  const [isPluginsManagerOpen, setIsPluginsManagerOpen] = useState(false);
+  const [isArenaModalOpen, setIsArenaModalOpen] = useState(false);
+  const [isLiveSandboxOpen, setIsLiveSandboxOpen] = useState(false);
+  const [isPodcastStudioOpen, setIsPodcastStudioOpen] = useState(false);
+  const [isKnowledgeGraphOpen, setIsKnowledgeGraphOpen] = useState(false);
+  const [isDailyBriefingOpen, setIsDailyBriefingOpen] = useState(false);
+  const [isMcpHubOpen, setIsMcpHubOpen] = useState(false);
+  const [isComputerVisionOpen, setIsComputerVisionOpen] = useState(false);
   const [isToolsDropdownOpen, setIsToolsDropdownOpen] = useState(false);
   const toolsDropdownRef = useRef(null);
 
@@ -2960,6 +2976,107 @@ function App() {
 
                       <div className="my-1 border-t border-border/60" />
 
+                      {/* Plugins & Modules Hub */}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsToolsDropdownOpen(false);
+                          setIsPluginsManagerOpen(true);
+                        }}
+                        className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-muted/80 text-foreground transition-colors text-left"
+                      >
+                        <Sparkles className="w-4 h-4 text-indigo-400 shrink-0" />
+                        <div className="flex-1 min-w-0">
+                          <div className="font-semibold text-foreground flex items-center justify-between">
+                            <span>Módulos & Extensões</span>
+                            <span className="px-1.5 py-0.2 rounded bg-indigo-500/20 text-indigo-400 text-[9px] font-semibold">Hub</span>
+                          </div>
+                          <div className="text-[10px] text-muted-foreground truncate">Ativar/desativar módulos (0MB idle)</div>
+                        </div>
+                      </button>
+
+                      {/* AI Arena */}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsToolsDropdownOpen(false);
+                          setIsArenaModalOpen(true);
+                        }}
+                        className="w-full flex items-center gap-2.5 px-3 py-1.5 rounded-xl hover:bg-muted/80 text-foreground transition-colors text-left"
+                      >
+                        <Bot className="w-4 h-4 text-orange-400 shrink-0" />
+                        <div className="flex-1 min-w-0">
+                          <div className="font-semibold text-foreground">AI Arena & Debate</div>
+                          <div className="text-[10px] text-muted-foreground truncate">Debate em rodadas & consenso</div>
+                        </div>
+                      </button>
+
+                      {/* Web Sandbox */}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsToolsDropdownOpen(false);
+                          setIsLiveSandboxOpen(true);
+                        }}
+                        className="w-full flex items-center gap-2.5 px-3 py-1.5 rounded-xl hover:bg-muted/80 text-foreground transition-colors text-left"
+                      >
+                        <LayoutGrid className="w-4 h-4 text-emerald-400 shrink-0" />
+                        <div className="flex-1 min-w-0">
+                          <div className="font-semibold text-foreground">Live Dev Sandbox</div>
+                          <div className="text-[10px] text-muted-foreground truncate">Preview HTML/Tailwind/React</div>
+                        </div>
+                      </button>
+
+                      {/* Podcast Studio */}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsToolsDropdownOpen(false);
+                          setIsPodcastStudioOpen(true);
+                        }}
+                        className="w-full flex items-center gap-2.5 px-3 py-1.5 rounded-xl hover:bg-muted/80 text-foreground transition-colors text-left"
+                      >
+                        <Radio className="w-4 h-4 text-purple-400 shrink-0" />
+                        <div className="flex-1 min-w-0">
+                          <div className="font-semibold text-foreground">Podcast & Audio Studio</div>
+                          <div className="text-[10px] text-muted-foreground truncate">NotebookLM style 2-hosts TTS</div>
+                        </div>
+                      </button>
+
+                      {/* Knowledge Graph */}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsToolsDropdownOpen(false);
+                          setIsKnowledgeGraphOpen(true);
+                        }}
+                        className="w-full flex items-center gap-2.5 px-3 py-1.5 rounded-xl hover:bg-muted/80 text-foreground transition-colors text-left"
+                      >
+                        <BookOpen className="w-4 h-4 text-blue-400 shrink-0" />
+                        <div className="flex-1 min-w-0">
+                          <div className="font-semibold text-foreground">Grafo & Data Studio</div>
+                          <div className="text-[10px] text-muted-foreground truncate">Grafo 2D do RAG & gráficos</div>
+                        </div>
+                      </button>
+
+                      {/* Daily Briefing */}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsToolsDropdownOpen(false);
+                          setIsDailyBriefingOpen(true);
+                        }}
+                        className="w-full flex items-center gap-2.5 px-3 py-1.5 rounded-xl hover:bg-muted/80 text-foreground transition-colors text-left"
+                      >
+                        <Clock className="w-4 h-4 text-amber-400 shrink-0" />
+                        <div className="flex-1 min-w-0">
+                          <div className="font-semibold text-foreground">Proactive Daily Briefing</div>
+                          <div className="text-[10px] text-muted-foreground truncate">Resumo matinal inteligente</div>
+                        </div>
+                      </button>
+
+                      <div className="my-1 border-t border-border/60" />
+
                       {/* Command Palette */}
                       <button
                         type="button"
@@ -3371,6 +3488,14 @@ function App() {
           onToggleBackgroundTasks={() => setIsTasksOpen(prev => !prev)}
           onToggleBrowser={() => setIsBrowserOpen(prev => !prev)}
           onOpenSwarmModal={() => setIsSwarmModalOpen(true)}
+          onOpenPluginsManager={() => setIsPluginsManagerOpen(true)}
+          onOpenArenaModal={() => setIsArenaModalOpen(true)}
+          onOpenLiveSandbox={() => setIsLiveSandboxOpen(true)}
+          onOpenPodcastStudio={() => setIsPodcastStudioOpen(true)}
+          onOpenKnowledgeGraph={() => setIsKnowledgeGraphOpen(true)}
+          onOpenDailyBriefing={() => setIsDailyBriefingOpen(true)}
+          onOpenMcpHub={() => setIsMcpHubOpen(true)}
+          onOpenComputerVision={() => setIsComputerVisionOpen(true)}
           onTriggerSnip={handleStartSnip}
           onTriggerVoice={() => {
             // Trigger voice push-to-talk
@@ -3405,6 +3530,75 @@ function App() {
               handleSendMessage('', [capturedFile]);
             }
           }}
+        />
+
+        {/* Modular Plugins Manager Hub Modal */}
+        <PluginsManagerModal
+          isOpen={isPluginsManagerOpen}
+          onClose={() => setIsPluginsManagerOpen(false)}
+          onOpenPluginModal={(pluginId) => {
+            if (pluginId === 'arena') setIsArenaModalOpen(true);
+            else if (pluginId === 'live-preview') setIsLiveSandboxOpen(true);
+            else if (pluginId === 'podcast-studio') setIsPodcastStudioOpen(true);
+            else if (pluginId === 'knowledge-graph') setIsKnowledgeGraphOpen(true);
+            else if (pluginId === 'daily-briefing') setIsDailyBriefingOpen(true);
+            else if (pluginId === 'mcp-hub') setIsMcpHubOpen(true);
+            else if (pluginId === 'computer-vision') setIsComputerVisionOpen(true);
+            else if (pluginId === 'rag') openKnowledgeBaseModal();
+            else if (pluginId === 'canvas') handleToggleCanvas();
+            else if (pluginId === 'workflows') setIsWorkflowsOpen(true);
+            else if (pluginId === 'swarm') setIsSwarmModalOpen(true);
+            else if (pluginId === 'terminal') setIsTerminalOpen(true);
+            else if (pluginId === 'browser') setIsBrowserOpen(true);
+          }}
+        />
+
+        {/* AI Arena & Debate Multi-Modelos */}
+        <ArenaModal
+          isOpen={isArenaModalOpen}
+          onClose={() => setIsArenaModalOpen(false)}
+          currentModel={selectedModel}
+          onSendToChat={(content) => handleSendMessage(content)}
+          onOpenCanvas={() => handleToggleCanvas()}
+        />
+
+        {/* Web Sandbox & Live Preview */}
+        <LiveSandboxModal
+          isOpen={isLiveSandboxOpen}
+          onClose={() => setIsLiveSandboxOpen(false)}
+        />
+
+        {/* Podcast & Audio Studio */}
+        <PodcastStudioModal
+          isOpen={isPodcastStudioOpen}
+          onClose={() => setIsPodcastStudioOpen(false)}
+        />
+
+        {/* Knowledge Graph & Data Studio */}
+        <KnowledgeGraphModal
+          isOpen={isKnowledgeGraphOpen}
+          onClose={() => setIsKnowledgeGraphOpen(false)}
+        />
+
+        {/* Proactive Daily Briefing */}
+        <DailyBriefingModal
+          isOpen={isDailyBriefingOpen}
+          onClose={() => setIsDailyBriefingOpen(false)}
+          onSendToChat={(content) => handleSendMessage(content)}
+        />
+
+        {/* Community MCP Hub & Store */}
+        <McpHubModal
+          isOpen={isMcpHubOpen}
+          onClose={() => setIsMcpHubOpen(false)}
+          onOpenSettingsMcp={() => navigate('/settings?tab=integrations')}
+        />
+
+        {/* Computer Vision & Desktop Assistant */}
+        <ComputerVisionModal
+          isOpen={isComputerVisionOpen}
+          onClose={() => setIsComputerVisionOpen(false)}
+          onSendToChat={(content) => handleSendMessage(content)}
         />
       </Suspense>
 

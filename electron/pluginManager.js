@@ -572,6 +572,30 @@ class PluginManager {
         }
       });
     }
+
+    // Dynamic Discovery: Load all plugins from electron/plugins directory
+    try {
+      const fs = require('fs');
+      const path = require('path');
+      const pluginsDir = path.join(__dirname, 'plugins');
+      if (fs.existsSync(pluginsDir)) {
+        const files = fs.readdirSync(pluginsDir);
+        for (const file of files) {
+          if (file.endsWith('.js')) {
+            try {
+              const pluginDef = require(path.join(pluginsDir, file));
+              if (pluginDef && pluginDef.id && !this.plugins.has(pluginDef.id)) {
+                this.register(pluginDef);
+              }
+            } catch (err) {
+              console.warn(`[PluginManager] Failed to load plugin file ${file}:`, err.message);
+            }
+          }
+        }
+      }
+    } catch (e) {
+      console.warn('[PluginManager] Dynamic plugins folder scan failed:', e.message);
+    }
   }
 }
 
@@ -581,3 +605,4 @@ module.exports = {
   PluginManager,
   pluginManager
 };
+

@@ -86,6 +86,49 @@ contextBridge.exposeInMainWorld('electron', {
     setGlobal: (updates) => ipcRenderer.invoke('tool-permissions-set-global', updates),
     reset: () => ipcRenderer.invoke('tool-permissions-reset')
   },
+  // Modular Plugins & Micro-Kernel System API
+  plugins: {
+    list: () => ipcRenderer.invoke('plugins:list'),
+    toggle: (pluginId, enabled) => ipcRenderer.invoke('plugins:toggle', { pluginId, enabled }),
+  },
+  // Arena & Multi-Model Debate API
+  arena: {
+    runDebate: (params) => ipcRenderer.invoke('arena:run-debate', params),
+    runConsensus: (params) => ipcRenderer.invoke('arena:run-consensus', params),
+    onEvent: (callback) => {
+      const handler = (_, data) => callback(data);
+      ipcRenderer.on('arena:event', handler);
+      return () => ipcRenderer.removeListener('arena:event', handler);
+    }
+  },
+  // Web Sandbox & Live Preview API
+  livePreview: {
+    bundle: (params) => ipcRenderer.invoke('live-preview:bundle', params)
+  },
+  // Podcast Studio API
+  podcast: {
+    generateScript: (params) => ipcRenderer.invoke('podcast:generate-script', params)
+  },
+  // Knowledge Graph & Data Studio API
+  knowledgeGraph: {
+    getData: (params) => ipcRenderer.invoke('knowledge-graph:get-data', params),
+    parseTable: (rawText) => ipcRenderer.invoke('data-studio:parse-table', { rawText })
+  },
+  // Proactive Daily Briefing API
+  dailyBriefing: {
+    get: (params) => ipcRenderer.invoke('daily-briefing:get', params)
+  },
+  // MCP Hub API
+  mcpHub: {
+    listServers: () => ipcRenderer.invoke('mcp-hub:list-servers'),
+    listRecipes: () => ipcRenderer.invoke('mcp-hub:list-recipes'),
+    install: (params) => ipcRenderer.invoke('mcp-hub:install', params)
+  },
+  // Computer Vision API
+  vision: {
+    captureScreen: (displayId) => ipcRenderer.invoke('vision:capture-screen', displayId),
+    analyzeScreen: (params) => ipcRenderer.invoke('vision:analyze-screen', params)
+  },
   // Neo Agent Runtime API
   agent: {
     createSession: (options) => ipcRenderer.invoke('agent:create-session', options),

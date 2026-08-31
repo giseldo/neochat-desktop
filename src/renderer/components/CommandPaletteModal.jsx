@@ -47,6 +47,14 @@ export function CommandPaletteModal({
   onToggleBackgroundTasks,
   onToggleBrowser,
   onOpenSwarmModal,
+  onOpenPluginsManager,
+  onOpenArenaModal,
+  onOpenLiveSandbox,
+  onOpenPodcastStudio,
+  onOpenKnowledgeGraph,
+  onOpenDailyBriefing,
+  onOpenMcpHub,
+  onOpenComputerVision,
   onTriggerSnip,
   onTriggerVoice,
   availableModels = [],
@@ -84,6 +92,78 @@ export function CommandPaletteModal({
 
     // --- Category: Navigation & Views ---
     items.push(
+      {
+        id: 'nav_plugins',
+        category: 'nav',
+        categoryLabel: 'Navegação',
+        title: 'Módulos & Extensões (Plugins Hub)',
+        subtitle: 'Ativar/desativar módulos com zero overhead em repouso',
+        icon: Sparkles,
+        action: () => { onClose(); onOpenPluginsManager?.(); }
+      },
+      {
+        id: 'nav_arena',
+        category: 'nav',
+        categoryLabel: 'Navegação',
+        title: 'AI Arena & Debate Multi-Modelos',
+        subtitle: 'Debate em rodadas entre modelos e votação por consenso',
+        icon: Users,
+        action: () => { onClose(); onOpenArenaModal?.(); }
+      },
+      {
+        id: 'nav_sandbox',
+        category: 'nav',
+        categoryLabel: 'Navegação',
+        title: 'Web Sandbox & Live Dev Preview',
+        subtitle: 'Preview interativo de HTML, Tailwind, React e JS com console',
+        icon: FileCode,
+        action: () => { onClose(); onOpenLiveSandbox?.(); }
+      },
+      {
+        id: 'nav_podcast',
+        category: 'nav',
+        categoryLabel: 'Navegação',
+        title: 'Podcast & Audio Studio',
+        subtitle: 'Gerar conversa de 2 apresentadores via TTS (NotebookLM style)',
+        icon: Mic,
+        action: () => { onClose(); onOpenPodcastStudio?.(); }
+      },
+      {
+        id: 'nav_graph',
+        category: 'nav',
+        categoryLabel: 'Navegação',
+        title: 'Knowledge Graph & Data Studio',
+        subtitle: 'Visualizador 2D do RAG e gráficos dinâmicos para tabelas',
+        icon: Layers,
+        action: () => { onClose(); onOpenKnowledgeGraph?.(); }
+      },
+      {
+        id: 'nav_briefing',
+        category: 'nav',
+        categoryLabel: 'Navegação',
+        title: 'Proactive Daily Briefing',
+        subtitle: 'Painel matinal inteligente com agenda, commits e áudio',
+        icon: Clock,
+        action: () => { onClose(); onOpenDailyBriefing?.(); }
+      },
+      {
+        id: 'nav_mcp_hub',
+        category: 'nav',
+        categoryLabel: 'Navegação',
+        title: 'Community MCP Hub & Store',
+        subtitle: 'Instalação 1-click de servidores MCP e receitas prontas',
+        icon: Wand2,
+        action: () => { onClose(); onOpenMcpHub?.(); }
+      },
+      {
+        id: 'nav_vision',
+        category: 'nav',
+        categoryLabel: 'Navegação',
+        title: 'Computer Vision & Desktop Assistant',
+        subtitle: 'Inspeção de tela, OCR e automação visual guiada',
+        icon: Camera,
+        action: () => { onClose(); onOpenComputerVision?.(); }
+      },
       {
         id: 'nav_settings',
         category: 'nav',
