@@ -81,7 +81,7 @@ const { taskManager } = require('./taskManager');
 const { browserManager } = require('./browserManager');
 
 // Import Neo Agent Runtime
-const { neoAgentRuntime } = require('./agent');
+const { neoAgentRuntime, swarmManager } = require('./agent');
 
 // Global variable to hold the main window instance
 let mainWindow;
@@ -686,6 +686,31 @@ app.whenReady().then(async () => {
     const folderPath = result.filePaths[0];
     const info = await neoAgentRuntime.getWorkspaceInfo(folderPath);
     return { success: true, path: folderPath, info };
+  });
+
+  // Swarm Multi-Agent Team Handlers
+  ipcMain.handle('agent:swarm:get-roles', async () => {
+    return {
+      roles: swarmManager.getRoles(),
+      modes: swarmManager.getModes()
+    };
+  });
+
+  ipcMain.handle('agent:swarm:run', async (event, params = {}) => {
+    const currentSettings = loadSettings();
+    return await swarmManager.runTeam({
+      ...params,
+      settings: { ...currentSettings, ...(params.settings || {}) },
+      onProgress: (data) => {
+        if (event.sender && !event.sender.isDestroyed()) {
+          event.sender.send('agent:swarm:event', data);
+        }
+      }
+    });
+  });
+
+  ipcMain.handle('agent:swarm:cancel', async (_event, swarmId) => {
+    return { success: swarmManager.cancel(swarmId) };
   });
 
   // Model configs handler already registered above during early initialization

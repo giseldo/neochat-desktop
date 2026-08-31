@@ -13,6 +13,7 @@ const { shellManager, ShellManager } = require('./shellManager');
 const { checkpointsManager, CheckpointsManager } = require('./checkpoints');
 const { compactionManager, CompactionManager } = require('./compactionManager');
 const { agentLoop, AgentLoop } = require('./agentLoop');
+const { swarmManager, SwarmManager, SWARM_ROLES, SWARM_MODES } = require('./swarmManager');
 
 module.exports = {
   neoAgentRuntime,
@@ -40,5 +41,9 @@ module.exports = {
   compactionManager,
   CompactionManager,
   agentLoop,
-  AgentLoop
+  AgentLoop,
+  swarmManager,
+  SwarmManager,
+  SWARM_ROLES,
+  SWARM_MODES
 };

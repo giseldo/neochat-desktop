@@ -42,7 +42,10 @@
     "test:canvas-tts": "node test-canvas-tts.js",
     "test:latex": "node test-latex.js",
     "test:runtime": "node test-agent-runtime.js",
-    "test:browser": "node test-browser-panel.js"
+    "test:browser": "node test-browser-panel.js",
+    "test:swarm": "node test-swarm-manager.js",
+    "test:workflow-triggers": "node test-workflow-triggers.js",
+    "test:prompt-caching": "node test-prompt-caching-metrics.js"
   },
   "keywords": [
     "electron",

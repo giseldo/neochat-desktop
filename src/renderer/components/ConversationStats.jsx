@@ -10,6 +10,7 @@ export function ConversationStats({ messages = [], className }) {
   const stats = useMemo(() => {
     let totalPromptTokens = 0;
     let totalCompletionTokens = 0;
+    let totalCachedTokens = 0;
     let totalTimeSec = 0;
     let assistantTurnCount = 0;
     let userTurnCount = 0;
@@ -35,6 +36,7 @@ export function ConversationStats({ messages = [], className }) {
 
         let prompt = msg.usage?.prompt_tokens ?? msg.usage?.input_tokens ?? 0;
         let comp = msg.usage?.completion_tokens ?? msg.usage?.output_tokens ?? 0;
+        let cached = Number(msg.usage?.prompt_cache_hit_tokens ?? msg.usage?.cache_read_input_tokens ?? msg.usage?.cached_tokens ?? 0);
         const time = msg.usage?.completion_time || msg.usage?.total_time || msg.usage?.client_duration || 0;
 
         // If prompt_tokens is 0 but we have historical text, estimate prompt tokens
@@ -49,6 +51,7 @@ export function ConversationStats({ messages = [], className }) {
 
         totalPromptTokens += prompt;
         totalCompletionTokens += comp;
+        totalCachedTokens += cached;
         totalTimeSec += time;
         latestContextSize = prompt + comp;
 
@@ -64,6 +67,7 @@ export function ConversationStats({ messages = [], className }) {
     return {
       totalPromptTokens,
       totalCompletionTokens,
+      totalCachedTokens,
       totalTokens,
       totalTimeSec,
       avgTokensPerSec,
@@ -227,6 +231,17 @@ export function ConversationStats({ messages = [], className }) {
                 </span>
                 <span className="font-semibold text-foreground">{formatNumber(stats.latestContextSize)} {t('stats.tokensLabel')}</span>
               </div>
+
+              {stats.totalCachedTokens > 0 && (
+                <div className="flex items-center justify-between py-1 border-b border-border/40 text-muted-foreground">
+                  <span className="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400">
+                    <Sparkles className="w-3.5 h-3.5" /> Prompt Cache Hit
+                  </span>
+                  <span className="font-semibold text-emerald-600 dark:text-emerald-400 font-mono">
+                    {formatNumber(stats.totalCachedTokens)} tokens
+                  </span>
+                </div>
+              )}
 
               <div className="flex items-center justify-between py-1 text-muted-foreground">
                 <span className="flex items-center gap-1.5">

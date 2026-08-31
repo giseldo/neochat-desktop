@@ -43,7 +43,9 @@ contextBridge.exposeInMainWorld('electron', {
     list: () => ipcRenderer.invoke('workflows-list'),
     save: (workflow) => ipcRenderer.invoke('workflows-save', workflow),
     delete: (id) => ipcRenderer.invoke('workflows-delete', id),
-    buildPrompt: (id, variables) => ipcRenderer.invoke('workflows-build-prompt', id, variables)
+    buildPrompt: (id, variables) => ipcRenderer.invoke('workflows-build-prompt', id, variables),
+    startWebhook: (port) => ipcRenderer.invoke('workflows-start-webhook', port),
+    stopWebhook: () => ipcRenderer.invoke('workflows-stop-webhook')
   },
   schedules: {
     list: () => ipcRenderer.invoke('schedules-list'),
@@ -98,6 +100,16 @@ contextBridge.exposeInMainWorld('electron', {
       const handler = (_, data) => callback(data);
       ipcRenderer.on('agent:event', handler);
       return () => ipcRenderer.removeListener('agent:event', handler);
+    },
+    swarm: {
+      getRoles: () => ipcRenderer.invoke('agent:swarm:get-roles'),
+      run: (options) => ipcRenderer.invoke('agent:swarm:run', options),
+      cancel: (swarmId) => ipcRenderer.invoke('agent:swarm:cancel', swarmId),
+      onEvent: (callback) => {
+        const handler = (_, data) => callback(data);
+        ipcRenderer.on('agent:swarm:event', handler);
+        return () => ipcRenderer.removeListener('agent:swarm:event', handler);
+      }
     }
   },
   // Chat API - streaming only

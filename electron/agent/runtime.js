@@ -9,6 +9,7 @@ const { agentLoop } = require('./agentLoop');
 const { workspaceManager } = require('./workspaceManager');
 const { checkpointsManager } = require('./checkpoints');
 const { shellManager } = require('./shellManager');
+const { swarmManager } = require('./swarmManager');
 
 class AgentSession {
   constructor(sessionId, options = {}) {
@@ -44,6 +45,7 @@ class NeoAgentRuntime {
     this.workspaceManager = workspaceManager;
     this.checkpointsManager = checkpointsManager;
     this.shellManager = shellManager;
+    this.swarmManager = swarmManager;
   }
 
   /**

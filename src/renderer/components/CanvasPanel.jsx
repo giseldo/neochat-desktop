@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
-import Editor from '@monaco-editor/react';
+import Editor, { DiffEditor } from '@monaco-editor/react';
 import {
   X,
   FileText,
@@ -42,7 +42,11 @@ import {
   Pause,
   Square,
   AudioLines,
-  Trash2
+  Trash2,
+  Presentation,
+  PlaySquare,
+  ChevronLeft,
+  ChevronRight
 } from 'lucide-react';
 import { useCanvas } from '../context/CanvasContext';
 import { useLanguage } from '../context/LanguageContext';
@@ -165,6 +169,53 @@ export function CanvasPanel({ onSendPrompt, className }) {
   const monacoEditorRef = useRef(null);
   const previewScrollRef = useRef(null);
   const editorScrollRef = useRef(null);
+  const [currentSlideIndex, setCurrentSlideIndex] = useState(0);
+
+  // Parse markdown content into slides
+  const slides = useMemo(() => {
+    if (!localContent) return [''];
+    const parts = localContent.split(/\n---\n/);
+    return parts.length > 0 ? parts : [localContent];
+  }, [localContent]);
+
+  // Dynamic sandboxed HTML for interactive preview
+  const sandboxHtml = useMemo(() => {
+    if (!localContent) return '';
+    if (localContent.includes('<html') || localContent.includes('<!DOCTYPE')) {
+      return localContent;
+    }
+    return `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body {
+      margin: 0;
+      padding: 20px;
+      font-family: system-ui, -apple-system, sans-serif;
+      background: ${isDark ? '#09090b' : '#ffffff'};
+      color: ${isDark ? '#f4f4f5' : '#09090b'};
+    }
+  </style>
+</head>
+<body>
+  <div id="root">${currentLanguage === 'html' ? localContent : ''}</div>
+  <script>
+    try {
+      ${currentLanguage !== 'html' ? localContent : ''}
+    } catch (err) {
+      console.error(err);
+      const errBox = document.createElement('div');
+      errBox.style = 'color: #ef4444; font-family: monospace; font-size: 12px; padding: 12px; border: 1px solid #ef4444; border-radius: 8px; margin-top: 16px; background: rgba(239, 68, 68, 0.1);';
+      errBox.innerHTML = '<strong>Execution Error:</strong> ' + err.message;
+      document.body.appendChild(errBox);
+    }
+  </script>
+</body>
+</html>`;
+  }, [localContent, currentLanguage, isDark]);
 
   // Load global TTS settings from electron storage
   useEffect(() => {
@@ -565,6 +616,32 @@ export function CanvasPanel({ onSendPrompt, className }) {
                 {historyList.length}
               </span>
             )}
+          </button>
+
+          <button
+            type="button"
+            onClick={() => { setMode('sandbox'); handleSaveContent(); }}
+            className={cn(
+              "flex items-center gap-1 px-2.5 py-1 rounded-md font-medium transition-colors",
+              mode === 'sandbox' ? "bg-background text-foreground shadow-xs" : "text-muted-foreground hover:text-foreground"
+            )}
+            title="Live Web Sandbox"
+          >
+            <PlaySquare className="w-3.5 h-3.5 text-emerald-500" />
+            <span className="hidden sm:inline">Sandbox</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => { setMode('slides'); handleSaveContent(); }}
+            className={cn(
+              "flex items-center gap-1 px-2.5 py-1 rounded-md font-medium transition-colors",
+              mode === 'slides' ? "bg-background text-foreground shadow-xs" : "text-muted-foreground hover:text-foreground"
+            )}
+            title="Modo Apresentação de Slides"
+          >
+            <Presentation className="w-3.5 h-3.5 text-purple-500" />
+            <span className="hidden sm:inline">Slides</span>
           </button>
         </div>
 
@@ -1000,24 +1077,105 @@ export function CanvasPanel({ onSendPrompt, className }) {
                 )}
               </div>
 
-              {/* Diff Lines View */}
-              <div className="flex-1 p-4 overflow-y-auto font-mono text-xs custom-scrollbar leading-relaxed">
-                {diffLines.map((line, idx) => (
-                  <div
-                    key={`diff-${idx}`}
-                    className={cn(
-                      "px-2 py-0.5 rounded flex items-start gap-2 select-text",
-                      line.type === 'added' && "bg-green-500/15 text-green-700 dark:text-green-300 font-medium",
-                      line.type === 'removed' && "bg-red-500/15 text-red-700 dark:text-red-300 line-through opacity-70",
-                      line.type === 'unchanged' && "text-muted-foreground opacity-90"
-                    )}
-                  >
-                    <span className="w-4 select-none opacity-50 shrink-0 text-center font-bold">
-                      {line.type === 'added' ? '+' : line.type === 'removed' ? '-' : ' '}
-                    </span>
-                    <span className="whitespace-pre-wrap break-all flex-1">{line.text || ' '}</span>
+              {/* Diff Editor for Code or Text Diff */}
+              <div className="flex-1 h-full overflow-hidden">
+                {isCode ? (
+                  <DiffEditor
+                    height="100%"
+                    original={activeRev?.content || ''}
+                    modified={localContent}
+                    language={currentLanguage === 'react' ? 'javascript' : currentLanguage}
+                    theme={isDark ? 'vs-dark' : 'light'}
+                    options={{
+                      readOnly: true,
+                      originalEditable: false,
+                      automaticLayout: true,
+                      minimap: { enabled: false },
+                      fontSize: 12.5,
+                      lineNumbers: 'on',
+                      renderSideBySide: true
+                    }}
+                  />
+                ) : (
+                  <div className="p-4 overflow-y-auto font-mono text-xs custom-scrollbar leading-relaxed h-full">
+                    {diffLines.map((line, idx) => (
+                      <div
+                        key={`diff-${idx}`}
+                        className={cn(
+                          "px-2 py-0.5 rounded flex items-start gap-2 select-text",
+                          line.type === 'added' && "bg-green-500/15 text-green-700 dark:text-green-300 font-medium",
+                          line.type === 'removed' && "bg-red-500/15 text-red-700 dark:text-red-300 line-through opacity-70",
+                          line.type === 'unchanged' && "text-muted-foreground opacity-90"
+                        )}
+                      >
+                        <span className="w-4 select-none opacity-50 shrink-0 text-center font-bold">
+                          {line.type === 'added' ? '+' : line.type === 'removed' ? '-' : ' '}
+                        </span>
+                        <span className="whitespace-pre-wrap break-all flex-1">{line.text || ' '}</span>
+                      </div>
+                    ))}
                   </div>
-                ))}
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* TAB 5: LIVE WEB SANDBOX */}
+        {mode === 'sandbox' && (
+          <div className="w-full h-full flex flex-col overflow-hidden bg-background">
+            <div className="flex items-center justify-between px-4 py-2 bg-muted/40 border-b border-border text-xs">
+              <div className="flex items-center gap-2">
+                <PlaySquare className="w-4 h-4 text-emerald-500" />
+                <span className="font-semibold text-foreground">Live Web Sandbox (Preview Interativo)</span>
+              </div>
+              <span className="text-[11px] text-muted-foreground">Tailwind CSS + HTML5/JS</span>
+            </div>
+            <div className="flex-1 w-full h-full bg-background">
+              <iframe
+                title="Live Sandbox Preview"
+                srcDoc={sandboxHtml}
+                sandbox="allow-scripts"
+                className="w-full h-full border-none bg-background"
+              />
+            </div>
+          </div>
+        )}
+
+        {/* TAB 6: SLIDES PRESENTATION MODE */}
+        {mode === 'slides' && (
+          <div className="w-full h-full flex flex-col overflow-hidden bg-background">
+            <div className="flex items-center justify-between px-4 py-2 bg-muted/40 border-b border-border text-xs">
+              <div className="flex items-center gap-2">
+                <Presentation className="w-4 h-4 text-purple-500" />
+                <span className="font-semibold text-foreground">
+                  Slide {currentSlideIndex + 1} de {slides.length}
+                </span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => setCurrentSlideIndex(prev => Math.max(0, prev - 1))}
+                  disabled={currentSlideIndex === 0}
+                  className="p-1 rounded bg-muted hover:bg-muted/80 disabled:opacity-40 text-foreground"
+                  title="Slide Anterior"
+                >
+                  <ChevronLeft className="w-4 h-4" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setCurrentSlideIndex(prev => Math.min(slides.length - 1, prev + 1))}
+                  disabled={currentSlideIndex >= slides.length - 1}
+                  className="p-1 rounded bg-muted hover:bg-muted/80 disabled:opacity-40 text-foreground"
+                  title="Próximo Slide"
+                >
+                  <ChevronRight className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+            <div className="flex-1 flex items-center justify-center p-8 overflow-y-auto bg-muted/10">
+              <div className="w-full max-w-3xl min-h-[380px] p-8 rounded-2xl bg-card border border-border/80 shadow-xl flex flex-col justify-center animate-in zoom-in-95 duration-150">
+                <MarkdownRenderer content={slides[currentSlideIndex] || ''} />
               </div>
             </div>
           </div>

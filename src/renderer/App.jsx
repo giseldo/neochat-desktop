@@ -22,6 +22,8 @@ import KeyboardShortcutsModal from './components/KeyboardShortcutsModal';
 import TerminalPanel from './components/TerminalPanel';
 import BackgroundTasksPanel from './components/BackgroundTasksPanel';
 import BrowserPanel from './components/BrowserPanel';
+import CommandPaletteModal from './components/CommandPaletteModal';
+import SwarmTeamModal from './components/SwarmTeamModal';
 import { useChat } from './context/ChatContext';
 import { useCanvas } from './context/CanvasContext';
 import { useProjects } from './context/ProjectContext';
@@ -188,6 +190,8 @@ function App() {
   const [activeArtifact, setActiveArtifact] = useState(null);
   const [isMcpCatalogOpen, setIsMcpCatalogOpen] = useState(false);
   const [isWorkflowsOpen, setIsWorkflowsOpen] = useState(false);
+  const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
+  const [isSwarmModalOpen, setIsSwarmModalOpen] = useState(false);
 
   const handleToggleCanvas = useCallback(() => {
     if (isCanvasOpen) {
@@ -328,12 +332,15 @@ function App() {
     }
   }, []);
 
-  // Global Keyboard Shortcuts for Companion Panels:
-  // Ctrl+` (Terminal), Ctrl+Shift+B (Browser), Ctrl+Shift+T (Background Tasks)
+  // Global Keyboard Shortcuts for Companion Panels & Command Palette:
+  // Ctrl+K (Command Palette), Ctrl+` (Terminal), Ctrl+Shift+B (Browser), Ctrl+Shift+T (Background Tasks)
   useEffect(() => {
     const handleGlobalShortcuts = (e) => {
       if (e.ctrlKey || e.metaKey) {
-        if (e.key === '`') {
+        if (e.key === 'k' || e.key === 'K') {
+          e.preventDefault();
+          setIsCommandPaletteOpen(prev => !prev);
+        } else if (e.key === '`') {
           e.preventDefault();
           setIsTerminalOpen(prev => !prev);
         } else if (e.shiftKey && (e.key === 'B' || e.key === 'b')) {
@@ -2793,6 +2800,28 @@ function App() {
               {isPowerUser && <Button
                 variant="outline"
                 size="sm"
+                onClick={() => setIsSwarmModalOpen(true)}
+                className="text-xs text-foreground border-border hover:bg-muted"
+                title="Multi-Agent Swarm Team (Equipe de Subagentes)"
+              >
+                <Bot className={cn("h-3.5 w-3.5 text-indigo-400", showButtonLabels && "mr-1.5")} />
+                {showButtonLabels && <span className="hidden lg:inline">Swarm</span>}
+              </Button>}
+
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setIsCommandPaletteOpen(true)}
+                className="text-xs text-foreground border-border hover:bg-muted"
+                title="Command Palette (Ctrl+K)"
+              >
+                <Keyboard className={cn("h-3.5 w-3.5 text-primary", showButtonLabels && "mr-1.5")} />
+                {showButtonLabels && <span className="hidden md:inline">Ctrl+K</span>}
+              </Button>
+
+              {isPowerUser && <Button
+                variant="outline"
+                size="sm"
                 onClick={() => setIsWorkflowsOpen(true)}
                 className="text-xs text-foreground border-border hover:bg-muted"
                 title={t('workflows.title')}
@@ -3198,6 +3227,48 @@ function App() {
       <KeyboardShortcutsModal
         isOpen={isShortcutsModalOpen}
         onClose={() => setIsShortcutsModalOpen(false)}
+      />
+
+      {/* Command Palette Global Launcher (Ctrl+K) */}
+      <CommandPaletteModal
+        isOpen={isCommandPaletteOpen}
+        onClose={() => setIsCommandPaletteOpen(false)}
+        onOpenSettings={() => navigate('/settings')}
+        onOpenKnowledgeBase={() => setIsKnowledgeBaseModalOpen(true)}
+        onOpenWorkflows={() => setIsWorkflowsOpen(true)}
+        onOpenProjects={() => {
+          // Open projects if needed
+        }}
+        onOpenMcpCatalog={() => setIsMcpCatalogOpen(true)}
+        onToggleCompareMode={() => setIsCompareMode(prev => !prev)}
+        onToggleTerminal={() => setIsTerminalOpen(prev => !prev)}
+        onToggleBackgroundTasks={() => setIsTasksOpen(prev => !prev)}
+        onToggleBrowser={() => setIsBrowserOpen(prev => !prev)}
+        onOpenSwarmModal={() => setIsSwarmModalOpen(true)}
+        onTriggerSnip={handleStartSnip}
+        onTriggerVoice={() => {
+          // Trigger voice push-to-talk
+        }}
+        availableModels={models}
+        currentModel={selectedModel}
+        onSelectModel={(m) => setSelectedModel(m)}
+        personas={DEFAULT_PERSONAS}
+        activePersona={activePersona}
+        onSelectPersona={(p) => setActivePersona(p)}
+        onClearChat={handleClearAllMessages}
+        onExportChat={() => {
+          // Trigger chat export
+        }}
+      />
+
+      {/* Multi-Agent Swarm Team Modal */}
+      <SwarmTeamModal
+        isOpen={isSwarmModalOpen}
+        onClose={() => setIsSwarmModalOpen(false)}
+        currentModel={selectedModel}
+        onSendToChat={(content) => {
+          handleSendMessage(content);
+        }}
       />
 
       </div>

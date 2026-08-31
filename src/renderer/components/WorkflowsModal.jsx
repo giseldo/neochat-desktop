@@ -55,7 +55,12 @@ export default function WorkflowsModal({ isOpen, onClose, onRun }) {
   const [items, setItems] = useState([]);
   const [activeTab, setActiveTab] = useState('my'); // 'my' | 'templates'
   const [editing, setEditing] = useState(null);
-  const [form, setForm] = useState({ name: '', description: '', steps: '' });
+  const [form, setForm] = useState({
+    name: '',
+    description: '',
+    steps: '',
+    trigger: { type: 'manual', config: {} }
+  });
   const [selectedTemplate, setSelectedTemplate] = useState(null);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -107,17 +112,18 @@ export default function WorkflowsModal({ isOpen, onClose, onRun }) {
   if (!isOpen) return null;
 
   const edit = (workflow) => {
-    setActiveTab('my');
+    setEditing(workflow ? workflow.id : null);
     setSelectedTemplate(null);
-    setEditing(workflow?.id || null);
     setForm(workflow ? {
-      name: workflow.name,
+      name: workflow.name || '',
       description: workflow.description || '',
-      steps: Array.isArray(workflow.steps) ? workflow.steps.join('\n---\n') : ''
+      steps: Array.isArray(workflow.steps) ? workflow.steps.join('\n---\n') : '',
+      trigger: workflow.trigger || { type: 'manual', config: {} }
     } : {
       name: '',
       description: '',
-      steps: ''
+      steps: '',
+      trigger: { type: 'manual', config: {} }
     });
     setError('');
     setSuccess('');
@@ -173,7 +179,8 @@ export default function WorkflowsModal({ isOpen, onClose, onRun }) {
       id: editing || undefined,
       name: form.name,
       description: form.description,
-      steps: rawSteps
+      steps: rawSteps,
+      trigger: form.trigger || { type: 'manual' }
     });
     if (!result.success) return setError(result.error);
     
@@ -676,6 +683,81 @@ export default function WorkflowsModal({ isOpen, onClose, onRun }) {
                     </div>
                   </div>
                 )}
+
+                {/* Automation Trigger Section */}
+                <div className="border-t border-border pt-3 space-y-2.5">
+                  <h3 className="text-xs font-semibold flex items-center justify-between">
+                    <span className="flex items-center gap-1.5">
+                      <Sparkles className="w-3.5 h-3.5 text-indigo-400" />
+                      Gatilho de Automação (Trigger)
+                    </span>
+                    <Badge variant="outline" className="text-[10px] py-0 font-normal">
+                      {form.trigger?.type === 'webhook' ? 'Webhook HTTP' : form.trigger?.type === 'file_watch' ? 'File Watcher' : 'Manual'}
+                    </Badge>
+                  </h3>
+                  <div className="flex flex-wrap gap-2 items-center">
+                    <select
+                      className="h-8 rounded-lg border border-input bg-background px-2.5 text-xs focus:outline-none focus:ring-1 focus:ring-primary"
+                      value={form.trigger?.type || 'manual'}
+                      onChange={e => setForm({
+                        ...form,
+                        trigger: { ...form.trigger, type: e.target.value, config: form.trigger?.config || {} }
+                      })}
+                    >
+                      <option value="manual">Manual (Clique no botão)</option>
+                      <option value="webhook">Webhook HTTP Local</option>
+                      <option value="file_watch">File Watcher (Monitor de Pasta)</option>
+                    </select>
+
+                    {form.trigger?.type === 'webhook' && (
+                      <div className="w-full mt-1.5 p-2 rounded-lg bg-muted/40 border border-border/70 space-y-1.5 text-xs">
+                        <div className="flex items-center justify-between text-[11px] text-muted-foreground font-mono">
+                          <span>POST http://127.0.0.1:39281/webhook/{editing || 'ID_DO_WORKFLOW'}</span>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              navigator.clipboard.writeText(`http://127.0.0.1:39281/webhook/${editing || ''}`);
+                              setSuccess('URL do webhook copiada!');
+                              setTimeout(() => setSuccess(''), 2500);
+                            }}
+                            className="text-primary hover:underline text-[10px]"
+                          >
+                            Copiar URL
+                          </button>
+                        </div>
+                        <Input
+                          placeholder="Secret token opcional (x-webhook-secret)"
+                          className="h-7 text-xs"
+                          value={form.trigger?.config?.secret || ''}
+                          onChange={e => setForm({
+                            ...form,
+                            trigger: {
+                              ...form.trigger,
+                              config: { ...form.trigger?.config, secret: e.target.value }
+                            }
+                          })}
+                        />
+                      </div>
+                    )}
+
+                    {form.trigger?.type === 'file_watch' && (
+                      <div className="w-full mt-1.5 p-2 rounded-lg bg-muted/40 border border-border/70 space-y-1.5 text-xs">
+                        <Input
+                          placeholder="Caminho da pasta a monitorar (ex: C:\Projetos\app\src)"
+                          className="h-7 text-xs"
+                          value={form.trigger?.config?.watchDir || ''}
+                          onChange={e => setForm({
+                            ...form,
+                            trigger: {
+                              ...form.trigger,
+                              config: { ...form.trigger?.config, watchDir: e.target.value }
+                            }
+                          })}
+                        />
+                      </div>
+                    )}
+                  </div>
+                </div>
 
                 {/* Scheduling Section */}
                 <div className="border-t border-border pt-3 space-y-2.5">
