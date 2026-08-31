@@ -289,6 +289,12 @@ function App() {
       } catch (err) {
         console.error('Failed to persist active persona:', err);
       }
+    } else if (activePersona === null) {
+      try {
+        localStorage.setItem(ACTIVE_PERSONA_STORAGE_KEY, 'none');
+      } catch (err) {
+        console.error('Failed to persist active persona:', err);
+      }
     }
   }, [activePersona]);
   // --- End Persona, Artifacts & Catalog State ---

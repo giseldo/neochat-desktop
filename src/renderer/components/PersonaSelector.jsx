@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
-import { Bot, Check, Plus, Edit2, Trash2, Sparkles, Code2, ShieldAlert, Languages, Database, Feather, X, Sliders } from 'lucide-react';
+import { Bot, BotOff, Check, Plus, Edit2, Trash2, Sparkles, Code2, ShieldAlert, Languages, Database, Feather, X, Sliders } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
 import { cn } from '../lib/utils';
 
@@ -153,8 +153,11 @@ export function getStoredPersonas(t) {
 
 export function getStoredActivePersona(t) {
   try {
-    const all = getStoredPersonas(t);
     const activeId = localStorage.getItem(ACTIVE_PERSONA_STORAGE_KEY);
+    if (activeId === 'none' || activeId === 'disabled') {
+      return null;
+    }
+    const all = getStoredPersonas(t);
     if (activeId) {
       const found = all.find((p) => p.id === activeId);
       if (found) return found;
@@ -207,7 +210,8 @@ export function PersonaSelector({ activePersona, onSelectPersona, className }) {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const currentPersona = personas.find(p => p.id === activePersona?.id) || personas[0];
+  const isDeactivated = !activePersona || activePersona.id === 'none' || activePersona.id === 'disabled';
+  const currentPersona = isDeactivated ? null : (personas.find(p => p.id === activePersona?.id) || personas[0]);
 
   const handleOpenCreate = () => {
     setEditingPersona(null);
@@ -356,17 +360,16 @@ export function PersonaSelector({ activePersona, onSelectPersona, className }) {
       e.preventDefault();
       e.stopPropagation();
     }
-    const defaultP = defaultPersonas[0] || DEFAULT_PERSONAS[0];
-    onSelectPersona(defaultP);
+    onSelectPersona(null);
     try {
-      localStorage.setItem(ACTIVE_PERSONA_STORAGE_KEY, defaultP.id);
+      localStorage.setItem(ACTIVE_PERSONA_STORAGE_KEY, 'none');
     } catch (err) {}
     setIsOpen(false);
   };
 
   const handleSelectPersona = (p) => {
-    // If clicking on the currently active persona and it is not default, toggle/deactivate it to default
-    if (currentPersona.id === p.id && p.id !== 'default') {
+    // If clicking on the currently active persona, toggle/deactivate it
+    if (!isDeactivated && currentPersona?.id === p.id) {
       handleDeactivate();
       return;
     }
@@ -385,11 +388,7 @@ export function PersonaSelector({ activePersona, onSelectPersona, className }) {
       localStorage.setItem(PERSONAS_STORAGE_KEY, JSON.stringify(updatedCustom));
     } catch (err) {}
     if (activePersona?.id === id) {
-      const fallback = defaultPersonas[0];
-      onSelectPersona(fallback);
-      try {
-        localStorage.setItem(ACTIVE_PERSONA_STORAGE_KEY, fallback.id);
-      } catch (err) {}
+      handleDeactivate();
     }
   };
 
@@ -404,7 +403,7 @@ export function PersonaSelector({ activePersona, onSelectPersona, className }) {
     }
   };
 
-  const IconComponent = getPersonaIcon(currentPersona.icon);
+  const IconComponent = isDeactivated ? BotOff : getPersonaIcon(currentPersona?.icon);
 
   return (
     <div className={cn("relative inline-block text-left", className)} ref={dropdownRef}>
@@ -412,16 +411,18 @@ export function PersonaSelector({ activePersona, onSelectPersona, className }) {
         type="button"
         onClick={() => setIsOpen(!isOpen)}
         className={cn(
-          "h-7 flex items-center gap-1.5 px-2.5 rounded-lg border text-xs font-medium transition-colors shadow-xs group/btn",
-          currentPersona.id !== 'default'
+          "h-7 flex items-center gap-1.5 px-2.5 rounded-lg border text-xs transition-colors shadow-xs group/btn cursor-pointer",
+          !isDeactivated
             ? "border-primary/40 bg-primary/10 text-primary hover:bg-primary/15 font-semibold"
-            : "border-border bg-background hover:bg-muted text-foreground"
+            : "border-border bg-background hover:bg-muted text-muted-foreground font-medium"
         )}
-        title={currentPersona.id !== 'default' ? `${currentPersona.name} • ${t('personas.clickToDeactivate') || 'Clique para desativar'}` : t('personas.buttonTitle')}
+        title={!isDeactivated ? `${currentPersona?.name} • ${t('personas.clickToDeactivate') || 'Clique para desativar'}` : t('personas.buttonTitle')}
       >
-        <IconComponent className="w-3.5 h-3.5 text-primary shrink-0" />
-        <span className="max-w-[110px] truncate">{currentPersona.name}</span>
-        {currentPersona.id !== 'default' && (
+        <IconComponent className={cn("w-3.5 h-3.5 shrink-0", !isDeactivated ? "text-primary" : "text-muted-foreground")} />
+        <span className="max-w-[110px] truncate">
+          {!isDeactivated ? currentPersona?.name : (t('personas.deactivated') || 'Desativado')}
+        </span>
+        {!isDeactivated && (
           <span
             role="button"
             tabIndex={0}
@@ -439,11 +440,11 @@ export function PersonaSelector({ activePersona, onSelectPersona, className }) {
           <div className="px-2 py-1 text-[10px] font-semibold text-muted-foreground uppercase border-b border-border mb-1 flex items-center justify-between">
             <span>{t('personas.dropdownTitle')}</span>
             <div className="flex items-center gap-2">
-              {currentPersona.id !== 'default' && (
+              {!isDeactivated && (
                 <button
                   type="button"
                   onClick={handleDeactivate}
-                  className="text-muted-foreground hover:text-destructive flex items-center gap-0.5 font-medium transition-colors"
+                  className="text-muted-foreground hover:text-destructive flex items-center gap-0.5 font-medium transition-colors cursor-pointer"
                   title={t('personas.deactivateTitle')}
                 >
                   <X className="w-3 h-3" /> {t('personas.deactivateButton')}
@@ -452,7 +453,7 @@ export function PersonaSelector({ activePersona, onSelectPersona, className }) {
               <button
                 type="button"
                 onClick={handleOpenCreate}
-                className="text-primary hover:underline flex items-center gap-0.5 font-medium"
+                className="text-primary hover:underline flex items-center gap-0.5 font-medium cursor-pointer"
               >
                 <Plus className="w-3 h-3" /> {t('personas.createButton')}
               </button>
@@ -460,14 +461,38 @@ export function PersonaSelector({ activePersona, onSelectPersona, className }) {
           </div>
 
           <div className="max-h-64 overflow-y-auto space-y-1">
+            {/* Option: Desativado */}
+            <div
+              onClick={handleDeactivate}
+              title={isDeactivated ? undefined : t('personas.deactivateTitle')}
+              className={cn(
+                "flex items-center justify-between p-2 rounded-lg cursor-pointer transition-colors text-left group",
+                isDeactivated ? "bg-primary/10 text-primary font-semibold" : "hover:bg-muted text-popover-foreground"
+              )}
+            >
+              <div className="flex items-start gap-2 min-w-0 pr-2">
+                <BotOff className={cn("w-4 h-4 mt-0.5 flex-shrink-0", isDeactivated ? "text-primary" : "text-muted-foreground")} />
+                <div className="min-w-0">
+                  <div className="text-xs truncate">{t('personas.deactivated') || 'Desativado'}</div>
+                  <div className="text-[10px] text-muted-foreground truncate">{t('personas.deactivatedDesc') || 'Sem persona especializada ativa (conversação padrão)'}</div>
+                </div>
+              </div>
+              {isDeactivated && (
+                <span className="flex items-center">
+                  <Check className="w-3.5 h-3.5 text-primary flex-shrink-0 ml-0.5" />
+                </span>
+              )}
+            </div>
+
+            {/* Configured Personas */}
             {personas.map((p) => {
               const ItemIcon = getPersonaIcon(p.icon);
-              const isSelected = currentPersona.id === p.id;
+              const isSelected = !isDeactivated && currentPersona?.id === p.id;
               return (
                 <div
                   key={p.id}
                   onClick={() => handleSelectPersona(p)}
-                  title={isSelected && p.id !== 'default' ? t('personas.clickToDeactivate') : undefined}
+                  title={isSelected ? t('personas.clickToDeactivate') : undefined}
                   className={cn(
                     "flex items-center justify-between p-2 rounded-lg cursor-pointer transition-colors text-left group",
                     isSelected ? "bg-primary/10 text-primary font-semibold" : "hover:bg-muted text-popover-foreground"
@@ -484,7 +509,7 @@ export function PersonaSelector({ activePersona, onSelectPersona, className }) {
                     <button
                       type="button"
                       onClick={(e) => handleOpenEdit(e, p)}
-                      className="opacity-0 group-hover:opacity-100 p-1 rounded hover:bg-background/80 hover:text-primary transition-opacity text-muted-foreground"
+                      className="opacity-0 group-hover:opacity-100 p-1 rounded hover:bg-background/80 hover:text-primary transition-opacity text-muted-foreground cursor-pointer"
                       title={p.isCustom ? t('personas.editTitle') : t('personas.customizeTitle')}
                     >
                       <Edit2 className="w-3 h-3" />
@@ -493,7 +518,7 @@ export function PersonaSelector({ activePersona, onSelectPersona, className }) {
                       <button
                         type="button"
                         onClick={(e) => handleDeletePersona(e, p.id)}
-                        className="opacity-0 group-hover:opacity-100 p-1 rounded hover:bg-background/80 hover:text-destructive transition-opacity text-muted-foreground"
+                        className="opacity-0 group-hover:opacity-100 p-1 rounded hover:bg-background/80 hover:text-destructive transition-opacity text-muted-foreground cursor-pointer"
                         title={t('personas.deleteTitle')}
                       >
                         <Trash2 className="w-3 h-3" />
@@ -502,7 +527,7 @@ export function PersonaSelector({ activePersona, onSelectPersona, className }) {
                     {isSelected && (
                       <span
                         className="flex items-center"
-                        title={p.id !== 'default' ? t('personas.clickToDeactivate') : undefined}
+                        title={t('personas.clickToDeactivate')}
                       >
                         <Check className="w-3.5 h-3.5 text-primary flex-shrink-0 ml-0.5" />
                       </span>

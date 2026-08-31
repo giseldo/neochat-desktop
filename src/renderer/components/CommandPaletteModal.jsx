@@ -26,7 +26,8 @@ import {
   Check,
   Command,
   ArrowRight,
-  X
+  X,
+  BotOff
 } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
 import { useChat } from '../context/ChatContext';
@@ -345,40 +346,54 @@ export function CommandPaletteModal({
 
     // --- Category: Personas ---
     if (personas?.length > 0) {
-      if (activePersona?.id && activePersona.id !== 'default') {
+      const isDeactivated = !activePersona || activePersona.id === 'none' || activePersona.id === 'disabled';
+
+      if (!isDeactivated) {
         items.push({
           id: 'persona_deactivate',
           category: 'personas',
           categoryLabel: t('personas.dropdownTitle') || 'Personas',
           title: t('personas.deactivateCommand') || 'Desativar Persona Ativa',
-          subtitle: `${t('personas.deactivateCommandDesc') || 'Voltar para o Assistente Geral'} (${activePersona.name || activePersona.id})`,
+          subtitle: `${t('personas.deactivateCommandDesc') || 'Desativar instruções especializadas'} (${activePersona.name || activePersona.id})`,
           icon: X,
           active: false,
           action: () => {
             onClose();
-            const defaultP = personas.find(x => x.id === 'default') || personas[0];
-            onSelectPersona?.(defaultP);
+            onSelectPersona?.(null);
           }
         });
       }
 
+      items.push({
+        id: 'persona_disabled_state',
+        category: 'personas',
+        categoryLabel: t('personas.dropdownTitle') || 'Personas',
+        title: t('personas.deactivated') || 'Desativado',
+        subtitle: t('personas.deactivatedDesc') || 'Sem persona especializada ativa (conversação padrão)',
+        icon: BotOff,
+        active: isDeactivated,
+        action: () => {
+          onClose();
+          onSelectPersona?.(null);
+        }
+      });
+
       personas.forEach(p => {
-        const isSelected = activePersona?.id === p.id;
+        const isSelected = !isDeactivated && activePersona?.id === p.id;
         items.push({
           id: `persona_${p.id}`,
           category: 'personas',
           categoryLabel: t('personas.dropdownTitle') || 'Personas',
           title: p.name,
-          subtitle: isSelected && p.id !== 'default'
+          subtitle: isSelected
             ? `${p.description || ''} • (${t('personas.clickToDeactivate') || 'Clique para desativar'})`
             : (p.description || 'Persona de IA personalizada'),
           icon: Sparkles,
           active: isSelected,
           action: () => {
             onClose();
-            if (isSelected && p.id !== 'default') {
-              const defaultP = personas.find(x => x.id === 'default') || personas[0];
-              onSelectPersona?.(defaultP);
+            if (isSelected) {
+              onSelectPersona?.(null);
             } else {
               onSelectPersona?.(p);
             }
