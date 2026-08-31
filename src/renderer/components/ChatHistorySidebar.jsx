@@ -838,7 +838,7 @@ function ChatHistorySidebar({ onNewChat, onChatLoaded, loading }) {
                                 color: project.color || '#f55036'
                               }}
                             >
-                              <span>{project.icon || '📁'}</span>
+                              <span className="w-3 h-3 flex items-center justify-center text-[9px] leading-none shrink-0 select-none">{project.icon || '📁'}</span>
                               <span className="truncate">{project.name}</span>
                             </span>
                           )}
@@ -1064,7 +1064,7 @@ function ChatHistorySidebar({ onNewChat, onChatLoaded, loading }) {
 
                               {/* Project Icon */}
                               <span 
-                                className="w-5 h-5 rounded-md flex items-center justify-center text-xs flex-shrink-0 shadow-2xs"
+                                className="w-5 h-5 rounded-md flex items-center justify-center text-xs flex-shrink-0 shadow-2xs leading-none select-none"
                                 style={{ backgroundColor: `${project.color || '#f55036'}20`, color: project.color || '#f55036' }}
                               >
                                 {project.icon || '📁'}

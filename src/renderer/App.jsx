@@ -2696,7 +2696,7 @@ function App() {
                   variant="outline"
                   size="sm"
                   onClick={handleSelectWorkspace}
-                  className="h-8 px-2.5 text-xs flex items-center gap-1.5 rounded-xl border-amber-500/40 bg-amber-500/10 hover:bg-amber-500/20 text-amber-600 dark:text-amber-400 font-medium shadow-2xs transition-all cursor-pointer"
+                  className="h-7 px-2.5 text-xs flex items-center gap-1.5 rounded-lg border-amber-500/40 bg-amber-500/10 hover:bg-amber-500/20 text-amber-600 dark:text-amber-400 font-medium shadow-2xs transition-all cursor-pointer"
                   title={t('chat.selectWorkspaceTooltip')}
                 >
                   <Folder className="w-3.5 h-3.5 text-amber-500 shrink-0" />
@@ -2725,7 +2725,7 @@ function App() {
               {/* Active Project Badge */}
               {isPowerUser && activeProject && (
                 <div 
-                  className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-xs font-medium cursor-pointer transition-colors shadow-2xs hover:opacity-90"
+                  className="h-7 flex items-center gap-1.5 px-2.5 rounded-lg border text-xs font-medium cursor-pointer transition-colors shadow-2xs hover:opacity-90"
                   style={{ 
                     backgroundColor: `${activeProject.color || '#f55036'}18`, 
                     borderColor: `${activeProject.color || '#f55036'}40`,
@@ -2734,7 +2734,7 @@ function App() {
                   onClick={() => openEditProjectModal(activeProject)}
                   title={`${t('projects.activeBadge')}: ${activeProject.name}`}
                 >
-                  <span className="text-xs">{activeProject.icon || '📁'}</span>
+                  <span className="w-3.5 h-3.5 flex items-center justify-center text-[11px] leading-none shrink-0 select-none">{activeProject.icon || '📁'}</span>
                   <span className="max-w-[120px] truncate font-semibold">{activeProject.name}</span>
                   <button
                     type="button"

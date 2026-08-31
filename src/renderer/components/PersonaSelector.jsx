@@ -412,7 +412,7 @@ export function PersonaSelector({ activePersona, onSelectPersona, className }) {
         type="button"
         onClick={() => setIsOpen(!isOpen)}
         className={cn(
-          "flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-xs font-medium transition-colors shadow-xs group/btn",
+          "h-7 flex items-center gap-1.5 px-2.5 rounded-lg border text-xs font-medium transition-colors shadow-xs group/btn",
           currentPersona.id !== 'default'
             ? "border-primary/40 bg-primary/10 text-primary hover:bg-primary/15 font-semibold"
             : "border-border bg-background hover:bg-muted text-foreground"
