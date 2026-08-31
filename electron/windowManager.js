@@ -12,6 +12,7 @@ function createWindow(screen, BrowserWindow) {
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
+      webviewTag: true,
       preload: path.join(__dirname, 'preload.js') // Assumes preload.js is in the same directory
     }
   });
@@ -51,6 +52,34 @@ function initializeWindowManager(app, screen, shell, BrowserWindow) {
     // Create the window when the app is ready (though it might be called later by main.js)
     // We return the created window, main.js stores it.
     const createdWindow = createWindow(screen, BrowserWindow);
+
+    // Remove X-Frame-Options and frame-ancestors restrictions on all sessions to allow embedded browser previews
+    try {
+      const { session } = require('electron');
+      if (session && session.defaultSession && session.defaultSession.webRequest) {
+        session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
+          const responseHeaders = { ...(details.responseHeaders || {}) };
+
+          // Strip X-Frame-Options
+          Object.keys(responseHeaders).forEach(header => {
+            if (header.toLowerCase() === 'x-frame-options') {
+              delete responseHeaders[header];
+            }
+            if (header.toLowerCase() === 'content-security-policy') {
+              if (Array.isArray(responseHeaders[header])) {
+                responseHeaders[header] = responseHeaders[header].map(rule =>
+                  rule.replace(/frame-ancestors[^;]+(;|$)/gi, '')
+                );
+              }
+            }
+          });
+
+          callback({ cancel: false, responseHeaders });
+        });
+      }
+    } catch (err) {
+      console.warn('[WindowManager] Could not attach onHeadersReceived listener:', err.message);
+    }
 
     // Handle external links to open in default browser
     createdWindow.webContents.setWindowOpenHandler(({ url }) => {

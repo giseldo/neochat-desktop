@@ -89,6 +89,7 @@ class PopupWindowManager {
       webPreferences: {
         nodeIntegration: false,
         contextIsolation: true,
+        webviewTag: true,
         preload: path.join(__dirname, 'preload.js'),
         enableRemoteModule: false
       }

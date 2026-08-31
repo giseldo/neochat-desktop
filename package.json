@@ -41,7 +41,8 @@
     "test:canvas": "node test-canvas.js",
     "test:canvas-tts": "node test-canvas-tts.js",
     "test:latex": "node test-latex.js",
-    "test:runtime": "node test-agent-runtime.js"
+    "test:runtime": "node test-agent-runtime.js",
+    "test:browser": "node test-browser-panel.js"
   },
   "keywords": [
     "electron",
