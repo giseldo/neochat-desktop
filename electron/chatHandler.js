@@ -212,16 +212,17 @@ function prepareTools(discoveredTools, isResponsesApi = false, settings = {}) {
         }
     }
 
-    // Add native Canvas tools if enabled, in work/code mode, or if Canvas is active/open
-    const isCanvasActive = Boolean(
+    // In 'chat' mode: Canvas is only included if actively open on screen with a document or open panel
+    // In 'work' or 'code' mode: Canvas tools are always available
+    const isCanvasExplicitlyOpen = Boolean(
         settings.isCanvasOpen ||
         settings.activeCanvasDoc ||
         settings.canvasDoc ||
-        settings.canvasEnabled !== false ||
-        settings.mode === 'work' ||
-        settings.mode === 'code' ||
         settings.selectedCanvasText
     );
+    const isCanvasActive = (settings.mode === 'chat' || !settings.mode)
+        ? (isCanvasExplicitlyOpen && settings.canvasEnabled !== false)
+        : (isCanvasExplicitlyOpen || settings.mode === 'work' || settings.mode === 'code' || settings.canvasEnabled === true);
     if (isCanvasActive) {
         const canvasTools = getCanvasTools(isResponsesApi);
         for (const ct of canvasTools) {
@@ -389,15 +390,17 @@ function buildApiParams(prunedMessages, modelToUse, settings, tools, modelContex
         settings.projectId ||
         (settings.projectKnowledgeEnabled && settings.currentProject)
     );
-    const isCanvasActive = Boolean(
+    // In 'chat' mode: Canvas is only included if actively open on screen with a document or open panel
+    // In 'work' or 'code' mode: Canvas tools are always available
+    const isCanvasExplicitlyOpen = Boolean(
         settings.isCanvasOpen ||
         settings.activeCanvasDoc ||
         settings.canvasDoc ||
-        settings.canvasEnabled !== false ||
-        settings.mode === 'work' ||
-        settings.mode === 'code' ||
         settings.selectedCanvasText
     );
+    const isCanvasActive = (settings.mode === 'chat' || !settings.mode)
+        ? (isCanvasExplicitlyOpen && settings.canvasEnabled !== false)
+        : (isCanvasExplicitlyOpen || settings.mode === 'work' || settings.mode === 'code' || settings.canvasEnabled === true);
     
     let systemPrompt = (settings.customSystemPrompt && settings.customSystemPrompt.trim())
         ? settings.customSystemPrompt.trim()
