@@ -52,6 +52,8 @@ export const translations = {
       terminal: 'Terminal',
       backgroundTasks: 'Tarefas em segundo plano',
       browser: 'Navegador',
+      tools: 'Ferramentas',
+      toolsMenu: 'Menu de Ferramentas',
     },
     sidebar: {
       chatsSection: 'Chats',
@@ -1469,6 +1471,8 @@ export const translations = {
       terminal: 'Terminal',
       backgroundTasks: 'Background Tasks',
       browser: 'Browser',
+      tools: 'Tools',
+      toolsMenu: 'Tools Menu',
     },
     sidebar: {
       chatsSection: 'Chats',

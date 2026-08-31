@@ -25,13 +25,70 @@ const ansiConverter = new Convert({
   escapeXML: true
 });
 
+const TERMINAL_WIDTH_KEY = 'neochat_terminal_panel_width';
+const DEFAULT_TERMINAL_WIDTH = 580;
+const MIN_TERMINAL_WIDTH = 360;
+
 export default function TerminalPanel({
   onClose,
   isMaximized,
   onToggleMaximize,
-  initialCwd
+  initialCwd,
+  className
 }) {
   const { t } = useLanguage();
+
+  // Width & Resize state
+  const [panelWidth, setPanelWidth] = useState(() => {
+    const saved = localStorage.getItem(TERMINAL_WIDTH_KEY);
+    return saved ? Math.max(MIN_TERMINAL_WIDTH, parseInt(saved, 10)) : DEFAULT_TERMINAL_WIDTH;
+  });
+  const [isResizing, setIsResizing] = useState(false);
+  const widthRef = useRef(panelWidth);
+  widthRef.current = panelWidth;
+
+  // Resize Drag Handlers
+  const handleResizeStart = useCallback((e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsResizing(true);
+  }, []);
+
+  const handleResizeReset = useCallback((e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setPanelWidth(DEFAULT_TERMINAL_WIDTH);
+    localStorage.setItem(TERMINAL_WIDTH_KEY, String(DEFAULT_TERMINAL_WIDTH));
+  }, []);
+
+  useEffect(() => {
+    if (!isResizing) return;
+
+    const handleMouseMove = (e) => {
+      const maxWidth = Math.max(MIN_TERMINAL_WIDTH, window.innerWidth - 320);
+      const newWidth = Math.min(Math.max(window.innerWidth - e.clientX, MIN_TERMINAL_WIDTH), maxWidth);
+      widthRef.current = newWidth;
+      setPanelWidth(newWidth);
+    };
+
+    const handleMouseUp = () => {
+      setIsResizing(false);
+      localStorage.setItem(TERMINAL_WIDTH_KEY, String(widthRef.current));
+    };
+
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+    document.body.style.userSelect = 'none';
+    document.body.style.cursor = 'col-resize';
+
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+      document.body.style.userSelect = '';
+      document.body.style.cursor = '';
+    };
+  }, [isResizing]);
+
   const [sessions, setSessions] = useState([
     { id: 'term-1', name: 'PowerShell', cwd: initialCwd || '' }
   ]);
@@ -218,10 +275,37 @@ export default function TerminalPanel({
   const activeSession = sessions.find(s => s.id === activeSessionId) || sessions[0];
 
   return (
-    <div className={cn(
-      "flex flex-col bg-slate-950 text-slate-100 border border-border/80 shadow-2xl rounded-2xl overflow-hidden transition-all duration-200",
-      isMaximized ? "fixed inset-4 z-50 rounded-2xl" : "w-full h-full min-h-[420px]"
-    )}>
+    <div 
+      style={!isMaximized ? { width: `${panelWidth}px` } : undefined}
+      className={cn(
+        "relative flex flex-col bg-slate-950 text-slate-100 border-l border-border/80 shadow-2xl overflow-hidden transition-all duration-200 shrink-0",
+        isMaximized ? "fixed inset-4 z-50 rounded-2xl border" : "h-full min-w-[360px]",
+        className
+      )}
+    >
+      {/* Left Resize Handle */}
+      {!isMaximized && (
+        <div
+          onMouseDown={handleResizeStart}
+          onDoubleClick={handleResizeReset}
+          className={cn(
+            "absolute top-0 left-0 -ml-1 w-2.5 h-full cursor-col-resize z-50 group select-none flex items-center justify-center transition-colors",
+            isResizing ? "bg-emerald-500/40" : "hover:bg-emerald-500/20"
+          )}
+          title={t('sidebar.dragToResize') || 'Arraste para redimensionar (Duplo clique para redefinir)'}
+        >
+          <div className={cn(
+            "w-1 h-8 rounded-full transition-colors",
+            isResizing ? "bg-emerald-500" : "bg-slate-700 group-hover:bg-emerald-500/80"
+          )} />
+        </div>
+      )}
+
+      {/* Resize Overlay */}
+      {isResizing && (
+        <div className="fixed inset-0 z-50 cursor-col-resize select-none pointer-events-auto bg-transparent" />
+      )}
+
       {/* Top Header Bar */}
       <div className="flex items-center justify-between px-3 py-2 bg-slate-900/90 border-b border-slate-800 select-none">
         {/* Left: Terminal Tabs */}

@@ -2764,43 +2764,6 @@ function App() {
             </div>
 
             <div className="flex items-center space-x-1.5 sm:space-x-2">
-              {/* Primary Active Panel Toggles: Terminal & Canvas */}
-              {isPowerUser && (
-                <Button
-                  variant={isTerminalOpen ? "default" : "outline"}
-                  size="sm"
-                  onClick={() => setIsTerminalOpen(!isTerminalOpen)}
-                  className={cn(
-                    "h-8 px-2.5 text-xs border-border transition-colors font-mono rounded-xl shadow-2xs",
-                    isTerminalOpen 
-                      ? "bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs" 
-                      : "text-foreground hover:bg-muted/80 bg-background/80"
-                  )}
-                  title={isTerminalOpen ? "Ocultar Terminal (Ctrl+`)" : "Abrir Terminal (Ctrl+`)"}
-                >
-                  <Terminal className={cn("h-3.5 w-3.5", isTerminalOpen ? "text-white" : "text-emerald-500 dark:text-emerald-400", showButtonLabels && "mr-1.5")} />
-                  {showButtonLabels && <span className="hidden md:inline">Terminal</span>}
-                </Button>
-              )}
-
-              {isPowerUser && (
-                <Button
-                  variant={isCanvasOpen ? "default" : "outline"}
-                  size="sm"
-                  onClick={handleToggleCanvas}
-                  className={cn(
-                    "h-8 px-2.5 text-xs border-border transition-colors rounded-xl shadow-2xs",
-                    isCanvasOpen 
-                      ? "bg-primary hover:bg-primary/90 text-primary-foreground shadow-xs" 
-                      : "text-foreground hover:bg-muted/80 bg-background/80"
-                  )}
-                  title={isCanvasOpen ? (t('canvas.hideCanvas') || 'Ocultar Canvas (Ctrl+Shift+C)') : (t('canvas.openCanvas') || 'Abrir Canvas (Ctrl+Shift+C)')}
-                >
-                  <PenSquare className={cn("h-3.5 w-3.5", isCanvasOpen ? "text-primary-foreground" : "text-primary", showButtonLabels && "mr-1.5")} />
-                  {showButtonLabels && <span className="hidden md:inline">{t('canvas.label') || 'Canvas'}</span>}
-                </Button>
-              )}
-
               {/* Consolidated Tools Menu Popover */}
               {isPowerUser && (
                 <div className="relative" ref={toolsDropdownRef}>
@@ -2817,18 +2780,54 @@ function App() {
                     title={t('header.toolsMenu') || 'Ferramentas e Recursos'}
                   >
                     <LayoutGrid className={cn("h-3.5 w-3.5", isToolsDropdownOpen ? "text-primary-foreground" : "text-primary")} />
-                    <span className="hidden lg:inline font-medium">{t('header.tools') || 'Ferramentas'}</span>
-                    {runningTasksCount > 0 && (
-                      <span className="px-1.5 py-0.2 rounded-full bg-blue-500 text-white text-[9px] font-bold animate-pulse">
-                        {runningTasksCount}
-                      </span>
+                    <span className="hidden sm:inline font-medium">{t('header.tools') || 'Ferramentas'}</span>
+                    {(runningTasksCount > 0 || isTerminalOpen || isCanvasOpen) && (
+                      <span className="w-2 h-2 rounded-full bg-primary animate-pulse shrink-0" />
                     )}
                     <ChevronDown className={cn("w-3 h-3 text-muted-foreground transition-transform duration-200", isToolsDropdownOpen && "rotate-180 text-primary-foreground")} />
                   </Button>
 
                   {/* Dropdown Menu */}
                   {isToolsDropdownOpen && (
-                    <div className="absolute right-0 mt-2 w-64 p-1.5 rounded-2xl bg-popover border border-border text-popover-foreground shadow-xl z-50 animate-in fade-in-0 zoom-in-95 space-y-0.5 text-xs">
+                    <div className="absolute right-0 mt-2 w-68 p-1.5 rounded-2xl bg-popover border border-border text-popover-foreground shadow-2xl z-50 animate-in fade-in-0 zoom-in-95 space-y-0.5 text-xs">
+                      {/* Terminal Workspace */}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsToolsDropdownOpen(false);
+                          setIsTerminalOpen(!isTerminalOpen);
+                        }}
+                        className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-muted/80 text-foreground transition-colors text-left"
+                      >
+                        <Terminal className="w-4 h-4 text-emerald-500 shrink-0" />
+                        <div className="flex-1 min-w-0">
+                          <div className="font-semibold text-foreground flex items-center justify-between">
+                            <span>Terminal Shell</span>
+                            {isTerminalOpen && <span className="px-1.5 py-0.2 rounded bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-[10px] font-mono">Aberto</span>}
+                          </div>
+                          <div className="text-[10px] text-muted-foreground truncate">PowerShell & comandos (Ctrl+`)</div>
+                        </div>
+                      </button>
+
+                      {/* Canvas Workspace */}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsToolsDropdownOpen(false);
+                          handleToggleCanvas();
+                        }}
+                        className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-muted/80 text-foreground transition-colors text-left"
+                      >
+                        <PenSquare className="w-4 h-4 text-primary shrink-0" />
+                        <div className="flex-1 min-w-0">
+                          <div className="font-semibold text-foreground flex items-center justify-between">
+                            <span>Espaço Canvas</span>
+                            {isCanvasOpen && <span className="px-1.5 py-0.2 rounded bg-primary/20 text-primary text-[10px] font-mono">Aberto</span>}
+                          </div>
+                          <div className="text-[10px] text-muted-foreground truncate">Editor lado a lado (Ctrl+Shift+C)</div>
+                        </div>
+                      </button>
+
                       {/* Swarm */}
                       <button
                         type="button"
@@ -2854,7 +2853,7 @@ function App() {
                         }}
                         className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-muted/80 text-foreground transition-colors text-left"
                       >
-                        <Store className="w-4 h-4 text-primary shrink-0" />
+                        <Store className="w-4 h-4 text-amber-500 shrink-0" />
                         <div className="flex-1 min-w-0">
                           <div className="font-semibold text-foreground">{t('mcpCatalog.title') || 'Loja MCP'}</div>
                           <div className="text-[10px] text-muted-foreground truncate">Servidores de ferramentas e integrações</div>
@@ -2870,7 +2869,7 @@ function App() {
                         }}
                         className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-muted/80 text-foreground transition-colors text-left"
                       >
-                        <Workflow className="w-4 h-4 text-emerald-500 shrink-0" />
+                        <Workflow className="w-4 h-4 text-teal-500 shrink-0" />
                         <div className="flex-1 min-w-0">
                           <div className="font-semibold text-foreground">{t('workflows.title') || 'Workflows'}</div>
                           <div className="text-[10px] text-muted-foreground truncate">Fluxos de trabalho automatizados</div>
@@ -2888,10 +2887,12 @@ function App() {
                       >
                         <Scale className="w-4 h-4 text-purple-500 shrink-0" />
                         <div className="flex-1 min-w-0">
-                          <div className="font-semibold text-foreground">{t('header.compareModels') || 'Comparar Modelos'}</div>
+                          <div className="font-semibold text-foreground flex items-center justify-between">
+                            <span>{t('header.compareModels') || 'Comparar Modelos'}</span>
+                            {isCompareMode && <span className="w-2 h-2 rounded-full bg-purple-500" />}
+                          </div>
                           <div className="text-[10px] text-muted-foreground truncate">Visualização lado a lado</div>
                         </div>
-                        {isCompareMode && <span className="w-2 h-2 rounded-full bg-purple-500" />}
                       </button>
 
                       {/* In-App Browser */}
@@ -2903,12 +2904,14 @@ function App() {
                         }}
                         className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-muted/80 text-foreground transition-colors text-left"
                       >
-                        <Globe className="w-4 h-4 text-indigo-500 shrink-0" />
+                        <Globe className="w-4 h-4 text-blue-500 shrink-0" />
                         <div className="flex-1 min-w-0">
-                          <div className="font-semibold text-foreground">Navegador Web</div>
-                          <div className="text-[10px] text-muted-foreground truncate">Painel de navegação embutido</div>
+                          <div className="font-semibold text-foreground flex items-center justify-between">
+                            <span>Navegador Web</span>
+                            {isBrowserOpen && <span className="w-2 h-2 rounded-full bg-blue-500" />}
+                          </div>
+                          <div className="text-[10px] text-muted-foreground truncate">Painel embutido (Ctrl+Shift+B)</div>
                         </div>
-                        {isBrowserOpen && <span className="w-2 h-2 rounded-full bg-indigo-500" />}
                       </button>
 
                       {/* Background Tasks */}
@@ -2920,18 +2923,20 @@ function App() {
                         }}
                         className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-muted/80 text-foreground transition-colors text-left"
                       >
-                        <Clock className="w-4 h-4 text-blue-500 shrink-0" />
+                        <Clock className="w-4 h-4 text-cyan-500 shrink-0" />
                         <div className="flex-1 min-w-0">
-                          <div className="font-semibold text-foreground">Tarefas em Segundo Plano</div>
-                          <div className="text-[10px] text-muted-foreground truncate">Monitor de processos e cron</div>
+                          <div className="font-semibold text-foreground flex items-center justify-between">
+                            <span>Tarefas em Segundo Plano</span>
+                            {runningTasksCount > 0 ? (
+                              <span className="px-1.5 py-0.2 rounded-full bg-blue-500 text-white text-[9px] font-bold">
+                                {runningTasksCount}
+                              </span>
+                            ) : isTasksOpen ? (
+                              <span className="w-2 h-2 rounded-full bg-cyan-500" />
+                            ) : null}
+                          </div>
+                          <div className="text-[10px] text-muted-foreground truncate">Processos e tarefas ativas</div>
                         </div>
-                        {runningTasksCount > 0 ? (
-                          <span className="px-1.5 py-0.2 rounded-full bg-blue-500 text-white text-[9px] font-bold">
-                            {runningTasksCount}
-                          </span>
-                        ) : isTasksOpen ? (
-                          <span className="w-2 h-2 rounded-full bg-blue-500" />
-                        ) : null}
                       </button>
 
                       {/* Code Interpreter */}
@@ -2943,12 +2948,14 @@ function App() {
                         }}
                         className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-muted/80 text-foreground transition-colors text-left"
                       >
-                        <Terminal className="w-4 h-4 text-purple-500 shrink-0" />
+                        <Terminal className="w-4 h-4 text-violet-500 shrink-0" />
                         <div className="flex-1 min-w-0">
-                          <div className="font-semibold text-foreground">{t('header.codeInterpreter') || 'Interpretador de Código'}</div>
+                          <div className="font-semibold text-foreground flex items-center justify-between">
+                            <span>{t('header.codeInterpreter') || 'Interpretador de Código'}</span>
+                            {activeArtifact && <span className="w-2 h-2 rounded-full bg-violet-500" />}
+                          </div>
                           <div className="text-[10px] text-muted-foreground truncate">Python & JavaScript interativo</div>
                         </div>
-                        {activeArtifact && <span className="w-2 h-2 rounded-full bg-purple-500" />}
                       </button>
 
                       <div className="my-1 border-t border-border/60" />
@@ -3261,19 +3268,14 @@ function App() {
 
         {/* Side-by-side Interactive Terminal Panel */}
         {isTerminalOpen && (
-          <div className={cn(
-            "transition-all flex shrink-0 border-l border-border/80 bg-background/50",
-            isTerminalMaximized ? "w-full fixed inset-0 z-50 p-4" : "w-[480px] lg:w-[560px] xl:w-[620px] p-2"
-          )}>
-            <Suspense fallback={null}>
-              <TerminalPanel
-                onClose={() => setIsTerminalOpen(false)}
-                isMaximized={isTerminalMaximized}
-                onToggleMaximize={() => setIsTerminalMaximized(!isTerminalMaximized)}
-                initialCwd={workspacePath}
-              />
-            </Suspense>
-          </div>
+          <Suspense fallback={null}>
+            <TerminalPanel
+              onClose={() => setIsTerminalOpen(false)}
+              isMaximized={isTerminalMaximized}
+              onToggleMaximize={() => setIsTerminalMaximized(!isTerminalMaximized)}
+              initialCwd={workspacePath}
+            />
+          </Suspense>
         )}
 
         {/* Side-by-side Background Tasks Panel */}
