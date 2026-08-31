@@ -30,7 +30,7 @@ import { useCanvas } from './context/CanvasContext';
 import { useProjects } from './context/ProjectContext';
 import { useLanguage } from './context/LanguageContext';
 import { useTheme } from './context/ThemeContext';
-import { Settings, PanelLeftClose, PanelLeft, Radio, MessagesSquare, Sparkles, Store, Columns2, X, FolderKanban, BookOpen, Scale, Bot, Workflow, ChevronDown, Keyboard, Key, AlertCircle, PenSquare, Terminal, Folder, Briefcase, MessageSquare, Globe, Clock } from 'lucide-react';
+import { Settings, PanelLeftClose, PanelLeft, Radio, MessagesSquare, Sparkles, Store, Columns2, X, FolderKanban, BookOpen, Scale, Bot, Workflow, ChevronDown, Keyboard, Key, AlertCircle, PenSquare, Terminal, Folder, Briefcase, MessageSquare, Globe, Clock, Activity } from 'lucide-react';
 import { Button } from './components/ui/button';
 import { cn } from './lib/utils';
 import { groupModels } from './lib/modelGrouping';
@@ -2554,46 +2554,18 @@ function App() {
                 </Button>
               )}
 
-              {/* Chat / Trajectory Tab Switcher */}
-              {isPowerUser && showTrajectoryTab && (
-                <div className="flex items-center gap-1 bg-muted/60 p-1 rounded-xl border border-border/70 shadow-2xs">
-                  <button
-                    type="button"
-                    onClick={() => setActiveTab('chat')}
-                    className={`px-3 py-1 text-xs font-semibold rounded-lg transition-all ${
-                      activeTab === 'chat'
-                        ? 'bg-background text-foreground shadow-xs'
-                        : 'text-muted-foreground hover:text-foreground'
-                    }`}
-                  >
-                    {t('trajectory.chatTab')}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setActiveTab('trajectory')}
-                    className={`px-3 py-1 text-xs font-semibold rounded-lg transition-all flex items-center gap-1.5 ${
-                      activeTab === 'trajectory'
-                        ? 'bg-background text-foreground shadow-xs'
-                        : 'text-muted-foreground hover:text-foreground'
-                    }`}
-                  >
-                    <span>{t('trajectory.trajectoryTab')}</span>
-                    {messages.length > 0 && (
-                      <span className="w-1.5 h-1.5 rounded-full bg-primary" />
-                    )}
-                  </button>
-                </div>
-              )}
-
-              {/* 3-Mode Harness Selector: Chat | Work | Code */}
+              {/* 4-Option Mode & View Switcher: Chat | Work | Code (Agent) | Trajetória */}
               {isPowerUser && (
                 <div className="flex items-center gap-0.5 bg-muted/60 p-1 rounded-xl border border-border/70 shadow-2xs">
                   <button
                     type="button"
-                    onClick={() => handleModeChange('chat')}
+                    onClick={() => {
+                      setActiveTab('chat');
+                      handleModeChange('chat');
+                    }}
                     className={cn(
                       "px-2.5 py-1 text-xs font-semibold rounded-lg transition-all flex items-center gap-1.5 cursor-pointer",
-                      harnessMode === 'chat'
+                      activeTab === 'chat' && harnessMode === 'chat'
                         ? "bg-background text-foreground shadow-xs font-bold"
                         : "text-muted-foreground hover:text-foreground"
                     )}
@@ -2605,10 +2577,13 @@ function App() {
 
                   <button
                     type="button"
-                    onClick={() => handleModeChange('work')}
+                    onClick={() => {
+                      setActiveTab('chat');
+                      handleModeChange('work');
+                    }}
                     className={cn(
                       "px-2.5 py-1 text-xs font-semibold rounded-lg transition-all flex items-center gap-1.5 cursor-pointer",
-                      harnessMode === 'work'
+                      activeTab === 'chat' && harnessMode === 'work'
                         ? "bg-background text-foreground shadow-xs ring-1 ring-indigo-500/20 font-bold"
                         : "text-muted-foreground hover:text-foreground"
                     )}
@@ -2620,10 +2595,13 @@ function App() {
 
                   <button
                     type="button"
-                    onClick={() => handleModeChange('code')}
+                    onClick={() => {
+                      setActiveTab('chat');
+                      handleModeChange('code');
+                    }}
                     className={cn(
                       "px-2.5 py-1 text-xs font-semibold rounded-lg transition-all flex items-center gap-1.5 cursor-pointer",
-                      harnessMode === 'code'
+                      activeTab === 'chat' && harnessMode === 'code'
                         ? "bg-amber-500/15 text-amber-600 dark:text-amber-400 shadow-xs ring-1 ring-amber-500/40 font-bold"
                         : "text-muted-foreground hover:text-foreground"
                     )}
@@ -2631,10 +2609,30 @@ function App() {
                   >
                     <Terminal className="w-3.5 h-3.5 text-amber-500" />
                     <span className="hidden md:inline">{t('chat.chatModeCode')}</span>
-                    {harnessMode === 'code' && (
+                    {activeTab === 'chat' && harnessMode === 'code' && (
                       <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
                     )}
                   </button>
+
+                  {showTrajectoryTab && (
+                    <button
+                      type="button"
+                      onClick={() => setActiveTab('trajectory')}
+                      className={cn(
+                        "px-2.5 py-1 text-xs font-semibold rounded-lg transition-all flex items-center gap-1.5 cursor-pointer",
+                        activeTab === 'trajectory'
+                          ? "bg-background text-foreground shadow-xs ring-1 ring-emerald-500/20 font-bold"
+                          : "text-muted-foreground hover:text-foreground"
+                      )}
+                      title={t('trajectory.trajectoryTab')}
+                    >
+                      <Activity className="w-3.5 h-3.5 text-emerald-500" />
+                      <span className="hidden md:inline">{t('trajectory.trajectoryTab')}</span>
+                      {messages.length > 0 && (
+                        <span className="w-1.5 h-1.5 rounded-full bg-primary" />
+                      )}
+                    </button>
+                  )}
                 </div>
               )}
 
