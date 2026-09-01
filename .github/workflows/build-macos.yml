@@ -14,6 +14,8 @@ permissions:
 jobs:
   build:
     runs-on: macos-latest
+    env:
+      TAP_REPO_PAT: ${{ secrets.TAP_REPO_PAT }}
 
     steps:
     - name: Checkout code
@@ -96,13 +98,15 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
     - name: Checkout Tap Repo
+      if: env.TAP_REPO_PAT != ''
       uses: actions/checkout@v4
       with:
         repository: ricklamers/homebrew-groq-desktop-unofficial # Your tap repo
-        token: ${{ secrets.TAP_REPO_PAT }} # PAT with repo write access stored as secret
+        token: ${{ env.TAP_REPO_PAT }} # PAT with repo write access stored as secret
         path: homebrew-tap # Checkout to a specific subdirectory
 
     - name: Update Cask File
+      if: env.TAP_REPO_PAT != ''
       run: |
         # Use the exact DMG filename found locally (with space, lowercase arch)
         LOCAL_DMG_FILENAME="${{ env.DMG_FILENAME }}"
@@ -167,6 +171,7 @@ jobs:
       shell: bash
 
     - name: Commit and Push Cask Update
+      if: env.TAP_REPO_PAT != ''
       run: |
         cd homebrew-tap
         git config --global user.name 'github-actions[bot]'
@@ -183,5 +188,9 @@ jobs:
           echo "Pushed cask update to ricklamers/homebrew-groq-desktop-unofficial."
         fi
       shell: bash
+
+    - name: Skip Homebrew tap update when token is unavailable
+      if: env.TAP_REPO_PAT == ''
+      run: echo "TAP_REPO_PAT is not configured; macOS build and GitHub release completed without updating the external Homebrew tap."
 
     # Removed old upload-artifact step as release step handles it
