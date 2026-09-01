@@ -141,6 +141,12 @@ class NeoAgentRuntime {
       if (options.workspaceRoot) existing.workspaceRoot = options.workspaceRoot;
       if (options.settings) existing.settings = { ...existing.settings, ...options.settings };
       if (options.model) existing.model = options.model;
+      if (Array.isArray(options.messages) && !existing.active && existing.pendingRuns === 0) {
+        existing.messages = options.messages;
+      }
+      existing.updatedAt = Date.now();
+      this.workspaceManager.setWorkspace(sessionId, existing.workspaceRoot);
+      this._saveSession(existing);
       return existing;
     }
 

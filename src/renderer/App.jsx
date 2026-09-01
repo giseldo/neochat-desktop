@@ -17,6 +17,7 @@ import { cn } from './lib/utils';
 import { groupModels } from './lib/modelGrouping';
 import { extractThinking } from './lib/messageUtils';
 import { createStreamThrottler } from './lib/streamThrottler';
+import { useAgentRuntime } from './hooks/useAgentRuntime';
 
 // Lazy-loaded heavy panels & modals for maximum startup speed and memory efficiency
 const ToolsPanel = lazy(() => import('./components/ToolsPanel'));
@@ -359,6 +360,28 @@ function App() {
       localStorage.setItem('neochat_agent_mode', String(mode === 'code'));
     } catch (e) {}
   }, []);
+
+  const buildAgentSystemPrompt = useCallback(() => {
+    const parts = [];
+    if (activeProject?.customPrompt?.trim()) {
+      parts.push(`[Instruções do Projeto "${activeProject.name}"]:\n${activeProject.customPrompt.trim()}`);
+    }
+    if (activePersona?.systemPrompt?.trim()) parts.push(activePersona.systemPrompt.trim());
+    if (canvasDoc?.content) {
+      let canvasContext = `[Documento Canvas Ativo]:\nTítulo: "${canvasDoc.title}"\nFormato: ${canvasDoc.language || 'markdown'}`;
+      if (selectedText) canvasContext += `\nTrecho selecionado:\n${selectedText}`;
+      canvasContext += `\nConteúdo:\n${canvasDoc.content}`;
+      parts.push(canvasContext);
+    }
+    return parts.join('\n\n');
+  }, [activeProject, activePersona, canvasDoc, selectedText]);
+
+  const { runAgent, cancelAgent, isRunning: isAgentRunning } = useAgentRuntime({
+    setMessages,
+    setLoading,
+    setAgentStep,
+    setPendingApprovalCall
+  });
   // --- End Autonomous Agent & Workspace State ---
 
   // --- Terminal, Background Tasks & Browser Companion State ---
@@ -1222,10 +1245,11 @@ function App() {
   }, [selectedModel, modelConfigs]);
 
   // Function to stop the ongoing generation
-  const handleStopGeneration = () => {
+  const handleStopGeneration = async () => {
     console.log('Stopping generation...');
     cancelledRef.current = true; // Set cancellation flag
-    window.electron.stopChatStream();
+    const cancelledAgent = await cancelAgent();
+    if (!cancelledAgent) window.electron.stopChatStream();
     setLoading(false); // Immediately set loading to false
     // Clear any pending tool approval state
     setPendingApprovalCall(null);
@@ -1820,8 +1844,11 @@ function App() {
     if (!hasContent) return;
 
     // If no current chat exists, create one first with current API mode
-    if (!currentChatId) {
-      await createNewChat(selectedModel, useResponsesApi);
+    let activeChatId = currentChatId;
+    if (!activeChatId) {
+      const createdChat = await createNewChat(selectedModel, useResponsesApi);
+      activeChatId = createdChat?.id;
+      if (!activeChatId) return;
     }
 
     // Reset cancellation flag for new message
@@ -1854,6 +1881,23 @@ function App() {
       setMessages(updatedMessages);
       if (currentChatId) {
         await window.electron.chatHistory.saveMessages(currentChatId, updatedMessages);
+      }
+      return;
+    }
+
+    const isAgentModeActive = harnessMode === 'code' || localStorage.getItem('neochat_agent_mode') === 'true';
+    if (isAgentModeActive && !isCompareMode) {
+      try {
+        await runAgent({
+          sessionId: activeChatId,
+          message: userMessage,
+          seedMessages: messages,
+          model: selectedModel,
+          workspaceRoot: workspacePath || undefined,
+          systemPrompt: buildAgentSystemPrompt()
+        });
+      } catch (error) {
+        console.error('Agent runtime execution failed:', error);
       }
       return;
     }
@@ -1891,8 +1935,7 @@ function App() {
     let emptyResponseRetries = 0; // Track retries for empty responses
     const MAX_EMPTY_RETRIES = 3; // Maximum retries for empty responses
     let toolIterationsCount = 0;
-    const isAgentModeActive = localStorage.getItem('neochat_agent_mode') === 'true';
-    const MAX_TOOL_ITERATIONS = isAgentModeActive ? 25 : 12; // Prevent infinite tool execution loops
+    const MAX_TOOL_ITERATIONS = 12; // Chat mode safety limit; Agent Mode runs in the main-process runtime.
 
     if (isAgentModeActive) {
       setAgentStep(1);
@@ -2174,6 +2217,21 @@ function App() {
           return;
       }
       
+      if (toolCall._agentRuntime) {
+          setPendingApprovalCall(null);
+          const approved = !['deny', 'never'].includes(choice);
+          if (approved) {
+              await window.electron.agent.approveTool(
+                  toolCall._agentSessionId,
+                  toolCall.id,
+                  ['always', 'yolo'].includes(choice)
+              );
+          } else {
+              await window.electron.agent.rejectTool(toolCall._agentSessionId, toolCall.id, 'User denied tool execution');
+          }
+          return;
+      }
+
       // Check if this is an MCP approval request (remote tool)
       const isMcpApprovalRequest = toolCall.type === 'mcp_approval_request';
       const toolName = isMcpApprovalRequest ? toolCall.name : toolCall.function?.name;
@@ -3142,7 +3200,7 @@ function App() {
           <Bot className="w-4 h-4 animate-bounce text-amber-500" />
           <span className="font-semibold">Modo Agente Autônomo</span>
           <span className="opacity-60">•</span>
-          <span>Passo {agentStep} de {localStorage.getItem('neochat_agent_mode') === 'true' ? 25 : 12}</span>
+           <span>Passo {agentStep} de {isAgentRunning ? 25 : 12}</span>
           <button
             type="button"
             onClick={handleStopGeneration}
