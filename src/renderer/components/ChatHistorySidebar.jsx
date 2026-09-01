@@ -784,23 +784,6 @@ function ChatHistorySidebar({ onNewChat, onChatLoaded, loading }) {
         }}
       >
         <div className="flex items-center gap-1.5 min-w-0 flex-1 pr-1">
-          {/* Pin star button / icon */}
-          {!isArchived && (
-            <button
-              type="button"
-              onClick={(e) => handleTogglePin(e, chat.id, isPinned)}
-              className={cn(
-                "p-0.5 rounded transition-transform shrink-0",
-                isPinned 
-                  ? "text-amber-500 hover:scale-110" 
-                  : (isHovered ? "opacity-40 hover:opacity-100 hover:text-amber-500" : "hidden")
-              )}
-              title={isPinned ? t('sidebar.unpinChat') : t('sidebar.pinChat')}
-            >
-              <Star className={cn("h-3 w-3", isPinned && "fill-amber-500")} />
-            </button>
-          )}
-
           <MessageSquare className={cn(
             "flex-shrink-0 transition-colors",
             isIndented ? "h-3.5 w-3.5 text-muted-foreground/50 group-hover:text-primary" : "h-3.5 w-3.5 text-muted-foreground/60 group-hover:text-primary",
