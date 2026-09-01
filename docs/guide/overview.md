@@ -42,9 +42,9 @@ O sistema é dividido em camadas modulares com fronteiras de segurança rigorosa
 |                                                                                               |
 |   +---------------------------------------------------------------------------------------+   |
 |   |                        NEO AGENT RUNTIME (electron/agent/)                            |   |
-|   |   • agentLoop (State Machine)     • modelRouter (Multi-LLM)   • toolRegistry/Executor |   |
-|   |   • permissionEngine              • checkpoints (Undo/Roll)   • shellManager (PTY)    |   |
-|   |   • compactionManager             • workspaceManager          • eventBus (Typed)      |   |
+|   |   • runtime/sessionStore          • harnessRegistry           • eventBus (Typed)      |   |
+|   |   • Native: agentLoop/modelRouter • Pi: pi-agent-core/pi-ai   • toolRegistry/Executor |   |
+|   |   • permissionEngine              • checkpoints/path policies • workspace/compaction  |   |
 |   +---------------------------------------------------------------------------------------+   |
 |                                                                                               |
 |   +-------------------+  +-------------------+  +--------------------+  +-----------------+   |
@@ -101,8 +101,25 @@ O NeoChat opera em dois modos primários de interação:
 5. **Persistência Atômica:** A conversa é salva pelo `chatHistoryManager.js` com suporte a ramificação em árvore (Chat Branching).
 
 ### 2. Modo Agente Autônomo (Neo Agent Runtime)
-1. **Inicialização de Sessão:** `neoAgentRuntime.createSession({ workspaceRoot, model })` cria uma sessão com barramento tipado (`AgentEventBus`).
-2. **Ciclo ReAct & State Machine:** O `agentLoop.js` transita entre `THINKING` $\rightarrow$ `TOOL_REQUEST` $\rightarrow$ `TOOL_EXECUTION` $\rightarrow$ `OBSERVING`.
-3. **Avaliação de Segurança:** O `permissionEngine.js` valida se a ferramenta é somente leitura (auto-permitida) ou mutante (exibe `ToolApprovalModal` ao usuário).
-4. **Snapshots de Checkpoint:** O `checkpointsManager.js` registra o estado do arquivo antes da edição, permitindo reversão (`rollback`) a qualquer momento.
-5. **Auditoria de Trajetória:** Cada passo, raciocínio e diff de arquivo é registrado no `TrajectoryLedger` e desenhado no `TrajectoryTimeline`.
+1. **Inicialização de Sessão:** `NeoAgentRuntime.createSession({ workspaceRoot, model })` cria uma sessão isolada, com barramento tipado e persistência local.
+2. **Seleção do Harness:** o `HarnessRegistry` resolve `settings.agentHarness`; `native` é o padrão e `pi` ativa o adapter Pi.
+3. **Loop Autônomo:** o adapter conduz o modelo e publica o ciclo `THINKING` → `TOOL_REQUEST` → `TOOL_EXECUTION` → `OBSERVING` no mesmo protocolo de eventos.
+4. **Avaliação de Segurança:** toda chamada passa pelo `PermissionEngine`, independentemente do harness, e pode ser permitida, bloqueada ou submetida ao `ToolApprovalModal`.
+5. **Execução Controlada:** o `ToolExecutor` aplica limites de workspace e processo, cria checkpoints antes de mutações e executa ferramentas nativas ou MCP.
+6. **Persistência e Auditoria:** `SessionStore` e o ledger registram a trajetória; eventos via IPC atualizam a timeline no renderer.
+
+### Fluxo de dependências do modo agente
+
+```mermaid
+flowchart LR
+    Renderer --> Preload
+    Preload --> IPC[IPC agent:*]
+    IPC --> Runtime[NeoAgentRuntime]
+    Runtime --> Registry[HarnessRegistry]
+    Registry --> Native[Neo Native]
+    Registry --> Pi[Pi]
+    Native --> Tools[PermissionEngine + ToolExecutor]
+    Pi --> Tools
+    Tools --> Local[Ferramentas locais]
+    Tools --> MCP
+```

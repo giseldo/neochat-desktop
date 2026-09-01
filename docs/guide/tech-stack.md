@@ -8,19 +8,19 @@ A seleção de tecnologias do NeoChat Desktop foi projetada para combinar alta f
 
 | Camada | Tecnologia | Versão | Racional Arquitetural |
 | :--- | :--- | :--- | :--- |
-| **Runtime Desktop** | **Electron** | `37.0.0` | Acesso nativo a APIs de sistema (SafeStorage, Filesystem, Global Shortcuts, Systray, PTY) com Chromium 130+. |
-| **Processo Main** | **Node.js (CommonJS)** | `>= 20` | Execução assíncrona robusta, suporte nativo a buffers, streams, child processes e criptografia de SO. |
-| **Agent Runtime** | **Neo Agent Harness** | Integrado | Máquina de estados determinística (`agentLoop.js`), typed event bus, checkpoints transacionais e permissions engine. |
+| **Runtime Desktop** | **Electron** | `39.8.10` | Acesso nativo a APIs de sistema (SafeStorage, Filesystem, Global Shortcuts, Systray e processos). |
+| **Processo Main** | **Node.js (CommonJS)** | `>= 22.19.0` | Execução assíncrona robusta, suporte nativo a buffers, streams, child processes e criptografia de SO. |
+| **Agent Runtime** | **Neo Native + Pi** | Pi `0.84.4` | Harness selecionável com eventos, ferramentas, permissões e checkpoints compartilhados pelo Neo Runtime. |
 | **Frontend UI** | **React** | `19.0.3` | Renderização concorrente, transições otimizadas e ecossistema de componentes declarativos. |
-| **Bundler / DevServer** | **Vite** | `6.2.6` | Hot Module Replacement (HMR) instantâneo e compilação otimizada para produção. |
-| **Estilização** | **Tailwind CSS** | `3.3.3` | Sistema de design utility-first com suporte a temas dinâmicos (Dark/Light). |
+| **Bundler / DevServer** | **Vite** | `6.4.3` | Hot Module Replacement (HMR) instantâneo e compilação otimizada para produção. |
+| **Estilização** | **Tailwind CSS** | `^3.4.19` | Sistema de design utility-first com suporte a temas dinâmicos (Dark/Light). |
 | **Componentes Base** | **Radix UI** | `^2.x / ^1.x` | Primitivas de acessibilidade (Select, Slot, Dialog) sem estilo fixo. |
 | **Editor de Código** | **Monaco Editor** | `^4.7.0` | O mesmo motor do VS Code para visualização e edição de código em tempo real no Canvas. |
-| **Protocolo de Ferramentas** | **@modelcontextprotocol/sdk** | `^1.7.0` | SDK oficial da Anthropic para orquestração de servidores MCP via stdio, SSE e OAuth 2.0. |
+| **Protocolo de Ferramentas** | **@modelcontextprotocol/sdk** | `^1.30.0` | SDK para orquestração de servidores MCP via stdio, SSE e OAuth 2.0. |
 | **Renderização Markdown** | **react-markdown + plugins** | `10.1.0` | Suporte a GitHub Flavored Markdown (`remark-gfm`), Matemática (`remark-math` + `rehype-katex` + `katex`). |
 | **Parsing de Documentos** | **officeparser** | `^7.8.0` | Extração de texto de arquivos DOCX, XLSX, PPTX e PDFs para indexação no motor de RAG. |
 | **Gerenciador de Pacotes** | **pnpm** | `10.9.0` | Gerenciamento determinístico de dependências com node-linker hoisted para o electron-builder. |
-| **Empacotador Nativo** | **electron-builder** | `^24.13.3` | Geração de instaladores e binários executáveis para Windows, macOS e Linux. |
+| **Empacotador Nativo** | **electron-builder** | `^26.15.3` | Geração de instaladores e binários executáveis para Windows, macOS e Linux. |
 
 ---
 
@@ -34,6 +34,10 @@ neochat-desktop/
 │   ├── agent/                        # Neo Agent Runtime (Harness Autônomo)
 │   │   ├── index.js                  # Ponto de exportação do pacote do Agent
 │   │   ├── runtime.js                # Facade central e orquestrador de AgentSession
+│   │   ├── harnessRegistry.js        # Registro e seleção de harnesses
+│   │   ├── harnesses/
+│   │   │   ├── nativeHarness.js      # Adapter do loop Neo Native
+│   │   │   └── piHarness.js          # Adapter do Pi Agent Core
 │   │   ├── agentLoop.js              # Máquina de estados determinística e ReAct loop
 │   │   ├── eventBus.js               # Barramento de eventos tipados (AGENT_EVENTS)
 │   │   ├── modelRouter.js            # Roteamento inteligente de modelos e normalização
@@ -43,7 +47,11 @@ neochat-desktop/
 │   │   ├── checkpoints.js            # Snapshots de arquivos e rollback instantâneo
 │   │   ├── shellManager.js           # Terminal persistente com isolamento de processos
 │   │   ├── compactionManager.js      # Monitoramento de tokens e compactação preditiva
-│   │   └── workspaceManager.js       # Inspeção e extração de contexto de repositórios
+│   │   ├── workspaceManager.js       # Inspeção e extração de contexto de repositórios
+│   │   ├── sessionStore.js           # Snapshots e trajetória persistente
+│   │   ├── swarmManager.js           # Coordenação de execuções multiagente
+│   │   ├── pathPolicy.js             # Política de acesso ao filesystem
+│   │   └── processPolicy.js          # Política de execução de processos
 │   ├── chatHandler.js                # Motor de streaming de chat, tool loop e pruning
 │   ├── chatHistoryManager.js         # Persistência atômica de histórico e Chat Branching
 │   ├── projectManager.js             # Gerenciador de múltiplos projetos e workspaces

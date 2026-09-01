@@ -4,7 +4,7 @@ layout: home
 hero:
   name: "NeoChat"
   text: "Ecossistema Universal de IA & Agentes Autônomos"
-  tagline: "Documentação técnica completa: Neo Agent Runtime com máquina de estados finitos e checkpoints de rollback, NeoChat Desktop local-first (Electron 37, MCP, RAG offline) e NeoChat Web ubiquitous (Next.js 15, Vercel, Neon DB)."
+  tagline: "Documentação técnica completa: Neo Agent Runtime com harnesses Neo Native e Pi, segurança compartilhada e checkpoints de rollback; NeoChat Desktop local-first (Electron 39, MCP e RAG offline); e NeoChat Web (Next.js 15, Vercel e Neon DB)."
   actions:
     - theme: brand
       text: 🤖 Neo Agent Runtime
@@ -19,7 +19,7 @@ hero:
 features:
   - icon: 🤖
     title: Neo Agent Runtime
-    details: Harness de execução autônoma multi-turnos com máquina de estados formal (ReAct Loop), barramento tipado de eventos, motor de permissões interativo e rollback transacional de arquivos via checkpoints.
+    details: Runtime autônomo multi-turnos com seleção entre Neo Native e Pi, barramento tipado de eventos, motor de permissões compartilhado e rollback transacional via checkpoints.
   - icon: 📊
     title: Trajectory Ledger & Auditoria
     details: Visualização em tempo real de cada passo de raciocínio, chamadas de ferramentas nativas e MCP, inspeção de diffs de código e timeline gráfica interativa.
@@ -43,4 +43,3 @@ features:
     Esta documentação foi projetada para engenheiros de software, arquitetos e contribuidores que desejam entender a arquitetura dual: <b>Neo Agent Runtime & Desktop</b> (aplicativo Electron para desenvolvedores, agentes autônomos e pesquisadores) e <b>NeoChat Web</b> (hospedado na Vercel com Neon DB).
   </p>
 </div>
-

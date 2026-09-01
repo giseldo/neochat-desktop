@@ -52,8 +52,12 @@ O arquivo `electron/main.js` realiza a inicialização em ordem estrita de depen
 Para manter alta coesão e baixo acoplamento, as responsabilidades do processo principal são rigorosamente particionadas:
 
 ### 1. `electron/agent/` (Neo Agent Runtime)
-- **Responsabilidade:** Motor de execução autônoma multi-turnos com máquina de estados finitos.
+- **Responsabilidade:** Fachada de sessões autônomas com harness selecionável, ferramentas e segurança compartilhadas.
 - **Componentes:**
+  - `runtime.js`: Orquestra sessões, workspace, persistência, cancelamento e rollback.
+  - `harnessRegistry.js`: Resolve o harness configurado e expõe os adapters disponíveis.
+  - `harnesses/nativeHarness.js`: Adapter do loop Neo Native, padrão do aplicativo.
+  - `harnesses/piHarness.js`: Adapter do Pi Agent Core para o protocolo de eventos e ferramentas Neo.
   - `agentLoop.js`: ReAct loop autônomo com controle de iterações e auto-recuperação.
   - `eventBus.js`: Barramento de eventos tipados em tempo real (`AGENT_EVENTS`).
   - `modelRouter.js`: Roteamento inteligente de modelos e normalização de requisições.
@@ -63,6 +67,11 @@ Para manter alta coesão e baixo acoplamento, as responsabilidades do processo p
   - `shellManager.js`: Terminal persistente com isolamento de processos e timeout.
   - `compactionManager.js`: Monitoramento de janela de contexto e compactação inteligente.
   - `workspaceManager.js`: Inspeção de workspaces, `AGENTS.md` e regras de repositório.
+  - `sessionStore.js`: Persistência local de snapshots e logs de trajetória.
+  - `swarmManager.js`: Coordenação opcional de papéis e sessões em execuções multiagente.
+  - `pathPolicy.js` & `processPolicy.js`: Limites de acesso a caminhos e execução de processos.
+
+O `NeoAgentRuntime` é a única fachada consumida pelo IPC. O harness pode variar, mas ferramentas, permissões, checkpoints, sessões e eventos permanecem sob responsabilidade do runtime.
 
 ### 2. `chatHandler.js` & `messageUtils.js`
 - **Responsabilidade:** Motor central de streaming e poda conversacional.

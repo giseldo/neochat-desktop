@@ -49,13 +49,32 @@ contextBridge.exposeInMainWorld('electron', {
   onChatChunk: (callback) => { /* Listener limpo automaticamente */ },
   onChatThinkChunk: (callback) => { /* Listener limpo automaticamente */ },
 
-  // Neo Agent Runtime (Harness Autônomo)
-  agentPrompt: (params) => ipcRenderer.invoke('agent-prompt', params),
-  agentApproveTool: (sessionId, callId, alwaysAllow) => ipcRenderer.invoke('agent-approve-tool', { sessionId, callId, alwaysAllow }),
-  agentRejectTool: (sessionId, callId, reason) => ipcRenderer.invoke('agent-reject-tool', { sessionId, callId, reason }),
-  agentRollback: (sessionId) => ipcRenderer.invoke('agent-rollback', { sessionId }),
-  agentCancel: (sessionId) => ipcRenderer.invoke('agent-cancel', { sessionId }),
-  onAgentEvent: (sessionId, callback) => { /* Inscrição em tempo real aos eventos do EventBus */ },
+  // Neo Agent Runtime
+  agent: {
+    createSession: (options) =>
+      ipcRenderer.invoke('agent:create-session', options),
+    prompt: (sessionId, message, options) =>
+      ipcRenderer.invoke('agent:prompt', sessionId, message, options),
+    approveTool: (sessionId, requestId, alwaysAllow) =>
+      ipcRenderer.invoke('agent:approve-tool', sessionId, requestId, alwaysAllow),
+    rejectTool: (sessionId, requestId, reason) =>
+      ipcRenderer.invoke('agent:reject-tool', sessionId, requestId, reason),
+    cancel: (sessionId) =>
+      ipcRenderer.invoke('agent:cancel', sessionId),
+    rollback: (sessionId) =>
+      ipcRenderer.invoke('agent:rollback', sessionId),
+    getSession: (sessionId) =>
+      ipcRenderer.invoke('agent:get-session', sessionId),
+    getTrajectory: (sessionId, options) =>
+      ipcRenderer.invoke('agent:get-trajectory', sessionId, options),
+    getWorkspaceInfo: (workspaceRoot) =>
+      ipcRenderer.invoke('agent:get-workspace-info', workspaceRoot),
+    selectWorkspace: () =>
+      ipcRenderer.invoke('agent:select-workspace'),
+    listHarnesses: () =>
+      ipcRenderer.invoke('agent:list-harnesses'),
+    onEvent: (callback) => { /* Listener do canal agent:event */ }
+  },
 
   // Projetos & Workspaces
   listProjects: () => ipcRenderer.invoke('projects-list'),
@@ -111,10 +130,23 @@ Para garantir que o agente não execute comandos destrutivos inadvertidamente, o
 2. **`PROMPT` (Mutação / Execução):** Ferramentas que modificam arquivos (`write_file`, `edit_file`), rodam comandos no shell (`shell_exec`) ou realizam commits (`git_commit`) disparam uma solicitação visual no frontend (`ToolApprovalModal`).
 3. **`DENY` (Acesso Proibido):** Ferramentas explicitamente bloqueadas nas configurações ou comandos fora do workspace são rejeitados de imediato.
 
+### A fronteira independe do harness
+
+O renderer nunca se comunica diretamente com o Neo Native, Pi ou qualquer adapter futuro. O caminho obrigatório é:
+
+```text
+Renderer → preload → IPC agent:* → NeoAgentRuntime → HarnessRegistry
+                                               ↓
+                              PermissionEngine → ToolExecutor
+```
+
+O harness controla o loop de inferência, mas recebe ferramentas encapsuladas pelo runtime. Assim, selecionar `agentHarness: "pi"` não amplia permissões nem cria uma rota alternativa para filesystem, processos ou MCP.
+
 ---
 
 ## 🛡️ Sandboxing de Diretório & Limites do Workspace
 
 O `ToolExecutor` valida todos os caminhos de arquivo recebidos do modelo para garantir que a execução permaneça restrita aos limites do projeto (`workspaceRoot`):
+
 - Bloqueio de caminhos maliciosos (`../..` fora da raiz autorizada).
 - Gravação prévia de snapshots com `CheckpointsManager` antes de qualquer alteração, garantindo rollback instantâneo em caso de erro.
