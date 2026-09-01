@@ -1128,6 +1128,36 @@ function App() {
                 raw: personaText
             });
         }
+        if (workspaceInfo?.agentsDoc?.content) {
+            const docName = workspaceInfo.agentsDoc.filename || 'AGENTS.md';
+            const wText = `[Regras do Workspace / ${docName}]:\n${workspaceInfo.agentsDoc.content.trim()}`;
+            systemParts.push(wText);
+            injectedParts.push({
+                type: 'workspace',
+                title: `${docName} (${workspaceInfo.name || 'Workspace'})`,
+                content: workspaceInfo.agentsDoc.content.trim(),
+                raw: wText
+            });
+        } else if (workspaceInfo?.readmeDoc?.content) {
+            const wText = `[README do Workspace]:\n${workspaceInfo.readmeDoc.content.trim()}`;
+            systemParts.push(wText);
+            injectedParts.push({
+                type: 'workspace',
+                title: `README (${workspaceInfo.name || 'Workspace'})`,
+                content: workspaceInfo.readmeDoc.content.trim(),
+                raw: wText
+            });
+        }
+        if (harnessMode === 'code') {
+            const harnessText = `[Diretrizes do Coding Agent Harness]:\nAcesso autônomo a ferramentas de arquivos ('read_file', 'write_file', 'edit_file', 'list_directory', 'glob_search', 'grep_search'), terminal ('shell_exec') e Git ('git_status', 'git_diff', 'git_commit'). Diretório raiz: "${workspacePath || 'Workspace'}".`;
+            systemParts.push(harnessText);
+            injectedParts.push({
+                type: 'harness',
+                title: 'Coding Agent Harness (Filesystem & Terminal)',
+                content: harnessText,
+                raw: harnessText
+            });
+        }
         if (canvasDoc && canvasDoc.content) {
             let canvasContextPrompt = `[Documento Canvas Ativo no Espaço de Trabalho]:\nTítulo: "${canvasDoc.title}" (v${canvasDoc.version || 1}, formato: ${canvasDoc.language || 'markdown'})\nTotal de Palavras: ${canvasDoc.stats?.words || 0}\n`;
             if (selectedText) {
@@ -3106,6 +3136,8 @@ function App() {
                         currentChatTitle={currentChatTitle}
                         activeProject={activeProject}
                         activePersona={activePersona}
+                        workspaceInfo={workspaceInfo}
+                        harnessMode={harnessMode}
                         canvasDoc={canvasDoc}
                         selectedText={selectedText}
                         selectedModel={selectedModel}
