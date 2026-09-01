@@ -1,6 +1,6 @@
 {
   "name": "neochat-desktop",
-  "version": "1.4.5",
+  "version": "1.4.6",
   "description": "NeoChat Desktop AI Workspace & Chat",
   "main": "electron/main.js",
   "type": "commonjs",
