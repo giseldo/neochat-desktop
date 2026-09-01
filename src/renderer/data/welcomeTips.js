@@ -348,6 +348,42 @@ export const SUGGESTION_PROMPTS = [
       pt: "Pesquise na web e resuma os principais desenvolvimentos e notícias recentes sobre: [tema]",
       en: "Search the web and summarize recent key developments and news regarding: [topic]"
     }
+  },
+  {
+    id: "joke",
+    icon: "😄",
+    label: {
+      pt: "Me conte uma piada",
+      en: "Tell me a joke"
+    },
+    prompt: {
+      pt: "Me conte uma piada engraçada e criativa.",
+      en: "Tell me a funny and creative joke."
+    }
+  },
+  {
+    id: "canva_poetry",
+    icon: "🎨",
+    label: {
+      pt: "Crie uma poesia no Canva sobre a beleza",
+      en: "Create a poem on Canva about beauty"
+    },
+    prompt: {
+      pt: "Crie uma poesia sobre a beleza com sugestões visuais de formatação e tipografia para um design no Canva.",
+      en: "Write a poem about beauty with visual layout, typography, and design suggestions for Canva."
+    }
+  },
+  {
+    id: "python_hello_world",
+    icon: "🐍",
+    label: {
+      pt: "Crie um olá mundo simples em Python",
+      en: "Create a simple hello world in Python"
+    },
+    prompt: {
+      pt: "Crie um Olá Mundo simples em Python e explique brevemente como executá-lo.",
+      en: "Create a simple Hello World in Python and briefly explain how to run it."
+    }
   }
 ];
 
