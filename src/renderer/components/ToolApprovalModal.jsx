@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
@@ -6,6 +6,41 @@ import { useLanguage } from '../context/LanguageContext';
 
 function ToolApprovalModal({ toolCall, onApprove }) {
   const { t } = useLanguage();
+  const allowOnceButtonRef = useRef(null);
+
+  const handleChoice = (choice) => {
+    if (onApprove) {
+      onApprove(choice, toolCall);
+    }
+  };
+
+  useEffect(() => {
+    if (!toolCall) return;
+
+    // Focus the primary "Allow Once" button on mount
+    const timer = setTimeout(() => {
+      allowOnceButtonRef.current?.focus();
+    }, 50);
+
+    const handleKeyDown = (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        e.stopPropagation();
+        handleChoice('once');
+      } else if (e.key === 'Escape') {
+        e.preventDefault();
+        e.stopPropagation();
+        handleChoice('deny');
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => {
+      clearTimeout(timer);
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [toolCall, onApprove]);
+
   if (!toolCall) return null;
 
   // Handle both local tool calls and remote MCP approval requests
@@ -40,12 +75,6 @@ function ToolApprovalModal({ toolCall, onApprove }) {
       args = { parse_error: "Could not parse arguments", original_arguments: toolCall.function?.arguments };
     }
   }
-
-  const handleChoice = (choice) => {
-    if (onApprove) {
-      onApprove(choice, toolCall);
-    }
-  };
 
   // More subtle button styling, consistent text color
   const baseButtonClass = "w-full sm:w-auto px-4 py-2 rounded focus:outline-none focus:ring-2 focus:ring-opacity-70 transition duration-150 ease-in-out text-sm font-medium text-gray-100";
@@ -104,10 +133,15 @@ function ToolApprovalModal({ toolCall, onApprove }) {
         {/* Modal Actions */}
         <div className="p-4 border-t border-gray-700 flex flex-col sm:flex-row justify-end space-y-2 sm:space-y-0 sm:space-x-2">
           <button
+            ref={allowOnceButtonRef}
+            autoFocus
             onClick={() => handleChoice('once')}
-            className={buttonClasses.once}
+            className={`${buttonClasses.once} flex items-center justify-center gap-2`}
           >
-            {t('toolApproval.allowOnce')}
+            <span>{t('toolApproval.allowOnce')}</span>
+            <kbd className="inline-block px-1.5 py-0.5 text-[10px] bg-blue-900/80 border border-blue-400/30 rounded text-blue-200 font-mono">
+              ↵ Enter
+            </kbd>
           </button>
           <button
             onClick={() => handleChoice('always')}
@@ -124,9 +158,12 @@ function ToolApprovalModal({ toolCall, onApprove }) {
           </button>
           <button
             onClick={() => handleChoice('deny')}
-            className={buttonClasses.deny}
+            className={`${buttonClasses.deny} flex items-center justify-center gap-2`}
           >
-            {t('toolApproval.deny')}
+            <span>{t('toolApproval.deny')}</span>
+            <kbd className="inline-block px-1.5 py-0.5 text-[10px] bg-red-900/80 border border-red-400/30 rounded text-red-200 font-mono">
+              Esc
+            </kbd>
           </button>
           <button
             onClick={() => handleChoice('never')}
