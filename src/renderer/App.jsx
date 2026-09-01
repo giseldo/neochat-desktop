@@ -18,6 +18,11 @@ import { groupModels } from './lib/modelGrouping';
 import { extractThinking } from './lib/messageUtils';
 import { createStreamThrottler } from './lib/streamThrottler';
 import { useAgentRuntime } from './hooks/useAgentRuntime';
+import { useCompanionPanels } from './hooks/useCompanionPanels';
+import { useToolsDropdown } from './hooks/useToolsDropdown';
+import { getToolApprovalStatus, setToolApprovalStatus } from './services/toolApprovalService';
+import { composeAgentSystemPrompt } from './utils/agentPrompt';
+import { filterModels } from './utils/modelFilters';
 
 // Lazy-loaded heavy panels & modals for maximum startup speed and memory efficiency
 const ToolsPanel = lazy(() => import('./components/ToolsPanel'));
@@ -47,69 +52,6 @@ const KnowledgeGraphModal = lazy(() => import('./components/KnowledgeGraphModal'
 const DailyBriefingModal = lazy(() => import('./components/DailyBriefingModal'));
 const McpHubModal = lazy(() => import('./components/McpHubModal'));
 const ComputerVisionModal = lazy(() => import('./components/ComputerVisionModal'));
-
-// LocalStorage keys
-const TOOL_APPROVAL_PREFIX = 'tool_approval_';
-const YOLO_MODE_KEY = 'tool_approval_yolo_mode';
-
-// --- LocalStorage Helper Functions ---
-const getToolApprovalStatus = async (toolName, serverLabel) => {
-  if (window.electron?.toolPermissions?.resolve) {
-    return window.electron.toolPermissions.resolve(toolName, serverLabel);
-  }
-  try {
-    const yoloMode = localStorage.getItem(YOLO_MODE_KEY);
-    if (yoloMode === 'true') {
-      return 'yolo';
-    }
-    const toolStatus = localStorage.getItem(`${TOOL_APPROVAL_PREFIX}${toolName}`);
-    if (toolStatus === 'always') {
-      return 'always';
-    }
-    // Default: prompt the user
-    return 'prompt';
-  } catch (error) {
-    console.error("Error reading tool approval status from localStorage:", error);
-    return 'prompt'; // Fail safe: prompt user if localStorage fails
-  }
-};
-
-const setToolApprovalStatus = async (toolName, status, serverLabel) => {
-  if (window.electron?.toolPermissions) {
-    if (status === 'always') return window.electron.toolPermissions.set(toolName, 'allow', serverLabel);
-    if (status === 'never') return window.electron.toolPermissions.set(toolName, 'deny', serverLabel);
-    if (status === 'yolo') return window.electron.toolPermissions.setGlobal({ allowAll: true });
-    return;
-  }
-  try {
-    if (status === 'yolo') {
-      localStorage.setItem(YOLO_MODE_KEY, 'true');
-      // Optionally clear specific tool settings when YOLO is enabled?
-      // Object.keys(localStorage).forEach(key => {
-      //   if (key.startsWith(TOOL_APPROVAL_PREFIX)) {
-      //     localStorage.removeItem(key);
-      //   }
-      // });
-    } else if (status === 'always') {
-      localStorage.setItem(`${TOOL_APPROVAL_PREFIX}${toolName}`, 'always');
-      // Ensure YOLO mode is off if a specific tool is set to always
-      localStorage.removeItem(YOLO_MODE_KEY);
-    } else if (status === 'once') {
-      // 'once' doesn't change persistent storage, just allows current execution
-      // Ensure YOLO mode is off if 'once' is chosen for a specific tool
-      localStorage.removeItem(YOLO_MODE_KEY);
-    } else if (status === 'deny') {
-       // 'deny' also doesn't change persistent storage by default.
-       // Could potentially add a 'never' status if needed.
-       // Ensure YOLO mode is off if 'deny' is chosen
-       localStorage.removeItem(YOLO_MODE_KEY);
-    }
-  } catch (error) {
-    console.error("Error writing tool approval status to localStorage:", error);
-  }
-};
-// --- End LocalStorage Helper Functions ---
-
 
 function App() {
   // const [messages, setMessages] = useState([]); // Remove local state
@@ -216,22 +158,7 @@ function App() {
   const [isDailyBriefingOpen, setIsDailyBriefingOpen] = useState(false);
   const [isMcpHubOpen, setIsMcpHubOpen] = useState(false);
   const [isComputerVisionOpen, setIsComputerVisionOpen] = useState(false);
-  const [isToolsDropdownOpen, setIsToolsDropdownOpen] = useState(false);
-  const toolsDropdownRef = useRef(null);
-
-  useEffect(() => {
-    const handleClickOutside = (e) => {
-      if (toolsDropdownRef.current && !toolsDropdownRef.current.contains(e.target)) {
-        setIsToolsDropdownOpen(false);
-      }
-    };
-    if (isToolsDropdownOpen) {
-      document.addEventListener('mousedown', handleClickOutside);
-    }
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, [isToolsDropdownOpen]);
+  const { isToolsDropdownOpen, setIsToolsDropdownOpen, toolsDropdownRef } = useToolsDropdown();
 
   const handleStartSnip = useCallback(() => {
     setIsAppSnipModalOpen(true);
@@ -362,18 +289,7 @@ function App() {
   }, []);
 
   const buildAgentSystemPrompt = useCallback(() => {
-    const parts = [];
-    if (activeProject?.customPrompt?.trim()) {
-      parts.push(`[Instruções do Projeto "${activeProject.name}"]:\n${activeProject.customPrompt.trim()}`);
-    }
-    if (activePersona?.systemPrompt?.trim()) parts.push(activePersona.systemPrompt.trim());
-    if (canvasDoc?.content) {
-      let canvasContext = `[Documento Canvas Ativo]:\nTítulo: "${canvasDoc.title}"\nFormato: ${canvasDoc.language || 'markdown'}`;
-      if (selectedText) canvasContext += `\nTrecho selecionado:\n${selectedText}`;
-      canvasContext += `\nConteúdo:\n${canvasDoc.content}`;
-      parts.push(canvasContext);
-    }
-    return parts.join('\n\n');
+    return composeAgentSystemPrompt({ activeProject, activePersona, canvasDoc, selectedText });
   }, [activeProject, activePersona, canvasDoc, selectedText]);
 
   const { runAgent, cancelAgent, isRunning: isAgentRunning } = useAgentRuntime({
@@ -385,58 +301,12 @@ function App() {
   // --- End Autonomous Agent & Workspace State ---
 
   // --- Terminal, Background Tasks & Browser Companion State ---
-  const [isTerminalOpen, setIsTerminalOpen] = useState(false);
-  const [isTerminalMaximized, setIsTerminalMaximized] = useState(false);
-  const [isTasksOpen, setIsTasksOpen] = useState(false);
-  const [isTasksMaximized, setIsTasksMaximized] = useState(false);
-  const [isBrowserOpen, setIsBrowserOpen] = useState(false);
-  const [isBrowserMaximized, setIsBrowserMaximized] = useState(false);
-  const [runningTasksCount, setRunningTasksCount] = useState(0);
-
-  // Monitor running tasks count
-  useEffect(() => {
-    const fetchTasksCount = async () => {
-      if (window.electron?.tasks?.list) {
-        try {
-          const list = await window.electron.tasks.list();
-          const count = (list || []).filter(t => t.status === 'running').length;
-          setRunningTasksCount(count);
-        } catch (_) {}
-      }
-    };
-    fetchTasksCount();
-
-    if (window.electron?.tasks?.onUpdate) {
-      const cleanup = window.electron.tasks.onUpdate(() => {
-        fetchTasksCount();
-      });
-      return () => cleanup();
-    }
-  }, []);
-
-  // Global Keyboard Shortcuts for Companion Panels & Command Palette:
-  // Ctrl+K (Command Palette), Ctrl+` (Terminal), Ctrl+Shift+B (Browser), Ctrl+Shift+T (Background Tasks)
-  useEffect(() => {
-    const handleGlobalShortcuts = (e) => {
-      if (e.ctrlKey || e.metaKey) {
-        if (e.key === 'k' || e.key === 'K') {
-          e.preventDefault();
-          setIsCommandPaletteOpen(prev => !prev);
-        } else if (e.key === '`') {
-          e.preventDefault();
-          setIsTerminalOpen(prev => !prev);
-        } else if (e.shiftKey && (e.key === 'B' || e.key === 'b')) {
-          e.preventDefault();
-          setIsBrowserOpen(prev => !prev);
-        } else if (e.shiftKey && (e.key === 'T' || e.key === 't')) {
-          e.preventDefault();
-          setIsTasksOpen(prev => !prev);
-        }
-      }
-    };
-    window.addEventListener('keydown', handleGlobalShortcuts);
-    return () => window.removeEventListener('keydown', handleGlobalShortcuts);
-  }, []);
+  const {
+    isTerminalOpen, setIsTerminalOpen, isTerminalMaximized, setIsTerminalMaximized,
+    isTasksOpen, setIsTasksOpen, isTasksMaximized, setIsTasksMaximized,
+    isBrowserOpen, setIsBrowserOpen, isBrowserMaximized, setIsBrowserMaximized,
+    runningTasksCount
+  } = useCompanionPanels(setIsCommandPaletteOpen);
   // --- End Terminal, Tasks & Browser State ---
 
   // --- Preset Input Message State for Welcome suggestions ---
@@ -572,81 +442,6 @@ function App() {
   
   // Models list derived from capabilities keys
   // const models = Object.keys(MODEL_CAPABILITIES).filter(key => key !== 'default');
-
-  // Helper function to filter models based on modelFilter setting and disabledModels list
-  const filterModels = (modelList, filterText, excludeText, configs, disabledList = []) => {
-    let filteredModels = modelList;
-
-    // Filter out disabled models (checks exact key and rawModelId)
-    if (Array.isArray(disabledList) && disabledList.length > 0) {
-      filteredModels = filteredModels.filter(modelId => {
-        const config = configs[modelId];
-        const rawId = config?.rawModelId;
-        return !disabledList.includes(modelId) && (!rawId || !disabledList.includes(rawId));
-      });
-    }
-
-    // Helper to get display name for a model
-    const getDisplayName = (modelId) => {
-      const modelInfo = configs[modelId];
-      if (modelInfo && modelInfo.displayName) {
-        return modelInfo.displayName;
-      }
-      if (modelInfo && modelInfo.rawModelId) {
-        return modelInfo.rawModelId;
-      }
-      if (typeof modelId === 'string' && modelId.includes('::')) {
-        return modelId.split('::')[1];
-      }
-      return modelId;
-    };
-
-    // First, apply inclusion filter if specified
-    if (filterText && filterText.trim()) {
-      const filterTerms = filterText
-        .split('\n')
-        .map(term => term.trim())
-        .filter(term => term.length > 0);
-
-      if (filterTerms.length > 0) {
-        filteredModels = filteredModels.filter(modelId => {
-          const displayName = getDisplayName(modelId).toLowerCase();
-          const modelIdLower = modelId.toLowerCase();
-          const rawId = (configs[modelId]?.rawModelId || '').toLowerCase();
-          
-          return filterTerms.some(term => {
-            const termLower = term.toLowerCase();
-            return modelIdLower.includes(termLower) || displayName.includes(termLower) || rawId.includes(termLower);
-          });
-        });
-      }
-    }
-
-    // Then, apply exclude filter (applies regardless of inclusion filter)
-    if (excludeText && excludeText.trim()) {
-      const excludeTerms = excludeText
-        .split('\n')
-        .map(term => term.trim())
-        .filter(term => term.length > 0);
-
-      if (excludeTerms.length > 0) {
-        filteredModels = filteredModels.filter(modelId => {
-          const displayName = getDisplayName(modelId).toLowerCase();
-          const modelIdLower = modelId.toLowerCase();
-          const rawId = (configs[modelId]?.rawModelId || '').toLowerCase();
-          
-          const matchesExclude = excludeTerms.some(term => {
-            const termLower = term.toLowerCase();
-            return modelIdLower.includes(termLower) || displayName.includes(termLower) || rawId.includes(termLower);
-          });
-          
-          return !matchesExclude;
-        });
-      }
-    }
-
-    return filteredModels;
-  };
 
   // Sort and group models by provider/category and display name
   // and apply model filter if configured
