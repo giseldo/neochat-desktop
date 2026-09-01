@@ -728,7 +728,7 @@ const PopupPage = () => {
       }
 
       const isModifier = event.ctrlKey || event.metaKey;
-      if (isModifier && event.shiftKey && (event.key.toLowerCase() === 'u' || event.key.toLowerCase() === 'p')) {
+      if (isModifier && event.shiftKey && event.key.toLowerCase() === 'u') {
         event.preventDefault();
         const nextMode = interfaceMode === 'power' ? 'user' : 'power';
         setInterfaceMode(nextMode);

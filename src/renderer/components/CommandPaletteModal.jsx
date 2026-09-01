@@ -520,7 +520,7 @@ export function CommandPaletteModal({
             ref={inputRef}
             type="text"
             className="w-full bg-transparent text-zinc-100 placeholder-zinc-500 text-base outline-none font-medium"
-            placeholder="Digite um comando, modelo, persona ou navegação... (Ctrl+K)"
+            placeholder="Digite um comando, modelo, persona ou navegação... (Ctrl+Shift+P)"
             value={query}
             onChange={e => setQuery(e.target.value)}
           />

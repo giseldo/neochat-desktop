@@ -2390,8 +2390,8 @@ function App() {
         return;
       }
 
-      // Ctrl/Cmd + Shift + U or Ctrl/Cmd + Shift + P: Toggle Interface Mode (User / Power)
-      if (isModifier && e.shiftKey && (e.key.toLowerCase() === 'u' || e.key.toLowerCase() === 'p')) {
+      // Ctrl/Cmd + Shift + U: Toggle Interface Mode (User / Power)
+      if (isModifier && e.shiftKey && e.key.toLowerCase() === 'u') {
         e.preventDefault();
         const nextMode = interfaceMode === 'power' ? 'user' : 'power';
         handleInterfaceModeChange(nextMode);
@@ -2976,7 +2976,7 @@ function App() {
                           <Keyboard className="w-3.5 h-3.5 text-muted-foreground" />
                           <span className="font-medium">Paleta de Comandos</span>
                         </div>
-                        <kbd className="px-1.5 py-0.5 text-[10px] font-mono bg-muted border border-border/80 rounded text-muted-foreground">Ctrl+K</kbd>
+                        <kbd className="px-1.5 py-0.5 text-[10px] font-mono bg-muted border border-border/80 rounded text-muted-foreground">Ctrl+Shift+P</kbd>
                       </button>
 
                       {/* Keyboard Shortcuts */}
@@ -3362,7 +3362,7 @@ function App() {
           onClose={() => setIsShortcutsModalOpen(false)}
         />
 
-        {/* Command Palette Global Launcher (Ctrl+K) */}
+        {/* Command Palette Global Launcher (Ctrl+Shift+P) */}
         <CommandPaletteModal
           isOpen={isCommandPaletteOpen}
           onClose={() => setIsCommandPaletteOpen(false)}

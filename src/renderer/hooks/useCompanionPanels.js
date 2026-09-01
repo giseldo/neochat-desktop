@@ -33,7 +33,7 @@ export function useCompanionPanels(setIsCommandPaletteOpen) {
   useEffect(() => {
     const handleGlobalShortcuts = (event) => {
       if (!event.ctrlKey && !event.metaKey) return;
-      if (event.key.toLowerCase() === 'k') {
+      if (event.shiftKey && event.key.toLowerCase() === 'p') {
         event.preventDefault();
         setIsCommandPaletteOpen(value => !value);
       } else if (event.key === '`') {
