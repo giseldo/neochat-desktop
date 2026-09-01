@@ -3036,7 +3036,7 @@ function App() {
       {/* Main Content */}
       <div className="flex-1 flex overflow-hidden">
         <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-          <div className="flex-1 overflow-y-auto">
+          <div className="flex-1 overflow-y-auto custom-scrollbar">
             <div className={cn(
               "mx-auto h-full transition-all duration-200",
               chatWidth === 'wide'
@@ -3191,7 +3191,7 @@ function App() {
                   )}
                   <div 
                     ref={messagesContainerRef} 
-                    className="flex-1 overflow-y-auto mb-6 min-h-0"
+                    className="flex-1 overflow-y-auto mb-6 min-h-0 custom-scrollbar"
                     style={{ willChange: 'scroll-position' }}
                   >
                     <MessageList 
