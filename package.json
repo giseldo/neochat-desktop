@@ -9,6 +9,9 @@
     "dev": "concurrently \"pnpm dev:vite\" \"pnpm dev:electron\"",
     "dev:vite": "vite",
     "dev:electron": "cross-env NODE_ENV=development electron .",
+    "lint": "eslint electron shared src/renderer scripts test-*.js",
+    "test": "node scripts/run-core-tests.js",
+    "test:core": "node scripts/run-core-tests.js",
     "docs:dev": "vitepress dev docs",
     "docs:build": "vitepress build docs",
     "docs:preview": "vitepress preview docs",
@@ -111,6 +114,6 @@
     "wait-on": "8.0.3"
   },
   "engines": {
-    "node": ">=16.0.0"
+    "node": ">=22.16.0"
   }
 }

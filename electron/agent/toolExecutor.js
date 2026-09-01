@@ -310,7 +310,12 @@ class ToolExecutor {
         const execCwd = resolveWorkspacePath(root, args.cwd || '.', { mustExist: true });
         const timeoutMs = Math.min(Math.max(Number(args.timeout_ms) || 30000, 1000), 120000);
 
-        const shellResult = await shellManager.exec(sessionId, command, { cwd: execCwd, timeoutMs });
+        const shellResult = await shellManager.exec(sessionId, command, {
+          cwd: execCwd,
+          timeoutMs,
+          networkAccess: args.network_access === true,
+          envAllowlist: Array.isArray(settings.agentEnvironmentAllowlist) ? settings.agentEnvironmentAllowlist : []
+        });
         return {
           result: limitContentLength(JSON.stringify(shellResult, null, 2), outputLimit),
           tool_call_id: toolCallId,
@@ -370,7 +375,12 @@ class ToolExecutor {
           command,
           name: args.name || command,
           runner: args.runner,
-          cwd: taskCwd
+          cwd: taskCwd,
+          timeoutMs: Math.min(Math.max(Number(args.timeout_ms) || 300000, 1000), 3600000),
+          networkAccess: args.network_access === true,
+          restrictedEnv: true,
+          maxOutputBytes: Number(settings.toolOutputLimitBytes) || 1_000_000,
+          envAllowlist: Array.isArray(settings.agentEnvironmentAllowlist) ? settings.agentEnvironmentAllowlist : []
         });
         return {
           result: limitContentLength(JSON.stringify(taskInfo, null, 2), outputLimit),

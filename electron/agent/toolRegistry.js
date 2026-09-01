@@ -180,6 +180,10 @@ const NATIVE_TOOLS = {
         timeout_ms: {
           type: 'integer',
           description: 'Execution timeout in milliseconds (default: 30000).'
+        },
+        network_access: {
+          type: 'boolean',
+          description: 'Request network access for this exact command. Requires a separately scoped approval.'
         }
       },
       required: ['command']
@@ -364,6 +368,14 @@ const NATIVE_TOOLS = {
         cwd: {
           type: 'string',
           description: 'Working directory for the task.'
+        },
+        timeout_ms: {
+          type: 'integer',
+          description: 'Execution timeout in milliseconds.'
+        },
+        network_access: {
+          type: 'boolean',
+          description: 'Request network access for this exact task. Requires a separately scoped approval.'
         }
       },
       required: ['command']

@@ -22,11 +22,14 @@ jobs:
     - name: Set up Node.js
       uses: actions/setup-node@v4
       with:
-        node-version: '20'
+        node-version: '22.16.0'
         cache: 'pnpm'
 
     - name: Install dependencies
-      run: pnpm install
+      run: pnpm install --frozen-lockfile
+
+    - name: Verify core behavior
+      run: pnpm test:core
 
     - name: Build Windows Electron App
       run: pnpm dist:win

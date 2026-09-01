@@ -11,6 +11,9 @@ module.exports = [
       "node_modules/",
       "dist/",
       "release/",
+      "docs/.vitepress/dist/",
+      "siteweb/dist/",
+      ".pnpm-store/",
       "electron/vendor/",
       "*.config.js",
       "*.config.cjs"
@@ -38,6 +41,7 @@ module.exports = [
             'caughtErrors': 'none' // Ignore all caught errors regardless of name
             // 'caughtErrorsIgnorePattern': '^_'
         }],
+        'no-empty': ['error', { allowEmptyCatch: true }],
         'no-unreachable': 'warn'
     }
   },
@@ -86,4 +90,4 @@ module.exports = [
       'no-unreachable': 'warn'
     }
   }
-]; 
+];

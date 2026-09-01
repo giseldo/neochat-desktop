@@ -571,8 +571,8 @@ Em vez de listas estáticas de modelos hardcoded, o NeoChat interroga os endpoin
 export function inferModelCapabilities(modelId) {
   const lower = modelId.toLowerCase();
   return {
-    supportsTools: /gpt-|claude-|llama-3\.[1-9]|qwen-2\.5|gemini|mistral|deepseek/.test(lower),
-    supportsVision: /vision|llava|pixtral|gpt-4o|claude-3|gemini|llama-3\.2-(11b|90b)/.test(lower),
+    supportsTools: /gpt-|claude-|llama-3\\.[1-9]|qwen-2\\.5|gemini|mistral|deepseek/.test(lower),
+    supportsVision: /vision|llava|pixtral|gpt-4o|claude-3|gemini|llama-3\\.2-(11b|90b)/.test(lower),
     supportsReasoning: /r1|qwq|o1|o3|reasoner|thinking/.test(lower),
     contextWindow: resolveContextSize(lower)
   };
@@ -860,7 +860,7 @@ O \`observabilityManager\` calcula o custo em repouso sem depender de APIs de fa
 
 $$\\text{Custo Total} = \\left(\\frac{\\text{Prompt Tokens}}{10^6} \\times \\text{Preço Input}\\right) + \\left(\\frac{\\text{Completion Tokens}}{10^6} \\times \\text{Preço Output}\\right)$$
 
-Modelos locais (como Ollama e LM Studio) são automaticamente contabilizados com custo **\$0.00**.
+Modelos locais (como Ollama e LM Studio) são automaticamente contabilizados com custo **$0.00**.
 
 ---
 

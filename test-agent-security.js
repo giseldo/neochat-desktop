@@ -7,6 +7,8 @@ const { resolveWorkspacePath } = require('./electron/agent/pathPolicy');
 const { ToolExecutor } = require('./electron/agent/toolExecutor');
 const { PermissionEngine, PERMISSION_DECISION, getApprovalScope } = require('./electron/agent/permissionEngine');
 const { validateAgentOptions, validateMessage, assertSessionId } = require('./electron/agent/ipcValidation');
+const { buildRestrictedEnv, validateCommand } = require('./electron/agent/processPolicy');
+const { ShellSession } = require('./electron/agent/shellManager');
 
 async function run() {
   const workspace = fs.mkdtempSync(path.join(os.tmpdir(), 'neochat-security-'));
@@ -58,6 +60,22 @@ async function run() {
     assert.strictEqual(validateMessage('hello'), 'hello');
     assert.throws(() => validateMessage(''));
     assert.throws(() => validateAgentOptions({ workspaceRoot: 'relative/path' }));
+
+    const restrictedEnv = buildRestrictedEnv({ PATH: process.env.PATH || '', GROQ_API_KEY: 'secret', CUSTOM_SAFE: 'allowed' }, ['CUSTOM_SAFE']);
+    assert.strictEqual(restrictedEnv.GROQ_API_KEY, undefined);
+    assert.strictEqual(restrictedEnv.CUSTOM_SAFE, 'allowed');
+    assert.throws(() => validateCommand('git push origin main'), /network access/);
+    assert.doesNotThrow(() => validateCommand('git push origin main', { networkAccess: true }));
+
+    process.env.NEOCHAT_TEST_SECRET = 'must-not-leak';
+    const shell = new ShellSession('security-shell', workspace);
+    const envResult = await shell.exec('node -e "process.stdout.write(process.env.NEOCHAT_TEST_SECRET || \'filtered\')"');
+    delete process.env.NEOCHAT_TEST_SECRET;
+    assert.strictEqual(envResult.stdout, 'filtered');
+
+    const cappedResult = await shell.exec('node -e "process.stdout.write(\'x\'.repeat(50000))"', { maxOutputBytes: 16384 });
+    assert.strictEqual(cappedResult.exitCode, 125);
+    assert.match(cappedResult.stderr, /exceeding 16384 output bytes/);
 
     console.log('Agent security boundary tests passed.');
   } finally {
