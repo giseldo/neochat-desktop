@@ -101,7 +101,7 @@ export function useAgentRuntime({ setMessages, setLoading, setAgentStep, setPend
     });
   }, [setAgentStep, setLoading, setMessages, setPendingApprovalCall]);
 
-  const runAgent = useCallback(async ({ sessionId, message, seedMessages, model, workspaceRoot, systemPrompt }) => {
+  const runAgent = useCallback(async ({ sessionId, message, seedMessages, model, workspaceRoot, systemPrompt, agentHarness }) => {
     if (!window.electron?.agent || !sessionId) throw new Error('Agent runtime is unavailable.');
 
     activeSessionIdRef.current = sessionId;
@@ -128,7 +128,8 @@ export function useAgentRuntime({ setMessages, setLoading, setAgentStep, setPend
           agentMode: true,
           agentModeActive: true,
           currentChatId: sessionId,
-          agentSystemPrompt: systemPrompt || ''
+          agentSystemPrompt: systemPrompt || '',
+          ...(agentHarness ? { agentHarness } : {})
         }
       });
 

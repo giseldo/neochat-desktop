@@ -5,6 +5,7 @@ import ChatInput from './components/ChatInput';
 import ChatHistorySidebar from './components/ChatHistorySidebar';
 import ThemeToggle from './components/ThemeToggle';
 import PersonaSelector, { DEFAULT_PERSONAS, getStoredActivePersona, getStoredPersonas, ACTIVE_PERSONA_STORAGE_KEY } from './components/PersonaSelector';
+import AgentEngineSelector from './components/AgentEngineSelector';
 import WelcomeScreen from './components/WelcomeScreen';
 import { useChat } from './context/ChatContext';
 import { useCanvas } from './context/CanvasContext';
@@ -237,6 +238,7 @@ function App() {
 
   // --- Autonomous Agent & Workspace State ---
   const [agentStep, setAgentStep] = useState(0);
+  const [agentHarness, setAgentHarness] = useState('native');
   const [harnessMode, setHarnessMode] = useState(() => {
     try {
       return localStorage.getItem('neochat_harness_mode') || 'chat';
@@ -543,6 +545,7 @@ function App() {
         // THEN Load settings
         const settings = await window.electron.getSettings(); // Await settings
         setInterfaceMode(settings.interfaceMode === 'power' ? 'power' : 'user');
+        setAgentHarness(settings.agentHarness === 'pi' ? 'pi' : 'native');
         setShowTrajectoryTab(settings.showTrajectoryTab !== false);
         setShowWelcomeTips(settings.showWelcomeTips === true);
         setShowWelcomeSuggestions(settings.showWelcomeSuggestions === true);
@@ -733,6 +736,23 @@ function App() {
       });
     } catch (error) {
       console.error('Error saving interfaceMode from quick menu:', error);
+    }
+  }, []);
+
+  // Callback to toggle agentHarness (native / pi) from Top Bar
+  const handleAgentHarnessChange = useCallback(async (newHarness) => {
+    const validHarness = newHarness === 'pi' ? 'pi' : 'native';
+    setAgentHarness(validHarness);
+    try {
+      if (window.electron?.saveSettings) {
+        const currentSettings = await window.electron.getSettings();
+        await window.electron.saveSettings({
+          ...currentSettings,
+          agentHarness: validHarness
+        });
+      }
+    } catch (error) {
+      console.error('Error saving agentHarness from top bar:', error);
     }
   }, []);
 
@@ -1719,7 +1739,8 @@ function App() {
           seedMessages: messages,
           model: selectedModel,
           workspaceRoot: workspacePath || undefined,
-          systemPrompt: buildAgentSystemPrompt()
+          systemPrompt: buildAgentSystemPrompt(),
+          agentHarness
         });
       } catch (error) {
         console.error('Agent runtime execution failed:', error);
@@ -2575,6 +2596,14 @@ function App() {
                 </div>
               )}
 
+              {/* Agent Engine Switcher (Neo Native / Pi Agent Core) */}
+              {isPowerUser && (
+                <AgentEngineSelector
+                  agentHarness={agentHarness}
+                  onHarnessChange={handleAgentHarnessChange}
+                />
+              )}
+
               {/* In Code Mode: Workspace Directory Selector Button */}
               {isPowerUser && harnessMode === 'code' && (
                 <Button
@@ -3079,6 +3108,8 @@ function App() {
                       powerUserMode={isPowerUser}
                       showButtonLabels={showButtonLabels}
                       harnessMode={harnessMode}
+                      agentHarness={agentHarness}
+                      onHarnessChange={handleAgentHarnessChange}
                       workspaceInfo={workspaceInfo}
                       onSelectWorkspace={handleSelectWorkspace}
                     />
@@ -3118,6 +3149,8 @@ function App() {
                       showButtonLabels={showButtonLabels}
                       presetMessage={presetInputMessage}
                       harnessMode={harnessMode}
+                      agentHarness={agentHarness}
+                      onHarnessChange={handleAgentHarnessChange}
                       workspaceInfo={workspaceInfo}
                       onSelectWorkspace={handleSelectWorkspace}
                     />
@@ -3164,6 +3197,8 @@ function App() {
                       powerUserMode={isPowerUser}
                       showButtonLabels={showButtonLabels}
                       harnessMode={harnessMode}
+                      agentHarness={agentHarness}
+                      onHarnessChange={handleAgentHarnessChange}
                       workspaceInfo={workspaceInfo}
                       onSelectWorkspace={handleSelectWorkspace}
                     />
@@ -3241,6 +3276,8 @@ function App() {
                       powerUserMode={isPowerUser}
                       showButtonLabels={showButtonLabels}
                       harnessMode={harnessMode}
+                      agentHarness={agentHarness}
+                      onHarnessChange={handleAgentHarnessChange}
                       workspaceInfo={workspaceInfo}
                       onSelectWorkspace={handleSelectWorkspace}
                     />

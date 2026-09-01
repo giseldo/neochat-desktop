@@ -54,6 +54,7 @@ export const translations = {
       browser: 'Navegador',
       tools: 'Ferramentas',
       toolsMenu: 'Menu de Ferramentas',
+      agentEngine: 'Engine do Agente',
     },
     sidebar: {
       chatsSection: 'Chats',
@@ -1511,6 +1512,7 @@ export const translations = {
       browser: 'Browser',
       tools: 'Tools',
       toolsMenu: 'Tools Menu',
+      agentEngine: 'Agent Engine',
     },
     sidebar: {
       chatsSection: 'Chats',
