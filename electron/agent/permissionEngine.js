@@ -47,6 +47,15 @@ function getApprovalScope(toolCall) {
   return `${toolName}:${digest}`;
 }
 
+function requiresElevatedApproval(toolCall) {
+  const toolName = toolCall?.function?.name || toolCall?.name;
+  const args = parseToolArguments(toolCall);
+  return Boolean(
+    args.network_access === true ||
+    (['shell_exec', 'process_exec', 'run_background_task'].includes(toolName) && args.allow_system_commands === true)
+  );
+}
+
 class PermissionEngine {
   constructor(settings = {}) {
     this.settings = settings;
@@ -80,6 +89,12 @@ class PermissionEngine {
     const sessionSet = this.sessionPermissions.get(sessionId);
     if (sessionSet && sessionSet.has(approvalScope)) {
       return { decision: PERMISSION_DECISION.ALLOW, reason: 'Session approved' };
+    }
+
+    // Network and operating-system capabilities always require an exact-call approval,
+    // even when the tool itself is globally configured as allowed.
+    if (requiresElevatedApproval(toolCall)) {
+      return { decision: PERMISSION_DECISION.PROMPT, reason: 'Elevated process capability requires exact approval' };
     }
 
     // 2. Check global tool permission settings from toolPermissionManager
@@ -206,5 +221,6 @@ module.exports = {
   permissionEngine,
   PERMISSION_DECISION,
   DEFAULT_SAFE_TOOLS,
-  getApprovalScope
+  getApprovalScope,
+  requiresElevatedApproval
 };

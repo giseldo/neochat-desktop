@@ -190,6 +190,39 @@ const NATIVE_TOOLS = {
     }
   },
 
+  process_exec: {
+    name: 'process_exec',
+    type: 'native',
+    description: 'Execute one program directly without a command shell. Prefer this over shell_exec when pipelines, redirects, and shell built-ins are unnecessary.',
+    parameters: {
+      type: 'object',
+      properties: {
+        executable: {
+          type: 'string',
+          description: 'Executable name or path.'
+        },
+        arguments: {
+          type: 'array',
+          items: { type: 'string' },
+          description: 'Arguments passed directly to the executable without shell interpretation.'
+        },
+        cwd: {
+          type: 'string',
+          description: 'Workspace-relative working directory.'
+        },
+        timeout_ms: {
+          type: 'integer',
+          description: 'Execution timeout in milliseconds (default: 30000).'
+        },
+        network_access: {
+          type: 'boolean',
+          description: 'Request network access for this exact process. Requires a separately scoped approval.'
+        }
+      },
+      required: ['executable']
+    }
+  },
+
   git_status: {
     name: 'git_status',
     type: 'native',
@@ -477,6 +510,7 @@ class ToolRegistry {
         NATIVE_TOOLS.list_directory,
         NATIVE_TOOLS.glob_search,
         NATIVE_TOOLS.grep_search,
+        NATIVE_TOOLS.process_exec,
         NATIVE_TOOLS.shell_exec,
         NATIVE_TOOLS.git_status,
         NATIVE_TOOLS.git_diff,

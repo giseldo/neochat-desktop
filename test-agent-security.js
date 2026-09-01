@@ -5,9 +5,9 @@ const path = require('path');
 
 const { resolveWorkspacePath } = require('./electron/agent/pathPolicy');
 const { ToolExecutor } = require('./electron/agent/toolExecutor');
-const { PermissionEngine, PERMISSION_DECISION, getApprovalScope } = require('./electron/agent/permissionEngine');
+const { PermissionEngine, PERMISSION_DECISION, getApprovalScope, requiresElevatedApproval } = require('./electron/agent/permissionEngine');
 const { validateAgentOptions, validateMessage, assertSessionId } = require('./electron/agent/ipcValidation');
-const { buildRestrictedEnv, validateCommand } = require('./electron/agent/processPolicy');
+const { buildRestrictedEnv, validateCommand, validateDirectProcess } = require('./electron/agent/processPolicy');
 const { ShellSession } = require('./electron/agent/shellManager');
 
 async function run() {
@@ -43,6 +43,29 @@ async function run() {
     assert.match(escapedWrite.error, /outside the authorized workspace/);
     assert.strictEqual(fs.existsSync(path.join(path.dirname(workspace), 'escaped.txt')), false);
 
+    const directTool = await executor.execute({
+      sessionId: 'security-test',
+      workspaceRoot: workspace,
+      settings: { agentExecutableAllowlist: ['node'] },
+      toolCall: {
+        id: 'call-direct-process',
+        function: { name: 'process_exec', arguments: JSON.stringify({ executable: 'node', arguments: ['-e', 'process.stdout.write("direct")'] }) }
+      }
+    });
+    assert.strictEqual(directTool.exitCode, 0);
+    assert.match(directTool.result, /direct/);
+
+    const forbiddenTool = await executor.execute({
+      sessionId: 'security-test',
+      workspaceRoot: workspace,
+      settings: { agentExecutableAllowlist: ['node'] },
+      toolCall: {
+        id: 'call-forbidden-process',
+        function: { name: 'process_exec', arguments: JSON.stringify({ executable: 'python', arguments: ['--version'] }) }
+      }
+    });
+    assert.match(forbiddenTool.error, /allowlist/);
+
     const permissions = new PermissionEngine();
     const first = { id: 'call-1', function: { name: 'shell_exec', arguments: JSON.stringify({ command: 'pnpm test' }) } };
     const second = { id: 'call-2', function: { name: 'shell_exec', arguments: JSON.stringify({ command: 'git push' }) } };
@@ -66,12 +89,24 @@ async function run() {
     assert.strictEqual(restrictedEnv.CUSTOM_SAFE, 'allowed');
     assert.throws(() => validateCommand('git push origin main'), /network access/);
     assert.doesNotThrow(() => validateCommand('git push origin main', { networkAccess: true }));
+    assert.throws(() => validateCommand('node -e "fetch(\'https://example.com\')"'), /network access/);
+    assert.throws(() => validateCommand('shutdown /s'), /administration commands/);
+    assert.doesNotThrow(() => validateCommand('pnpm run format'));
+    assert.doesNotThrow(() => validateDirectProcess('node', ['--version'], { allowedExecutables: ['node'] }));
+    assert.throws(() => validateDirectProcess('python', ['--version'], { allowedExecutables: ['node'] }), /allowlist/);
+    assert.strictEqual(requiresElevatedApproval({ function: { name: 'process_exec', arguments: '{"executable":"node","network_access":true}' } }), true);
+    assert.strictEqual(restrictedEnv.HTTP_PROXY, 'http://127.0.0.1:9');
 
     process.env.NEOCHAT_TEST_SECRET = 'must-not-leak';
     const shell = new ShellSession('security-shell', workspace);
     const envResult = await shell.exec('node -e "process.stdout.write(process.env.NEOCHAT_TEST_SECRET || \'filtered\')"');
     delete process.env.NEOCHAT_TEST_SECRET;
     assert.strictEqual(envResult.stdout, 'filtered');
+
+    const directResult = await shell.execFile('node', ['-e', 'process.stdout.write(process.argv[1])', 'literal;not-a-shell'], {
+      allowedExecutables: ['node']
+    });
+    assert.strictEqual(directResult.stdout, 'literal;not-a-shell');
 
     const cappedResult = await shell.exec('node -e "process.stdout.write(\'x\'.repeat(50000))"', { maxOutputBytes: 16384 });
     assert.strictEqual(cappedResult.exitCode, 125);

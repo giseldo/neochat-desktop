@@ -15,6 +15,7 @@ const { workspaceManager } = require('./workspaceManager');
 const { taskManager } = require('../taskManager');
 const { browserManager } = require('../browserManager');
 const { resolveWorkspacePath } = require('./pathPolicy');
+const { DEFAULT_AGENT_EXECUTABLES } = require('./processPolicy');
 
 class ToolExecutor {
   /**
@@ -303,7 +304,32 @@ class ToolExecutor {
         };
       }
 
-      // 10. Native Shell Exec
+      // 10. Direct Process Exec (no shell interpretation)
+      if (toolName === 'process_exec') {
+        const executable = args.executable;
+        if (!executable) return { error: 'Missing required argument "executable".', tool_call_id: toolCallId };
+        const processArgs = args.arguments || [];
+        const execCwd = resolveWorkspacePath(root, args.cwd || '.', { mustExist: true });
+        const timeoutMs = Math.min(Math.max(Number(args.timeout_ms) || 30000, 1000), 120000);
+        const allowedExecutables = Array.isArray(settings.agentExecutableAllowlist)
+          ? settings.agentExecutableAllowlist
+          : DEFAULT_AGENT_EXECUTABLES;
+        const processResult = await shellManager.execFile(sessionId, executable, processArgs, {
+          cwd: execCwd,
+          timeoutMs,
+          maxOutputBytes: outputLimit,
+          networkAccess: args.network_access === true,
+          allowedExecutables,
+          envAllowlist: Array.isArray(settings.agentEnvironmentAllowlist) ? settings.agentEnvironmentAllowlist : []
+        });
+        return {
+          result: limitContentLength(JSON.stringify(processResult, null, 2), outputLimit),
+          tool_call_id: toolCallId,
+          exitCode: processResult.exitCode
+        };
+      }
+
+      // 11. Native Shell Exec
       if (toolName === 'shell_exec') {
         const command = args.command;
         if (!command) return { error: 'Missing required argument "command".', tool_call_id: toolCallId };
@@ -313,7 +339,9 @@ class ToolExecutor {
         const shellResult = await shellManager.exec(sessionId, command, {
           cwd: execCwd,
           timeoutMs,
+          maxOutputBytes: outputLimit,
           networkAccess: args.network_access === true,
+          allowSystemCommands: settings.agentAllowSystemCommands === true,
           envAllowlist: Array.isArray(settings.agentEnvironmentAllowlist) ? settings.agentEnvironmentAllowlist : []
         });
         return {
@@ -323,7 +351,7 @@ class ToolExecutor {
         };
       }
 
-      // 11. Native Git Commands
+      // 12. Native Git Commands
       if (toolName === 'git_status') {
         const targetRepo = resolveWorkspacePath(root, args.repo_path || '.', { mustExist: true });
         const status = await getRepositoryStatus(targetRepo);
@@ -378,6 +406,7 @@ class ToolExecutor {
           cwd: taskCwd,
           timeoutMs: Math.min(Math.max(Number(args.timeout_ms) || 300000, 1000), 3600000),
           networkAccess: args.network_access === true,
+          allowSystemCommands: settings.agentAllowSystemCommands === true,
           restrictedEnv: true,
           maxOutputBytes: Number(settings.toolOutputLimitBytes) || 1_000_000,
           envAllowlist: Array.isArray(settings.agentEnvironmentAllowlist) ? settings.agentEnvironmentAllowlist : []

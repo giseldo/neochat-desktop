@@ -105,7 +105,10 @@ class TaskManager {
    * @returns {object} task summary
    */
   runTask(options = {}) {
-    validateCommand(options.command, { networkAccess: options.networkAccess !== false });
+    validateCommand(options.command, {
+      networkAccess: options.networkAccess !== false,
+      allowSystemCommands: options.allowSystemCommands === true
+    });
     const task = new BackgroundTask(options);
     this.tasks.set(task.id, task);
 
@@ -130,7 +133,7 @@ class TaskManager {
       const child = spawn(shellCmd, shellArgs, {
         cwd: task.cwd,
         env: options.restrictedEnv
-          ? buildRestrictedEnv(process.env, options.envAllowlist || [])
+          ? buildRestrictedEnv(process.env, options.envAllowlist || [], { networkAccess: options.networkAccess })
           : { ...process.env, FORCE_COLOR: '1', PAGER: 'cat', NODE_ENV: process.env.NODE_ENV || 'production' },
         windowsHide: true,
         detached: !isWindows

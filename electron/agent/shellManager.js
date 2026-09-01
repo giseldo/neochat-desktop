@@ -3,7 +3,7 @@
  */
 
 const { spawn } = require('child_process');
-const { buildRestrictedEnv, terminateProcessTree, validateCommand } = require('./processPolicy');
+const { buildRestrictedEnv, terminateProcessTree, validateCommand, validateDirectProcess } = require('./processPolicy');
 
 class ShellSession {
   constructor(sessionId, cwd = process.cwd()) {
@@ -23,18 +23,35 @@ class ShellSession {
    * @returns {Promise<{ stdout: string, stderr: string, exitCode: number, durationMs: number }>}
    */
   async exec(commandLine, options = {}) {
-    validateCommand(commandLine, { networkAccess: options.networkAccess });
+    validateCommand(commandLine, {
+      networkAccess: options.networkAccess,
+      allowSystemCommands: options.allowSystemCommands
+    });
     if (this.activeProcess) throw new Error('A command is already running in this shell session.');
+    const isWindows = process.platform === 'win32';
+    const shellCmd = isWindows ? 'powershell.exe' : (process.env.SHELL || '/bin/bash');
+    const shellArgs = isWindows
+      ? ['-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-Command', commandLine]
+      : ['-c', commandLine];
+    return this._executeSpawn(shellCmd, shellArgs, commandLine, options);
+  }
+
+  async execFile(executable, args = [], options = {}) {
+    validateDirectProcess(executable, args, {
+      networkAccess: options.networkAccess,
+      allowSystemCommands: options.allowSystemCommands,
+      allowedExecutables: options.allowedExecutables
+    });
+    if (this.activeProcess) throw new Error('A command is already running in this shell session.');
+    return this._executeSpawn(executable, args, [executable, ...args].join(' '), options);
+  }
+
+  _executeSpawn(spawnCommand, spawnArgs, commandLabel, options) {
     const cwd = options.cwd || this.cwd || process.cwd();
     const timeoutMs = Math.min(Math.max(Number(options.timeoutMs) || 30000, 1000), 120000);
     const maxOutputBytes = Math.min(Math.max(Number(options.maxOutputBytes) || 1_000_000, 16_384), 10_000_000);
     const startTime = Date.now();
-
     const isWindows = process.platform === 'win32';
-    const shellCmd = isWindows ? 'powershell.exe' : (process.env.SHELL || '/bin/bash');
-    const shellArgs = isWindows 
-      ? ['-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-Command', commandLine]
-      : ['-c', commandLine];
 
     return new Promise((resolve) => {
       let stdout = '';
@@ -43,9 +60,9 @@ class ShellSession {
       let outputBytes = 0;
       let outputLimited = false;
 
-      const child = spawn(shellCmd, shellArgs, {
+      const child = spawn(spawnCommand, spawnArgs, {
         cwd,
-        env: buildRestrictedEnv(process.env, options.envAllowlist || []),
+        env: buildRestrictedEnv(process.env, options.envAllowlist || [], { networkAccess: options.networkAccess }),
         windowsHide: true,
         detached: !isWindows
       });
@@ -111,7 +128,7 @@ class ShellSession {
         };
 
         this.history.push({
-          command: commandLine,
+          command: commandLabel,
           cwd,
           timestamp: Date.now(),
           ...result
@@ -156,6 +173,11 @@ class ShellManager {
   async exec(sessionId, commandLine, options = {}) {
     const session = this.getOrCreateSession(sessionId, options.cwd);
     return await session.exec(commandLine, options);
+  }
+
+  async execFile(sessionId, executable, args = [], options = {}) {
+    const session = this.getOrCreateSession(sessionId, options.cwd);
+    return await session.execFile(executable, args, options);
   }
 
   kill(sessionId) {
