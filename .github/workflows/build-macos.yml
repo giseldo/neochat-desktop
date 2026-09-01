@@ -35,7 +35,11 @@ jobs:
       id: get_info
       run: |
         APP_VERSION=$(node -p "require('./package.json').version")
-        PRODUCT_NAME=$(node -p "require('./package.json').build.productName || require('./package.json').name")
+        PRODUCT_NAME=$(sed -n 's/^productName:[[:space:]]*//p' electron-builder.yml | head -n 1)
+        if [ -z "${PRODUCT_NAME}" ]; then
+          echo "Error: productName is missing from electron-builder.yml"
+          exit 1
+        fi
         SHORT_SHA=$(echo "${{ github.sha }}" | cut -c1-7)
         BUILD_TIMESTAMP=$(date +'%Y%m%d%H%M') # Generate timestamp YYYYMMDDHHMM
         CASK_VERSION="${APP_VERSION}-${BUILD_TIMESTAMP}" # Combine with hyphen
