@@ -58,7 +58,7 @@ export const translations = {
     sidebar: {
       chatsSection: 'Chats',
       projectsSection: 'Projetos',
-      title: 'Conversas',
+      title: 'Chat',
       newChat: 'Nova Conversa',
       searchPlaceholder: 'Buscar histórico...',
       emptyTitle: 'Nenhum chat ainda',
