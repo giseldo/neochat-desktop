@@ -50,14 +50,16 @@ function getApprovalScope(toolCall) {
 class PermissionEngine {
   constructor(settings = {}) {
     this.settings = settings;
+    this.sessionSettings = new Map();
     // Map of sessionId -> Set of allowed tool names for the current session
     this.sessionPermissions = new Map();
     // Map of pending approval calls: callId -> { resolve, reject, toolCall, timeoutId }
     this.pendingApprovals = new Map();
   }
 
-  updateSettings(settings) {
-    this.settings = settings;
+  updateSettings(settings, sessionId = null) {
+    if (sessionId) this.sessionSettings.set(sessionId, settings);
+    else this.settings = settings;
   }
 
   /**
@@ -98,7 +100,8 @@ class PermissionEngine {
     }
 
     // 3. Check if agent mode auto-allows safe read-only tools
-    const isAgentMode = Boolean(this.settings?.agentMode || this.settings?.agentModeActive);
+    const activeSettings = this.sessionSettings.get(sessionId) || this.settings;
+    const isAgentMode = Boolean(activeSettings?.agentMode || activeSettings?.agentModeActive);
     if (isAgentMode && DEFAULT_SAFE_TOOLS.has(toolName)) {
       return { decision: PERMISSION_DECISION.ALLOW, reason: 'Safe read-only tool in agent mode' };
     }
@@ -184,6 +187,7 @@ class PermissionEngine {
 
   revokeSessionPermissions(sessionId) {
     this.sessionPermissions.delete(sessionId);
+    this.sessionSettings.delete(sessionId);
     // Cancel any pending approvals for this session
     for (const [callId, pending] of this.pendingApprovals.entries()) {
       if (pending.sessionId === sessionId) {

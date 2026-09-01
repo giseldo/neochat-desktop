@@ -43,6 +43,7 @@
     "test:latex": "node test-latex.js",
     "test:runtime": "node test-agent-runtime.js",
     "test:agent-security": "node test-agent-security.js",
+    "test:agent-flow": "node test-agent-runtime-flow.js",
     "test:browser": "node test-browser-panel.js",
     "test:swarm": "node test-swarm-manager.js",
     "test:workflow-triggers": "node test-workflow-triggers.js",
