@@ -141,7 +141,7 @@ class NeoAgentRuntime {
    * @returns {boolean}
    */
   approveTool(sessionId, callId, alwaysAllow = false) {
-    return this.permissionEngine.approve(callId, alwaysAllow);
+    return this.permissionEngine.approve(sessionId, callId, alwaysAllow);
   }
 
   /**
@@ -152,7 +152,7 @@ class NeoAgentRuntime {
    * @returns {boolean}
    */
   rejectTool(sessionId, callId, reason = 'User rejected execution') {
-    return this.permissionEngine.reject(callId, reason);
+    return this.permissionEngine.reject(sessionId, callId, reason);
   }
 
   /**

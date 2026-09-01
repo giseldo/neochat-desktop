@@ -61,6 +61,12 @@ const projectManager = require('./projectManager');
 
 // Import Neo Agent Runtime
 const { neoAgentRuntime } = require('./agent');
+const {
+  assertCallId,
+  assertSessionId,
+  validateAgentOptions,
+  validateMessage
+} = require('./agent/ipcValidation');
 
 // Global variable to hold the main window instance
 let mainWindow;
@@ -73,6 +79,22 @@ let pendingContext = null; // Holds context to be passed to renderer
 let contextCapture = null; // Context capture instance
 let lastCapturedContext = null; // Store the most recent captured context
 let popupWindowManager = null; // Popup window manager instance
+const agentSessionOwners = new Map(); // sessionId -> renderer webContents id
+
+function claimAgentSession(event, sessionId) {
+  const ownerId = agentSessionOwners.get(sessionId);
+  if (ownerId !== undefined && ownerId !== event.sender.id) {
+    throw new Error('Agent session belongs to another renderer.');
+  }
+  agentSessionOwners.set(sessionId, event.sender.id);
+}
+
+function requireAgentSessionOwner(event, sessionId) {
+  const ownerId = agentSessionOwners.get(sessionId);
+  if (ownerId === undefined || ownerId !== event.sender.id) {
+    throw new Error('Renderer is not authorized for this agent session.');
+  }
+}
 
 function handleUrlProtocol(url) {
   // Handle groq://context?text=...&title=... URLs
@@ -527,12 +549,18 @@ app.whenReady().then(async () => {
 
   // --- Neo Agent Runtime IPC Handlers ---
   console.log("[Main Init] Registering Neo Agent Runtime handlers...");
-  ipcMain.handle('agent:create-session', async (_event, options) => {
-    const session = neoAgentRuntime.createSession(options);
+  ipcMain.handle('agent:create-session', async (event, options = {}) => {
+    const validatedOptions = validateAgentOptions(options);
+    const session = neoAgentRuntime.createSession(validatedOptions);
+    claimAgentSession(event, session.sessionId);
     return { sessionId: session.sessionId, workspaceRoot: session.workspaceRoot };
   });
 
   ipcMain.handle('agent:prompt', async (event, sessionId, userMessage, options = {}) => {
+    assertSessionId(sessionId);
+    validateMessage(userMessage);
+    const validatedOptions = validateAgentOptions(options);
+    claimAgentSession(event, sessionId);
     const currentSettings = loadSettings();
     const { discoveredTools, mcpClients } = mcpManager.getMcpState();
     
@@ -545,8 +573,8 @@ app.whenReady().then(async () => {
 
     try {
       const result = await neoAgentRuntime.prompt(sessionId, userMessage, {
-        ...options,
-        settings: { ...currentSettings, ...(options.settings || {}) },
+        ...validatedOptions,
+        settings: { ...currentSettings, ...(validatedOptions.settings || {}) },
         mcpClients,
         discoveredTools
       });
@@ -556,20 +584,30 @@ app.whenReady().then(async () => {
     }
   });
 
-  ipcMain.handle('agent:approve-tool', async (_event, sessionId, callId, alwaysAllow) => {
+  ipcMain.handle('agent:approve-tool', async (event, sessionId, callId, alwaysAllow) => {
+    assertSessionId(sessionId);
+    assertCallId(callId);
+    requireAgentSessionOwner(event, sessionId);
     return neoAgentRuntime.approveTool(sessionId, callId, alwaysAllow);
   });
 
-  ipcMain.handle('agent:reject-tool', async (_event, sessionId, callId, reason) => {
+  ipcMain.handle('agent:reject-tool', async (event, sessionId, callId, reason) => {
+    assertSessionId(sessionId);
+    assertCallId(callId);
+    requireAgentSessionOwner(event, sessionId);
     return neoAgentRuntime.rejectTool(sessionId, callId, reason);
   });
 
-  ipcMain.handle('agent:cancel', async (_event, sessionId) => {
+  ipcMain.handle('agent:cancel', async (event, sessionId) => {
+    assertSessionId(sessionId);
+    requireAgentSessionOwner(event, sessionId);
     neoAgentRuntime.cancel(sessionId);
     return { success: true };
   });
 
-  ipcMain.handle('agent:rollback', async (_event, sessionId) => {
+  ipcMain.handle('agent:rollback', async (event, sessionId) => {
+    assertSessionId(sessionId);
+    requireAgentSessionOwner(event, sessionId);
     return neoAgentRuntime.rollback(sessionId);
   });
 

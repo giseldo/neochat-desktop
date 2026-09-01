@@ -12,7 +12,7 @@ const NATIVE_TOOLS = {
       properties: {
         path: {
           type: 'string',
-          description: 'Relative or absolute path to the file to read.'
+          description: 'Path relative to the authorized workspace root.'
         },
         start_line: {
           type: 'integer',
@@ -36,7 +36,7 @@ const NATIVE_TOOLS = {
       properties: {
         path: {
           type: 'string',
-          description: 'Relative or absolute path to the file to create/overwrite.'
+          description: 'Path relative to the authorized workspace root.'
         },
         content: {
           type: 'string',
@@ -60,7 +60,7 @@ const NATIVE_TOOLS = {
       properties: {
         path: {
           type: 'string',
-          description: 'Relative or absolute path to the file to edit.'
+          description: 'Path relative to the authorized workspace root.'
         },
         target_content: {
           type: 'string',
@@ -92,7 +92,7 @@ const NATIVE_TOOLS = {
       properties: {
         path: {
           type: 'string',
-          description: 'Relative or absolute directory path (defaults to current workspace root).'
+          description: 'Directory path relative to the authorized workspace root.'
         },
         recursive: {
           type: 'boolean',

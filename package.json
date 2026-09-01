@@ -42,6 +42,7 @@
     "test:canvas-tts": "node test-canvas-tts.js",
     "test:latex": "node test-latex.js",
     "test:runtime": "node test-agent-runtime.js",
+    "test:agent-security": "node test-agent-security.js",
     "test:browser": "node test-browser-panel.js",
     "test:swarm": "node test-swarm-manager.js",
     "test:workflow-triggers": "node test-workflow-triggers.js",
