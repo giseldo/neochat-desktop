@@ -902,14 +902,6 @@ function ChatHistorySidebar({ onNewChat, onChatLoaded, loading }) {
                 </button>
                 <button
                   type="button"
-                  onClick={(e) => handleStartRename(e, chat)}
-                  className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
-                  title={t('sidebar.renameChat')}
-                >
-                  <Pencil className="h-3 w-3" />
-                </button>
-                <button
-                  type="button"
                   onClick={(e) => handleToggleArchive(e, chat.id, false)}
                   className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
                   title={t('sidebar.archiveChat')}
