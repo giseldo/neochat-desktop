@@ -19,17 +19,20 @@ try {
 
   const defaults = loadSettings();
   assert.strictEqual(defaults.interfaceMode, 'user', 'new installations must default to user mode');
+  assert.strictEqual(defaults.agentHarness, 'native', 'new installations must default to the native harness');
 
   const save = handlers.get('save-settings');
   assert.ok(save, 'save-settings IPC handler should be registered');
 
-  Promise.resolve(save({}, { ...defaults, interfaceMode: 'power' }))
+  Promise.resolve(save({}, { ...defaults, interfaceMode: 'power', agentHarness: 'pi' }))
     .then((result) => {
       assert.strictEqual(result.success, true);
       assert.strictEqual(loadSettings().interfaceMode, 'power', 'power mode should persist');
+      assert.strictEqual(loadSettings().agentHarness, 'pi', 'Pi harness selection should persist');
 
-      fs.writeFileSync(path.join(tempDir, 'settings.json'), JSON.stringify({ interfaceMode: 'invalid' }));
+      fs.writeFileSync(path.join(tempDir, 'settings.json'), JSON.stringify({ interfaceMode: 'invalid', agentHarness: 'invalid' }));
       assert.strictEqual(loadSettings().interfaceMode, 'user', 'invalid modes must safely fall back');
+      assert.strictEqual(loadSettings().agentHarness, 'native', 'invalid harnesses must safely fall back');
       console.log('Interface mode tests passed.');
     })
     .catch((error) => {

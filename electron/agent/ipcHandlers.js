@@ -68,6 +68,7 @@ function registerAgentIpcHandlers({ ipcMain, runtime, loadSettings, getMcpState,
     return runtime.rollback(sessionId);
   });
   ipcMain.handle('agent:get-workspace-info', async (_event, workspaceRoot) => runtime.getWorkspaceInfo(workspaceRoot));
+  ipcMain.handle('agent:list-harnesses', async () => runtime.listHarnesses());
   ipcMain.handle('agent:get-session', async (event, sessionId) => {
     assertSessionId(sessionId);
     requireOwner(event, sessionId);

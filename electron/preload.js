@@ -140,6 +140,7 @@ contextBridge.exposeInMainWorld('electron', {
     getSession: (sessionId) => ipcRenderer.invoke('agent:get-session', sessionId),
     getTrajectory: (sessionId, options) => ipcRenderer.invoke('agent:get-trajectory', sessionId, options),
     getWorkspaceInfo: (workspaceRoot) => ipcRenderer.invoke('agent:get-workspace-info', workspaceRoot),
+    listHarnesses: () => ipcRenderer.invoke('agent:list-harnesses'),
     selectWorkspace: () => ipcRenderer.invoke('agent:select-workspace'),
     onEvent: (callback) => {
       const handler = (_, data) => callback(data);

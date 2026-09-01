@@ -23,6 +23,7 @@ async function run() {
     cancel: () => {},
     rollback: () => ({ success: true }),
     getWorkspaceInfo: workspaceRoot => ({ root: workspaceRoot }),
+    listHarnesses: () => [{ id: 'native' }, { id: 'pi' }],
     getSessionSnapshot: sessionId => ({ sessionId }),
     getTrajectory: sessionId => [{ sessionId }]
   };
@@ -37,7 +38,7 @@ async function run() {
 
   const expectedChannels = [
     'agent:create-session', 'agent:prompt', 'agent:approve-tool', 'agent:reject-tool',
-    'agent:cancel', 'agent:rollback', 'agent:get-workspace-info', 'agent:get-session',
+    'agent:cancel', 'agent:rollback', 'agent:get-workspace-info', 'agent:list-harnesses', 'agent:get-session',
     'agent:get-trajectory', 'agent:select-workspace'
   ];
   assert.deepStrictEqual([...handlers.keys()], expectedChannels);

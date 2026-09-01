@@ -5,7 +5,7 @@
 const { AgentEventBus, AGENT_STATES, AGENT_EVENTS } = require('./eventBus');
 const { ToolRegistry } = require('./toolRegistry');
 const { PermissionEngine } = require('./permissionEngine');
-const { agentLoop } = require('./agentLoop');
+const { harnessRegistry } = require('./harnessRegistry');
 const { workspaceManager } = require('./workspaceManager');
 const { checkpointsManager } = require('./checkpoints');
 const { shellManager } = require('./shellManager');
@@ -69,7 +69,7 @@ class AgentSession {
 }
 
 class NeoAgentRuntime {
-  constructor() {
+  constructor(options = {}) {
     this.sessions = new Map();
     this.toolRegistry = new ToolRegistry();
     this.permissionEngine = new PermissionEngine();
@@ -78,6 +78,7 @@ class NeoAgentRuntime {
     this.shellManager = shellManager;
     this.swarmManager = swarmManager;
     this.sessionStore = new AgentSessionStore();
+    this.harnessRegistry = options.harnessRegistry || harnessRegistry;
   }
 
   configurePersistence(baseDir) {
@@ -213,7 +214,7 @@ class NeoAgentRuntime {
     }
 
     try {
-      const result = await agentLoop.run({
+      const result = await this.harnessRegistry.run({
         sessionId,
         messages: session.messages,
         model: session.model,
@@ -327,6 +328,10 @@ class NeoAgentRuntime {
 
   getTrajectory(sessionId, options = {}) {
     return this.sessionStore.readTrajectory(sessionId, options);
+  }
+
+  listHarnesses() {
+    return this.harnessRegistry.list();
   }
 }
 

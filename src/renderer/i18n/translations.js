@@ -796,6 +796,14 @@ export const translations = {
       
       // Responses API & Connectors Card
       responsesTitle: 'Responses API & Conectores',
+      agentHarnessTitle: 'Engine do Agente',
+      agentHarnessDesc: 'Escolha o runtime que executa o modo Código. O chat normal não é afetado.',
+      agentHarnessNativeTitle: 'Neo Native',
+      agentHarnessNativeDesc: 'Runtime estável do NeoChat com roteamento multiprovedor, MCP e compactação nativa.',
+      agentHarnessPiTitle: 'Pi Agent Core',
+      agentHarnessPiDesc: 'Loop do Pi incorporado ao NeoChat, mantendo os modelos e a interface atuais.',
+      agentHarnessDefaultBadge: 'Padrão',
+      agentHarnessSecurityNote: 'Nos dois engines, leitura, escrita, shell, Git e MCP continuam passando pelas permissões e checkpoints do NeoChat.',
       responsesDesc: 'Habilite a API Groq Responses e os conectores Google para recursos estendidos.',
       useResponsesApiLabel: 'Usar Responses API',
       useResponsesApiHelp: 'Muda de Chat Completions tradicional para a Responses API (Necessário para Conectores)',
@@ -2242,6 +2250,14 @@ export const translations = {
       
       // Responses API & Connectors Card
       responsesTitle: 'Responses API & Connectors',
+      agentHarnessTitle: 'Agent Engine',
+      agentHarnessDesc: 'Choose the runtime used by Code mode. Regular chat is unaffected.',
+      agentHarnessNativeTitle: 'Neo Native',
+      agentHarnessNativeDesc: 'NeoChat’s stable runtime with multi-provider routing, MCP, and native compaction.',
+      agentHarnessPiTitle: 'Pi Agent Core',
+      agentHarnessPiDesc: 'Pi’s loop embedded in NeoChat while retaining the current models and interface.',
+      agentHarnessDefaultBadge: 'Default',
+      agentHarnessSecurityNote: 'With either engine, file access, shell, Git, and MCP continue through NeoChat permissions and checkpoints.',
       responsesDesc: 'Enable the Groq Responses API and Google connectors for extended capabilities.',
       useResponsesApiLabel: 'Use Responses API',
       useResponsesApiHelp: 'Switch from standard Chat Completions to the Responses API (Required for Connectors)',

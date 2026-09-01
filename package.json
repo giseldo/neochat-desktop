@@ -51,6 +51,7 @@
     "test:agent-security": "node test-agent-security.js",
     "test:agent-flow": "node test-agent-runtime-flow.js",
     "test:agent-persistence": "node test-agent-persistence.js",
+    "test:agent-harnesses": "node test-agent-harnesses.js",
     "test:browser": "node test-browser-panel.js",
     "test:swarm": "node test-swarm-manager.js",
     "test:workflow-triggers": "node test-workflow-triggers.js",
@@ -66,6 +67,8 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@earendil-works/pi-agent-core": "0.84.4",
+    "@earendil-works/pi-ai": "0.84.4",
     "@modelcontextprotocol/sdk": "^1.30.0",
     "@monaco-editor/react": "^4.7.0",
     "@radix-ui/react-select": "^2.3.7",
@@ -118,6 +121,6 @@
     "wait-on": "8.0.3"
   },
   "engines": {
-    "node": ">=22.16.0"
+    "node": ">=22.19.0"
   }
 }

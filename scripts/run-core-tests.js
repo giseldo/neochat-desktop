@@ -6,6 +6,7 @@ const tests = [
   'test-agent-runtime-flow.js',
   'test-agent-persistence.js',
   'test-agent-ipc-contract.js',
+  'test-agent-harnesses.js',
   'test-swarm-manager.js',
   'test-tool-permissions.js',
   'test-provider-fallback.js',

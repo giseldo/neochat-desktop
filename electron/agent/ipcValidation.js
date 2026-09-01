@@ -54,6 +54,9 @@ function validateAgentOptions(value = {}) {
     const count = Number(options.maxIterations);
     if (!Number.isInteger(count) || count < 1 || count > 100) throw new RangeError('maxIterations must be between 1 and 100.');
   }
+  if (options.settings?.agentHarness !== undefined && !['native', 'pi'].includes(options.settings.agentHarness)) {
+    throw new TypeError('Invalid agent harness.');
+  }
   return options;
 }
 
