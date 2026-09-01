@@ -152,12 +152,105 @@ O rollback é exposto ao renderer por `window.electron.agent.rollback(sessionId)
 
 ---
 
-## Contexto, terminal e persistência
+---
 
-- `WorkspaceManager` detecta metadados do projeto, Git, árvore de arquivos e instruções como `AGENTS.md`.
-- `CompactionManager` reduz o histórico quando a janela do modelo se aproxima do limite, preservando instruções e ações relevantes.
-- `ShellManager` mantém processos associados à sessão e permite cancelamento e encerramento controlado.
-- `SessionStore` grava snapshots e trajetória de forma local para retomada e auditoria.
+## O Modo `Code (Agent)` na Prática
+
+Na interface do NeoChat Desktop, o usuário pode alternar entre os modos de operação no topo do chat:
+
+```
+[ 💬 Chat ]   [ 💼 Work ]   [ >_ Code (Agent) • ]
+```
+
+| Modo | Finalidade | Comportamento de Execução |
+| :--- | :--- | :--- |
+| **Chat** | Diálogo e Q&A | Chamada direta de completion; sem chamadas autônomas de terminal ou modificações no filesystem. |
+| **Work** | Tarefas e Planejamento | Foco em acompanhamento de escopo, organização e workflows assistidos. |
+| **Code (Agent)** | **Pair-Programming Autônomo** | Ciclo completo do **Neo Agent Runtime** (`ReAct Loop`), com inspeção profunda do workspace, injeção de regras, execução de ferramentas, terminal e checkpoints. |
+
+Ao ativar o modo **`Code (Agent)`**, o envio da mensagem dispara o `useAgentRuntime`, que cria ou retoma uma sessão no `NeoAgentRuntime` e executa a máquina de estados determinística (`AgentLoop`).
+
+---
+
+## Montagem de Contexto e System Prompt
+
+Antes de cada rodada de inferência, o NeoChat monta um contexto de sistema rico e contextualizado para orientar o modelo:
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│ 1. Workspace Intelligence (workspaceManager.js)             │
+│    • Diretório Raiz & Tipo de Projeto (Node/Rust/Py/Go)     │
+│    • Manifesto (package.json / Cargo.toml), Scripts e Deps  │
+│    • Estado do Git (Branch atual e git status preview)      │
+│    • Regras do Projeto (AGENTS.md / CLAUDE.md / README.md)  │
+├─────────────────────────────────────────────────────────────┤
+│ 2. Instruções de Projeto, Persona & Canvas (agentPrompt.js) │
+│    • Custom Prompt do Projeto ativo                         │
+│    • System Prompt da Persona selecionada                   │
+│    • Documento Canvas ativo (Título, Sintaxe, Conteúdo)     │
+├─────────────────────────────────────────────────────────────┤
+│ 3. Catálogo de Ferramentas (ToolRegistry)                   │
+│    • Esquema JSON de Ferramentas Nativas                    │
+│    • Esquema de Ferramentas MCP ativas                      │
+├─────────────────────────────────────────────────────────────┤
+│ 4. Compactação Inteligente (compactionManager.js)           │
+│    • Monitoramento de maxContextTokens                      │
+│    • Preservação de System Prompt e resumo de turnos        │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### 1. Workspace Intelligence (`workspaceManager.js`)
+O `WorkspaceManager` analisa o diretório local do projeto e sintetiza as informações no cabeçalho de contexto:
+- **Raiz do Workspace:** Caminho absoluto do projeto (ex.: `c:\Projetos\neochat-desktop`).
+- **Detecção de Manifesto e Scripts:** Identifica manifestos como `package.json`, `Cargo.toml`, `pyproject.toml`, `requirements.txt` ou `go.mod`, extraindo nome do projeto, versão, scripts disponíveis (`pnpm dev`, `pnpm test`, `cargo build`, etc.) e dependências.
+- **Estado do Git:** Identifica o branch ativo e gera um preview de alterações não commitadas (`git status`).
+- **Regras do Projeto (`AGENTS.md` / `CLAUDE.md`):** Se o repositório possuir um arquivo `AGENTS.md`, `agents.md` ou `CLAUDE.md` na raiz, seu conteúdo é lido e injetado na íntegra como diretrizes oficiais de codificação, arquitetura e convenções do projeto.
+
+### 2. Instruções de Projeto, Persona e Canvas (`agentPrompt.js`)
+- **Instruções do Projeto:** Injeta o bloco `[Instruções do Projeto "<nome>"]` configurado pelo usuário no gerenciador de projetos.
+- **Persona Ativa:** Incorpora diretrizes de especialidade técnica da persona selecionada.
+- **Contexto de Canvas:** Se o usuário estiver trabalhando em um artefato no painel Canvas, o NeoChat injeta o título, a linguagem e o conteúdo completo ou o trecho selecionado.
+
+---
+
+## Catálogo de Ferramentas Nativas (`toolRegistry.js`)
+
+No modo `Code (Agent)`, o modelo tem acesso a um conjunto robusto de ferramentas nativas e MCP:
+
+| Categoria | Ferramenta | Descrição |
+| :--- | :--- | :--- |
+| **Arquivos** | `read_file` | Leitura integral ou por intervalo de linhas (`start_line`, `end_line`). |
+| | `write_file` | Criação ou sobrescrita completa de arquivos. |
+| | `edit_file` | Substituição atômica de blocos de texto contíguos (`target_content` $\rightarrow$ `replacement_content`). |
+| | `list_directory` | Listagem de arquivos e diretórios (suporte a recursão e limite de profundidade). |
+| | `glob_search` | Busca de arquivos por padrão glob (ex.: `src/**/*.jsx`, `**/*.test.ts`). |
+| | `grep_search` | Busca textual e regex de alto desempenho em todo o workspace. |
+| **Terminal & Shell** | `shell_exec` | Execução de comandos no shell do projeto (PowerShell, Bash) com controle de timeout e rede. |
+| | `process_exec` | Execução direta de binários sem passar por intermediários do shell. |
+| **Git Integrado** | `git_status` | Inspeção de branch, arquivos modificados e não rastreados. |
+| | `git_diff` | Inspeção de diffs unificados e alterações em staging. |
+| | `git_commit` | Criação de commits semânticos com staging de alterações. |
+| **Background Tasks** | `run_background_task` | Inicialização de tarefas assíncronas em background (servidores dev, builds). |
+| | `list_background_tasks` | Listagem e status de tarefas em execução. |
+| | `kill_background_task` | Cancelamento ou interrupção de processos em segundo plano. |
+| **Canvas & Artefatos** | `canvas_create_document` | Criação de novos documentos e código no painel interativo Canvas. |
+| | `canvas_update_document` | Atualização do documento Canvas ativo. |
+| | `canvas_edit_selection` | Edição localizada no documento Canvas. |
+| | `canvas_get_document` | Leitura do conteúdo atual do Canvas. |
+| **Web & Conhecimento** | `web_search` | Pesquisa na web em tempo real (Tavily, Brave Search ou Bing local). |
+| | `read_url_content` | Leitura e extração de conteúdo de páginas web ou endpoints HTTP locais. |
+| | `query_project_knowledge` | Busca semântica vetorial na base de conhecimento RAG do projeto. |
+| **Extensões MCP** | Ferramentas MCP | Todas as ferramentas expostas por servidores MCP configurados no **MCP Hub**. |
+
+---
+
+## Gestão de Contexto e Persistência
+
+- `CompactionManager`: Reduz e resume o histórico de mensagens quando a janela de contexto se aproxima de `maxContextTokens`, mantendo preservados o System Prompt e as decisões essenciais.
+- `PermissionEngine`: Avalia cada chamada antes da execução (`ALLOW`, `PROMPT` para aprovação do usuário via modal, ou `DENY`).
+- `CheckpointsManager`: Gera snapshots automáticos do código antes de modificações, permitindo rollback completo pelo painel ou atalho.
+- `ShellManager`: Mantém o ciclo de vida dos terminais e processos filhos de forma segura e cancelável.
+- `SessionStore`: Persiste todo o histórico de execuções, mensagens e trajetória do agente para recuperação posterior.
 
 ---
 
