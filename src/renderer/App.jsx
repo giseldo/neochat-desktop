@@ -2551,9 +2551,6 @@ function App() {
                   >
                     <Terminal className="w-3.5 h-3.5 text-amber-500" />
                     <span className="hidden md:inline">{t('chat.chatModeCode')}</span>
-                    {activeTab === 'chat' && harnessMode === 'code' && (
-                      <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
-                    )}
                   </button>
 
                   {showTrajectoryTab && (
