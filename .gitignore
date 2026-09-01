@@ -6,6 +6,7 @@ siteweb/.vercel/
 # Electron build output
 dist/
 release/
+release-verify/
 .vercel/
 docs/.vitepress/dist/
 docs/.vitepress/cache/

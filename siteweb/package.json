@@ -11,28 +11,28 @@
   "dependencies": {
     "@neondatabase/serverless": "^0.10.4",
     "clsx": "^2.1.1",
-    "drizzle-orm": "^0.38.4",
-    "katex": "^0.16.22",
+    "drizzle-orm": "^0.45.2",
+    "katex": "^0.16.47",
     "lucide-react": "^0.523.0",
-    "next": "^15.5.24",
-    "react": "^19.0.0",
-    "react-dom": "^19.0.0",
+    "next": "^15.5.25",
+    "react": "19.0.3",
+    "react-dom": "19.0.3",
     "react-markdown": "^10.1.0",
-    "react-syntax-highlighter": "^15.6.1",
+    "react-syntax-highlighter": "^15.6.6",
     "react-textarea-autosize": "^8.5.9",
     "rehype-katex": "^7.0.1",
     "remark-gfm": "^4.0.1",
     "remark-math": "^6.0.0",
-    "tailwind-merge": "^3.3.1"
+    "tailwind-merge": "^3.6.0"
   },
   "devDependencies": {
-    "@types/node": "^22.13.4",
+    "@types/node": "^22.20.1",
     "@types/react": "^19.0.8",
     "@types/react-dom": "^19.0.3",
-    "autoprefixer": "^10.4.20",
-    "drizzle-kit": "^0.30.4",
-    "postcss": "^8.5.2",
-    "tailwindcss": "^3.4.17",
-    "typescript": "^5.7.3"
+    "autoprefixer": "^10.5.4",
+    "drizzle-kit": "^0.30.6",
+    "postcss": "^8.5.26",
+    "tailwindcss": "^3.4.19",
+    "typescript": "^5.9.3"
   }
 }

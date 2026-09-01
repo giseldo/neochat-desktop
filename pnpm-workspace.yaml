@@ -5,3 +5,7 @@ packages:
 onlyBuiltDependencies:
   - electron
   - esbuild
+overrides:
+  pdfjs-dist: 6.2.108
+  postcss: 8.5.26
+  vite: 6.4.3
