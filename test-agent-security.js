@@ -17,7 +17,10 @@ async function run() {
   fs.writeFileSync(path.join(outside, 'secret.txt'), 'secret');
 
   try {
-    assert.strictEqual(resolveWorkspacePath(workspace, 'inside.txt', { mustExist: true }), path.join(workspace, 'inside.txt'));
+    assert.strictEqual(
+      resolveWorkspacePath(workspace, 'inside.txt', { mustExist: true }),
+      fs.realpathSync.native(path.join(workspace, 'inside.txt'))
+    );
     assert.throws(() => resolveWorkspacePath(workspace, '../secret.txt'), /outside the authorized workspace/);
     assert.throws(() => resolveWorkspacePath(workspace, path.join(outside, 'secret.txt')), /outside the authorized workspace/);
 
