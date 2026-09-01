@@ -22,7 +22,7 @@
     "build:electron": "electron-builder",
     "dist": "pnpm build && pnpm build:electron",
     "dist:mac": "pnpm build && electron-builder --mac",
-    "dist:win": "pnpm build && electron-builder --win",
+    "dist:win": "pnpm build && electron-builder --win --publish never",
     "dist:linux": "pnpm build && electron-builder --linux",
     "release": "pnpm build && electron-builder --win --publish always",
     "release:create": "node scripts/release.js",
