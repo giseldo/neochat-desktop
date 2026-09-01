@@ -154,21 +154,21 @@ O rollback é exposto ao renderer por `window.electron.agent.rollback(sessionId)
 
 ---
 
-## O Modo `Code (Agent)` na Prática
+## O Modo `Code` na Prática
 
 Na interface do NeoChat Desktop, o usuário pode alternar entre os modos de operação no topo do chat:
 
 ```
-[ 💬 Chat ]   [ 💼 Work ]   [ >_ Code (Agent) • ]
+[ 💬 Chat ]   [ 💼 Work ]   [ >_ Code • ]
 ```
 
 | Modo | Finalidade | Comportamento de Execução |
 | :--- | :--- | :--- |
 | **Chat** | Diálogo e Q&A | Chamada direta de completion; sem chamadas autônomas de terminal ou modificações no filesystem. |
 | **Work** | Tarefas e Planejamento | Foco em acompanhamento de escopo, organização e workflows assistidos. |
-| **Code (Agent)** | **Pair-Programming Autônomo** | Ciclo completo do **Neo Agent Runtime** (`ReAct Loop`), com inspeção profunda do workspace, injeção de regras, execução de ferramentas, terminal e checkpoints. |
+| **Code** | **Pair-Programming Autônomo** | Ciclo completo do **Neo Agent Runtime** (`ReAct Loop`), com inspeção profunda do workspace, injeção de regras, execução de ferramentas, terminal e checkpoints. |
 
-Ao ativar o modo **`Code (Agent)`**, o envio da mensagem dispara o `useAgentRuntime`, que cria ou retoma uma sessão no `NeoAgentRuntime` e executa a máquina de estados determinística (`AgentLoop`).
+Ao ativar o modo **`Code`**, o envio da mensagem dispara o `useAgentRuntime`, que cria ou retoma uma sessão no `NeoAgentRuntime` e executa a máquina de estados determinística (`AgentLoop`).
 
 ---
 
@@ -215,7 +215,7 @@ O `WorkspaceManager` analisa o diretório local do projeto e sintetiza as inform
 
 ## Catálogo de Ferramentas Nativas (`toolRegistry.js`)
 
-No modo `Code (Agent)`, o modelo tem acesso a um conjunto robusto de ferramentas nativas e MCP:
+No modo `Code`, o modelo tem acesso a um conjunto robusto de ferramentas nativas e MCP:
 
 | Categoria | Ferramenta | Descrição |
 | :--- | :--- | :--- |

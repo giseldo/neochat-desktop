@@ -2496,7 +2496,7 @@ function App() {
                 </Button>
               )}
 
-              {/* 4-Option Mode & View Switcher: Chat | Work | Code (Agent) | Trajetória */}
+              {/* 4-Option Mode & View Switcher: Chat | Work | Code | Trajetória */}
               {isPowerUser && (
                 <div className="flex items-center gap-0.5 bg-muted/60 p-1 rounded-xl border border-border/70 shadow-2xs">
                   <button
