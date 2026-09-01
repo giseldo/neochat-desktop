@@ -259,6 +259,8 @@ app.on('open-url', (event, url) => {
 app.whenReady().then(async () => {
   console.log("App Ready. Initializing...");
 
+  neoAgentRuntime.configurePersistence(path.join(app.getPath('userData'), 'agent-runtime'));
+
   // Initialize command resolver first (might be needed by others)
   initializeCommandResolver(app);
 
@@ -613,6 +615,18 @@ app.whenReady().then(async () => {
 
   ipcMain.handle('agent:get-workspace-info', async (_event, workspaceRoot) => {
     return await neoAgentRuntime.getWorkspaceInfo(workspaceRoot);
+  });
+
+  ipcMain.handle('agent:get-session', async (event, sessionId) => {
+    assertSessionId(sessionId);
+    requireAgentSessionOwner(event, sessionId);
+    return neoAgentRuntime.getSessionSnapshot(sessionId);
+  });
+
+  ipcMain.handle('agent:get-trajectory', async (event, sessionId, options = {}) => {
+    assertSessionId(sessionId);
+    requireAgentSessionOwner(event, sessionId);
+    return neoAgentRuntime.getTrajectory(sessionId, options);
   });
 
   ipcMain.handle('agent:select-workspace', async () => {

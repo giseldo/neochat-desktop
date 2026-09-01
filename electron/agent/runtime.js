@@ -10,6 +10,19 @@ const { workspaceManager } = require('./workspaceManager');
 const { checkpointsManager } = require('./checkpoints');
 const { shellManager } = require('./shellManager');
 const { swarmManager } = require('./swarmManager');
+const { AgentSessionStore } = require('./sessionStore');
+
+const DURABLE_AGENT_EVENTS = new Set([
+  AGENT_EVENTS.STATE_CHANGE,
+  AGENT_EVENTS.TOOL_CALL_REQUEST,
+  AGENT_EVENTS.TOOL_PERMISSION_REQUIRED,
+  AGENT_EVENTS.TOOL_EXECUTING,
+  AGENT_EVENTS.TOOL_RESULT,
+  AGENT_EVENTS.TRAJECTORY_STEP,
+  AGENT_EVENTS.WORKSPACE_UPDATE,
+  AGENT_EVENTS.ERROR,
+  AGENT_EVENTS.DONE
+]);
 
 class AgentSession {
   constructor(sessionId, options = {}) {
@@ -25,6 +38,8 @@ class AgentSession {
     this.runQueue = Promise.resolve();
     this.createdAt = Date.now();
     this.updatedAt = Date.now();
+    this.lastStatus = options.lastStatus || AGENT_STATES.IDLE;
+    this.persistenceHandlers = new Map();
   }
 
   resetAbortController() {
@@ -62,6 +77,51 @@ class NeoAgentRuntime {
     this.checkpointsManager = checkpointsManager;
     this.shellManager = shellManager;
     this.swarmManager = swarmManager;
+    this.sessionStore = new AgentSessionStore();
+  }
+
+  configurePersistence(baseDir) {
+    this.sessionStore.configure(baseDir);
+    this.checkpointsManager.configureStorage(baseDir);
+    for (const session of this.sessions.values()) {
+      this._attachPersistence(session);
+      this._saveSession(session);
+    }
+  }
+
+  _snapshotSession(session) {
+    return {
+      version: 1,
+      sessionId: session.sessionId,
+      workspaceRoot: session.workspaceRoot,
+      model: session.model,
+      messages: session.messages,
+      active: session.active,
+      lastStatus: session.lastStatus,
+      createdAt: session.createdAt,
+      updatedAt: session.updatedAt
+    };
+  }
+
+  _saveSession(session) {
+    this.sessionStore.saveSnapshot(this._snapshotSession(session));
+  }
+
+  _attachPersistence(session) {
+    if (!this.sessionStore.isConfigured() || session.persistenceHandlers.size > 0) return;
+    for (const eventName of DURABLE_AGENT_EVENTS) {
+      const handler = data => {
+        try {
+          if (eventName === AGENT_EVENTS.STATE_CHANGE) session.lastStatus = data.toState;
+          this.sessionStore.appendEvent(session.sessionId, { event: eventName, ...data });
+          this._saveSession(session);
+        } catch (error) {
+          console.warn(`[NeoAgentRuntime] Failed to persist ${eventName}:`, error.message);
+        }
+      };
+      session.persistenceHandlers.set(eventName, handler);
+      session.eventBus.on(eventName, handler);
+    }
   }
 
   /**
@@ -84,9 +144,20 @@ class NeoAgentRuntime {
       return existing;
     }
 
-    const session = new AgentSession(sessionId, options);
+    const persisted = this.sessionStore.loadSnapshot(sessionId);
+    const restoredOptions = persisted
+      ? { ...persisted, ...options, messages: options.messages || persisted.messages || [], active: false }
+      : options;
+    const session = new AgentSession(sessionId, restoredOptions);
+    if (persisted) {
+      session.createdAt = persisted.createdAt || session.createdAt;
+      session.updatedAt = persisted.updatedAt || session.updatedAt;
+      session.lastStatus = persisted.lastStatus || AGENT_STATES.IDLE;
+    }
     this.sessions.set(sessionId, session);
     this.workspaceManager.setWorkspace(sessionId, session.workspaceRoot);
+    this._attachPersistence(session);
+    this._saveSession(session);
     return session;
   }
 
@@ -154,9 +225,12 @@ class NeoAgentRuntime {
         session.messages = result.messages;
       }
       session.updatedAt = Date.now();
+      this._saveSession(session);
       return result;
     } finally {
       session.active = false;
+      session.updatedAt = Date.now();
+      this._saveSession(session);
     }
   }
 
@@ -192,6 +266,9 @@ class NeoAgentRuntime {
       session.cancel();
       this.permissionEngine.revokeSessionPermissions(sessionId);
       this.shellManager.kill(sessionId);
+      session.lastStatus = AGENT_STATES.CANCELLED;
+      session.updatedAt = Date.now();
+      this._saveSession(session);
     }
   }
 
@@ -235,6 +312,15 @@ class NeoAgentRuntime {
    */
   async getWorkspaceInfo(workspaceRoot) {
     return await this.workspaceManager.inspectWorkspace(workspaceRoot);
+  }
+
+  getSessionSnapshot(sessionId) {
+    const session = this.getSession(sessionId);
+    return session ? this._snapshotSession(session) : this.sessionStore.loadSnapshot(sessionId);
+  }
+
+  getTrajectory(sessionId, options = {}) {
+    return this.sessionStore.readTrajectory(sessionId, options);
   }
 }
 

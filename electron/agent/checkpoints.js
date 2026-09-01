@@ -9,6 +9,40 @@ class CheckpointsManager {
   constructor() {
     // sessionId -> Array of snapshots: [{ timestamp, filePath, existed, previousContent, newContent }]
     this.sessionHistory = new Map();
+    this.storageDir = null;
+    this.loadedSessions = new Set();
+  }
+
+  configureStorage(baseDir) {
+    this.storageDir = path.join(path.resolve(baseDir), 'checkpoints');
+    fs.mkdirSync(this.storageDir, { recursive: true });
+    for (const sessionId of this.sessionHistory.keys()) this._persist(sessionId);
+  }
+
+  _sessionFile(sessionId) {
+    if (!/^[a-zA-Z0-9._:-]{1,160}$/.test(sessionId)) throw new TypeError('Invalid checkpoint session ID.');
+    return path.join(this.storageDir, `${sessionId}.json`);
+  }
+
+  _ensureLoaded(sessionId) {
+    if (!this.storageDir || this.loadedSessions.has(sessionId)) return;
+    this.loadedSessions.add(sessionId);
+    const target = this._sessionFile(sessionId);
+    if (!fs.existsSync(target)) return;
+    try {
+      const snapshots = JSON.parse(fs.readFileSync(target, 'utf8'));
+      if (Array.isArray(snapshots)) this.sessionHistory.set(sessionId, snapshots);
+    } catch (error) {
+      console.warn(`[Checkpoints] Ignoring invalid persisted checkpoints for ${sessionId}:`, error.message);
+    }
+  }
+
+  _persist(sessionId) {
+    if (!this.storageDir) return;
+    const target = this._sessionFile(sessionId);
+    const temporary = `${target}.${process.pid}.${Date.now()}.tmp`;
+    fs.writeFileSync(temporary, `${JSON.stringify(this.sessionHistory.get(sessionId) || [], null, 2)}\n`, { encoding: 'utf8', mode: 0o600 });
+    fs.renameSync(temporary, target);
   }
 
   /**
@@ -18,6 +52,7 @@ class CheckpointsManager {
    * @returns {object} snapshot info
    */
   recordPreMutation(sessionId, filePath) {
+    this._ensureLoaded(sessionId);
     const resolvedPath = path.resolve(filePath);
     const existed = fs.existsSync(resolvedPath);
     let previousContent = null;
@@ -43,6 +78,7 @@ class CheckpointsManager {
       this.sessionHistory.set(sessionId, []);
     }
     this.sessionHistory.get(sessionId).push(snapshot);
+    this._persist(sessionId);
 
     return snapshot;
   }
@@ -53,10 +89,11 @@ class CheckpointsManager {
    * @param {string} newContent
    */
   recordPostMutation(snapshotId, newContent) {
-    for (const snapshots of this.sessionHistory.values()) {
+    for (const [sessionId, snapshots] of this.sessionHistory.entries()) {
       const snap = snapshots.find(s => s.id === snapshotId);
       if (snap) {
         snap.newContent = newContent;
+        this._persist(sessionId);
         break;
       }
     }
@@ -68,6 +105,7 @@ class CheckpointsManager {
    * @returns {{ success: boolean, revertedFile?: string, error?: string }}
    */
   rollbackLastAction(sessionId) {
+    this._ensureLoaded(sessionId);
     const snapshots = this.sessionHistory.get(sessionId);
     if (!snapshots || snapshots.length === 0) {
       return { success: false, error: 'No checkpoints available to rollback in this session.' };
@@ -80,12 +118,15 @@ class CheckpointsManager {
       } else if (!lastSnapshot.existed && fs.existsSync(lastSnapshot.filePath)) {
         fs.unlinkSync(lastSnapshot.filePath);
       }
+      this._persist(sessionId);
       return {
         success: true,
         revertedFile: lastSnapshot.filePath,
         restoredContent: lastSnapshot.previousContent
       };
     } catch (err) {
+      snapshots.push(lastSnapshot);
+      this._persist(sessionId);
       return {
         success: false,
         error: `Failed to rollback ${lastSnapshot.filePath}: ${err.message}`
@@ -99,6 +140,11 @@ class CheckpointsManager {
    */
   clearSession(sessionId) {
     this.sessionHistory.delete(sessionId);
+    this.loadedSessions.add(sessionId);
+    if (this.storageDir) {
+      const target = this._sessionFile(sessionId);
+      if (fs.existsSync(target)) fs.unlinkSync(target);
+    }
   }
 }
 

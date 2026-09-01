@@ -137,6 +137,8 @@ contextBridge.exposeInMainWorld('electron', {
     rejectTool: (sessionId, callId, reason) => ipcRenderer.invoke('agent:reject-tool', sessionId, callId, reason),
     cancel: (sessionId) => ipcRenderer.invoke('agent:cancel', sessionId),
     rollback: (sessionId) => ipcRenderer.invoke('agent:rollback', sessionId),
+    getSession: (sessionId) => ipcRenderer.invoke('agent:get-session', sessionId),
+    getTrajectory: (sessionId, options) => ipcRenderer.invoke('agent:get-trajectory', sessionId, options),
     getWorkspaceInfo: (workspaceRoot) => ipcRenderer.invoke('agent:get-workspace-info', workspaceRoot),
     selectWorkspace: () => ipcRenderer.invoke('agent:select-workspace'),
     onEvent: (callback) => {
