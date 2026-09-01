@@ -7,10 +7,8 @@ const {
   getActiveApiKey,
   getProviderBaseUrl,
   getProviderCandidates,
-  getDefaultModel,
-  getActiveProviders
+  getDefaultModel
 } = require('../../shared/providers.js');
-const { getModelContextSizes } = require('../../shared/models.js');
 
 class ModelRouter {
   /**

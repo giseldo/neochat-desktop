@@ -16,6 +16,13 @@ jobs:
           node-version: '22.16.0'
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - run: pnpm lint
+      - run: pnpm security:audit
+      - run: pnpm lint --quiet
+      - run: pnpm lint:critical
       - run: pnpm test:core
+      - run: pnpm test:startup
       - run: pnpm build
+      - run: pnpm docs:build
+      - run: pnpm --dir siteweb build
+      - name: Verify Windows package layout
+        run: pnpm exec electron-builder --dir --win --config.directories.output="$env:RUNNER_TEMP\neochat-package"

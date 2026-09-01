@@ -4,7 +4,6 @@
 
 const EventEmitter = require('events');
 const { modelRouter } = require('./modelRouter');
-const { workspaceManager } = require('./workspaceManager');
 
 const SWARM_ROLES = {
   ARCHITECT: {

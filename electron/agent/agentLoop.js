@@ -2,7 +2,7 @@
  * AgentLoop - Deterministic State Machine and Autonomous Execution Loop.
  */
 
-const { AGENT_STATES, AGENT_EVENTS } = require('./eventBus');
+const { AGENT_STATES } = require('./eventBus');
 const { modelRouter } = require('./modelRouter');
 const { toolExecutor } = require('./toolExecutor');
 const { workspaceManager } = require('./workspaceManager');

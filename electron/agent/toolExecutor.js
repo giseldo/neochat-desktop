@@ -6,7 +6,7 @@ const fs = require('fs');
 const path = require('path');
 const { limitContentLength } = require('../utils');
 const { executeWebSearch } = require('../webSearchService');
-const { queryKnowledge, readFileContent } = require('../ragService');
+const { queryKnowledge } = require('../ragService');
 const { handleCanvasToolCall } = require('../canvasManager');
 const { runGit, getRepositoryStatus } = require('../gitManager');
 const { shellManager } = require('./shellManager');
@@ -33,7 +33,6 @@ class ToolExecutor {
   async execute({
     sessionId = 'default',
     toolCall,
-    toolDef,
     settings = {},
     mcpClients = {},
     discoveredTools = [],
