@@ -20,7 +20,14 @@ export function useCompanionPanels(setIsCommandPaletteOpen) {
       }
     };
     fetchTasksCount();
-    if (window.electron?.tasks?.onUpdate) return window.electron.tasks.onUpdate(fetchTasksCount);
+    if (window.electron?.tasks?.onUpdate) {
+      return window.electron.tasks.onUpdate((payload) => {
+        fetchTasksCount();
+        if (payload?.event === 'task:started') {
+          setIsTasksOpen(true);
+        }
+      });
+    }
   }, []);
 
   useEffect(() => {
