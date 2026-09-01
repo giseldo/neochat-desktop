@@ -212,10 +212,8 @@ export function ArtifactsPanel({ artifact, onClose, className }) {
     detectRuntimes();
   }, []);
 
-  if (!artifact) return null;
-
-  const rawType = (artifact.type || 'html').toLowerCase();
-  const title = artifact.title || t('artifacts.defaultTitle', { type: rawType.toUpperCase() });
+  const rawType = (artifact?.type || 'html').toLowerCase();
+  const title = artifact?.title || t('artifacts.defaultTitle', { type: rawType.toUpperCase() });
 
   const hasReact = isReactCode(currentCode) || rawType === 'jsx' || rawType === 'tsx' || rawType === 'react';
   const isPython = rawType === 'py' || rawType === 'python';
@@ -225,6 +223,7 @@ export function ArtifactsPanel({ artifact, onClose, className }) {
 
   // Build live sandbox iframe doc
   const sandboxDoc = useMemo(() => {
+    if (!artifact) return '';
     if (rawType === 'mermaid') {
       return buildMermaidDoc(currentCode, isDark);
     }
@@ -235,7 +234,7 @@ export function ArtifactsPanel({ artifact, onClose, className }) {
       return buildHtmlSandboxDoc(currentCode, isDark);
     }
     return buildHtmlSandboxDoc(currentCode, isDark);
-  }, [currentCode, rawType, hasReact, isDark]);
+  }, [artifact, currentCode, rawType, hasReact, isDark]);
 
   const handleCopy = async (textToCopy = currentCode) => {
     try {
@@ -399,6 +398,8 @@ export function ArtifactsPanel({ artifact, onClose, className }) {
   }, [isExecutable, currentCode, runtimeMode, localRuntimes]);
 
   const totalConsoleErrors = sandboxLogs.filter(l => l.level === 'error').length + (executionOutput?.error ? 1 : 0);
+
+  if (!artifact) return null;
 
   return (
     <div

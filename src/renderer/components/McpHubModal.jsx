@@ -56,8 +56,6 @@ export function McpHubModal({
     }
   }, [isOpen]);
 
-  if (!isOpen) return null;
-
   const handleInstall = async (server) => {
     setInstallingId(server.id);
     try {
@@ -106,6 +104,8 @@ export function McpHubModal({
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isOpen, onClose]);
+
+  if (!isOpen) return null;
 
   return createPortal(
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-xs animate-in fade-in duration-200">
