@@ -14,6 +14,7 @@ import { useTheme, COLOR_THEMES, BG_THEMES, FONT_THEMES, FONT_SIZES } from '../c
 import { useLanguage } from '../context/LanguageContext';
 import PromptTemplatesModal from '../components/PromptTemplatesModal';
 import KeyboardShortcutsModal, { formatAccelerator, KeyCombo, KeyBadge } from '../components/KeyboardShortcutsModal';
+import UserMemoryModal from '../components/UserMemoryModal';
 import { cn } from '../lib/utils';
 import { getModelGroup, getModelDisplayName, groupModels, parseBulkModelsInput } from '../lib/modelGrouping';
 
@@ -309,6 +310,8 @@ function Settings() {
   const [searchQuery, setSearchQuery] = useState('');
   const searchInputRef = useRef(null);
   const [isPromptTemplatesModalOpen, setIsPromptTemplatesModalOpen] = useState(false);
+  const [isMemoryModalOpen, setIsMemoryModalOpen] = useState(false);
+  const [memoryStats, setMemoryStats] = useState({ total: 0, active: 0 });
   const [isTestingWebSearch, setIsTestingWebSearch] = useState(false);
   const [webSearchTestResult, setWebSearchTestResult] = useState(null);
   const [pluginList, setPluginList] = useState([]);
@@ -491,13 +494,25 @@ function Settings() {
     { value: 'CommandOrControl+G', label: `${isMac ? '⌘+G' : 'Ctrl+G'}` },
   ], [isMac]);
 
-  // Load shortcut status on mount
+  const loadMemoryStats = async () => {
+    if (window.electron?.memory?.getStats) {
+      try {
+        const stats = await window.electron.memory.getStats();
+        setMemoryStats(stats || { total: 0, active: 0 });
+      } catch (err) {
+        console.warn('Error fetching memory stats:', err);
+      }
+    }
+  };
+
+  // Load shortcut status & memory stats on mount
   useEffect(() => {
     if (window.electron?.getGlobalShortcutStatus) {
       window.electron.getGlobalShortcutStatus()
         .then(status => setShortcutStatus(status))
         .catch(err => console.warn('Error fetching shortcut status:', err));
     }
+    loadMemoryStats();
   }, []);
 
   // Listen for keypress when recording custom shortcut
@@ -735,6 +750,14 @@ function Settings() {
       desc: t('settings.webSearchDesc') || 'Busca na web Local, Tavily e Brave',
       keywords: 'pesquisa busca web search google tavily brave duckduckgo internet navegar resultados api key chave teste',
       isPowerOnly: true
+    },
+    {
+      id: 'userMemory',
+      category: 'features',
+      title: t('memory.title') || 'Memória Persistente (User Memory)',
+      desc: t('memory.description') || 'A IA aprende e lembra automaticamente suas preferências de código, estilo e contexto entre conversas.',
+      keywords: 'memoria user memory preferences persistente fatos regras perfil usuario aprendizado automatico contexto lembrar',
+      isPowerOnly: false
     },
     {
       id: 'builtInTools',
@@ -1778,6 +1801,19 @@ function Settings() {
     const updatedSettings = {
       ...settings,
       webSearch: updatedWebSearch
+    };
+    setSettings(updatedSettings);
+    saveSettings(updatedSettings);
+  };
+
+  const handleUserMemoryChange = (field, value) => {
+    const updatedUserMemory = {
+      ...(settings.userMemory || { enabled: true, autoExtract: true }),
+      [field]: value
+    };
+    const updatedSettings = {
+      ...settings,
+      userMemory: updatedUserMemory
     };
     setSettings(updatedSettings);
     saveSettings(updatedSettings);
@@ -4154,6 +4190,89 @@ function Settings() {
                 )}
               </CardContent>
             </Card>
+        )}
+
+        {visibleCardIds.has('userMemory') && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center space-x-2">
+                <Brain className="h-5 w-5 text-purple-600 dark:text-purple-400" />
+                <span>{t('memory.title')}</span>
+                {memoryStats.total > 0 && (
+                  <Badge variant="outline" className="text-xs font-normal ml-2">
+                    {t('memory.activeCount', { active: memoryStats.active, total: memoryStats.total })}
+                  </Badge>
+                )}
+              </CardTitle>
+              <CardDescription>
+                {t('memory.description')}
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {/* Enable Switch */}
+              <div className="flex items-center justify-between">
+                <div className="space-y-0.5">
+                  <Label htmlFor="user-memory-toggle" className="font-medium">
+                    {t('memory.enabled')}
+                  </Label>
+                  <p className="text-xs text-muted-foreground">
+                    {t('memory.enabledDesc')}
+                  </p>
+                </div>
+                <Switch
+                  id="user-memory-toggle"
+                  checked={settings.userMemory?.enabled !== false}
+                  onChange={(e) => handleUserMemoryChange('enabled', e.target.checked)}
+                />
+              </div>
+
+              {settings.userMemory?.enabled !== false && (
+                <div className="space-y-4 pt-3 border-t border-border/60">
+                  {/* Auto Extract Switch */}
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-0.5">
+                      <Label htmlFor="user-memory-auto-extract" className="font-medium">
+                        {t('memory.autoExtract')}
+                      </Label>
+                      <p className="text-xs text-muted-foreground">
+                        {t('memory.autoExtractDesc')}
+                      </p>
+                    </div>
+                    <Switch
+                      id="user-memory-auto-extract"
+                      checked={settings.userMemory?.autoExtract !== false}
+                      onChange={(e) => handleUserMemoryChange('autoExtract', e.target.checked)}
+                    />
+                  </div>
+
+                  {/* Manage Memories Action Button */}
+                  <div className="pt-2 flex items-center justify-between bg-muted/20 p-3 rounded-xl border border-border/60">
+                    <div className="space-y-0.5">
+                      <p className="text-xs font-medium text-foreground">
+                        {t('memory.activeCount', { active: memoryStats.active, total: memoryStats.total })}
+                      </p>
+                      <p className="text-[11px] text-muted-foreground">
+                        Visualize, adicione, edite ou remova fatos e preferências aprendidos.
+                      </p>
+                    </div>
+
+                    <Button
+                      type="button"
+                      size="sm"
+                      onClick={() => {
+                        setIsMemoryModalOpen(true);
+                        loadMemoryStats();
+                      }}
+                      className="text-xs bg-purple-600 hover:bg-purple-700 text-white flex items-center gap-1.5"
+                    >
+                      <Brain className="w-3.5 h-3.5" />
+                      <span>{t('memory.manageMemories')}</span>
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
         )}
 
         {visibleCardIds.has('builtInTools') && (
@@ -7924,6 +8043,15 @@ function Settings() {
       <KeyboardShortcutsModal
         isOpen={isShortcutsModalOpen}
         onClose={() => setIsShortcutsModalOpen(false)}
+      />
+
+      {/* User Persistent Memory Modal */}
+      <UserMemoryModal
+        isOpen={isMemoryModalOpen}
+        onClose={() => {
+          setIsMemoryModalOpen(false);
+          loadMemoryStats();
+        }}
       />
     </div>
   );

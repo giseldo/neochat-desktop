@@ -527,6 +527,29 @@ app.whenReady().then(async () => {
     return await screenCaptureService.capturePrimaryScreen();
   });
 
+  // --- User Persistent Long-Term Memory IPC Handlers ---
+  const memoryService = require('./memoryService');
+  memoryService.initialize(app);
+
+  ipcMain.handle('memory-get-all', async () => {
+    return memoryService.getMemories();
+  });
+  ipcMain.handle('memory-get-stats', async () => {
+    return memoryService.getMemoryStats();
+  });
+  ipcMain.handle('memory-add', async (event, content, category, source) => {
+    return memoryService.addMemory(content, category, source);
+  });
+  ipcMain.handle('memory-update', async (event, id, updates) => {
+    return memoryService.updateMemory(id, updates);
+  });
+  ipcMain.handle('memory-delete', async (event, id) => {
+    return memoryService.deleteMemory(id);
+  });
+  ipcMain.handle('memory-clear', async () => {
+    return memoryService.clearMemories();
+  });
+
   // --- Neo Agent Runtime IPC Handlers ---
   console.log("[Main Init] Registering Neo Agent Runtime handlers...");
   registerAgentIpcHandlers({

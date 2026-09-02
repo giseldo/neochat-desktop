@@ -274,6 +274,27 @@ function prepareTools(discoveredTools, isResponsesApi = false, settings = {}) {
         }
     }
 
+    // Add User Long-Term Memory Tools (save_user_memory, forget_user_memory)
+    if (settings.userMemory?.enabled !== false && settings.userMemory?.autoExtract !== false) {
+        const { getMemoryToolDefinitions } = require('./memoryService');
+        const memoryTools = getMemoryToolDefinitions();
+        for (const mt of memoryTools) {
+            const hasAlready = tools.some(t => t.name === mt.function.name || t.function?.name === mt.function.name);
+            if (!hasAlready) {
+                if (isResponsesApi) {
+                    tools.push({
+                        type: "function",
+                        name: mt.function.name,
+                        description: mt.function.description,
+                        parameters: mt.function.parameters
+                    });
+                } else {
+                    tools.push(mt);
+                }
+            }
+        }
+    }
+
     return tools;
 }
 
@@ -505,6 +526,15 @@ Always prioritize creating and editing files directly on disk using 'write_file'
 
     if (settings.isAgentMode || settings.agentMode) {
         systemPrompt += `\n\n- AUTONOMOUS AGENT MODE: You are currently executing in Autonomous Multi-Step Agent Mode. Break down complex requests into logical sequential steps. Proactively invoke the necessary tools (web search, project knowledge, code execution, MCP tools) one after another to research, implement, and verify the user's objective without stopping prematurely. Once all steps are completed, provide a concise, high-quality final summary of your actions and findings.`;
+    }
+
+    // Inject User Long-Term Memory & Profile Prompt
+    if (settings.userMemory?.enabled !== false) {
+        const { getFormattedMemoryPrompt } = require('./memoryService');
+        const memoryPrompt = getFormattedMemoryPrompt(settings);
+        if (memoryPrompt) {
+            systemPrompt += `\n\n${memoryPrompt}`;
+        }
     }
 
     // Prepare built-in tools if enabled and supported by the model

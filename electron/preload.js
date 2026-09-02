@@ -431,6 +431,21 @@ contextBridge.exposeInMainWorld('electron', {
     captureFullscreen: () => ipcRenderer.invoke('screen-capture-fullscreen'),
   },
 
+  // --- User Persistent Long-Term Memory ---
+  memory: {
+    getAll: () => ipcRenderer.invoke('memory-get-all'),
+    getStats: () => ipcRenderer.invoke('memory-get-stats'),
+    add: (content, category, source) => ipcRenderer.invoke('memory-add', content, category, source),
+    update: (id, updates) => ipcRenderer.invoke('memory-update', id, updates),
+    delete: (id) => ipcRenderer.invoke('memory-delete', id),
+    clear: () => ipcRenderer.invoke('memory-clear'),
+    onMemoryUpdated: (callback) => {
+      const listener = (_, data) => callback(data);
+      ipcRenderer.on('memory-updated', listener);
+      return () => ipcRenderer.removeListener('memory-updated', listener);
+    }
+  },
+
   // Generic IPC renderer access (kept for backward compatibility)
   ipcRenderer: {
     invoke: (channel, data) => ipcRenderer.invoke(channel, data),

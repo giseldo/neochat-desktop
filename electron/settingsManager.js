@@ -84,6 +84,10 @@ function loadSettings() {
                 apiKey: '',
                 maxResults: 3,
                 maxSearchesPerTurn: 2
+            },
+            userMemory: {
+                enabled: true,
+                autoExtract: true
             }
         };
     }
@@ -144,6 +148,10 @@ function loadSettings() {
             apiKey: '',
             maxResults: 3,
             maxSearchesPerTurn: 2
+        },
+        userMemory: {
+            enabled: true,
+            autoExtract: true
         }
     };
 

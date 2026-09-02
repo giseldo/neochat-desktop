@@ -74,6 +74,15 @@ async function runTestSuite() {
     assert(typeof screenCapture.capturePrimaryScreen === 'function', 'capturePrimaryScreen deve ser uma função');
   });
 
+  test('Carregamento do módulo memoryService (User Memory)', () => {
+    const memory = require('./electron/memoryService');
+    assert(typeof memory.getMemories === 'function', 'getMemories deve ser uma função');
+    assert(typeof memory.addMemory === 'function', 'addMemory deve ser uma função');
+    assert(typeof memory.updateMemory === 'function', 'updateMemory deve ser uma função');
+    assert(typeof memory.getFormattedMemoryPrompt === 'function', 'getFormattedMemoryPrompt deve ser uma função');
+    assert(typeof memory.getMemoryToolDefinitions === 'function', 'getMemoryToolDefinitions deve ser uma função');
+  });
+
   test('Carregamento do módulo toolHandler', () => {
     const toolHandler = require('./electron/toolHandler');
     assert(typeof toolHandler.handleExecuteToolCall === 'function', 'handleExecuteToolCall deve ser uma função');

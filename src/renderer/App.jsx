@@ -12,7 +12,7 @@ import { useCanvas } from './context/CanvasContext';
 import { useProjects } from './context/ProjectContext';
 import { useLanguage } from './context/LanguageContext';
 import { useTheme } from './context/ThemeContext';
-import { Settings, PanelLeftClose, PanelLeft, Radio, MessagesSquare, Sparkles, Store, Columns2, X, FolderKanban, BookOpen, Scale, Bot, Workflow, ChevronDown, Keyboard, Key, AlertCircle, PenSquare, Terminal, Folder, Briefcase, MessageSquare, Globe, Clock, Activity, LayoutGrid, MoreHorizontal } from 'lucide-react';
+import { Settings, PanelLeftClose, PanelLeft, Radio, MessagesSquare, Sparkles, Store, Columns2, X, FolderKanban, BookOpen, Scale, Bot, Workflow, ChevronDown, Keyboard, Key, AlertCircle, PenSquare, Terminal, Folder, Briefcase, MessageSquare, Globe, Clock, Activity, LayoutGrid, MoreHorizontal, Brain } from 'lucide-react';
 import { Button } from './components/ui/button';
 import { cn } from './lib/utils';
 import { groupModels } from './lib/modelGrouping';
@@ -53,6 +53,7 @@ const KnowledgeGraphModal = lazy(() => import('./components/KnowledgeGraphModal'
 const DailyBriefingModal = lazy(() => import('./components/DailyBriefingModal'));
 const McpHubModal = lazy(() => import('./components/McpHubModal'));
 const ComputerVisionModal = lazy(() => import('./components/ComputerVisionModal'));
+const UserMemoryModal = lazy(() => import('./components/UserMemoryModal'));
 
 function App() {
   // const [messages, setMessages] = useState([]); // Remove local state
@@ -235,6 +236,32 @@ function App() {
   const [streamStateA, setStreamStateA] = useState({ isLoading: false, content: '', reasoning: '', ttft: null, metrics: null, error: null });
   const [streamStateB, setStreamStateB] = useState({ isLoading: false, content: '', reasoning: '', ttft: null, metrics: null, error: null });
   // --- End Multi-Model Comparison State ---
+
+  // --- User Persistent Long-Term Memory State ---
+  const [isUserMemoryModalOpen, setIsUserMemoryModalOpen] = useState(false);
+  const [memoryToast, setMemoryToast] = useState(null);
+
+  useEffect(() => {
+    if (!window.electron?.memory?.onMemoryUpdated) return;
+    const cleanup = window.electron.memory.onMemoryUpdated((data) => {
+      if (data?.action === 'added' && data.memory?.content) {
+        setMemoryToast({
+          type: 'added',
+          message: data.memory.content,
+          category: data.memory.category
+        });
+        setTimeout(() => setMemoryToast(null), 6000);
+      } else if (data?.action === 'deleted' && data.forgottenMemory?.content) {
+        setMemoryToast({
+          type: 'deleted',
+          message: data.forgottenMemory.content
+        });
+        setTimeout(() => setMemoryToast(null), 4000);
+      }
+    });
+    return () => cleanup && cleanup();
+  }, []);
+  // --- End User Memory State ---
 
   // --- Autonomous Agent & Workspace State ---
   const [agentStep, setAgentStep] = useState(0);
@@ -2826,6 +2853,22 @@ function App() {
                         </div>
                       </button>
 
+                      {/* User Long-Term Memory */}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsToolsDropdownOpen(false);
+                          setIsUserMemoryModalOpen(true);
+                        }}
+                        className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-muted/80 text-foreground transition-colors text-left"
+                      >
+                        <Brain className="w-4 h-4 text-purple-600 dark:text-purple-400 shrink-0" />
+                        <div className="flex-1 min-w-0">
+                          <div className="font-semibold text-foreground">{t('memory.title') || 'Memória Persistente'}</div>
+                          <div className="text-[10px] text-muted-foreground truncate">Preferências e fatos lembrados pela IA</div>
+                        </div>
+                      </button>
+
                       {/* In-App Browser */}
                       <button
                         type="button"
@@ -3525,7 +3568,51 @@ function App() {
           onClose={() => setIsComputerVisionOpen(false)}
           onSendToChat={(content) => handleSendMessage(content)}
         />
+
+        {/* User Persistent Long-Term Memory */}
+        <UserMemoryModal
+          isOpen={isUserMemoryModalOpen}
+          onClose={() => setIsUserMemoryModalOpen(false)}
+        />
       </Suspense>
+
+      {/* Floating Memory Notification Toast */}
+      {memoryToast && (
+        <div className="fixed bottom-6 right-6 z-[10000] max-w-md animate-in slide-in-from-bottom-5 duration-300">
+          <div className="p-3.5 rounded-2xl bg-card border border-purple-500/30 text-foreground shadow-2xl flex items-start gap-3 bg-card/95 backdrop-blur-md">
+            <div className="p-2 rounded-xl bg-purple-500/15 text-purple-600 dark:text-purple-400 shrink-0">
+              <Brain className="w-4 h-4" />
+            </div>
+            <div className="flex-1 min-w-0 pr-2">
+              <div className="text-xs font-semibold text-foreground flex items-center gap-1.5 mb-0.5">
+                <span>{memoryToast.type === 'added' ? '🧠 Nova memória aprendida' : '🧠 Memória esquecida'}</span>
+                {memoryToast.category && (
+                  <span className="text-[10px] px-1.5 py-0.2 rounded bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20 font-normal">
+                    {memoryToast.category}
+                  </span>
+                )}
+              </div>
+              <p className="text-xs text-muted-foreground truncate">
+                &ldquo;{memoryToast.message}&rdquo;
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setIsUserMemoryModalOpen(true)}
+              className="text-[11px] font-semibold text-purple-600 dark:text-purple-400 hover:underline shrink-0 self-center"
+            >
+              Ver
+            </button>
+            <button
+              type="button"
+              onClick={() => setMemoryToast(null)}
+              className="p-1 rounded text-muted-foreground hover:text-foreground shrink-0 self-center"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        </div>
+      )}
 
       </div>
     </div>
