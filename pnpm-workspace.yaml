@@ -1,7 +1,5 @@
 packages:
   - '.'
-  - 'siteweb'
-  - 'docs'
 onlyBuiltDependencies:
   - electron
   - esbuild

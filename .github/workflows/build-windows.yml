@@ -1,11 +1,10 @@
-﻿name: Build Windows Electron App (CI)
+name: Build Windows Electron App (CI)
 
 on:
   push:
     branches: [ main ]
     paths-ignore:
       - '**.md'
-      - 'docs/**'
   workflow_dispatch:
 
 jobs:
