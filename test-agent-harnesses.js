@@ -46,7 +46,7 @@ async function main() {
   const piMessageWithUsage = {
     role: 'assistant',
     content: [{ type: 'text', text: 'Files listed.' }],
-    usage: { input: 121, output: 64, cacheRead: 2560, totalTokens: 2745 },
+    usage: { input: 121, output: 64, cacheRead: 2560, totalTokens: 2745, completion_time: 1.5 },
     stopReason: 'stop',
     timestamp: 123
   };
@@ -56,6 +56,8 @@ async function main() {
   assert.strictEqual(neoMessageWithUsage.usage.cached_tokens, 2560);
   assert.strictEqual(neoMessageWithUsage.usage.input, 121);
   assert.strictEqual(neoMessageWithUsage.usage.cacheRead, 2560);
+  assert.strictEqual(neoMessageWithUsage.usage.completion_time, 1.5);
+  assert.strictEqual(neoMessageWithUsage.usage.tokens_per_sec, 43);
 
   class FakeAgent {
     constructor(options) {

@@ -217,6 +217,7 @@ class ModelRouter {
         systemPrompt
       });
 
+      const streamStartTime = Date.now();
       try {
         const stream = await client.chat.completions.create(params, { signal });
         const aggregated = {
@@ -303,6 +304,25 @@ class ModelRouter {
               totalTokens
             };
           }
+        }
+
+        const elapsedSeconds = Math.max(0.01, (Date.now() - streamStartTime) / 1000);
+        if (aggregated.usage) {
+          aggregated.usage.completion_time = aggregated.usage.completion_time || elapsedSeconds;
+          aggregated.usage.total_time = aggregated.usage.total_time || elapsedSeconds;
+          aggregated.usage.client_duration = elapsedSeconds;
+          if (aggregated.usage.completion_tokens && !aggregated.usage.tokens_per_sec) {
+            aggregated.usage.tokens_per_sec = Math.round(aggregated.usage.completion_tokens / (aggregated.usage.completion_time || elapsedSeconds));
+          }
+        } else {
+          aggregated.usage = {
+            prompt_tokens: 0,
+            completion_tokens: 0,
+            total_tokens: 0,
+            completion_time: elapsedSeconds,
+            total_time: elapsedSeconds,
+            client_duration: elapsedSeconds
+          };
         }
 
         aggregated.tool_calls = Array.from(aggregated.toolCallsMap.values()).filter(tc => Boolean(tc.function.name));

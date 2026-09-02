@@ -39,7 +39,7 @@ export function ConversationStats({ messages = [], className }) {
         let prompt = u.prompt_tokens ?? u.input_tokens ?? (u.input !== undefined ? (Number(u.input || 0) + Number(u.cacheRead || 0)) : 0);
         let comp = u.completion_tokens ?? u.output_tokens ?? u.output ?? 0;
         let cached = Number(u.prompt_cache_hit_tokens ?? u.cache_read_input_tokens ?? u.cached_tokens ?? u.cacheRead ?? u.prompt_tokens_details?.cached_tokens ?? 0);
-        const time = u.completion_time || u.total_time || u.client_duration || 0;
+        const time = Number(u.completion_time || u.total_time || u.client_duration || (msg.reasoningDuration ? Number(msg.reasoningDuration) : 0)) || 0;
 
         // If prompt is 0 and no direct usage recorded, estimate prompt tokens from history
         if (!hasDirectUsage && prompt === 0 && cumulativeHistoryChars > 0) {

@@ -143,6 +143,11 @@ function toNeoMessage(message) {
     ? Number(rawUsage.total_tokens) || 0
     : (rawUsage.totalTokens !== undefined ? Number(rawUsage.totalTokens) || 0 : (promptTokens + completionTokens));
 
+  const completionTime = Number(rawUsage.completion_time || rawUsage.total_time || rawUsage.client_duration) || (rawUsage.durationMs ? rawUsage.durationMs / 1000 : 0);
+  const tokensPerSec = completionTime > 0 && completionTokens > 0
+    ? Math.round(completionTokens / completionTime)
+    : (rawUsage.tokens_per_sec || 0);
+
   const usage = message.usage ? {
     ...rawUsage,
     input,
@@ -158,7 +163,11 @@ function toNeoMessage(message) {
     prompt_cache_hit_tokens: cacheRead,
     prompt_tokens_details: {
       cached_tokens: cacheRead
-    }
+    },
+    completion_time: completionTime || rawUsage.completion_time || 0,
+    total_time: completionTime || rawUsage.total_time || 0,
+    client_duration: completionTime || rawUsage.client_duration || 0,
+    tokens_per_sec: tokensPerSec
   } : message.usage;
 
   return {
@@ -348,9 +357,14 @@ class PiHarnessAdapter {
       sessionId
     });
 
+    let turnStartTime = Date.now();
+    const runStartTime = Date.now();
+    const turnDurations = new Map();
+
     const unsubscribe = agent.subscribe(event => {
       if (event.type === 'turn_start') {
         iteration += 1;
+        turnStartTime = Date.now();
         updateState(AGENT_STATES.THINKING, { iteration, harness: 'pi' });
         eventBus.emitTrajectoryStep({
           type: 'thinking',
@@ -370,8 +384,12 @@ class PiHarnessAdapter {
         };
         updateState(AGENT_STATES.TOOL_REQUEST, { toolName: event.toolName, toolCallId: event.toolCallId });
         eventBus.emitToolCallRequest(toolCall);
-      } else if (event.type === 'turn_end' && event.toolResults?.length) {
-        updateState(AGENT_STATES.OBSERVING, { iteration, harness: 'pi' });
+      } else if (event.type === 'turn_end') {
+        const elapsed = Math.max(0.01, (Date.now() - turnStartTime) / 1000);
+        turnDurations.set(iteration, elapsed);
+        if (event.toolResults?.length) {
+          updateState(AGENT_STATES.OBSERVING, { iteration, harness: 'pi' });
+        }
       }
     });
 
@@ -387,6 +405,17 @@ class PiHarnessAdapter {
       } finally {
         abortController.signal.removeEventListener('abort', onAbort);
       }
+
+      const totalElapsed = Math.max(0.01, (Date.now() - runStartTime) / 1000);
+      const assistantMsgs = (agent.state.messages || []).filter(message => message?.role === 'assistant');
+      assistantMsgs.forEach((msg, idx) => {
+        const measuredTime = turnDurations.get(idx + 1) || (totalElapsed / Math.max(1, assistantMsgs.length));
+        if (msg.usage) {
+          msg.usage.completion_time = msg.usage.completion_time || measuredTime;
+          msg.usage.total_time = msg.usage.total_time || measuredTime;
+          msg.usage.client_duration = msg.usage.client_duration || measuredTime;
+        }
+      });
 
       const neoMessages = agent.state.messages.map(toNeoMessage).filter(Boolean);
       const finalMessage = [...neoMessages].reverse().find(message => message.role === 'assistant') || null;
