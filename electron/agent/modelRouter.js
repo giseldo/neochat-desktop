@@ -148,7 +148,8 @@ class ModelRouter {
     const payload = {
       model,
       messages: apiMessages,
-      stream: true
+      stream: true,
+      stream_options: { include_usage: true }
     };
 
     if (Array.isArray(tools) && tools.length > 0) {
@@ -277,8 +278,30 @@ class ModelRouter {
             aggregated.finish_reason = choice.finish_reason;
           }
 
-          if (chunk.usage) {
-            aggregated.usage = chunk.usage;
+          const rawUsage = chunk.usage || chunk.x_groq?.usage;
+          if (rawUsage) {
+            const promptTokens = rawUsage.prompt_tokens ?? rawUsage.input_tokens ?? (aggregated.usage?.prompt_tokens || 0);
+            const cachedTokens = rawUsage.prompt_tokens_details?.cached_tokens ?? rawUsage.cache_read_input_tokens ?? rawUsage.prompt_cache_hit_tokens ?? (aggregated.usage?.cached_tokens || 0);
+            const compTokens = rawUsage.completion_tokens ?? rawUsage.output_tokens ?? (aggregated.usage?.completion_tokens || 0);
+            const totalTokens = rawUsage.total_tokens ?? (promptTokens + compTokens);
+            const input = Math.max(0, promptTokens - cachedTokens);
+
+            aggregated.usage = {
+              ...rawUsage,
+              prompt_tokens: promptTokens,
+              completion_tokens: compTokens,
+              total_tokens: totalTokens,
+              cached_tokens: cachedTokens,
+              cache_read_input_tokens: cachedTokens,
+              prompt_cache_hit_tokens: cachedTokens,
+              prompt_tokens_details: {
+                cached_tokens: cachedTokens
+              },
+              input,
+              output: compTokens,
+              cacheRead: cachedTokens,
+              totalTokens
+            };
           }
         }
 

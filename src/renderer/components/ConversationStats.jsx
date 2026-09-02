@@ -34,18 +34,20 @@ export function ConversationStats({ messages = [], className }) {
       } else if (msg.role === 'assistant') {
         assistantTurnCount++;
 
-        let prompt = msg.usage?.prompt_tokens ?? msg.usage?.input_tokens ?? 0;
-        let comp = msg.usage?.completion_tokens ?? msg.usage?.output_tokens ?? 0;
-        let cached = Number(msg.usage?.prompt_cache_hit_tokens ?? msg.usage?.cache_read_input_tokens ?? msg.usage?.cached_tokens ?? 0);
-        const time = msg.usage?.completion_time || msg.usage?.total_time || msg.usage?.client_duration || 0;
+        const u = msg.usage || {};
+        const hasDirectUsage = u.prompt_tokens !== undefined || u.input !== undefined || u.input_tokens !== undefined;
+        let prompt = u.prompt_tokens ?? u.input_tokens ?? (u.input !== undefined ? (Number(u.input || 0) + Number(u.cacheRead || 0)) : 0);
+        let comp = u.completion_tokens ?? u.output_tokens ?? u.output ?? 0;
+        let cached = Number(u.prompt_cache_hit_tokens ?? u.cache_read_input_tokens ?? u.cached_tokens ?? u.cacheRead ?? u.prompt_tokens_details?.cached_tokens ?? 0);
+        const time = u.completion_time || u.total_time || u.client_duration || 0;
 
-        // If prompt_tokens is 0 but we have historical text, estimate prompt tokens
-        if (prompt === 0 && cumulativeHistoryChars > 0) {
+        // If prompt is 0 and no direct usage recorded, estimate prompt tokens from history
+        if (!hasDirectUsage && prompt === 0 && cumulativeHistoryChars > 0) {
           prompt = Math.max(1, Math.round(cumulativeHistoryChars / 4));
         }
 
-        // If completion_tokens is 0 but we have content, estimate completion tokens
-        if (comp === 0 && charCount > 0) {
+        // If completion is 0 and no direct usage recorded, estimate completion tokens
+        if (!hasDirectUsage && comp === 0 && charCount > 0) {
           comp = Math.max(1, Math.round(charCount / 4));
         }
 

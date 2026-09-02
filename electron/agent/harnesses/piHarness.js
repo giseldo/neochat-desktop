@@ -128,12 +128,45 @@ function toNeoMessage(message) {
     type: 'function',
     function: { name: call.name, arguments: JSON.stringify(call.arguments || {}) }
   }));
+  const rawUsage = message.usage || {};
+  const input = Number(rawUsage.input) || 0;
+  const output = Number(rawUsage.output) || 0;
+  const cacheRead = Number(rawUsage.cacheRead) || 0;
+  const cacheWrite = Number(rawUsage.cacheWrite) || 0;
+  const promptTokens = (rawUsage.prompt_tokens !== undefined)
+    ? Number(rawUsage.prompt_tokens) || 0
+    : (input + cacheRead);
+  const completionTokens = (rawUsage.completion_tokens !== undefined)
+    ? Number(rawUsage.completion_tokens) || 0
+    : output;
+  const totalTokens = (rawUsage.total_tokens !== undefined)
+    ? Number(rawUsage.total_tokens) || 0
+    : (rawUsage.totalTokens !== undefined ? Number(rawUsage.totalTokens) || 0 : (promptTokens + completionTokens));
+
+  const usage = message.usage ? {
+    ...rawUsage,
+    input,
+    output,
+    cacheRead,
+    cacheWrite,
+    totalTokens,
+    prompt_tokens: promptTokens,
+    completion_tokens: completionTokens,
+    total_tokens: totalTokens,
+    cached_tokens: cacheRead,
+    cache_read_input_tokens: cacheRead,
+    prompt_cache_hit_tokens: cacheRead,
+    prompt_tokens_details: {
+      cached_tokens: cacheRead
+    }
+  } : message.usage;
+
   return {
     role: 'assistant',
     content: text,
     reasoning,
     tool_calls: toolCalls,
-    usage: message.usage,
+    usage,
     finish_reason: message.stopReason,
     error: message.errorMessage || null,
     timestamp: message.timestamp

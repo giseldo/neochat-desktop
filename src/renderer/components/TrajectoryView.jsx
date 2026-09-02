@@ -322,9 +322,10 @@ export default function TrajectoryView({
     turns.forEach(t => {
       t.events?.forEach(e => {
         if (e.type === 'assistant' && e.usage) {
-          const prompt = e.usage.prompt_tokens || 0;
-          const comp = e.usage.completion_tokens || 0;
-          const tot = e.usage.total_tokens || (prompt + comp);
+          const u = e.usage;
+          const prompt = u.prompt_tokens ?? u.input_tokens ?? (u.input !== undefined ? (Number(u.input || 0) + Number(u.cacheRead || 0)) : 0);
+          const comp = u.completion_tokens ?? u.output_tokens ?? u.output ?? 0;
+          const tot = u.total_tokens ?? u.totalTokens ?? (prompt + comp);
           totalPrompt += prompt;
           totalCompletion += comp;
           totalTokens += tot;

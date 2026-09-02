@@ -40,7 +40,22 @@ async function main() {
   };
   const piAssistant = toPiMessage(neoAssistant, resolved.model);
   assert.strictEqual(piAssistant.content.find(block => block.type === 'toolCall').name, 'read_file');
-  assert.strictEqual(toNeoMessage(piAssistant).tool_calls[0].function.name, 'read_file');
+  const converted = toNeoMessage(piAssistant);
+  assert.strictEqual(converted.tool_calls[0].function.name, 'read_file');
+
+  const piMessageWithUsage = {
+    role: 'assistant',
+    content: [{ type: 'text', text: 'Files listed.' }],
+    usage: { input: 121, output: 64, cacheRead: 2560, totalTokens: 2745 },
+    stopReason: 'stop',
+    timestamp: 123
+  };
+  const neoMessageWithUsage = toNeoMessage(piMessageWithUsage);
+  assert.strictEqual(neoMessageWithUsage.usage.prompt_tokens, 2681);
+  assert.strictEqual(neoMessageWithUsage.usage.completion_tokens, 64);
+  assert.strictEqual(neoMessageWithUsage.usage.cached_tokens, 2560);
+  assert.strictEqual(neoMessageWithUsage.usage.input, 121);
+  assert.strictEqual(neoMessageWithUsage.usage.cacheRead, 2560);
 
   class FakeAgent {
     constructor(options) {

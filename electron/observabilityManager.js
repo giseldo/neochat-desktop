@@ -39,9 +39,10 @@ function collectUsage(userDataPath, settings = {}, now = new Date()) {
       summary.chats += 1;
       for (const message of chat.messages || []) {
         if (message.role !== 'assistant') continue;
-        const prompt = Number(message.usage?.prompt_tokens ?? message.usage?.input_tokens ?? 0) || 0;
-        const completion = Number(message.usage?.completion_tokens ?? message.usage?.output_tokens ?? 0) || 0;
-        const cached = Number(message.usage?.prompt_cache_hit_tokens ?? message.usage?.cache_read_input_tokens ?? message.usage?.cached_tokens ?? 0) || 0;
+        const u = message.usage || {};
+        const prompt = Number(u.prompt_tokens ?? u.input_tokens ?? (u.input !== undefined ? (Number(u.input || 0) + Number(u.cacheRead || 0)) : 0)) || 0;
+        const completion = Number(u.completion_tokens ?? u.output_tokens ?? u.output ?? 0) || 0;
+        const cached = Number(u.prompt_cache_hit_tokens ?? u.cache_read_input_tokens ?? u.cached_tokens ?? u.cacheRead ?? u.prompt_tokens_details?.cached_tokens ?? 0) || 0;
         const rate = rates[model] || settings.observability?.defaultRate || { input: 0, output: 0 };
         const inputRate = Number(rate.input) || 0;
         const outputRate = Number(rate.output) || 0;
