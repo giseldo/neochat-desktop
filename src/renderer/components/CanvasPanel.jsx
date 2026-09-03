@@ -47,7 +47,8 @@ import {
   Presentation,
   PlaySquare,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  BookOpen
 } from 'lucide-react';
 import { useCanvas } from '../context/CanvasContext';
 import { useLanguage } from '../context/LanguageContext';
@@ -56,6 +57,7 @@ import MarkdownRenderer from './MarkdownRenderer';
 import { cn } from '../lib/utils';
 import { computeLineDiff } from '../lib/diffUtils';
 import { playSpeech, stopSpeech, pauseSpeech, resumeSpeech } from '../lib/ttsUtils';
+import { ACADEMIC_AI_ACTIONS, ACADEMIC_TEMPLATES, latexToPreviewMarkdown } from '../lib/academicTemplates';
 
 const QUICK_AI_ACTIONS = [
   { id: 'improve', label: 'Melhorar Escrita', desc: 'Reescrever com mais clareza e fluidez', icon: Sparkles, prompt: 'Reescrever e melhorar a clareza, fluidez e qualidade do texto' },
@@ -68,6 +70,7 @@ const QUICK_AI_ACTIONS = [
 
 const SUPPORTED_LANGUAGES = [
   { id: 'markdown', label: 'Markdown (.md)', icon: FileText },
+  { id: 'latex', label: 'LaTeX (.tex)', icon: BookOpen },
   { id: 'text', label: 'Texto Simples (.txt)', icon: FileText },
   { id: 'javascript', label: 'JavaScript (.js)', icon: FileCode },
   { id: 'typescript', label: 'TypeScript (.ts)', icon: FileCode },
@@ -164,6 +167,7 @@ export function CanvasPanel({ onSendPrompt, className }) {
   const [isExportMenuOpen, setIsExportMenuOpen] = useState(false);
   const [isMoreMenuOpen, setIsMoreMenuOpen] = useState(false);
   const [isAiActionsMenuOpen, setIsAiActionsMenuOpen] = useState(false);
+  const [isAcademicMenuOpen, setIsAcademicMenuOpen] = useState(false);
   const [diffComparisonVersion, setDiffComparisonVersion] = useState(null);
 
   // Refs for dropdowns
@@ -171,6 +175,7 @@ export function CanvasPanel({ onSendPrompt, className }) {
   const exportMenuRef = useRef(null);
   const languageMenuRef = useRef(null);
   const aiActionsMenuRef = useRef(null);
+  const academicMenuRef = useRef(null);
 
   // Floating selection menu state
   const [floatingMenuPos, setFloatingMenuPos] = useState(null);
@@ -198,6 +203,9 @@ export function CanvasPanel({ onSendPrompt, className }) {
       if (aiActionsMenuRef.current && !aiActionsMenuRef.current.contains(e.target)) {
         setIsAiActionsMenuOpen(false);
       }
+      if (academicMenuRef.current && !academicMenuRef.current.contains(e.target)) {
+        setIsAcademicMenuOpen(false);
+      }
     };
 
     document.addEventListener('mousedown', handleClickOutside);
@@ -211,7 +219,13 @@ export function CanvasPanel({ onSendPrompt, className }) {
   const [currentSlideIndex, setCurrentSlideIndex] = useState(0);
 
   const currentLanguage = canvasDoc?.language || 'markdown';
-  const isCode = ['javascript', 'js', 'typescript', 'ts', 'python', 'py', 'html', 'react', 'css', 'json', 'sql'].includes(currentLanguage);
+  const isLatex = ['latex', 'tex'].includes(currentLanguage);
+  const isCode = ['javascript', 'js', 'typescript', 'ts', 'python', 'py', 'html', 'react', 'css', 'json', 'sql', 'latex', 'tex'].includes(currentLanguage);
+  const activeAiActions = isLatex ? [...ACADEMIC_AI_ACTIONS, ...QUICK_AI_ACTIONS] : QUICK_AI_ACTIONS;
+  const previewContent = useMemo(
+    () => isLatex ? latexToPreviewMarkdown(localContent) : localContent,
+    [isLatex, localContent]
+  );
   const historyList = Array.isArray(canvasDoc?.history) ? canvasDoc.history : [];
   const activeRev = activeRevisionIndex !== null ? historyList[activeRevisionIndex] : null;
 
@@ -449,6 +463,23 @@ export function CanvasPanel({ onSendPrompt, className }) {
       setSelectedText('');
       setFloatingMenuPos(null);
     }
+  };
+
+  const handleApplyAcademicTemplate = (template) => {
+    if (!template) return;
+    if (localContent.trim() && !window.confirm('Substituir o conteúdo atual pelo modelo acadêmico selecionado?')) {
+      return;
+    }
+    setLocalContent(template.content);
+    updateDocument({
+      title: template.title,
+      language: 'latex',
+      content: template.content,
+      summary: `Modelo acadêmico "${template.label}" aplicado`,
+      source: 'user'
+    });
+    setMode('split');
+    setIsAcademicMenuOpen(false);
   };
 
   // Send a quick AI action prompt
@@ -692,6 +723,16 @@ export function CanvasPanel({ onSendPrompt, className }) {
                   <span>HTML Document</span>
                   <span className="text-[10px] text-muted-foreground font-mono">.html</span>
                 </button>
+                {isLatex && (
+                  <button
+                    type="button"
+                    onClick={() => { exportDocument('latex'); setIsExportMenuOpen(false); }}
+                    className="w-full text-left px-3 py-1.5 hover:bg-muted flex items-center justify-between text-xs transition-colors"
+                  >
+                    <span>Fonte LaTeX</span>
+                    <span className="text-[10px] text-muted-foreground font-mono">.tex</span>
+                  </button>
+                )}
                 <button
                   type="button"
                   onClick={() => { exportDocument('pdf'); setIsExportMenuOpen(false); }}
@@ -967,7 +1008,7 @@ export function CanvasPanel({ onSendPrompt, className }) {
             className="w-full h-full p-6 overflow-y-auto custom-scrollbar leading-relaxed"
           >
             <div className="max-w-4xl mx-auto">
-              <MarkdownRenderer content={localContent} />
+              <MarkdownRenderer content={previewContent} />
             </div>
           </div>
         )}
@@ -1047,7 +1088,7 @@ export function CanvasPanel({ onSendPrompt, className }) {
 
             {/* Right: Live Rendered Preview */}
             <div className="h-full p-5 overflow-y-auto custom-scrollbar bg-muted/5">
-              <MarkdownRenderer content={localContent} />
+              <MarkdownRenderer content={previewContent} />
             </div>
           </div>
         )}
@@ -1301,7 +1342,45 @@ export function CanvasPanel({ onSendPrompt, className }) {
       {/* 4. Interactive AI Prompt Bar (Bottom) */}
       <div className="p-3 border-t border-border bg-muted/20 shrink-0">
         <form onSubmit={handleCustomAiPromptSubmit} className="relative flex items-center bg-background border border-border/80 hover:border-primary/50 focus-within:border-primary focus-within:ring-1 focus-within:ring-primary rounded-xl shadow-xs transition-all p-1">
-          {/* Quick AI Actions Popover Trigger */}
+          {/* Academic workspace templates */}
+          <div className="relative shrink-0" ref={academicMenuRef}>
+            <button
+              type="button"
+              onClick={() => setIsAcademicMenuOpen(!isAcademicMenuOpen)}
+              className={cn(
+                "flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors",
+                isLatex ? "bg-violet-500/15 text-violet-600 dark:text-violet-400" : "hover:bg-muted text-muted-foreground"
+              )}
+              title="Criar documento acadêmico em LaTeX"
+            >
+              <BookOpen className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline font-semibold">Acadêmico</span>
+              <ChevronDown className={cn("w-3 h-3 transition-transform", isAcademicMenuOpen && "rotate-180")} />
+            </button>
+            {isAcademicMenuOpen && (
+              <div className="absolute bottom-full left-0 mb-2 w-72 p-1.5 rounded-xl bg-popover border border-border text-popover-foreground shadow-2xl z-50 space-y-0.5 text-xs">
+                <div className="px-2 py-1 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
+                  Modelos LaTeX
+                </div>
+                {ACADEMIC_TEMPLATES.map((template) => (
+                  <button
+                    key={template.id}
+                    type="button"
+                    onClick={() => handleApplyAcademicTemplate(template)}
+                    className="w-full flex items-start gap-2 px-2.5 py-2 rounded-lg hover:bg-muted text-left transition-colors"
+                  >
+                    <BookOpen className="w-3.5 h-3.5 mt-0.5 text-violet-500 shrink-0" />
+                    <span>
+                      <span className="block font-semibold text-foreground">{template.label}</span>
+                      <span className="block text-[10px] text-muted-foreground">{template.description}</span>
+                    </span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
+                    {/* Quick AI Actions Popover Trigger */}
           <div className="relative shrink-0" ref={aiActionsMenuRef}>
             <button
               type="button"
@@ -1323,7 +1402,7 @@ export function CanvasPanel({ onSendPrompt, className }) {
                 <div className="px-2 py-1 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
                   {selectedText ? 'Ações no Trecho Selecionado' : 'Ações no Documento'}
                 </div>
-                {QUICK_AI_ACTIONS.map(action => (
+                {activeAiActions.map(action => (
                   <button
                     key={action.id}
                     type="button"
