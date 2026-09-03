@@ -79,6 +79,35 @@ async function testSwarmManager() {
     assert.strictEqual(debateResult.status, 'completed');
     assert.strictEqual(debateResult.results.length, 2);
     console.log('✅ [PASS] Swarm debate execution validated');
+
+    // 6. Test Marketing & Lawyer presets and custom role execution
+    assert(roles.some(r => r.id === 'marketing_editor'), 'Must have marketing_editor role');
+    assert(roles.some(r => r.id === 'lawyer'), 'Must have lawyer role');
+    assert(roles.some(r => r.id === 'copywriter'), 'Must have copywriter role');
+    assert(roles.some(r => r.id === 'finance'), 'Must have finance role');
+
+    const customRunResult = await swarmManager.runTeam({
+      swarmId: 'test_swarm_custom',
+      prompt: 'Lançamento de novo produto SaaS com conformidade jurídica e campanha de marketing',
+      roles: ['marketing_editor', 'lawyer', 'custom_tax_expert'],
+      customRoles: [
+        {
+          id: 'custom_tax_expert',
+          name: 'Consultor Tributário',
+          description: 'Especialista em planejamento fiscal',
+          systemPrompt: 'Você é um consultor tributário.'
+        }
+      ],
+      mode: 'parallel',
+      settings: fakeSettings
+    });
+
+    assert.strictEqual(customRunResult.status, 'completed');
+    assert.strictEqual(customRunResult.results.length, 3);
+    assert(customRunResult.results.some(r => r.role === 'marketing_editor'));
+    assert(customRunResult.results.some(r => r.role === 'lawyer'));
+    assert(customRunResult.results.some(r => r.role === 'custom_tax_expert'));
+    console.log('✅ [PASS] Swarm marketing, lawyer & custom dynamic roles validated');
   } finally {
     swarmManager._executeAgent = originalExec;
     swarmManager._synthesizeResults = originalSynth;

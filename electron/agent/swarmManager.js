@@ -36,6 +36,72 @@ const SWARM_ROLES = {
     name: 'QA & Test Automation Specialist',
     description: 'Specializes in test strategy, edge cases, unit tests, and regression prevention.',
     systemPrompt: 'You are the QA Specialist. Your role is to design exhaustive test scenarios, identify tricky boundary conditions, and produce automated unit/integration test suites.'
+  },
+  DEVOPS: {
+    id: 'devops',
+    name: 'DevOps & Cloud SRE',
+    description: 'Specializes in cloud infrastructure, CI/CD pipelines, Docker, Kubernetes, and reliability engineering.',
+    systemPrompt: 'You are the DevOps & Cloud Infrastructure Lead. Your role is to design scalable deployment architectures, CI/CD automation pipelines, containerization strategies, and site reliability practices.'
+  },
+  DATA_SCIENTIST: {
+    id: 'data_scientist',
+    name: 'Data Scientist & AI Specialist',
+    description: 'Specializes in data analysis, machine learning models, statistical inference, and ETL pipelines.',
+    systemPrompt: 'You are the Senior Data Scientist & AI Specialist. Your role is to analyze data flows, recommend ML algorithms, evaluate statistical significance, design data models, and extract actionable intelligence.'
+  },
+  MARKETING_EDITOR: {
+    id: 'marketing_editor',
+    name: 'Editor de Marketing & Estrategista',
+    description: 'Especialista em estratégia de marketing digital, posicionamento de marca, funis de conversão e campanhas.',
+    systemPrompt: 'Você é o Diretor / Editor Chefe de Marketing e Estrategista Digital. Sua função é desenhar estratégias de atração, conversão e retenção, analisar canais de aquisição, posicionamento de marca e mensurar métricas de engajamento e CAC/LTV.'
+  },
+  COPYWRITER: {
+    id: 'copywriter',
+    name: 'Copywriter & Redator Persuasivo',
+    description: 'Especialista em textos persuasivos de alta conversão, storytelling, headlines de impacto e chamadas para ação (CTAs).',
+    systemPrompt: 'Você é um Copywriter e Redator Publicitário de elite. Sua missão é criar textos persuasivos, ganchos magnéticos, narrativas envolventes e chamadas para ação irresistíveis aplicando princípios de psicologia de consumo e copywriting de resposta direta.'
+  },
+  SEO_SPECIALIST: {
+    id: 'seo_specialist',
+    name: 'Especialista em SEO & Tráfego',
+    description: 'Especialista em otimização para motores de busca, arquitetura de conteúdo e tráfego orgânico.',
+    systemPrompt: 'Você é um Especialista Sênior em SEO e Tráfego Orgânico. Sua função é mapear intenção de busca, arquitetura de conteúdo, palavras-chave de alto valor, SEO técnico e estratégias de link building.'
+  },
+  SOCIAL_MEDIA: {
+    id: 'social_media',
+    name: 'Social Media & Gestor de Comunidade',
+    description: 'Especialista em engajamento social, estratégias de conteúdo viral, calendário editorial e comunidade.',
+    systemPrompt: 'Você é um Estrategista de Redes Sociais e Conteúdo Viral. Sua função é criar calendários editoriais, formatos de postagens de alto engajamento, estratégias de crescimento e conexão com a comunidade.'
+  },
+  LAWYER: {
+    id: 'lawyer',
+    name: 'Advogado & Consultor Jurídico',
+    description: 'Especialista em conformidade legal, análise de riscos regulatórios, contratos e proteção de dados (LGPD/GDPR).',
+    systemPrompt: 'Você é um Consultor Jurídico e Advogado Sênior. Sua função é analisar riscos legais, termos de serviço, políticas de privacidade, conformidade com a LGPD/GDPR, contratos e propor salvaguardas jurídicas robustas.'
+  },
+  FINANCE: {
+    id: 'finance',
+    name: 'Especialista Financeiro / CFO',
+    description: 'Especialista em modelagem financeira, viabilidade econômica, ROI, fluxo de caixa e precificação.',
+    systemPrompt: 'Você é um Especialista Financeiro / CFO Estratégico. Sua função é avaliar a viabilidade econômica, estrutura de custos, projeção de receitas, retorno sobre investimento (ROI), precificação e sustentabilidade fiscal.'
+  },
+  PRODUCT_MANAGER: {
+    id: 'product_manager',
+    name: 'Product Manager & Estrategista',
+    description: 'Especialista em visão de produto, priorização RICE/MoSCoW, métricas de negócio e descoberta de produto.',
+    systemPrompt: 'Você é o Principal Product Manager (PM). Sua missão é alinhar necessidades do usuário aos objetivos de negócio, definir critérios de aceitação, priorizar features com base em valor e impacto, e orquestrar o roadmap.'
+  },
+  UX_DESIGNER: {
+    id: 'ux_designer',
+    name: 'UX / UI Strategist & Design Lead',
+    description: 'Especialista em usabilidade, arquitetura de informação, jornadas de usuário e design intuitivo.',
+    systemPrompt: 'Você é o Lead UX/UI Designer. Sua função é mapear fluxos e jornadas de usuário intuitivas, resolver fricções de usabilidade, projetar interfaces acessíveis e garantir uma experiência de excelência.'
+  },
+  RESEARCHER: {
+    id: 'researcher',
+    name: 'Pesquisador & Analista Científico',
+    description: 'Especialista em investigação profunda, análise crítica, síntese de literatura e embasamento teórico.',
+    systemPrompt: 'Você é um Pesquisador Científico e Analista de Inteligência. Sua função é conduzir investigações minuciosas, checar fontes, sintetizar dados complexos e fornecer análises comparativas fundamentadas.'
   }
 };
 
@@ -64,7 +130,8 @@ class SwarmManager extends EventEmitter {
    * @param {object} params
    * @param {string} params.swarmId
    * @param {string} params.prompt
-   * @param {Array<string>} params.roles Array of role IDs (e.g. ['architect', 'coder', 'reviewer'])
+   * @param {Array<string|object>} params.roles Array of role IDs or role objects
+   * @param {Array<object>} [params.customRoles] Array of custom role objects { id, name, description, systemPrompt }
    * @param {string} [params.mode='parallel'] 'parallel' | 'pipeline' | 'debate'
    * @param {string} [params.model] Default model for agents
    * @param {object} [params.settings] App/Provider settings
@@ -76,6 +143,7 @@ class SwarmManager extends EventEmitter {
     swarmId = `swarm_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
     prompt,
     roles = ['architect', 'coder', 'reviewer'],
+    customRoles = [],
     mode = SWARM_MODES.PARALLEL,
     model,
     settings = {},
@@ -100,8 +168,36 @@ class SwarmManager extends EventEmitter {
         timestamp: Date.now()
       });
 
-      const selectedRoles = roles
-        .map(id => SWARM_ROLES[id.toUpperCase()] || { id, name: id, systemPrompt: `You are an expert ${id}.` });
+      const customRolesMap = new Map();
+      if (Array.isArray(customRoles)) {
+        for (const cr of customRoles) {
+          if (cr && cr.id) customRolesMap.set(cr.id.toLowerCase(), cr);
+        }
+      }
+
+      const selectedRoles = roles.map(roleItem => {
+        if (typeof roleItem === 'object' && roleItem !== null && roleItem.id) {
+          return {
+            id: roleItem.id,
+            name: roleItem.name || roleItem.id,
+            description: roleItem.description || '',
+            systemPrompt: roleItem.systemPrompt || `Você é um especialista em ${roleItem.name || roleItem.id}. Forneça uma análise estruturada, profunda e acionável.`
+          };
+        }
+        const idStr = String(roleItem);
+        const builtIn = SWARM_ROLES[idStr.toUpperCase()] ||
+          Object.values(SWARM_ROLES).find(br => br.id.toLowerCase() === idStr.toLowerCase());
+        if (builtIn) return builtIn;
+        if (customRolesMap.has(idStr.toLowerCase())) {
+          return customRolesMap.get(idStr.toLowerCase());
+        }
+        return {
+          id: idStr,
+          name: idStr,
+          description: '',
+          systemPrompt: `Você é um especialista em ${idStr}. Forneça uma análise profunda e recomendações acionáveis.`
+        };
+      });
 
       let agentResults = [];
 
