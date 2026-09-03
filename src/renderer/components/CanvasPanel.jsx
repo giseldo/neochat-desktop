@@ -741,7 +741,7 @@ export function CanvasPanel({ onSendPrompt, className }) {
                   <span>{t('canvas.exportPdf') || 'Documento PDF'}</span>
                   <span className="text-[10px] text-muted-foreground font-mono">.pdf</span>
                 </button>
-                {isCode && (
+                {isCode && !isLatex && (
                   <button
                     type="button"
                     onClick={() => { exportDocument(currentLanguage); setIsExportMenuOpen(false); }}
@@ -1412,7 +1412,7 @@ export function CanvasPanel({ onSendPrompt, className }) {
                     }}
                     className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg hover:bg-muted text-foreground transition-colors text-left"
                   >
-                    <action.icon className="w-3.5 h-3.5 text-primary shrink-0" />
+                    {React.createElement(action.icon || BookOpen, { className: 'w-3.5 h-3.5 text-primary shrink-0' })}
                     <div className="min-w-0 flex-1">
                       <div className="font-semibold text-xs">{action.label}</div>
                       <div className="text-[10px] text-muted-foreground truncate">{action.desc}</div>
