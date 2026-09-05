@@ -5,13 +5,13 @@ import {
   X, 
   Maximize2, 
   Minimize2, 
-  ExternalLink, 
   Trash2, 
   Square, 
   Copy, 
   Check, 
   ChevronRight,
-  Sparkles
+  ChevronDown,
+  MoreHorizontal
 } from 'lucide-react';
 import { Button } from './ui/button';
 import { cn } from '../lib/utils';
@@ -99,6 +99,30 @@ export default function TerminalPanel({
   const [logs, setLogs] = useState({}); // { [sessionId]: string[] }
   const [isRunning, setIsRunning] = useState(false);
   const [copied, setCopied] = useState(false);
+
+  const [openMenu, setOpenMenu] = useState(null);
+  const actionsRef = useRef(null);
+  const shortcutsRef = useRef(null);
+
+  useEffect(() => {
+    if (!openMenu) return;
+    const dismiss = (event) => {
+      if (!actionsRef.current?.contains(event.target) && !shortcutsRef.current?.contains(event.target)) setOpenMenu(null);
+    };
+    const escape = (event) => {
+      if (event.key === 'Escape') {
+        const trigger = openMenu === 'actions' ? actionsRef : shortcutsRef;
+        setOpenMenu(null);
+        trigger.current?.querySelector('button')?.focus();
+      }
+    };
+    document.addEventListener('pointerdown', dismiss);
+    document.addEventListener('keydown', escape);
+    return () => {
+      document.removeEventListener('pointerdown', dismiss);
+      document.removeEventListener('keydown', escape);
+    };
+  }, [openMenu]);
 
   const logsEndRef = useRef(null);
   const inputRef = useRef(null);
@@ -307,34 +331,33 @@ export default function TerminalPanel({
       )}
 
       {/* Top Header Bar */}
-      <div className="flex items-center justify-between px-3 py-2 bg-slate-900/90 border-b border-slate-800 select-none">
+      <div className="flex h-11 shrink-0 items-center justify-between gap-2 px-3 bg-slate-900/60 border-b border-slate-800/60 select-none">
         {/* Left: Terminal Tabs */}
-        <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar max-w-[70%]">
-          <div className="flex items-center gap-1 px-2 py-1 text-xs font-semibold text-slate-400">
+        <div className="flex items-center gap-1.5 min-w-0 overflow-x-auto no-scrollbar flex-1">
+          <div className="flex shrink-0 items-center gap-1 px-1 py-1 text-xs font-semibold text-slate-400">
             <TerminalIcon className="w-3.5 h-3.5 text-emerald-400" />
             <span>Terminal</span>
           </div>
 
-          <div className="h-4 w-px bg-slate-800 mx-1" />
 
           {sessions.map(session => {
             const isActive = session.id === activeSessionId;
             return (
               <div
                 key={session.id}
-                onClick={() => setActiveSessionId(session.id)}
                 className={cn(
-                  "flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium cursor-pointer transition-all border",
+                  "flex shrink-0 items-center gap-1.5 px-2.5 h-11 text-xs font-medium transition-colors border-b-2",
                   isActive
-                    ? "bg-slate-800 text-slate-100 border-slate-700 shadow-xs"
-                    : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/50 border-transparent"
+                    ? "text-slate-100 border-primary"
+                    : "text-slate-400 hover:text-slate-200 border-transparent"
                 )}
               >
-                <span className="truncate max-w-[100px]">{session.name}</span>
+                <button type="button" onClick={() => setActiveSessionId(session.id)} aria-pressed={isActive} className="truncate max-w-[100px] h-full focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary">{session.name}</button>
                 {sessions.length > 1 && (
                   <button
                     type="button"
                     onClick={(e) => handleCloseTab(e, session.id)}
+                    aria-label={`Fechar ${session.name}`}
                     className="opacity-60 hover:opacity-100 hover:text-red-400 rounded p-0.5"
                   >
                     <X className="w-3 h-3" />
@@ -355,24 +378,18 @@ export default function TerminalPanel({
         </div>
 
         {/* Right Header Controls */}
-        <div className="flex items-center gap-1">
-          <button
-            type="button"
-            onClick={handleCopyLogs}
-            className="p-1.5 rounded-lg text-slate-400 hover:text-slate-100 hover:bg-slate-800 transition-colors"
-            title={t('common.copy') || 'Copiar saída'}
-          >
-            {copied ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
-          </button>
-
-          <button
-            type="button"
-            onClick={handleClear}
-            className="p-1.5 rounded-lg text-slate-400 hover:text-slate-100 hover:bg-slate-800 transition-colors"
-            title={t('common.clear') || 'Limpar terminal'}
-          >
-            <Trash2 className="w-3.5 h-3.5" />
-          </button>
+        <div className="flex shrink-0 items-center gap-1">
+          <div className="relative" ref={actionsRef}>
+            <button type="button" aria-label="Ações do terminal" aria-expanded={openMenu === 'actions'} onClick={() => setOpenMenu(openMenu === 'actions' ? null : 'actions')} className="p-1.5 rounded-md text-slate-400 hover:text-slate-100 hover:bg-slate-800" title="Ações do terminal">
+              {copied ? <Check className="w-4 h-4 text-primary" /> : <MoreHorizontal className="w-4 h-4" />}
+            </button>
+            {openMenu === 'actions' && (
+              <div className="absolute right-0 top-full mt-2 z-50 w-44 rounded-lg border border-slate-700 bg-slate-900 p-1 shadow-lg">
+                <button type="button" onClick={() => { handleCopyLogs(); setOpenMenu(null); }} className="w-full flex items-center gap-2 rounded-md p-2 text-xs text-slate-200 hover:bg-slate-800"><Copy className="w-3.5 h-3.5" />Copiar saída</button>
+                <button type="button" onClick={() => { handleClear(); setOpenMenu(null); }} className="w-full flex items-center gap-2 rounded-md p-2 text-xs text-slate-200 hover:bg-slate-800"><Trash2 className="w-3.5 h-3.5" />Limpar terminal</button>
+              </div>
+            )}
+          </div>
 
           {onToggleMaximize && (
             <button
@@ -410,36 +427,17 @@ export default function TerminalPanel({
             }}
           />
         ) : (
-          <div className="text-slate-500 py-4 italic">
-            Neo Terminal pronto. Digite um comando abaixo ou selecione um atalho.
+          <div className="text-slate-400 py-3 font-sans">
+            Terminal pronto. Digite um comando abaixo.
           </div>
         )}
         <div ref={logsEndRef} />
       </div>
 
-      {/* Quick Command Suggestions */}
-      <div className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-900/60 border-t border-slate-800/80 overflow-x-auto no-scrollbar text-[11px]">
-        <span className="text-slate-500 font-semibold flex items-center gap-1">
-          <Sparkles className="w-3 h-3 text-amber-400" />
-          Atalhos:
-        </span>
-        {['pnpm dev', 'pnpm test', 'git status', 'git diff', 'node -v'].map(cmd => (
-          <button
-            key={cmd}
-            type="button"
-            onClick={() => handleExecuteCommand(cmd)}
-            disabled={isRunning}
-            className="px-2 py-0.5 rounded-md bg-slate-800 hover:bg-slate-700 text-slate-300 transition-colors shrink-0 disabled:opacity-50"
-          >
-            {cmd}
-          </button>
-        ))}
-      </div>
-
       {/* Interactive Command Input Bar */}
-      <div className="flex items-center gap-2 p-2.5 bg-slate-900 border-t border-slate-800">
-        <div className="flex items-center text-emerald-400 font-mono font-bold text-xs shrink-0 pl-1">
-          <ChevronRight className="w-4 h-4 text-emerald-400" />
+      <div className="flex items-center gap-1.5 p-2.5 bg-slate-900/60 border-t border-slate-800/60">
+        <div className="flex items-center text-primary font-mono font-bold text-xs shrink-0 pl-1">
+          <ChevronRight className="w-4 h-4 text-primary" />
         </div>
         <input
           ref={inputRef}
@@ -448,16 +446,29 @@ export default function TerminalPanel({
           onChange={(e) => setCommandInput(e.target.value)}
           onKeyDown={handleKeyDown}
           placeholder={isRunning ? "Executando processo... (Ctrl+C para interromper)" : "Digite um comando shell..."}
-          className="flex-1 bg-transparent text-slate-100 placeholder:text-slate-500 font-mono text-xs outline-hidden focus:outline-hidden"
+          className="h-10 min-w-0 flex-1 rounded-lg border border-transparent bg-transparent px-2 text-slate-100 placeholder:text-slate-400 font-mono text-xs outline-none focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/30"
+          aria-label="Comando do terminal"
           autoFocus
         />
+        <div className="relative shrink-0" ref={shortcutsRef}>
+          <button type="button" aria-expanded={openMenu === 'shortcuts'} onClick={() => setOpenMenu(openMenu === 'shortcuts' ? null : 'shortcuts')} className="h-10 flex items-center gap-1 rounded-lg px-2 text-xs text-slate-400 hover:text-slate-100 hover:bg-slate-800">
+            Atalhos <ChevronDown className="w-3 h-3" />
+          </button>
+          {openMenu === 'shortcuts' && (
+            <div className="absolute right-0 bottom-full mb-2 z-50 w-40 rounded-lg border border-slate-700 bg-slate-900 p-1 shadow-lg">
+              {['pnpm dev', 'pnpm test', 'git status', 'git diff', 'node -v'].map(cmd => (
+                <button key={cmd} type="button" disabled={isRunning} onClick={() => { setOpenMenu(null); handleExecuteCommand(cmd); }} className="w-full rounded-md p-2 text-left font-mono text-xs text-slate-200 hover:bg-slate-800 disabled:opacity-50">{cmd}</button>
+              ))}
+            </div>
+          )}
+        </div>
         {isRunning ? (
           <Button
             type="button"
             size="sm"
             variant="destructive"
             onClick={handleKill}
-            className="h-7 px-2 text-xs flex items-center gap-1 rounded-lg shadow-xs"
+            className="h-10 shrink-0 px-2 text-xs flex items-center gap-1 rounded-lg"
             title="Interromper processo (Ctrl+C)"
           >
             <Square className="w-3 h-3 fill-current" />
@@ -469,7 +480,7 @@ export default function TerminalPanel({
             size="sm"
             onClick={() => handleExecuteCommand()}
             disabled={!commandInput.trim()}
-            className="h-7 px-2.5 text-xs bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg shadow-xs transition-colors"
+            className="h-10 shrink-0 px-2.5 text-xs bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg transition-colors disabled:bg-slate-800 disabled:text-slate-400 disabled:opacity-100"
           >
             Executar
           </Button>
