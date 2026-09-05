@@ -51,8 +51,22 @@ if (releaseExists) {
 } else {
   console.log('\nCreating release ' + tag + ' on ' + REPO_TARGET + '...');
   const title = 'NeoChat Desktop ' + tag;
-  const notes = '## NeoChat Desktop ' + tag + '\n\nAutomated release of NeoChat Desktop.';
-  execSync('gh release create --repo ' + REPO_TARGET + ' ' + tag + ' ' + quotedFiles + ' --title "' + title + '" --notes "' + notes + '"', { stdio: 'inherit' });
+  let notes = '## NeoChat Desktop ' + tag + '\n\n';
+  try {
+    const prevTag = execSync('git describe --tags --abbrev=0 HEAD^', { encoding: 'utf8' }).trim();
+    const commits = execSync('git log ' + prevTag + '..HEAD --pretty=format:"* %s (%h)"', { encoding: 'utf8' }).trim();
+    if (commits) {
+      notes += '### What\'s Changed\n\n' + commits + '\n\n';
+    } else {
+      notes += 'Automated release of NeoChat Desktop.\n\n';
+    }
+  } catch (e) {
+    notes += 'Automated release of NeoChat Desktop.\n\n';
+  }
+  const tempNotesFile = path.join(releaseDir, 'RELEASE_NOTES.md');
+  fs.writeFileSync(tempNotesFile, notes, 'utf8');
+  execSync('gh release create --repo ' + REPO_TARGET + ' ' + tag + ' ' + quotedFiles + ' --title "' + title + '" --notes-file "' + tempNotesFile + '"', { stdio: 'inherit' });
+  try { fs.unlinkSync(tempNotesFile); } catch (_) {}
 }
 
 console.log('\n✅ Release ' + tag + ' successfully published to https://github.com/' + REPO_TARGET + '/releases/tag/' + tag + '\n');
