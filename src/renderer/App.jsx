@@ -267,7 +267,8 @@ function App() {
   const [agentHarness, setAgentHarness] = useState('native');
   const [harnessMode, setHarnessMode] = useState(() => {
     try {
-      return localStorage.getItem('neochat_harness_mode') || 'chat';
+      const saved = localStorage.getItem('neochat_harness_mode');
+      return saved === 'code' ? 'code' : 'chat';
     } catch (e) {
       return 'chat';
     }
@@ -1256,7 +1257,7 @@ function App() {
         const streamOptions = {
             isCanvasOpen: Boolean(isCanvasOpen),
             canvasDoc: isCanvasOpen && canvasDoc ? canvasDoc : null,
-            canvasEnabled: harnessMode === 'work' || harnessMode === 'code' ? true : Boolean(isCanvasOpen),
+            canvasEnabled: harnessMode === 'code' ? true : Boolean(isCanvasOpen),
             selectedCanvasText: isCanvasOpen ? selectedText : '',
             activeProject: activeProject ? { id: activeProject.id, name: activeProject.name, folders: activeProject.folders } : null,
             agentModeActive: harnessMode === 'code',

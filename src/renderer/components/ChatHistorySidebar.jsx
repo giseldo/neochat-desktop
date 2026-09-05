@@ -29,7 +29,6 @@ import {
   Star,
   Archive,
   SlidersHorizontal,
-  Briefcase,
   Terminal
 } from 'lucide-react';
 import { cn } from '../lib/utils';
@@ -1427,7 +1426,7 @@ function ChatHistorySidebar({
         </div>
       </div>
 
-      {/* Mode Switcher: Chat | Work | Code */}
+      {/* Mode Switcher: Chat | Code */}
       {onModeChange && (
         <div className="px-2.5 pt-2 pb-0.5">
           <div className="flex items-center gap-0.5 bg-muted/60 p-0.5 rounded-xl border border-border/70 shadow-2xs">
@@ -1435,12 +1434,12 @@ function ChatHistorySidebar({
               type="button"
               onClick={() => onModeChange('chat')}
               className={cn(
-                "flex-1 py-1 px-1.5 text-xs font-semibold rounded-lg transition-all flex items-center justify-center gap-1 cursor-pointer",
+                "flex-1 py-1 px-1.5 text-xs font-semibold rounded-lg transition-all flex items-center justify-center gap-1.5 cursor-pointer",
                 harnessMode === 'chat'
                   ? "bg-background text-foreground shadow-xs font-bold"
                   : "text-muted-foreground hover:text-foreground"
               )}
-              title={t('chat.chatModeChat')}
+              title={t('chat.chatModeChatTooltip') || t('chat.chatModeChat')}
             >
               <MessageSquare className="w-3.5 h-3.5 text-blue-500 shrink-0" />
               <span className="truncate">{t('chat.chatModeChat')}</span>
@@ -1448,24 +1447,9 @@ function ChatHistorySidebar({
 
             <button
               type="button"
-              onClick={() => onModeChange('work')}
-              className={cn(
-                "flex-1 py-1 px-1.5 text-xs font-semibold rounded-lg transition-all flex items-center justify-center gap-1 cursor-pointer",
-                harnessMode === 'work'
-                  ? "bg-background text-foreground shadow-xs ring-1 ring-indigo-500/20 font-bold"
-                  : "text-muted-foreground hover:text-foreground"
-              )}
-              title={t('chat.chatModeWork')}
-            >
-              <Briefcase className="w-3.5 h-3.5 text-indigo-500 shrink-0" />
-              <span className="truncate">{t('chat.chatModeWork')}</span>
-            </button>
-
-            <button
-              type="button"
               onClick={() => onModeChange('code')}
               className={cn(
-                "flex-1 py-1 px-1.5 text-xs font-semibold rounded-lg transition-all flex items-center justify-center gap-1 cursor-pointer",
+                "flex-1 py-1 px-1.5 text-xs font-semibold rounded-lg transition-all flex items-center justify-center gap-1.5 cursor-pointer",
                 harnessMode === 'code'
                   ? "bg-amber-500/15 text-amber-600 dark:text-amber-400 shadow-xs ring-1 ring-amber-500/40 font-bold"
                   : "text-muted-foreground hover:text-foreground"
