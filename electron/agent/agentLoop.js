@@ -2,7 +2,7 @@
  * AgentLoop - Deterministic State Machine and Autonomous Execution Loop.
  */
 
-const { AGENT_STATES, AGENT_EVENTS } = require('./eventBus');
+const { AGENT_STATES } = require('./eventBus');
 const { modelRouter } = require('./modelRouter');
 const { toolExecutor } = require('./toolExecutor');
 const { workspaceManager } = require('./workspaceManager');
@@ -53,7 +53,10 @@ class AgentLoop {
     const mode = settings.agentMode ? 'code' : (settings.mode || 'chat');
 
     // Build rich workspace context for system prompt
-    const workspaceContext = await workspaceManager.buildWorkspaceContextString(root);
+    const workspaceContext = [
+      await workspaceManager.buildWorkspaceContextString(root),
+      typeof settings.agentSystemPrompt === 'string' ? settings.agentSystemPrompt.trim() : ''
+    ].filter(Boolean).join('\n\n');
     
     // Assemble tools based on mode and settings
     const formattedTools = toolRegistry.getFormattedTools({

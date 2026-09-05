@@ -3,6 +3,7 @@
  */
 
 const { getToolPermission } = require('../toolPermissionManager');
+const crypto = require('crypto');
 
 const PERMISSION_DECISION = {
   ALLOW: 'allow',
@@ -23,17 +24,51 @@ const DEFAULT_SAFE_TOOLS = new Set([
   'canvas_get_document'
 ]);
 
+function parseToolArguments(toolCall) {
+  const value = toolCall?.function?.arguments ?? toolCall?.arguments ?? {};
+  if (typeof value === 'string') {
+    try { return JSON.parse(value || '{}'); } catch (_error) { return {}; }
+  }
+  return value && typeof value === 'object' ? value : {};
+}
+
+function stableSerialize(value) {
+  if (Array.isArray(value)) return `[${value.map(stableSerialize).join(',')}]`;
+  if (value && typeof value === 'object') {
+    return `{${Object.keys(value).sort().map(key => `${JSON.stringify(key)}:${stableSerialize(value[key])}`).join(',')}}`;
+  }
+  return JSON.stringify(value);
+}
+
+function getApprovalScope(toolCall) {
+  const toolName = toolCall?.function?.name || toolCall?.name || 'unknown';
+  const args = parseToolArguments(toolCall);
+  const digest = crypto.createHash('sha256').update(stableSerialize(args)).digest('hex').slice(0, 16);
+  return `${toolName}:${digest}`;
+}
+
+function requiresElevatedApproval(toolCall) {
+  const toolName = toolCall?.function?.name || toolCall?.name;
+  const args = parseToolArguments(toolCall);
+  return Boolean(
+    args.network_access === true ||
+    (['shell_exec', 'process_exec', 'run_background_task'].includes(toolName) && args.allow_system_commands === true)
+  );
+}
+
 class PermissionEngine {
   constructor(settings = {}) {
     this.settings = settings;
+    this.sessionSettings = new Map();
     // Map of sessionId -> Set of allowed tool names for the current session
     this.sessionPermissions = new Map();
     // Map of pending approval calls: callId -> { resolve, reject, toolCall, timeoutId }
     this.pendingApprovals = new Map();
   }
 
-  updateSettings(settings) {
-    this.settings = settings;
+  updateSettings(settings, sessionId = null) {
+    if (sessionId) this.sessionSettings.set(sessionId, settings);
+    else this.settings = settings;
   }
 
   /**
@@ -50,9 +85,16 @@ class PermissionEngine {
     }
 
     // 1. Check if tool is allowed for this specific session
+    const approvalScope = getApprovalScope(toolCall);
     const sessionSet = this.sessionPermissions.get(sessionId);
-    if (sessionSet && sessionSet.has(toolName)) {
+    if (sessionSet && sessionSet.has(approvalScope)) {
       return { decision: PERMISSION_DECISION.ALLOW, reason: 'Session approved' };
+    }
+
+    // Network and operating-system capabilities always require an exact-call approval,
+    // even when the tool itself is globally configured as allowed.
+    if (requiresElevatedApproval(toolCall)) {
+      return { decision: PERMISSION_DECISION.PROMPT, reason: 'Elevated process capability requires exact approval' };
     }
 
     // 2. Check global tool permission settings from toolPermissionManager
@@ -73,7 +115,8 @@ class PermissionEngine {
     }
 
     // 3. Check if agent mode auto-allows safe read-only tools
-    const isAgentMode = Boolean(this.settings?.agentMode || this.settings?.agentModeActive);
+    const activeSettings = this.sessionSettings.get(sessionId) || this.settings;
+    const isAgentMode = Boolean(activeSettings?.agentMode || activeSettings?.agentModeActive);
     if (isAgentMode && DEFAULT_SAFE_TOOLS.has(toolName)) {
       return { decision: PERMISSION_DECISION.ALLOW, reason: 'Safe read-only tool in agent mode' };
     }
@@ -108,7 +151,8 @@ class PermissionEngine {
         sessionId,
         toolCall,
         resolve,
-        timeoutId
+        timeoutId,
+        approvalScope: getApprovalScope(toolCall)
       });
     });
   }
@@ -118,15 +162,15 @@ class PermissionEngine {
    * @param {string} callId
    * @param {boolean} [alwaysAllow=false] - Whether to allow for all subsequent calls in this session
    */
-  approve(callId, alwaysAllow = false) {
+  approve(sessionId, callId, alwaysAllow = false) {
     const pending = this.pendingApprovals.get(callId);
-    if (!pending) return false;
+    if (!pending || pending.sessionId !== sessionId) return false;
 
     clearTimeout(pending.timeoutId);
     this.pendingApprovals.delete(callId);
 
-    if (alwaysAllow && pending.toolCall?.function?.name) {
-      this.grantSessionPermission(pending.sessionId, pending.toolCall.function.name);
+    if (alwaysAllow && pending.approvalScope) {
+      this.grantSessionPermission(pending.sessionId, pending.approvalScope);
     }
 
     pending.resolve({ approved: true, alwaysAllow });
@@ -138,9 +182,9 @@ class PermissionEngine {
    * @param {string} callId
    * @param {string} reason
    */
-  reject(callId, reason = 'User rejected tool execution') {
+  reject(sessionId, callId, reason = 'User rejected tool execution') {
     const pending = this.pendingApprovals.get(callId);
-    if (!pending) return false;
+    if (!pending || pending.sessionId !== sessionId) return false;
 
     clearTimeout(pending.timeoutId);
     this.pendingApprovals.delete(callId);
@@ -149,15 +193,16 @@ class PermissionEngine {
     return true;
   }
 
-  grantSessionPermission(sessionId, toolName) {
+  grantSessionPermission(sessionId, approvalScope) {
     if (!this.sessionPermissions.has(sessionId)) {
       this.sessionPermissions.set(sessionId, new Set());
     }
-    this.sessionPermissions.get(sessionId).add(toolName);
+    this.sessionPermissions.get(sessionId).add(approvalScope);
   }
 
   revokeSessionPermissions(sessionId) {
     this.sessionPermissions.delete(sessionId);
+    this.sessionSettings.delete(sessionId);
     // Cancel any pending approvals for this session
     for (const [callId, pending] of this.pendingApprovals.entries()) {
       if (pending.sessionId === sessionId) {
@@ -175,5 +220,7 @@ module.exports = {
   PermissionEngine,
   permissionEngine,
   PERMISSION_DECISION,
-  DEFAULT_SAFE_TOOLS
+  DEFAULT_SAFE_TOOLS,
+  getApprovalScope,
+  requiresElevatedApproval
 };

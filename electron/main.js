@@ -61,6 +61,7 @@ const projectManager = require('./projectManager');
 
 // Import Neo Agent Runtime
 const { neoAgentRuntime } = require('./agent');
+const { registerAgentIpcHandlers } = require('./agent/ipcHandlers');
 
 // Global variable to hold the main window instance
 let mainWindow;
@@ -73,7 +74,6 @@ let pendingContext = null; // Holds context to be passed to renderer
 let contextCapture = null; // Context capture instance
 let lastCapturedContext = null; // Store the most recent captured context
 let popupWindowManager = null; // Popup window manager instance
-
 function handleUrlProtocol(url) {
   // Handle groq://context?text=...&title=... URLs
   if (!url.startsWith('groq://')) return null;
@@ -236,6 +236,8 @@ app.on('open-url', (event, url) => {
 // App initialization sequence
 app.whenReady().then(async () => {
   console.log("App Ready. Initializing...");
+
+  neoAgentRuntime.configurePersistence(path.join(app.getPath('userData'), 'agent-runtime'));
 
   // Initialize command resolver first (might be needed by others)
   initializeCommandResolver(app);
@@ -525,69 +527,46 @@ app.whenReady().then(async () => {
     return await screenCaptureService.capturePrimaryScreen();
   });
 
+  // --- User Persistent Long-Term Memory IPC Handlers ---
+  const memoryService = require('./memoryService');
+  memoryService.initialize(app);
+
+  ipcMain.handle('memory-get-all', async () => {
+    return memoryService.getMemories();
+  });
+  ipcMain.handle('memory-get-stats', async () => {
+    return memoryService.getMemoryStats();
+  });
+  ipcMain.handle('memory-add', async (event, content, category, source) => {
+    return memoryService.addMemory(content, category, source);
+  });
+  ipcMain.handle('memory-update', async (event, id, updates) => {
+    return memoryService.updateMemory(id, updates);
+  });
+  ipcMain.handle('memory-delete', async (event, id) => {
+    return memoryService.deleteMemory(id);
+  });
+  ipcMain.handle('memory-clear', async () => {
+    return memoryService.clearMemories();
+  });
+
   // --- Neo Agent Runtime IPC Handlers ---
   console.log("[Main Init] Registering Neo Agent Runtime handlers...");
-  ipcMain.handle('agent:create-session', async (_event, options) => {
-    const session = neoAgentRuntime.createSession(options);
-    return { sessionId: session.sessionId, workspaceRoot: session.workspaceRoot };
-  });
-
-  ipcMain.handle('agent:prompt', async (event, sessionId, userMessage, options = {}) => {
-    const currentSettings = loadSettings();
-    const { discoveredTools, mcpClients } = mcpManager.getMcpState();
-    
-    // Forward all agent events directly to the caller webContents
-    const unsubscribe = neoAgentRuntime.subscribe(sessionId, (data) => {
-      if (event.sender && !event.sender.isDestroyed()) {
-        event.sender.send('agent:event', data);
-      }
-    });
-
-    try {
-      const result = await neoAgentRuntime.prompt(sessionId, userMessage, {
-        ...options,
-        settings: { ...currentSettings, ...(options.settings || {}) },
-        mcpClients,
-        discoveredTools
+  registerAgentIpcHandlers({
+    ipcMain,
+    runtime: neoAgentRuntime,
+    loadSettings,
+    getMcpState: () => mcpManager.getMcpState(),
+    selectWorkspace: async () => {
+      const result = await dialog.showOpenDialog(mainWindow, {
+        title: 'Select Workspace Directory',
+        properties: ['openDirectory']
       });
-      return result;
-    } finally {
-      unsubscribe();
+      if (result.canceled || !result.filePaths[0]) return { canceled: true };
+      const folderPath = result.filePaths[0];
+      const info = await neoAgentRuntime.getWorkspaceInfo(folderPath);
+      return { success: true, path: folderPath, info };
     }
-  });
-
-  ipcMain.handle('agent:approve-tool', async (_event, sessionId, callId, alwaysAllow) => {
-    return neoAgentRuntime.approveTool(sessionId, callId, alwaysAllow);
-  });
-
-  ipcMain.handle('agent:reject-tool', async (_event, sessionId, callId, reason) => {
-    return neoAgentRuntime.rejectTool(sessionId, callId, reason);
-  });
-
-  ipcMain.handle('agent:cancel', async (_event, sessionId) => {
-    neoAgentRuntime.cancel(sessionId);
-    return { success: true };
-  });
-
-  ipcMain.handle('agent:rollback', async (_event, sessionId) => {
-    return neoAgentRuntime.rollback(sessionId);
-  });
-
-  ipcMain.handle('agent:get-workspace-info', async (_event, workspaceRoot) => {
-    return await neoAgentRuntime.getWorkspaceInfo(workspaceRoot);
-  });
-
-  ipcMain.handle('agent:select-workspace', async () => {
-    const result = await dialog.showOpenDialog(mainWindow, {
-      title: 'Select Workspace Directory',
-      properties: ['openDirectory']
-    });
-    if (result.canceled || !result.filePaths[0]) {
-      return { canceled: true };
-    }
-    const folderPath = result.filePaths[0];
-    const info = await neoAgentRuntime.getWorkspaceInfo(folderPath);
-    return { success: true, path: folderPath, info };
   });
 
   // Model configs handler already registered above during early initialization

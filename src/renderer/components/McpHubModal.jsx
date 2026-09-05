@@ -56,8 +56,6 @@ export function McpHubModal({
     }
   }, [isOpen]);
 
-  if (!isOpen) return null;
-
   const handleInstall = async (server) => {
     setInstallingId(server.id);
     try {
@@ -93,40 +91,68 @@ export function McpHubModal({
     s.category?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        onClose();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, onClose]);
+
+  if (!isOpen) return null;
+
   return createPortal(
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="bg-zinc-950 border border-zinc-800 rounded-2xl w-full max-w-4xl max-h-[88vh] flex flex-col shadow-2xl overflow-hidden text-zinc-100">
-        
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-xs animate-in fade-in duration-200">
+      <div 
+        className="bg-card border border-border text-card-foreground rounded-2xl w-full max-w-4xl max-h-[88vh] flex flex-col shadow-2xl overflow-hidden animate-in zoom-in-95 duration-150"
+        onClick={(e) => e.stopPropagation()}
+      >
         {/* Header */}
-        <div className="px-6 py-4 border-b border-zinc-800 flex items-center justify-between bg-zinc-900/60">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-teal-500/10 border border-teal-500/30 flex items-center justify-center text-teal-400">
+        <div className="px-6 py-4 border-b border-border flex items-center justify-between bg-muted/20">
+          <div className="flex items-center gap-3.5">
+            <div className="w-10 h-10 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center text-primary shrink-0 shadow-2xs">
               <Server className="w-5 h-5" />
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h2 className="text-lg font-bold">Community MCP Hub & Store</h2>
-                <Badge variant="outline" className="text-xs bg-teal-500/10 text-teal-400 border-teal-500/30">
+                <h2 className="text-base sm:text-lg font-bold text-foreground">Community MCP Hub & Store</h2>
+                <Badge variant="outline" className="text-[11px] bg-primary/10 text-primary border-primary/20">
                   1-Click Setup
                 </Badge>
               </div>
-              <p className="text-xs text-zinc-400">
+              <p className="text-xs text-muted-foreground mt-0.5">
                 Instale servidores Model Context Protocol populares e receitas prontas de automação
               </p>
             </div>
           </div>
 
           <div className="flex items-center gap-2">
-            <div className="bg-zinc-900 p-1 rounded-lg border border-zinc-800 flex text-xs">
+            <div className="bg-muted p-1 rounded-xl border border-border flex text-xs gap-1">
               <button
                 onClick={() => setActiveTab('servers')}
-                className={cn('px-3 py-1.5 rounded-md transition-colors', activeTab === 'servers' ? 'bg-teal-600 text-white font-medium' : 'text-zinc-400 hover:text-zinc-200')}
+                className={cn(
+                  'px-3 py-1.5 rounded-lg transition-all text-xs font-medium cursor-pointer',
+                  activeTab === 'servers' 
+                    ? 'bg-primary text-primary-foreground font-semibold shadow-xs' 
+                    : 'text-muted-foreground hover:text-foreground hover:bg-background/50'
+                )}
               >
                 Servidores MCP
               </button>
               <button
                 onClick={() => setActiveTab('recipes')}
-                className={cn('px-3 py-1.5 rounded-md transition-colors', activeTab === 'recipes' ? 'bg-teal-600 text-white font-medium' : 'text-zinc-400 hover:text-zinc-200')}
+                className={cn(
+                  'px-3 py-1.5 rounded-lg transition-all text-xs font-medium cursor-pointer',
+                  activeTab === 'recipes' 
+                    ? 'bg-primary text-primary-foreground font-semibold shadow-xs' 
+                    : 'text-muted-foreground hover:text-foreground hover:bg-background/50'
+                )}
               >
                 Receitas & Workflows
               </button>
@@ -134,7 +160,8 @@ export function McpHubModal({
 
             <button
               onClick={onClose}
-              className="text-zinc-400 hover:text-zinc-200 p-2 rounded-lg hover:bg-zinc-800 transition-colors"
+              className="text-muted-foreground hover:text-foreground p-2 rounded-xl hover:bg-muted transition-colors cursor-pointer"
+              title="Fechar (Esc)"
             >
               <X className="w-5 h-5" />
             </button>
@@ -142,15 +169,15 @@ export function McpHubModal({
         </div>
 
         {/* Search Bar */}
-        <div className="px-6 py-3 border-b border-zinc-800 bg-zinc-900/30 flex items-center justify-between gap-4">
+        <div className="px-6 py-3 border-b border-border bg-muted/20 flex flex-wrap items-center justify-between gap-3">
           <div className="relative flex-1 max-w-md">
-            <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" />
+            <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
             <input
               type="text"
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
               placeholder="Buscar servidores MCP (GitHub, Postgres, Slack, etc.)..."
-              className="w-full pl-9 pr-3 py-1.5 bg-zinc-900 border border-zinc-800 rounded-lg text-xs text-zinc-200 focus:outline-none focus:border-teal-500"
+              className="w-full pl-9 pr-3.5 py-1.5 bg-background border border-input rounded-xl text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/40 transition-all"
             />
           </div>
 
@@ -160,7 +187,7 @@ export function McpHubModal({
                 onClose();
                 onOpenSettingsMcp();
               }}
-              className="text-xs text-teal-400 hover:text-teal-300 font-medium flex items-center gap-1"
+              className="text-xs text-primary hover:text-primary/80 font-semibold flex items-center gap-1 cursor-pointer hover:underline"
             >
               Ver Meus Servidores MCP <ExternalLink className="w-3 h-3" />
             </button>
@@ -179,49 +206,48 @@ export function McpHubModal({
                 return (
                   <div
                     key={server.id}
-                    className="p-4 rounded-xl border border-zinc-800 bg-zinc-900/40 hover:border-zinc-700 transition-all flex flex-col justify-between space-y-3"
+                    className="p-4 rounded-xl border border-border bg-card hover:border-primary/40 transition-all flex flex-col justify-between space-y-3 shadow-2xs"
                   >
                     <div className="space-y-2">
                       <div className="flex items-start justify-between gap-2">
                         <div className="flex items-center gap-2.5">
-                          <div className="w-9 h-9 rounded-lg bg-teal-500/10 border border-teal-500/30 text-teal-400 flex items-center justify-center shrink-0">
+                          <div className="w-9 h-9 rounded-xl bg-primary/10 border border-primary/20 text-primary flex items-center justify-center shrink-0">
                             <IconComponent className="w-4 h-4" />
                           </div>
                           <div>
-                            <h3 className="font-bold text-sm text-zinc-100">{server.name}</h3>
-                            <span className="text-[10px] text-zinc-500">por {server.author}</span>
+                            <h3 className="font-bold text-sm text-foreground">{server.name}</h3>
+                            <span className="text-[10px] text-muted-foreground">por {server.author}</span>
                           </div>
                         </div>
 
-                        <Badge variant="outline" className="text-[10px] border-zinc-800 text-teal-400 bg-teal-500/5">
+                        <Badge variant="outline" className="text-[10px] border-border text-primary bg-primary/10">
                           {server.badge}
                         </Badge>
                       </div>
 
-                      <p className="text-xs text-zinc-400 leading-relaxed">
+                      <p className="text-xs text-muted-foreground leading-relaxed">
                         {server.description}
                       </p>
                     </div>
 
-                    <div className="pt-2 border-t border-zinc-800/80 flex items-center justify-between text-xs">
-                      <span className="text-[11px] text-zinc-500 font-mono">
+                    <div className="pt-2 border-t border-border/70 flex items-center justify-between text-xs">
+                      <span className="text-[11px] text-muted-foreground font-mono truncate max-w-[160px]">
                         {server.command} {server.args?.[0]}
                       </span>
 
-                      <Button
-                        size="sm"
+                      <button
                         disabled={isInstalled || isInstalling}
                         onClick={() => handleInstall(server)}
                         className={cn(
-                          'text-xs px-3 py-1 font-semibold flex items-center gap-1.5 transition-all',
+                          'text-xs px-3.5 py-1.5 font-semibold rounded-xl flex items-center gap-1.5 transition-all cursor-pointer shadow-xs',
                           isInstalled
-                            ? 'bg-emerald-600/20 text-emerald-300 border border-emerald-500/30 hover:bg-emerald-600/30'
-                            : 'bg-teal-600 hover:bg-teal-500 text-white'
+                            ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30'
+                            : 'bg-primary hover:bg-primary/90 text-primary-foreground ring-2 ring-primary/30'
                         )}
                       >
                         {isInstalled ? (
                           <>
-                            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
                             Instalado
                           </>
                         ) : isInstalling ? (
@@ -232,7 +258,7 @@ export function McpHubModal({
                             Instalar 1-Click
                           </>
                         )}
-                      </Button>
+                      </button>
                     </div>
                   </div>
                 );
@@ -244,32 +270,32 @@ export function McpHubModal({
               {recipes.map(recipe => (
                 <div
                   key={recipe.id}
-                  className="p-5 rounded-xl border border-zinc-800 bg-zinc-900/40 space-y-3 flex flex-col justify-between"
+                  className="p-5 rounded-xl border border-border bg-card hover:border-primary/40 space-y-3 flex flex-col justify-between shadow-2xs transition-all"
                 >
                   <div className="space-y-2">
                     <div className="flex items-center justify-between">
-                      <h4 className="font-bold text-sm text-zinc-100">{recipe.title}</h4>
-                      <Badge variant="outline" className="text-[10px] text-zinc-400 border-zinc-800">
+                      <h4 className="font-bold text-sm text-foreground">{recipe.title}</h4>
+                      <Badge variant="outline" className="text-[10px] text-muted-foreground border-border bg-muted">
                         {recipe.steps} etapas
                       </Badge>
                     </div>
-                    <p className="text-xs text-zinc-400 leading-relaxed">
+                    <p className="text-xs text-muted-foreground leading-relaxed">
                       {recipe.description}
                     </p>
                   </div>
 
-                  <div className="flex items-center justify-between pt-2 border-t border-zinc-800/80">
+                  <div className="flex items-center justify-between pt-2 border-t border-border/70">
                     <div className="flex gap-1.5">
                       {recipe.tags?.map(t => (
-                        <span key={t} className="text-[10px] bg-zinc-800/60 text-zinc-400 px-1.5 py-0.5 rounded">
+                        <span key={t} className="text-[10px] bg-muted text-muted-foreground border border-border px-1.5 py-0.5 rounded-md">
                           {t}
                         </span>
                       ))}
                     </div>
 
-                    <Button size="sm" variant="outline" className="border-zinc-700 text-xs text-zinc-300">
+                    <button className="px-3 py-1.5 rounded-xl border border-border bg-muted hover:bg-muted/80 text-xs font-semibold text-foreground transition-all cursor-pointer shadow-2xs">
                       Importar Receita
-                    </Button>
+                    </button>
                   </div>
                 </div>
               ))}

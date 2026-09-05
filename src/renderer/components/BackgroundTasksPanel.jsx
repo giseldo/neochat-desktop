@@ -110,6 +110,13 @@ export default function BackgroundTasksPanel({
       try {
         const list = await window.electron.tasks.list();
         setTasks(list || []);
+        if (list && list.length > 0) {
+          setSelectedTaskId(prev => {
+            if (prev && list.some(t => t.id === prev)) return prev;
+            const running = list.find(t => t.status === 'running');
+            return running ? running.id : list[0].id;
+          });
+        }
       } catch (_) {}
     }
   }, []);
@@ -125,6 +132,9 @@ export default function BackgroundTasksPanel({
     const cleanup = window.electron.tasks.onUpdate(({ event, data }) => {
       if (event === 'task:started' || event === 'task:completed' || event === 'task:killed') {
         loadTasks();
+        if (event === 'task:started' && data?.id) {
+          setSelectedTaskId(data.id);
+        }
       } else if (event === 'task:output' && selectedTaskId && data.taskId === selectedTaskId) {
         setTaskLogs(prev => [...prev, { type: data.type, text: data.text, timestamp: Date.now() }]);
       }

@@ -8,9 +8,14 @@ on:
       - 'docs/**' # Ignore documentation changes if you have/create this folder
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   build:
     runs-on: macos-latest
+    env:
+      TAP_REPO_PAT: ${{ secrets.TAP_REPO_PAT }}
 
     steps:
     - name: Checkout code
@@ -22,17 +27,24 @@ jobs:
     - name: Set up Node.js
       uses: actions/setup-node@v4
       with:
-        node-version: '20' # Or choose a specific LTS version
+        node-version: '22.16.0'
         cache: 'pnpm'
 
     - name: Install dependencies
-      run: pnpm install
+      run: pnpm install --frozen-lockfile
+
+    - name: Verify core behavior
+      run: pnpm test:core
 
     - name: Extract App Info
       id: get_info
       run: |
         APP_VERSION=$(node -p "require('./package.json').version")
-        PRODUCT_NAME=$(node -p "require('./package.json').build.productName || require('./package.json').name")
+        PRODUCT_NAME=$(sed -n 's/^productName:[[:space:]]*//p' electron-builder.yml | head -n 1)
+        if [ -z "${PRODUCT_NAME}" ]; then
+          echo "Error: productName is missing from electron-builder.yml"
+          exit 1
+        fi
         SHORT_SHA=$(echo "${{ github.sha }}" | cut -c1-7)
         BUILD_TIMESTAMP=$(date +'%Y%m%d%H%M') # Generate timestamp YYYYMMDDHHMM
         CASK_VERSION="${APP_VERSION}-${BUILD_TIMESTAMP}" # Combine with hyphen
@@ -86,13 +98,15 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
     - name: Checkout Tap Repo
+      if: env.TAP_REPO_PAT != ''
       uses: actions/checkout@v4
       with:
         repository: ricklamers/homebrew-groq-desktop-unofficial # Your tap repo
-        token: ${{ secrets.TAP_REPO_PAT }} # PAT with repo write access stored as secret
+        token: ${{ env.TAP_REPO_PAT }} # PAT with repo write access stored as secret
         path: homebrew-tap # Checkout to a specific subdirectory
 
     - name: Update Cask File
+      if: env.TAP_REPO_PAT != ''
       run: |
         # Use the exact DMG filename found locally (with space, lowercase arch)
         LOCAL_DMG_FILENAME="${{ env.DMG_FILENAME }}"
@@ -157,6 +171,7 @@ jobs:
       shell: bash
 
     - name: Commit and Push Cask Update
+      if: env.TAP_REPO_PAT != ''
       run: |
         cd homebrew-tap
         git config --global user.name 'github-actions[bot]'
@@ -174,4 +189,8 @@ jobs:
         fi
       shell: bash
 
-    # Removed old upload-artifact step as release step handles it 
+    - name: Skip Homebrew tap update when token is unavailable
+      if: env.TAP_REPO_PAT == ''
+      run: echo "TAP_REPO_PAT is not configured; macOS build and GitHub release completed without updating the external Homebrew tap."
+
+    # Removed old upload-artifact step as release step handles it

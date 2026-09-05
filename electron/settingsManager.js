@@ -45,6 +45,7 @@ function loadSettings() {
         return {
             language: 'pt',
             interfaceMode: 'user',
+            agentHarness: 'native',
             showTrajectoryTab: true,
             showWelcomeTips: false,
             showWelcomeSuggestions: false,
@@ -83,6 +84,10 @@ function loadSettings() {
                 apiKey: '',
                 maxResults: 3,
                 maxSearchesPerTurn: 2
+            },
+            userMemory: {
+                enabled: true,
+                autoExtract: true
             }
         };
     }
@@ -91,6 +96,7 @@ function loadSettings() {
     const defaultSettings = {
         language: 'pt',
         interfaceMode: 'user',
+        agentHarness: 'native',
         showTrajectoryTab: true,
         showWelcomeTips: false,
         showWelcomeSuggestions: false,
@@ -142,6 +148,10 @@ function loadSettings() {
             apiKey: '',
             maxResults: 3,
             maxSearchesPerTurn: 2
+        },
+        userMemory: {
+            enabled: true,
+            autoExtract: true
         }
     };
 
@@ -177,6 +187,7 @@ function loadSettings() {
 
             settings.language = settings.language || defaultSettings.language;
             settings.interfaceMode = settings.interfaceMode === 'power' ? 'power' : 'user';
+            settings.agentHarness = settings.agentHarness === 'pi' ? 'pi' : 'native';
             settings.showTrajectoryTab = settings.showTrajectoryTab ?? defaultSettings.showTrajectoryTab;
             settings.showWelcomeTips = settings.showWelcomeTips ?? defaultSettings.showWelcomeTips;
             settings.showWelcomeSuggestions = settings.showWelcomeSuggestions ?? defaultSettings.showWelcomeSuggestions;
@@ -320,6 +331,7 @@ function initializeSettingsHandlers(ipcMain, app, safeStorage) {
             }
             // Ensure provider-related fields are always present
             settings.provider = settings.provider || 'groq';
+            settings.agentHarness = settings.agentHarness === 'pi' ? 'pi' : 'native';
             settings.apiKeys = settings.apiKeys || {};
             // Keep legacy GROQ_API_KEY in sync with apiKeys.groq
             if (settings.apiKeys.groq) {
@@ -357,6 +369,7 @@ async function saveSettings(settings) {
             throw new Error("Invalid settings object provided.");
         }
         settings.provider = settings.provider || 'groq';
+        settings.agentHarness = settings.agentHarness === 'pi' ? 'pi' : 'native';
         settings.apiKeys = settings.apiKeys || {};
         if (settings.apiKeys.groq) {
             settings.GROQ_API_KEY = settings.apiKeys.groq;

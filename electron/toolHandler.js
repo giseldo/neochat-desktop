@@ -3,6 +3,7 @@ const { executeWebSearch } = require('./webSearchService');
 const { queryKnowledge, readFileContent } = require('./ragService');
 const { handleCanvasToolCall } = require('./canvasManager');
 const { toolExecutor } = require('./agent/toolExecutor');
+const { addMemory, forgetMemoryByQuery } = require('./memoryService');
 
 /**
  * Handles the 'execute-tool-call' IPC event.
@@ -170,6 +171,77 @@ async function handleExecuteToolCall(event, toolCall, discoveredTools, mcpClient
       console.error(`Error reading project file "${filePath}":`, readError);
       return {
         error: limitContentLength(`File read error: ${readError.message}`, settings?.toolOutputLimit || 8000),
+        tool_call_id: toolCallId
+      };
+    }
+  }
+
+  // Handle Native Built-in User Memory Tools (save_user_memory, forget_user_memory)
+  if (toolName === 'save_user_memory') {
+    const memoryContent = args.memory || args.content || args.fact || args.preference;
+    if (!memoryContent) {
+      return {
+        error: 'Missing required argument "memory" for save_user_memory.',
+        tool_call_id: toolCallId
+      };
+    }
+
+    try {
+      const category = args.category || 'preference';
+      const result = addMemory(memoryContent, category, 'ai_extracted');
+      
+      // Notify renderer window about new learned memory
+      if (event && event.sender && !event.sender.isDestroyed()) {
+        event.sender.send('memory-updated', {
+          action: 'added',
+          memory: result.memory,
+          isNew: result.isNew
+        });
+      }
+
+      return {
+        result: JSON.stringify({
+          success: true,
+          message: `Memória salva com sucesso no perfil do usuário: "${result.memory.content}" [Categoria: ${result.memory.category}]`,
+          memory: result.memory
+        }),
+        tool_call_id: toolCallId
+      };
+    } catch (memError) {
+      console.error('Error saving user memory:', memError);
+      return {
+        error: `Erro ao salvar memória: ${memError.message}`,
+        tool_call_id: toolCallId
+      };
+    }
+  }
+
+  if (toolName === 'forget_user_memory') {
+    const query = args.query || args.memory || args.memory_id || args.id;
+    if (!query) {
+      return {
+        error: 'Missing required argument "query" for forget_user_memory.',
+        tool_call_id: toolCallId
+      };
+    }
+
+    try {
+      const result = forgetMemoryByQuery(query);
+      if (result.success && event && event.sender && !event.sender.isDestroyed()) {
+        event.sender.send('memory-updated', {
+          action: 'deleted',
+          forgottenMemory: result.forgottenMemory
+        });
+      }
+
+      return {
+        result: JSON.stringify(result),
+        tool_call_id: toolCallId
+      };
+    } catch (forgetError) {
+      console.error('Error forgetting user memory:', forgetError);
+      return {
+        error: `Erro ao esquecer memória: ${forgetError.message}`,
         tool_call_id: toolCallId
       };
     }

@@ -197,12 +197,18 @@ export default function KeyboardShortcutsModal({ isOpen, onClose }) {
         keys: [modKey, shiftKey, 'X']
       },
       {
+        id: 'commandPalette',
+        category: 'navigation',
+        title: t('shortcuts.items.commandPalette') || 'Paleta de Comandos',
+        description: t('shortcuts.items.commandPaletteDesc') || 'Abre a paleta de comandos para busca rápida de ações, modelos, personas e navegação.',
+        keys: [modKey, shiftKey, 'P']
+      },
+      {
         id: 'toggleInterfaceMode',
         category: 'navigation',
         title: t('shortcuts.items.toggleInterfaceMode'),
         description: t('shortcuts.items.toggleInterfaceModeDesc'),
-        keys: [modKey, shiftKey, 'U'],
-        altKeys: [modKey, shiftKey, 'P']
+        keys: [modKey, shiftKey, 'U']
       },
       {
         id: 'closeModals',

@@ -1,4 +1,4 @@
-import { ArrowRight, Loader2, ImagePlus, Hammer, Upload, Zap, ZapOff, Square, Mic, MicOff, Terminal, Globe, BookOpen, SlidersHorizontal, Camera, Bot, Key, Layout, X, Code2, Briefcase, MessageSquare, RotateCcw, Plus, Check } from "lucide-react";
+import { ArrowRight, Loader2, ImagePlus, Hammer, Upload, Zap, ZapOff, Square, Mic, MicOff, Terminal, Globe, BookOpen, SlidersHorizontal, Camera, Bot, Key, Layout, X, Code2, Briefcase, MessageSquare, RotateCcw, Plus, Check, Cpu, Blocks } from "lucide-react";
 import React, { useContext, useEffect, useRef, useState, useMemo } from "react";
 import { createPortal } from "react-dom";
 import { Link } from "react-router-dom";
@@ -35,6 +35,8 @@ function ChatInput({
 	showButtonLabels = false,
 	presetMessage = "",
 	harnessMode = "chat",
+	agentHarness = "native",
+	onHarnessChange,
 	workspaceInfo = null,
 	onSelectWorkspace,
 }) {
@@ -871,6 +873,29 @@ function ChatInput({
 								AGENTS.md ✓
 							</span>
 						)}
+						<button
+							type="button"
+							onClick={() => onHarnessChange?.(agentHarness === 'pi' ? 'native' : 'pi')}
+							className={cn(
+								"px-1.5 py-0.5 rounded text-[10px] font-semibold shrink-0 flex items-center gap-1 transition-colors cursor-pointer",
+								agentHarness === 'pi'
+									? "bg-indigo-500/15 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-500/25"
+									: "bg-amber-500/15 text-amber-700 dark:text-amber-300 hover:bg-amber-500/25"
+							)}
+							title={`${t('settings.agentHarnessTitle') || 'Engine do Agente'}: ${agentHarness === 'pi' ? (t('settings.agentHarnessPiTitle') || 'Pi Agent Core') : (t('settings.agentHarnessNativeTitle') || 'Neo Native')} • ${t('common.clickToChange') || 'Clique para alternar'}`}
+						>
+							{agentHarness === 'pi' ? (
+								<>
+									<Cpu className="w-3 h-3 text-indigo-500" />
+									<span>Pi Agent Core</span>
+								</>
+							) : (
+								<>
+									<Blocks className="w-3 h-3 text-amber-500" />
+									<span>Neo Native</span>
+								</>
+							)}
+						</button>
 					</div>
 					{onSelectWorkspace && (
 						<button

@@ -3,7 +3,7 @@
  */
 
 const { spawn } = require('child_process');
-const path = require('path');
+const { buildRestrictedEnv, terminateProcessTree, validateCommand } = require('./agent/processPolicy');
 
 class BackgroundTask {
   constructor(options = {}) {
@@ -19,10 +19,19 @@ class BackgroundTask {
     this.exitCode = null;
     this.logs = [];
     this.maxLogs = 5000;
+    this.maxOutputBytes = Math.min(Math.max(Number(options.maxOutputBytes) || 5_000_000, 16_384), 25_000_000);
+    this.outputBytes = 0;
+    this.outputLimited = false;
     this.childProcess = null;
   }
 
   appendLog(type, text) {
+    const bytes = Buffer.byteLength(String(text), 'utf8');
+    if (this.outputBytes + bytes > this.maxOutputBytes) {
+      this.outputLimited = true;
+      return false;
+    }
+    this.outputBytes += bytes;
     this.logs.push({
       type, // 'stdout' | 'stderr' | 'info'
       text,
@@ -31,6 +40,7 @@ class BackgroundTask {
     if (this.logs.length > this.maxLogs) {
       this.logs.splice(0, this.logs.length - this.maxLogs);
     }
+    return true;
   }
 
   toJSON() {
@@ -45,7 +55,8 @@ class BackgroundTask {
       endTime: this.endTime,
       durationMs: this.endTime ? (this.endTime - this.startTime) : (Date.now() - this.startTime),
       exitCode: this.exitCode,
-      logCount: this.logs.length
+      logCount: this.logs.length,
+      outputLimited: this.outputLimited
     };
   }
 }
@@ -94,6 +105,10 @@ class TaskManager {
    * @returns {object} task summary
    */
   runTask(options = {}) {
+    validateCommand(options.command, {
+      networkAccess: options.networkAccess !== false,
+      allowSystemCommands: options.allowSystemCommands === true
+    });
     const task = new BackgroundTask(options);
     this.tasks.set(task.id, task);
 
@@ -117,13 +132,11 @@ class TaskManager {
     try {
       const child = spawn(shellCmd, shellArgs, {
         cwd: task.cwd,
-        env: {
-          ...process.env,
-          FORCE_COLOR: '1',
-          PAGER: 'cat',
-          NODE_ENV: process.env.NODE_ENV || 'production'
-        },
-        windowsHide: true
+        env: options.restrictedEnv
+          ? buildRestrictedEnv(process.env, options.envAllowlist || [], { networkAccess: options.networkAccess })
+          : { ...process.env, FORCE_COLOR: '1', PAGER: 'cat', NODE_ENV: process.env.NODE_ENV || 'production' },
+        windowsHide: true,
+        detached: !isWindows
       });
 
       task.childProcess = child;
@@ -131,16 +144,24 @@ class TaskManager {
       if (child.stdout) {
         child.stdout.on('data', (chunk) => {
           const text = chunk.toString('utf8');
-          task.appendLog('stdout', text);
-          this.emitUpdate('task:output', { taskId: task.id, type: 'stdout', text });
+          if (task.appendLog('stdout', text)) {
+            this.emitUpdate('task:output', { taskId: task.id, type: 'stdout', text });
+          } else if (task.status === 'running') {
+            task.status = 'error';
+            terminateProcessTree(child);
+          }
         });
       }
 
       if (child.stderr) {
         child.stderr.on('data', (chunk) => {
           const text = chunk.toString('utf8');
-          task.appendLog('stderr', text);
-          this.emitUpdate('task:output', { taskId: task.id, type: 'stderr', text });
+          if (task.appendLog('stderr', text)) {
+            this.emitUpdate('task:output', { taskId: task.id, type: 'stderr', text });
+          } else if (task.status === 'running') {
+            task.status = 'error';
+            terminateProcessTree(child);
+          }
         });
       }
 
@@ -188,11 +209,7 @@ class TaskManager {
 
     if (task.childProcess) {
       try {
-        if (process.platform === 'win32') {
-          spawn('taskkill', ['/pid', task.childProcess.pid, '/f', '/t']);
-        } else {
-          task.childProcess.kill('SIGTERM');
-        }
+        terminateProcessTree(task.childProcess);
       } catch (_) {}
       task.childProcess = null;
     }

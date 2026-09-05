@@ -3,8 +3,7 @@
  */
 
 const { spawn } = require('child_process');
-const path = require('path');
-const os = require('os');
+const { buildRestrictedEnv, terminateProcessTree, validateCommand, validateDirectProcess } = require('./processPolicy');
 
 class ShellSession {
   constructor(sessionId, cwd = process.cwd()) {
@@ -24,30 +23,48 @@ class ShellSession {
    * @returns {Promise<{ stdout: string, stderr: string, exitCode: number, durationMs: number }>}
    */
   async exec(commandLine, options = {}) {
-    const cwd = options.cwd || this.cwd || process.cwd();
-    const timeoutMs = options.timeoutMs || 30000;
-    const startTime = Date.now();
-
+    validateCommand(commandLine, {
+      networkAccess: options.networkAccess,
+      allowSystemCommands: options.allowSystemCommands
+    });
+    if (this.activeProcess) throw new Error('A command is already running in this shell session.');
     const isWindows = process.platform === 'win32';
     const shellCmd = isWindows ? 'powershell.exe' : (process.env.SHELL || '/bin/bash');
-    const shellArgs = isWindows 
+    const shellArgs = isWindows
       ? ['-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-Command', commandLine]
       : ['-c', commandLine];
+    return this._executeSpawn(shellCmd, shellArgs, commandLine, options);
+  }
+
+  async execFile(executable, args = [], options = {}) {
+    validateDirectProcess(executable, args, {
+      networkAccess: options.networkAccess,
+      allowSystemCommands: options.allowSystemCommands,
+      allowedExecutables: options.allowedExecutables
+    });
+    if (this.activeProcess) throw new Error('A command is already running in this shell session.');
+    return this._executeSpawn(executable, args, [executable, ...args].join(' '), options);
+  }
+
+  _executeSpawn(spawnCommand, spawnArgs, commandLabel, options) {
+    const cwd = options.cwd || this.cwd || process.cwd();
+    const timeoutMs = Math.min(Math.max(Number(options.timeoutMs) || 30000, 1000), 120000);
+    const maxOutputBytes = Math.min(Math.max(Number(options.maxOutputBytes) || 1_000_000, 16_384), 10_000_000);
+    const startTime = Date.now();
+    const isWindows = process.platform === 'win32';
 
     return new Promise((resolve) => {
       let stdout = '';
       let stderr = '';
       let isTimedOut = false;
+      let outputBytes = 0;
+      let outputLimited = false;
 
-      const child = spawn(shellCmd, shellArgs, {
+      const child = spawn(spawnCommand, spawnArgs, {
         cwd,
-        env: {
-          ...process.env,
-          PAGER: 'cat',
-          TERM: 'dumb',
-          NODE_ENV: process.env.NODE_ENV || 'production'
-        },
-        windowsHide: true
+        env: buildRestrictedEnv(process.env, options.envAllowlist || [], { networkAccess: options.networkAccess }),
+        windowsHide: true,
+        detached: !isWindows
       });
 
       this.activeProcess = child;
@@ -55,11 +72,7 @@ class ShellSession {
       const timeoutId = setTimeout(() => {
         isTimedOut = true;
         try {
-          if (isWindows) {
-            spawn('taskkill', ['/pid', child.pid, '/f', '/t']);
-          } else {
-            child.kill('SIGTERM');
-          }
+          terminateProcessTree(child);
         } catch (err) {
           // ignore
         }
@@ -68,7 +81,9 @@ class ShellSession {
       if (child.stdout) {
         child.stdout.on('data', (data) => {
           const chunk = data.toString('utf8');
-          stdout += chunk;
+          outputBytes += Buffer.byteLength(chunk);
+          if (outputBytes <= maxOutputBytes) stdout += chunk;
+          else if (!outputLimited) { outputLimited = true; terminateProcessTree(child); }
           if (options.onData) options.onData({ type: 'stdout', chunk });
         });
       }
@@ -76,7 +91,9 @@ class ShellSession {
       if (child.stderr) {
         child.stderr.on('data', (data) => {
           const chunk = data.toString('utf8');
-          stderr += chunk;
+          outputBytes += Buffer.byteLength(chunk);
+          if (outputBytes <= maxOutputBytes) stderr += chunk;
+          else if (!outputLimited) { outputLimited = true; terminateProcessTree(child); }
           if (options.onData) options.onData({ type: 'stderr', chunk });
         });
       }
@@ -101,16 +118,17 @@ class ShellSession {
         if (isTimedOut) {
           stderr += `\n[Execution timed out after ${timeoutMs}ms]`;
         }
+        if (outputLimited) stderr += `\n[Execution stopped after exceeding ${maxOutputBytes} output bytes]`;
 
         const result = {
           stdout: stdout.trim(),
           stderr: stderr.trim(),
-          exitCode: isTimedOut ? 124 : (code ?? 0),
+          exitCode: isTimedOut ? 124 : (outputLimited ? 125 : (code ?? 0)),
           durationMs
         };
 
         this.history.push({
-          command: commandLine,
+          command: commandLabel,
           cwd,
           timestamp: Date.now(),
           ...result
@@ -127,11 +145,7 @@ class ShellSession {
   kill() {
     if (this.activeProcess) {
       try {
-        if (process.platform === 'win32') {
-          spawn('taskkill', ['/pid', this.activeProcess.pid, '/f', '/t']);
-        } else {
-          this.activeProcess.kill('SIGTERM');
-        }
+        terminateProcessTree(this.activeProcess);
       } catch (err) {
         // ignore
       }
@@ -159,6 +173,11 @@ class ShellManager {
   async exec(sessionId, commandLine, options = {}) {
     const session = this.getOrCreateSession(sessionId, options.cwd);
     return await session.exec(commandLine, options);
+  }
+
+  async execFile(sessionId, executable, args = [], options = {}) {
+    const session = this.getOrCreateSession(sessionId, options.cwd);
+    return await session.execFile(executable, args, options);
   }
 
   kill(sessionId) {

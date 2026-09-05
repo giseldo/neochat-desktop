@@ -5,18 +5,25 @@ import ChatInput from './components/ChatInput';
 import ChatHistorySidebar from './components/ChatHistorySidebar';
 import ThemeToggle from './components/ThemeToggle';
 import PersonaSelector, { DEFAULT_PERSONAS, getStoredActivePersona, getStoredPersonas, ACTIVE_PERSONA_STORAGE_KEY } from './components/PersonaSelector';
+import AgentEngineSelector from './components/AgentEngineSelector';
 import WelcomeScreen from './components/WelcomeScreen';
 import { useChat } from './context/ChatContext';
 import { useCanvas } from './context/CanvasContext';
 import { useProjects } from './context/ProjectContext';
 import { useLanguage } from './context/LanguageContext';
 import { useTheme } from './context/ThemeContext';
-import { Settings, PanelLeftClose, PanelLeft, Radio, MessagesSquare, Sparkles, Store, Columns2, X, FolderKanban, BookOpen, Scale, Bot, Workflow, ChevronDown, Keyboard, Key, AlertCircle, PenSquare, Terminal, Folder, Briefcase, MessageSquare, Globe, Clock, Activity, LayoutGrid, MoreHorizontal } from 'lucide-react';
+import { Settings, PanelLeftClose, PanelLeft, Radio, MessagesSquare, Sparkles, Store, Columns2, X, FolderKanban, BookOpen, Scale, Bot, Workflow, ChevronDown, Keyboard, Key, AlertCircle, PenSquare, Terminal, Folder, Briefcase, MessageSquare, Globe, Clock, Activity, LayoutGrid, MoreHorizontal, Brain } from 'lucide-react';
 import { Button } from './components/ui/button';
 import { cn } from './lib/utils';
 import { groupModels } from './lib/modelGrouping';
 import { extractThinking } from './lib/messageUtils';
 import { createStreamThrottler } from './lib/streamThrottler';
+import { useAgentRuntime } from './hooks/useAgentRuntime';
+import { useCompanionPanels } from './hooks/useCompanionPanels';
+import { useToolsDropdown } from './hooks/useToolsDropdown';
+import { getToolApprovalStatus, setToolApprovalStatus } from './services/toolApprovalService';
+import { composeAgentSystemPrompt } from './utils/agentPrompt';
+import { filterModels } from './utils/modelFilters';
 
 // Lazy-loaded heavy panels & modals for maximum startup speed and memory efficiency
 const ToolsPanel = lazy(() => import('./components/ToolsPanel'));
@@ -46,69 +53,7 @@ const KnowledgeGraphModal = lazy(() => import('./components/KnowledgeGraphModal'
 const DailyBriefingModal = lazy(() => import('./components/DailyBriefingModal'));
 const McpHubModal = lazy(() => import('./components/McpHubModal'));
 const ComputerVisionModal = lazy(() => import('./components/ComputerVisionModal'));
-
-// LocalStorage keys
-const TOOL_APPROVAL_PREFIX = 'tool_approval_';
-const YOLO_MODE_KEY = 'tool_approval_yolo_mode';
-
-// --- LocalStorage Helper Functions ---
-const getToolApprovalStatus = async (toolName, serverLabel) => {
-  if (window.electron?.toolPermissions?.resolve) {
-    return window.electron.toolPermissions.resolve(toolName, serverLabel);
-  }
-  try {
-    const yoloMode = localStorage.getItem(YOLO_MODE_KEY);
-    if (yoloMode === 'true') {
-      return 'yolo';
-    }
-    const toolStatus = localStorage.getItem(`${TOOL_APPROVAL_PREFIX}${toolName}`);
-    if (toolStatus === 'always') {
-      return 'always';
-    }
-    // Default: prompt the user
-    return 'prompt';
-  } catch (error) {
-    console.error("Error reading tool approval status from localStorage:", error);
-    return 'prompt'; // Fail safe: prompt user if localStorage fails
-  }
-};
-
-const setToolApprovalStatus = async (toolName, status, serverLabel) => {
-  if (window.electron?.toolPermissions) {
-    if (status === 'always') return window.electron.toolPermissions.set(toolName, 'allow', serverLabel);
-    if (status === 'never') return window.electron.toolPermissions.set(toolName, 'deny', serverLabel);
-    if (status === 'yolo') return window.electron.toolPermissions.setGlobal({ allowAll: true });
-    return;
-  }
-  try {
-    if (status === 'yolo') {
-      localStorage.setItem(YOLO_MODE_KEY, 'true');
-      // Optionally clear specific tool settings when YOLO is enabled?
-      // Object.keys(localStorage).forEach(key => {
-      //   if (key.startsWith(TOOL_APPROVAL_PREFIX)) {
-      //     localStorage.removeItem(key);
-      //   }
-      // });
-    } else if (status === 'always') {
-      localStorage.setItem(`${TOOL_APPROVAL_PREFIX}${toolName}`, 'always');
-      // Ensure YOLO mode is off if a specific tool is set to always
-      localStorage.removeItem(YOLO_MODE_KEY);
-    } else if (status === 'once') {
-      // 'once' doesn't change persistent storage, just allows current execution
-      // Ensure YOLO mode is off if 'once' is chosen for a specific tool
-      localStorage.removeItem(YOLO_MODE_KEY);
-    } else if (status === 'deny') {
-       // 'deny' also doesn't change persistent storage by default.
-       // Could potentially add a 'never' status if needed.
-       // Ensure YOLO mode is off if 'deny' is chosen
-       localStorage.removeItem(YOLO_MODE_KEY);
-    }
-  } catch (error) {
-    console.error("Error writing tool approval status to localStorage:", error);
-  }
-};
-// --- End LocalStorage Helper Functions ---
-
+const UserMemoryModal = lazy(() => import('./components/UserMemoryModal'));
 
 function App() {
   // const [messages, setMessages] = useState([]); // Remove local state
@@ -215,22 +160,7 @@ function App() {
   const [isDailyBriefingOpen, setIsDailyBriefingOpen] = useState(false);
   const [isMcpHubOpen, setIsMcpHubOpen] = useState(false);
   const [isComputerVisionOpen, setIsComputerVisionOpen] = useState(false);
-  const [isToolsDropdownOpen, setIsToolsDropdownOpen] = useState(false);
-  const toolsDropdownRef = useRef(null);
-
-  useEffect(() => {
-    const handleClickOutside = (e) => {
-      if (toolsDropdownRef.current && !toolsDropdownRef.current.contains(e.target)) {
-        setIsToolsDropdownOpen(false);
-      }
-    };
-    if (isToolsDropdownOpen) {
-      document.addEventListener('mousedown', handleClickOutside);
-    }
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, [isToolsDropdownOpen]);
+  const { isToolsDropdownOpen, setIsToolsDropdownOpen, toolsDropdownRef } = useToolsDropdown();
 
   const handleStartSnip = useCallback(() => {
     setIsAppSnipModalOpen(true);
@@ -307,8 +237,35 @@ function App() {
   const [streamStateB, setStreamStateB] = useState({ isLoading: false, content: '', reasoning: '', ttft: null, metrics: null, error: null });
   // --- End Multi-Model Comparison State ---
 
+  // --- User Persistent Long-Term Memory State ---
+  const [isUserMemoryModalOpen, setIsUserMemoryModalOpen] = useState(false);
+  const [memoryToast, setMemoryToast] = useState(null);
+
+  useEffect(() => {
+    if (!window.electron?.memory?.onMemoryUpdated) return;
+    const cleanup = window.electron.memory.onMemoryUpdated((data) => {
+      if (data?.action === 'added' && data.memory?.content) {
+        setMemoryToast({
+          type: 'added',
+          message: data.memory.content,
+          category: data.memory.category
+        });
+        setTimeout(() => setMemoryToast(null), 6000);
+      } else if (data?.action === 'deleted' && data.forgottenMemory?.content) {
+        setMemoryToast({
+          type: 'deleted',
+          message: data.forgottenMemory.content
+        });
+        setTimeout(() => setMemoryToast(null), 4000);
+      }
+    });
+    return () => cleanup && cleanup();
+  }, []);
+  // --- End User Memory State ---
+
   // --- Autonomous Agent & Workspace State ---
   const [agentStep, setAgentStep] = useState(0);
+  const [agentHarness, setAgentHarness] = useState('native');
   const [harnessMode, setHarnessMode] = useState(() => {
     try {
       return localStorage.getItem('neochat_harness_mode') || 'chat';
@@ -359,61 +316,26 @@ function App() {
       localStorage.setItem('neochat_agent_mode', String(mode === 'code'));
     } catch (e) {}
   }, []);
+
+  const buildAgentSystemPrompt = useCallback(() => {
+    return composeAgentSystemPrompt({ activeProject, activePersona, canvasDoc, selectedText });
+  }, [activeProject, activePersona, canvasDoc, selectedText]);
+
+  const { runAgent, cancelAgent, isRunning: isAgentRunning } = useAgentRuntime({
+    setMessages,
+    setLoading,
+    setAgentStep,
+    setPendingApprovalCall
+  });
   // --- End Autonomous Agent & Workspace State ---
 
   // --- Terminal, Background Tasks & Browser Companion State ---
-  const [isTerminalOpen, setIsTerminalOpen] = useState(false);
-  const [isTerminalMaximized, setIsTerminalMaximized] = useState(false);
-  const [isTasksOpen, setIsTasksOpen] = useState(false);
-  const [isTasksMaximized, setIsTasksMaximized] = useState(false);
-  const [isBrowserOpen, setIsBrowserOpen] = useState(false);
-  const [isBrowserMaximized, setIsBrowserMaximized] = useState(false);
-  const [runningTasksCount, setRunningTasksCount] = useState(0);
-
-  // Monitor running tasks count
-  useEffect(() => {
-    const fetchTasksCount = async () => {
-      if (window.electron?.tasks?.list) {
-        try {
-          const list = await window.electron.tasks.list();
-          const count = (list || []).filter(t => t.status === 'running').length;
-          setRunningTasksCount(count);
-        } catch (_) {}
-      }
-    };
-    fetchTasksCount();
-
-    if (window.electron?.tasks?.onUpdate) {
-      const cleanup = window.electron.tasks.onUpdate(() => {
-        fetchTasksCount();
-      });
-      return () => cleanup();
-    }
-  }, []);
-
-  // Global Keyboard Shortcuts for Companion Panels & Command Palette:
-  // Ctrl+K (Command Palette), Ctrl+` (Terminal), Ctrl+Shift+B (Browser), Ctrl+Shift+T (Background Tasks)
-  useEffect(() => {
-    const handleGlobalShortcuts = (e) => {
-      if (e.ctrlKey || e.metaKey) {
-        if (e.key === 'k' || e.key === 'K') {
-          e.preventDefault();
-          setIsCommandPaletteOpen(prev => !prev);
-        } else if (e.key === '`') {
-          e.preventDefault();
-          setIsTerminalOpen(prev => !prev);
-        } else if (e.shiftKey && (e.key === 'B' || e.key === 'b')) {
-          e.preventDefault();
-          setIsBrowserOpen(prev => !prev);
-        } else if (e.shiftKey && (e.key === 'T' || e.key === 't')) {
-          e.preventDefault();
-          setIsTasksOpen(prev => !prev);
-        }
-      }
-    };
-    window.addEventListener('keydown', handleGlobalShortcuts);
-    return () => window.removeEventListener('keydown', handleGlobalShortcuts);
-  }, []);
+  const {
+    isTerminalOpen, setIsTerminalOpen, isTerminalMaximized, setIsTerminalMaximized,
+    isTasksOpen, setIsTasksOpen, isTasksMaximized, setIsTasksMaximized,
+    isBrowserOpen, setIsBrowserOpen, isBrowserMaximized, setIsBrowserMaximized,
+    runningTasksCount
+  } = useCompanionPanels(setIsCommandPaletteOpen);
   // --- End Terminal, Tasks & Browser State ---
 
   // --- Preset Input Message State for Welcome suggestions ---
@@ -550,81 +472,6 @@ function App() {
   // Models list derived from capabilities keys
   // const models = Object.keys(MODEL_CAPABILITIES).filter(key => key !== 'default');
 
-  // Helper function to filter models based on modelFilter setting and disabledModels list
-  const filterModels = (modelList, filterText, excludeText, configs, disabledList = []) => {
-    let filteredModels = modelList;
-
-    // Filter out disabled models (checks exact key and rawModelId)
-    if (Array.isArray(disabledList) && disabledList.length > 0) {
-      filteredModels = filteredModels.filter(modelId => {
-        const config = configs[modelId];
-        const rawId = config?.rawModelId;
-        return !disabledList.includes(modelId) && (!rawId || !disabledList.includes(rawId));
-      });
-    }
-
-    // Helper to get display name for a model
-    const getDisplayName = (modelId) => {
-      const modelInfo = configs[modelId];
-      if (modelInfo && modelInfo.displayName) {
-        return modelInfo.displayName;
-      }
-      if (modelInfo && modelInfo.rawModelId) {
-        return modelInfo.rawModelId;
-      }
-      if (typeof modelId === 'string' && modelId.includes('::')) {
-        return modelId.split('::')[1];
-      }
-      return modelId;
-    };
-
-    // First, apply inclusion filter if specified
-    if (filterText && filterText.trim()) {
-      const filterTerms = filterText
-        .split('\n')
-        .map(term => term.trim())
-        .filter(term => term.length > 0);
-
-      if (filterTerms.length > 0) {
-        filteredModels = filteredModels.filter(modelId => {
-          const displayName = getDisplayName(modelId).toLowerCase();
-          const modelIdLower = modelId.toLowerCase();
-          const rawId = (configs[modelId]?.rawModelId || '').toLowerCase();
-          
-          return filterTerms.some(term => {
-            const termLower = term.toLowerCase();
-            return modelIdLower.includes(termLower) || displayName.includes(termLower) || rawId.includes(termLower);
-          });
-        });
-      }
-    }
-
-    // Then, apply exclude filter (applies regardless of inclusion filter)
-    if (excludeText && excludeText.trim()) {
-      const excludeTerms = excludeText
-        .split('\n')
-        .map(term => term.trim())
-        .filter(term => term.length > 0);
-
-      if (excludeTerms.length > 0) {
-        filteredModels = filteredModels.filter(modelId => {
-          const displayName = getDisplayName(modelId).toLowerCase();
-          const modelIdLower = modelId.toLowerCase();
-          const rawId = (configs[modelId]?.rawModelId || '').toLowerCase();
-          
-          const matchesExclude = excludeTerms.some(term => {
-            const termLower = term.toLowerCase();
-            return modelIdLower.includes(termLower) || displayName.includes(termLower) || rawId.includes(termLower);
-          });
-          
-          return !matchesExclude;
-        });
-      }
-    }
-
-    return filteredModels;
-  };
-
   // Sort and group models by provider/category and display name
   // and apply model filter if configured
   const sortedModels = useMemo(() => {
@@ -725,6 +572,7 @@ function App() {
         // THEN Load settings
         const settings = await window.electron.getSettings(); // Await settings
         setInterfaceMode(settings.interfaceMode === 'power' ? 'power' : 'user');
+        setAgentHarness(settings.agentHarness === 'pi' ? 'pi' : 'native');
         setShowTrajectoryTab(settings.showTrajectoryTab !== false);
         setShowWelcomeTips(settings.showWelcomeTips === true);
         setShowWelcomeSuggestions(settings.showWelcomeSuggestions === true);
@@ -915,6 +763,23 @@ function App() {
       });
     } catch (error) {
       console.error('Error saving interfaceMode from quick menu:', error);
+    }
+  }, []);
+
+  // Callback to toggle agentHarness (native / pi) from Top Bar
+  const handleAgentHarnessChange = useCallback(async (newHarness) => {
+    const validHarness = newHarness === 'pi' ? 'pi' : 'native';
+    setAgentHarness(validHarness);
+    try {
+      if (window.electron?.saveSettings) {
+        const currentSettings = await window.electron.getSettings();
+        await window.electron.saveSettings({
+          ...currentSettings,
+          agentHarness: validHarness
+        });
+      }
+    } catch (error) {
+      console.error('Error saving agentHarness from top bar:', error);
     }
   }, []);
 
@@ -1222,10 +1087,11 @@ function App() {
   }, [selectedModel, modelConfigs]);
 
   // Function to stop the ongoing generation
-  const handleStopGeneration = () => {
+  const handleStopGeneration = async () => {
     console.log('Stopping generation...');
     cancelledRef.current = true; // Set cancellation flag
-    window.electron.stopChatStream();
+    const cancelledAgent = await cancelAgent();
+    if (!cancelledAgent) window.electron.stopChatStream();
     setLoading(false); // Immediately set loading to false
     // Clear any pending tool approval state
     setPendingApprovalCall(null);
@@ -1307,6 +1173,36 @@ function App() {
                 title: personaName,
                 content: personaText,
                 raw: personaText
+            });
+        }
+        if (workspaceInfo?.agentsDoc?.content) {
+            const docName = workspaceInfo.agentsDoc.filename || 'AGENTS.md';
+            const wText = `[Regras do Workspace / ${docName}]:\n${workspaceInfo.agentsDoc.content.trim()}`;
+            systemParts.push(wText);
+            injectedParts.push({
+                type: 'workspace',
+                title: `${docName} (${workspaceInfo.name || 'Workspace'})`,
+                content: workspaceInfo.agentsDoc.content.trim(),
+                raw: wText
+            });
+        } else if (workspaceInfo?.readmeDoc?.content) {
+            const wText = `[README do Workspace]:\n${workspaceInfo.readmeDoc.content.trim()}`;
+            systemParts.push(wText);
+            injectedParts.push({
+                type: 'workspace',
+                title: `README (${workspaceInfo.name || 'Workspace'})`,
+                content: workspaceInfo.readmeDoc.content.trim(),
+                raw: wText
+            });
+        }
+        if (harnessMode === 'code') {
+            const harnessText = `[Diretrizes do Coding Agent Harness]:\nAcesso autônomo a ferramentas de arquivos ('read_file', 'write_file', 'edit_file', 'list_directory', 'glob_search', 'grep_search'), terminal ('shell_exec') e Git ('git_status', 'git_diff', 'git_commit'). Diretório raiz: "${workspacePath || 'Workspace'}".`;
+            systemParts.push(harnessText);
+            injectedParts.push({
+                type: 'harness',
+                title: 'Coding Agent Harness (Filesystem & Terminal)',
+                content: harnessText,
+                raw: harnessText
             });
         }
         if (canvasDoc && canvasDoc.content) {
@@ -1820,8 +1716,11 @@ function App() {
     if (!hasContent) return;
 
     // If no current chat exists, create one first with current API mode
-    if (!currentChatId) {
-      await createNewChat(selectedModel, useResponsesApi);
+    let activeChatId = currentChatId;
+    if (!activeChatId) {
+      const createdChat = await createNewChat(selectedModel, useResponsesApi);
+      activeChatId = createdChat?.id;
+      if (!activeChatId) return;
     }
 
     // Reset cancellation flag for new message
@@ -1854,6 +1753,24 @@ function App() {
       setMessages(updatedMessages);
       if (currentChatId) {
         await window.electron.chatHistory.saveMessages(currentChatId, updatedMessages);
+      }
+      return;
+    }
+
+    const isAgentModeActive = harnessMode === 'code' || localStorage.getItem('neochat_agent_mode') === 'true';
+    if (isAgentModeActive && !isCompareMode) {
+      try {
+        await runAgent({
+          sessionId: activeChatId,
+          message: userMessage,
+          seedMessages: messages,
+          model: selectedModel,
+          workspaceRoot: workspacePath || undefined,
+          systemPrompt: buildAgentSystemPrompt(),
+          agentHarness
+        });
+      } catch (error) {
+        console.error('Agent runtime execution failed:', error);
       }
       return;
     }
@@ -1891,8 +1808,7 @@ function App() {
     let emptyResponseRetries = 0; // Track retries for empty responses
     const MAX_EMPTY_RETRIES = 3; // Maximum retries for empty responses
     let toolIterationsCount = 0;
-    const isAgentModeActive = localStorage.getItem('neochat_agent_mode') === 'true';
-    const MAX_TOOL_ITERATIONS = isAgentModeActive ? 25 : 12; // Prevent infinite tool execution loops
+    const MAX_TOOL_ITERATIONS = 12; // Chat mode safety limit; Agent Mode runs in the main-process runtime.
 
     if (isAgentModeActive) {
       setAgentStep(1);
@@ -2174,6 +2090,21 @@ function App() {
           return;
       }
       
+      if (toolCall._agentRuntime) {
+          setPendingApprovalCall(null);
+          const approved = !['deny', 'never'].includes(choice);
+          if (approved) {
+              await window.electron.agent.approveTool(
+                  toolCall._agentSessionId,
+                  toolCall.id,
+                  ['always', 'yolo'].includes(choice)
+              );
+          } else {
+              await window.electron.agent.rejectTool(toolCall._agentSessionId, toolCall.id, 'User denied tool execution');
+          }
+          return;
+      }
+
       // Check if this is an MCP approval request (remote tool)
       const isMcpApprovalRequest = toolCall.type === 'mcp_approval_request';
       const toolName = isMcpApprovalRequest ? toolCall.name : toolCall.function?.name;
@@ -2507,8 +2438,8 @@ function App() {
         return;
       }
 
-      // Ctrl/Cmd + Shift + U or Ctrl/Cmd + Shift + P: Toggle Interface Mode (User / Power)
-      if (isModifier && e.shiftKey && (e.key.toLowerCase() === 'u' || e.key.toLowerCase() === 'p')) {
+      // Ctrl/Cmd + Shift + U: Toggle Interface Mode (User / Power)
+      if (isModifier && e.shiftKey && e.key.toLowerCase() === 'u') {
         e.preventDefault();
         const nextMode = interfaceMode === 'power' ? 'user' : 'power';
         handleInterfaceModeChange(nextMode);
@@ -2613,7 +2544,7 @@ function App() {
                 </Button>
               )}
 
-              {/* 4-Option Mode & View Switcher: Chat | Work | Code (Agent) | Trajetória */}
+              {/* 4-Option Mode & View Switcher: Chat | Work | Code | Trajetória */}
               {isPowerUser && (
                 <div className="flex items-center gap-0.5 bg-muted/60 p-1 rounded-xl border border-border/70 shadow-2xs">
                   <button
@@ -2668,9 +2599,6 @@ function App() {
                   >
                     <Terminal className="w-3.5 h-3.5 text-amber-500" />
                     <span className="hidden md:inline">{t('chat.chatModeCode')}</span>
-                    {activeTab === 'chat' && harnessMode === 'code' && (
-                      <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
-                    )}
                   </button>
 
                   {showTrajectoryTab && (
@@ -2693,6 +2621,14 @@ function App() {
                     </button>
                   )}
                 </div>
+              )}
+
+              {/* Agent Engine Switcher (Neo Native / Pi Agent Core) */}
+              {isPowerUser && (
+                <AgentEngineSelector
+                  agentHarness={agentHarness}
+                  onHarnessChange={handleAgentHarnessChange}
+                />
               )}
 
               {/* In Code Mode: Workspace Directory Selector Button */}
@@ -2917,6 +2853,22 @@ function App() {
                         </div>
                       </button>
 
+                      {/* User Long-Term Memory */}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsToolsDropdownOpen(false);
+                          setIsUserMemoryModalOpen(true);
+                        }}
+                        className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-muted/80 text-foreground transition-colors text-left"
+                      >
+                        <Brain className="w-4 h-4 text-purple-600 dark:text-purple-400 shrink-0" />
+                        <div className="flex-1 min-w-0">
+                          <div className="font-semibold text-foreground">{t('memory.title') || 'Memória Persistente'}</div>
+                          <div className="text-[10px] text-muted-foreground truncate">Preferências e fatos lembrados pela IA</div>
+                        </div>
+                      </button>
+
                       {/* In-App Browser */}
                       <button
                         type="button"
@@ -3096,7 +3048,7 @@ function App() {
                           <Keyboard className="w-3.5 h-3.5 text-muted-foreground" />
                           <span className="font-medium">Paleta de Comandos</span>
                         </div>
-                        <kbd className="px-1.5 py-0.5 text-[10px] font-mono bg-muted border border-border/80 rounded text-muted-foreground">Ctrl+K</kbd>
+                        <kbd className="px-1.5 py-0.5 text-[10px] font-mono bg-muted border border-border/80 rounded text-muted-foreground">Ctrl+Shift+P</kbd>
                       </button>
 
                       {/* Keyboard Shortcuts */}
@@ -3142,7 +3094,7 @@ function App() {
           <Bot className="w-4 h-4 animate-bounce text-amber-500" />
           <span className="font-semibold">Modo Agente Autônomo</span>
           <span className="opacity-60">•</span>
-          <span>Passo {agentStep} de {localStorage.getItem('neochat_agent_mode') === 'true' ? 25 : 12}</span>
+           <span>Passo {agentStep} de {isAgentRunning ? 25 : 12}</span>
           <button
             type="button"
             onClick={handleStopGeneration}
@@ -3156,7 +3108,7 @@ function App() {
       {/* Main Content */}
       <div className="flex-1 flex overflow-hidden">
         <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-          <div className="flex-1 overflow-y-auto">
+          <div className="flex-1 overflow-y-auto custom-scrollbar">
             <div className={cn(
               "mx-auto h-full transition-all duration-200",
               chatWidth === 'wide'
@@ -3199,6 +3151,8 @@ function App() {
                       powerUserMode={isPowerUser}
                       showButtonLabels={showButtonLabels}
                       harnessMode={harnessMode}
+                      agentHarness={agentHarness}
+                      onHarnessChange={handleAgentHarnessChange}
                       workspaceInfo={workspaceInfo}
                       onSelectWorkspace={handleSelectWorkspace}
                     />
@@ -3238,6 +3192,8 @@ function App() {
                       showButtonLabels={showButtonLabels}
                       presetMessage={presetInputMessage}
                       harnessMode={harnessMode}
+                      agentHarness={agentHarness}
+                      onHarnessChange={handleAgentHarnessChange}
                       workspaceInfo={workspaceInfo}
                       onSelectWorkspace={handleSelectWorkspace}
                     />
@@ -3253,6 +3209,8 @@ function App() {
                         currentChatTitle={currentChatTitle}
                         activeProject={activeProject}
                         activePersona={activePersona}
+                        workspaceInfo={workspaceInfo}
+                        harnessMode={harnessMode}
                         canvasDoc={canvasDoc}
                         selectedText={selectedText}
                         selectedModel={selectedModel}
@@ -3282,6 +3240,8 @@ function App() {
                       powerUserMode={isPowerUser}
                       showButtonLabels={showButtonLabels}
                       harnessMode={harnessMode}
+                      agentHarness={agentHarness}
+                      onHarnessChange={handleAgentHarnessChange}
                       workspaceInfo={workspaceInfo}
                       onSelectWorkspace={handleSelectWorkspace}
                     />
@@ -3309,7 +3269,7 @@ function App() {
                   )}
                   <div 
                     ref={messagesContainerRef} 
-                    className="flex-1 overflow-y-auto mb-6 min-h-0"
+                    className="flex-1 overflow-y-auto mb-6 min-h-0 custom-scrollbar"
                     style={{ willChange: 'scroll-position' }}
                   >
                     <MessageList 
@@ -3359,6 +3319,8 @@ function App() {
                       powerUserMode={isPowerUser}
                       showButtonLabels={showButtonLabels}
                       harnessMode={harnessMode}
+                      agentHarness={agentHarness}
+                      onHarnessChange={handleAgentHarnessChange}
                       workspaceInfo={workspaceInfo}
                       onSelectWorkspace={handleSelectWorkspace}
                     />
@@ -3480,7 +3442,7 @@ function App() {
           onClose={() => setIsShortcutsModalOpen(false)}
         />
 
-        {/* Command Palette Global Launcher (Ctrl+K) */}
+        {/* Command Palette Global Launcher (Ctrl+Shift+P) */}
         <CommandPaletteModal
           isOpen={isCommandPaletteOpen}
           onClose={() => setIsCommandPaletteOpen(false)}
@@ -3606,7 +3568,51 @@ function App() {
           onClose={() => setIsComputerVisionOpen(false)}
           onSendToChat={(content) => handleSendMessage(content)}
         />
+
+        {/* User Persistent Long-Term Memory */}
+        <UserMemoryModal
+          isOpen={isUserMemoryModalOpen}
+          onClose={() => setIsUserMemoryModalOpen(false)}
+        />
       </Suspense>
+
+      {/* Floating Memory Notification Toast */}
+      {memoryToast && (
+        <div className="fixed bottom-6 right-6 z-[10000] max-w-md animate-in slide-in-from-bottom-5 duration-300">
+          <div className="p-3.5 rounded-2xl bg-card border border-purple-500/30 text-foreground shadow-2xl flex items-start gap-3 bg-card/95 backdrop-blur-md">
+            <div className="p-2 rounded-xl bg-purple-500/15 text-purple-600 dark:text-purple-400 shrink-0">
+              <Brain className="w-4 h-4" />
+            </div>
+            <div className="flex-1 min-w-0 pr-2">
+              <div className="text-xs font-semibold text-foreground flex items-center gap-1.5 mb-0.5">
+                <span>{memoryToast.type === 'added' ? '🧠 Nova memória aprendida' : '🧠 Memória esquecida'}</span>
+                {memoryToast.category && (
+                  <span className="text-[10px] px-1.5 py-0.2 rounded bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20 font-normal">
+                    {memoryToast.category}
+                  </span>
+                )}
+              </div>
+              <p className="text-xs text-muted-foreground truncate">
+                &ldquo;{memoryToast.message}&rdquo;
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setIsUserMemoryModalOpen(true)}
+              className="text-[11px] font-semibold text-purple-600 dark:text-purple-400 hover:underline shrink-0 self-center"
+            >
+              Ver
+            </button>
+            <button
+              type="button"
+              onClick={() => setMemoryToast(null)}
+              className="p-1 rounded text-muted-foreground hover:text-foreground shrink-0 self-center"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        </div>
+      )}
 
       </div>
     </div>

@@ -11,6 +11,7 @@ module.exports = [
       "node_modules/",
       "dist/",
       "release/",
+      ".pnpm-store/",
       "electron/vendor/",
       "*.config.js",
       "*.config.cjs"
@@ -36,8 +37,8 @@ module.exports = [
             'argsIgnorePattern': '^_',
             'varsIgnorePattern': '^_',
             'caughtErrors': 'none' // Ignore all caught errors regardless of name
-            // 'caughtErrorsIgnorePattern': '^_'
         }],
+        'no-empty': ['error', { allowEmptyCatch: true }],
         'no-unreachable': 'warn'
     }
   },
@@ -80,10 +81,9 @@ module.exports = [
           'argsIgnorePattern': '^_',
           'varsIgnorePattern': '^_',
           'caughtErrors': 'none' // Ignore all caught errors regardless of name
-          // 'caughtErrorsIgnorePattern': '^_'
       }],
       'no-empty': ['error', { allowEmptyCatch: true }],
       'no-unreachable': 'warn'
     }
   }
-]; 
+];

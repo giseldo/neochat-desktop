@@ -4,19 +4,15 @@ import {
   Swords,
   X,
   Play,
-  Square,
   Sparkles,
   Award,
   RefreshCw,
   Copy,
   Check,
-  ArrowRight,
   Send,
-  FileText,
-  Zap,
-  Cpu,
   Layers,
-  ChevronDown
+  Scale,
+  Bot
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { Badge } from './ui/badge';
@@ -78,6 +74,23 @@ export function ArenaModal({
   }, [isOpen]);
 
   useEffect(() => {
+    if (!isOpen) return;
+
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape' && !isRunning) {
+        e.preventDefault();
+        onClose();
+      } else if ((e.ctrlKey || e.metaKey) && e.key === 'Enter' && !isRunning && topic.trim()) {
+        e.preventDefault();
+        handleStartDebate();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, isRunning, topic, mode, rounds, participants, judgeModel]);
+
+  useEffect(() => {
     if (window.electron?.arena?.onEvent) {
       eventListenerRef.current = window.electron.arena.onEvent((data) => {
         if (data.type === 'turn_start') {
@@ -116,10 +129,11 @@ export function ArenaModal({
   if (!isOpen) return null;
 
   const handleStartDebate = async () => {
-    if (!topic.trim()) return;
+    if (!topic.trim() || isRunning) return;
     setIsRunning(true);
     setRoundsData([]);
     setSynthesis(null);
+    setConsensusResults(null);
     setCurrentProgress('Iniciando arena de debate...');
 
     try {
@@ -154,46 +168,68 @@ export function ArenaModal({
   };
 
   return createPortal(
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="bg-zinc-950 border border-zinc-800 rounded-2xl w-full max-w-5xl max-h-[90vh] flex flex-col shadow-2xl overflow-hidden text-zinc-100">
-        
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-xs animate-in fade-in duration-200">
+      {/* Hidden datalist for model autocomplete */}
+      <datalist id="arena-model-options">
+        {modelOptions.map((opt) => (
+          <option key={opt.id} value={opt.id}>
+            {opt.name} ({opt.provider})
+          </option>
+        ))}
+      </datalist>
+
+      <div 
+        className="bg-card border border-border text-card-foreground rounded-2xl w-full max-w-4xl max-h-[90vh] flex flex-col shadow-2xl overflow-hidden animate-in zoom-in-95 duration-150"
+        onClick={(e) => e.stopPropagation()}
+      >
         {/* Header */}
-        <div className="px-6 py-4 border-b border-zinc-800 flex items-center justify-between bg-zinc-900/60">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-orange-500/10 border border-orange-500/30 flex items-center justify-center text-orange-400">
+        <div className="px-6 py-4 border-b border-border flex items-center justify-between bg-muted/20">
+          <div className="flex items-center gap-3.5">
+            <div className="w-10 h-10 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center text-primary shrink-0 shadow-2xs">
               <Swords className="w-5 h-5" />
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h2 className="text-lg font-bold">AI Arena & Debate Multi-Modelos</h2>
-                <Badge variant="outline" className="text-xs bg-orange-500/10 text-orange-400 border-orange-500/30">
+                <h2 className="text-base sm:text-lg font-bold text-foreground">AI Arena & Debate Multi-Modelos</h2>
+                <Badge variant="outline" className="text-[11px] bg-primary/10 text-primary border-primary/20">
                   {mode === 'debate' ? 'Debate em Rodadas' : 'Votação por Consenso'}
                 </Badge>
               </div>
-              <p className="text-xs text-zinc-400">
+              <p className="text-xs text-muted-foreground mt-0.5">
                 Coloque diferentes modelos de IA para debater premissas e obter a síntese perfeita
               </p>
             </div>
           </div>
 
           <div className="flex items-center gap-2">
-            <div className="bg-zinc-900 p-1 rounded-lg border border-zinc-800 flex text-xs">
+            <div className="bg-muted p-1 rounded-xl border border-border flex text-xs gap-1">
               <button
                 onClick={() => setMode('debate')}
-                className={cn('px-2.5 py-1 rounded-md transition-colors', mode === 'debate' ? 'bg-orange-600 text-white font-medium' : 'text-zinc-400 hover:text-zinc-200')}
+                className={cn(
+                  'px-3 py-1.5 rounded-lg transition-all text-xs font-medium cursor-pointer',
+                  mode === 'debate' 
+                    ? 'bg-primary text-primary-foreground font-semibold shadow-xs' 
+                    : 'text-muted-foreground hover:text-foreground hover:bg-background/50'
+                )}
               >
                 Debate
               </button>
               <button
                 onClick={() => setMode('consensus')}
-                className={cn('px-2.5 py-1 rounded-md transition-colors', mode === 'consensus' ? 'bg-orange-600 text-white font-medium' : 'text-zinc-400 hover:text-zinc-200')}
+                className={cn(
+                  'px-3 py-1.5 rounded-lg transition-all text-xs font-medium cursor-pointer',
+                  mode === 'consensus' 
+                    ? 'bg-primary text-primary-foreground font-semibold shadow-xs' 
+                    : 'text-muted-foreground hover:text-foreground hover:bg-background/50'
+                )}
               >
                 Consenso
               </button>
             </div>
             <button
               onClick={onClose}
-              className="text-zinc-400 hover:text-zinc-200 p-2 rounded-lg hover:bg-zinc-800 transition-colors"
+              className="text-muted-foreground hover:text-foreground p-2 rounded-xl hover:bg-muted transition-colors cursor-pointer"
+              title="Fechar (Esc)"
             >
               <X className="w-5 h-5" />
             </button>
@@ -204,51 +240,67 @@ export function ArenaModal({
         <div className="flex-1 overflow-y-auto p-6 space-y-6">
           
           {/* Configuration Card */}
-          <div className="bg-zinc-900/40 border border-zinc-800/80 rounded-xl p-4 space-y-4">
+          <div className="bg-muted/30 border border-border/80 rounded-2xl p-5 space-y-4 shadow-2xs">
             <div>
-              <label className="text-xs font-semibold text-zinc-300 block mb-1.5">
-                Tema do Debate / Pergunta Técnica para os Modelos:
-              </label>
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="text-xs font-semibold text-foreground">
+                  Tema do Debate / Pergunta Técnica para os Modelos:
+                </label>
+                <span className="text-[11px] text-muted-foreground font-medium">
+                  Ctrl+Enter para iniciar
+                </span>
+              </div>
               <textarea
                 value={topic}
                 onChange={e => setTopic(e.target.value)}
                 placeholder="Ex: Qual a melhor arquitetura para estado global em React 19: Signals, Zustand ou Context? Defenda e aponte trade-offs."
                 rows={2}
                 disabled={isRunning}
-                className="w-full px-3 py-2 bg-zinc-900 border border-zinc-800 rounded-lg text-sm text-zinc-200 placeholder-zinc-500 focus:outline-none focus:border-orange-500"
+                className="w-full px-3.5 py-2.5 bg-background border border-input rounded-xl text-xs sm:text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/40 transition-all resize-y min-h-[72px]"
               />
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {participants.map((p, idx) => (
-                <div key={p.id} className="p-3 bg-zinc-950/60 border border-zinc-800/60 rounded-lg space-y-2">
+                <div key={p.id} className="p-4 bg-background border border-border/80 rounded-xl space-y-2.5 shadow-2xs">
                   <div className="flex items-center justify-between text-xs">
-                    <span className="font-semibold text-zinc-300">Debatedor {idx === 0 ? 'A (Proponente)' : 'B (Crítico)'}</span>
-                    <Badge variant="outline" className="text-[10px] text-zinc-400 border-zinc-800">{p.provider}</Badge>
+                    <span className="font-semibold text-foreground flex items-center gap-1.5">
+                      <Bot className="w-3.5 h-3.5 text-primary" />
+                      Debatedor {idx === 0 ? 'A (Proponente)' : 'B (Crítico)'}
+                    </span>
+                    <Badge variant="outline" className="text-[10px] text-muted-foreground bg-muted border-border">
+                      {p.provider}
+                    </Badge>
                   </div>
                   <input
                     type="text"
+                    list="arena-model-options"
                     value={p.model}
                     onChange={e => {
                       const updated = [...participants];
                       updated[idx].model = e.target.value;
+                      // Update provider if recognized from modelOptions
+                      const matched = modelOptions.find(m => m.id === e.target.value);
+                      if (matched) {
+                        updated[idx].provider = matched.provider;
+                      }
                       setParticipants(updated);
                     }}
                     placeholder="ID do modelo (ex: llama-3.3-70b-versatile)"
-                    className="w-full px-2.5 py-1.5 bg-zinc-900 border border-zinc-800 rounded text-xs text-zinc-200 focus:outline-none focus:border-orange-500"
+                    className="w-full px-3 py-2 bg-muted/30 border border-input rounded-xl text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/40 font-mono transition-all"
                   />
                 </div>
               ))}
             </div>
 
-            <div className="flex items-center justify-between pt-2">
-              <div className="flex items-center gap-3 text-xs text-zinc-400">
-                <span>Rodadas de Debate:</span>
+            <div className="flex flex-wrap items-center justify-between gap-3 pt-2">
+              <div className="flex items-center gap-2.5 text-xs text-muted-foreground">
+                <span className="font-medium text-foreground">Rodadas de Debate:</span>
                 <select
                   value={rounds}
                   onChange={e => setRounds(Number(e.target.value))}
                   disabled={isRunning}
-                  className="bg-zinc-900 border border-zinc-800 rounded px-2 py-1 text-zinc-200 text-xs"
+                  className="bg-background border border-input rounded-xl px-3 py-1.5 text-foreground text-xs focus:ring-2 focus:ring-primary/40 focus:outline-none transition-all cursor-pointer"
                 >
                   <option value={1}>1 Rodada (Apresentação Direta)</option>
                   <option value={2}>2 Rodadas (Apresentação + Réplica/Crítica)</option>
@@ -259,7 +311,7 @@ export function ArenaModal({
               <Button
                 onClick={handleStartDebate}
                 disabled={isRunning || !topic.trim()}
-                className="bg-orange-600 hover:bg-orange-500 text-white font-semibold text-xs px-5 py-2 rounded-lg flex items-center gap-2"
+                className="bg-primary hover:bg-primary/90 text-primary-foreground font-semibold text-xs sm:text-sm px-5 py-2.5 rounded-xl shadow-xs transition-all flex items-center gap-2 cursor-pointer disabled:opacity-50 ring-2 ring-primary/30"
               >
                 {isRunning ? (
                   <>
@@ -278,33 +330,41 @@ export function ArenaModal({
 
           {/* Progress Indicator */}
           {currentProgress && (
-            <div className="p-3 rounded-lg bg-orange-500/10 border border-orange-500/20 text-orange-400 text-xs flex items-center gap-2 animate-pulse">
+            <div className="p-3.5 rounded-xl bg-primary/10 border border-primary/20 text-primary text-xs font-medium flex items-center gap-2.5 animate-pulse shadow-2xs">
               <Sparkles className="w-4 h-4 shrink-0" />
               <span>{currentProgress}</span>
             </div>
           )}
 
-          {/* Rounds Display */}
+          {/* Rounds Display (Debate Mode) */}
           {roundsData.length > 0 && (
             <div className="space-y-4">
-              <h3 className="text-sm font-bold text-zinc-200 flex items-center gap-2">
-                <Layers className="w-4 h-4 text-orange-400" />
+              <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
+                <Layers className="w-4 h-4 text-primary" />
                 Histórico das Rodadas de Argumentação
               </h3>
 
               {roundsData.map((round) => (
-                <div key={round.round} className="border border-zinc-800 rounded-xl bg-zinc-900/30 overflow-hidden">
-                  <div className="px-4 py-2 bg-zinc-900/70 border-b border-zinc-800/80 text-xs font-semibold text-zinc-300">
-                    Rodada {round.round}
+                <div key={round.round} className="border border-border rounded-2xl bg-card overflow-hidden shadow-xs">
+                  <div className="px-4 py-2.5 bg-muted/40 border-b border-border text-xs font-semibold text-foreground flex items-center justify-between">
+                    <span>Rodada {round.round}</span>
+                    <span className="text-[10px] text-muted-foreground font-normal">
+                      {round.turns.length} intervenções registradas
+                    </span>
                   </div>
                   <div className="p-4 grid grid-cols-1 md:grid-cols-2 gap-4">
                     {round.turns.map((turn, tIdx) => (
-                      <div key={tIdx} className="p-3 bg-zinc-950/80 border border-zinc-800/60 rounded-lg space-y-2">
+                      <div key={tIdx} className="p-4 bg-muted/20 border border-border/70 rounded-xl space-y-2">
                         <div className="flex items-center justify-between text-xs">
-                          <span className="font-semibold text-orange-400">{turn.participantName}</span>
-                          <span className="text-[10px] text-zinc-500">{turn.latencyMs}ms</span>
+                          <span className="font-semibold text-primary flex items-center gap-1.5">
+                            <Bot className="w-3.5 h-3.5" />
+                            {turn.participantName}
+                          </span>
+                          <span className="text-[10px] text-muted-foreground font-mono bg-muted px-1.5 py-0.5 rounded">
+                            {turn.latencyMs}ms
+                          </span>
                         </div>
-                        <div className="text-xs text-zinc-300 leading-relaxed whitespace-pre-wrap font-sans max-h-60 overflow-y-auto">
+                        <div className="text-xs text-foreground/90 leading-relaxed whitespace-pre-wrap font-sans max-h-60 overflow-y-auto">
                           {turn.content}
                         </div>
                       </div>
@@ -315,20 +375,46 @@ export function ArenaModal({
             </div>
           )}
 
+          {/* Consensus Results Display */}
+          {consensusResults && consensusResults.results && (
+            <div className="space-y-4">
+              <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
+                <Scale className="w-4 h-4 text-primary" />
+                Respostas Paralelas & Consenso
+              </h3>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {consensusResults.results.map((res, rIdx) => (
+                  <div key={rIdx} className="p-4 bg-background border border-border rounded-xl space-y-2 shadow-2xs">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="font-semibold text-primary">{res.modelName}</span>
+                      <span className="text-[10px] text-muted-foreground font-mono bg-muted px-1.5 py-0.5 rounded">
+                        {res.latencyMs}ms
+                      </span>
+                    </div>
+                    <div className="text-xs text-foreground/90 leading-relaxed whitespace-pre-wrap max-h-60 overflow-y-auto">
+                      {res.content || res.error || 'Sem resposta.'}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* Final Synthesis & Judge Verdict */}
           {synthesis && (
-            <div className="border border-orange-500/30 bg-orange-950/10 rounded-xl p-5 space-y-3">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2 text-sm font-bold text-orange-400">
-                  <Award className="w-5 h-5 text-amber-400" />
+            <div className="border border-primary/30 bg-primary/5 rounded-2xl p-5 space-y-3.5 shadow-sm">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div className="flex items-center gap-2 text-sm font-bold text-primary">
+                  <Award className="w-5 h-5 text-amber-500" />
                   Veredito & Síntese Otimizada do Juiz ({synthesis.judgeName})
                 </div>
                 <div className="flex items-center gap-2">
                   <button
                     onClick={() => handleCopy(synthesis.content)}
-                    className="p-1.5 rounded-lg bg-zinc-900 border border-zinc-800 text-zinc-400 hover:text-zinc-200 text-xs flex items-center gap-1.5"
+                    className="px-3 py-1.5 rounded-xl bg-background hover:bg-muted border border-border text-muted-foreground hover:text-foreground text-xs flex items-center gap-1.5 transition-all cursor-pointer shadow-2xs"
                   >
-                    {copied ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+                    {copied ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5" />}
                     {copied ? 'Copiado' : 'Copiar'}
                   </button>
                   {onSendToChat && (
@@ -337,7 +423,7 @@ export function ArenaModal({
                         onClose();
                         onSendToChat(`### Síntese do Debate Multi-Modelos: ${topic}\n\n${synthesis.content}`);
                       }}
-                      className="p-1.5 rounded-lg bg-orange-600 hover:bg-orange-500 text-white text-xs flex items-center gap-1.5 font-medium"
+                      className="px-3.5 py-1.5 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground text-xs flex items-center gap-1.5 font-medium transition-all shadow-xs cursor-pointer ring-2 ring-primary/30"
                     >
                       <Send className="w-3.5 h-3.5" />
                       Enviar ao Chat
@@ -346,7 +432,7 @@ export function ArenaModal({
                 </div>
               </div>
 
-              <div className="p-4 bg-zinc-950/80 border border-zinc-800/80 rounded-lg text-xs text-zinc-200 leading-relaxed whitespace-pre-wrap max-h-80 overflow-y-auto">
+              <div className="p-4 bg-background border border-border/80 rounded-xl text-xs sm:text-sm text-foreground leading-relaxed whitespace-pre-wrap max-h-80 overflow-y-auto shadow-2xs">
                 {synthesis.content}
               </div>
             </div>

@@ -35,6 +35,207 @@ export default function TrajectoryLedger({
   const formatNumber = (num) => (num ? Number(num).toLocaleString(language === 'pt' ? 'pt-BR' : 'en-US') : '0');
 
   const NATIVE_TOOLS = [
+    // Filesystem Native Tools
+    {
+      name: 'read_file',
+      category: 'Sistema de Arquivos',
+      isNative: true,
+      description: 'Lê o conteúdo de um arquivo no workspace (completo ou por intervalo de linhas).',
+      schema: {
+        type: 'object',
+        properties: {
+          path: { type: 'string', description: 'Caminho relativo à raiz do workspace' },
+          start_line: { type: 'integer', description: 'Linha inicial (1-indexed)' },
+          end_line: { type: 'integer', description: 'Linha final (1-indexed inclusive)' }
+        },
+        required: ['path']
+      }
+    },
+    {
+      name: 'write_file',
+      category: 'Sistema de Arquivos',
+      isNative: true,
+      description: 'Cria um novo arquivo ou sobrescreve completamente um arquivo com o conteúdo fornecido.',
+      schema: {
+        type: 'object',
+        properties: {
+          path: { type: 'string', description: 'Caminho relativo à raiz do workspace' },
+          content: { type: 'string', description: 'Conteúdo exato a ser gravado no arquivo' },
+          overwrite: { type: 'boolean', description: 'Sobrescrever se já existir (padrão: true)' }
+        },
+        required: ['path', 'content']
+      }
+    },
+    {
+      name: 'edit_file',
+      category: 'Sistema de Arquivos',
+      isNative: true,
+      description: 'Edita um bloco contíguo de texto em um arquivo existente substituindo o conteúdo correspondente.',
+      schema: {
+        type: 'object',
+        properties: {
+          path: { type: 'string', description: 'Caminho relativo à raiz do workspace' },
+          target_content: { type: 'string', description: 'Texto exato a ser encontrado e substituído' },
+          replacement_content: { type: 'string', description: 'Novo texto substituto' },
+          start_line: { type: 'integer', description: 'Linha aproximada de início' },
+          end_line: { type: 'integer', description: 'Linha aproximada de término' }
+        },
+        required: ['path', 'target_content', 'replacement_content']
+      }
+    },
+    {
+      name: 'list_directory',
+      category: 'Sistema de Arquivos',
+      isNative: true,
+      description: 'Lista arquivos e diretórios em uma pasta do workspace.',
+      schema: {
+        type: 'object',
+        properties: {
+          path: { type: 'string', description: 'Caminho relativo à raiz do workspace' },
+          recursive: { type: 'boolean', description: 'Listar recursivamente (padrão: false)' },
+          max_depth: { type: 'integer', description: 'Profundidade máxima de recursão (padrão: 2)' }
+        }
+      }
+    },
+    {
+      name: 'glob_search',
+      category: 'Sistema de Arquivos',
+      isNative: true,
+      description: 'Busca arquivos correspondentes a um padrão glob (ex: "**/*.js", "src/**/*.jsx").',
+      schema: {
+        type: 'object',
+        properties: {
+          pattern: { type: 'string', description: 'Padrão glob de busca' },
+          path: { type: 'string', description: 'Diretório base de busca' },
+          max_results: { type: 'integer', description: 'Máximo de resultados (padrão: 50)' }
+        },
+        required: ['pattern']
+      }
+    },
+    {
+      name: 'grep_search',
+      category: 'Sistema de Arquivos',
+      isNative: true,
+      description: 'Busca textual ou por expressão regular (regex) nos arquivos do workspace.',
+      schema: {
+        type: 'object',
+        properties: {
+          query: { type: 'string', description: 'Texto ou padrão regex a buscar' },
+          path: { type: 'string', description: 'Diretório base ou arquivo específico' },
+          is_regex: { type: 'boolean', description: 'Tratar como regex (padrão: false)' },
+          case_sensitive: { type: 'boolean', description: 'Diferenciar maiúsculas/minúsculas' },
+          max_results: { type: 'integer', description: 'Máximo de ocorrências (padrão: 50)' }
+        },
+        required: ['query']
+      }
+    },
+    // Terminal & Shell Native Tools
+    {
+      name: 'shell_exec',
+      category: 'Terminal Shell',
+      isNative: true,
+      description: 'Executa comandos de terminal/shell no workspace (PowerShell, Bash, npm, pnpm, git, etc.).',
+      schema: {
+        type: 'object',
+        properties: {
+          command: { type: 'string', description: 'Comando de terminal a executar' },
+          cwd: { type: 'string', description: 'Diretório de trabalho' },
+          timeout_ms: { type: 'integer', description: 'Timeout em milissegundos (padrão: 30000)' }
+        },
+        required: ['command']
+      }
+    },
+    {
+      name: 'process_exec',
+      category: 'Terminal Shell',
+      isNative: true,
+      description: 'Executa um binário ou programa diretamente sem passar pelo interpretador de shell.',
+      schema: {
+        type: 'object',
+        properties: {
+          executable: { type: 'string', description: 'Nome ou caminho do executável' },
+          arguments: { type: 'array', items: { type: 'string' }, description: 'Argumentos' },
+          cwd: { type: 'string', description: 'Diretório de trabalho' }
+        },
+        required: ['executable']
+      }
+    },
+    // Git Intelligence
+    {
+      name: 'git_status',
+      category: 'Git Intelligence',
+      isNative: true,
+      description: 'Obtém o status do repositório Git (branch ativa, modificações, arquivos não rastreados).',
+      schema: {
+        type: 'object',
+        properties: {
+          repo_path: { type: 'string', description: 'Caminho do repositório Git' }
+        }
+      }
+    },
+    {
+      name: 'git_diff',
+      category: 'Git Intelligence',
+      isNative: true,
+      description: 'Visualiza o diff com as alterações não commitadas ou em stage no repositório.',
+      schema: {
+        type: 'object',
+        properties: {
+          repo_path: { type: 'string', description: 'Caminho do repositório Git' },
+          cached: { type: 'boolean', description: 'Se true, visualiza alterações em stage' }
+        }
+      }
+    },
+    {
+      name: 'git_commit',
+      category: 'Git Intelligence',
+      isNative: true,
+      description: 'Adiciona alterações e cria um commit Git com mensagem descritiva.',
+      schema: {
+        type: 'object',
+        properties: {
+          message: { type: 'string', description: 'Mensagem do commit' },
+          repo_path: { type: 'string', description: 'Caminho do repositório Git' }
+        },
+        required: ['message']
+      }
+    },
+    // Background Tasks
+    {
+      name: 'run_background_task',
+      category: 'Tarefas em Background',
+      isNative: true,
+      description: 'Inicia um comando assíncrono em segundo plano (servidores locais, watchers, builds).',
+      schema: {
+        type: 'object',
+        properties: {
+          command: { type: 'string', description: 'Comando a executar em segundo plano' },
+          name: { type: 'string', description: 'Título descritivo da tarefa' }
+        },
+        required: ['command']
+      }
+    },
+    {
+      name: 'list_background_tasks',
+      category: 'Tarefas em Background',
+      isNative: true,
+      description: 'Lista todas as tarefas em segundo plano em execução ou finalizadas.',
+      schema: { type: 'object', properties: {} }
+    },
+    {
+      name: 'kill_background_task',
+      category: 'Tarefas em Background',
+      isNative: true,
+      description: 'Encerra uma tarefa em segundo plano pelo seu identificador ID.',
+      schema: {
+        type: 'object',
+        properties: {
+          task_id: { type: 'string', description: 'ID da tarefa a cancelar' }
+        },
+        required: ['task_id']
+      }
+    },
+    // Canvas Workspace
     {
       name: 'canvas_create_document',
       category: 'Canvas Workspace',
@@ -45,8 +246,7 @@ export default function TrajectoryLedger({
         properties: {
           title: { type: 'string', description: 'Título claro do documento' },
           content: { type: 'string', description: 'Conteúdo inicial do documento' },
-          language: { type: 'string', description: 'Linguagem ou formato: markdown, javascript, python, html, etc.' },
-          summary: { type: 'string', description: 'Resumo do que foi criado' }
+          language: { type: 'string', description: 'Linguagem ou formato: markdown, javascript, python, html, etc.' }
         },
         required: ['title', 'content']
       }
@@ -59,12 +259,9 @@ export default function TrajectoryLedger({
       schema: {
         type: 'object',
         properties: {
-          content: { type: 'string', description: 'Conteúdo completo atualizado do documento' },
-          summary: { type: 'string', description: 'Breve explicação das mudanças' },
-          title: { type: 'string', description: 'Título atualizado opcional' },
-          language: { type: 'string', description: 'Linguagem/formato opcional' }
+          content: { type: 'string', description: 'Conteúdo completo atualizado do documento' }
         },
-        required: ['content', 'summary']
+        required: ['content']
       }
     },
     {
@@ -76,10 +273,9 @@ export default function TrajectoryLedger({
         type: 'object',
         properties: {
           targetText: { type: 'string', description: 'Texto exato a ser substituído' },
-          replacementText: { type: 'string', description: 'Novo texto substituto' },
-          summary: { type: 'string', description: 'Breve descrição da edição' }
+          replacementText: { type: 'string', description: 'Novo texto substituto' }
         },
-        required: ['targetText', 'replacementText', 'summary']
+        required: ['targetText', 'replacementText']
       }
     },
     {
@@ -89,6 +285,7 @@ export default function TrajectoryLedger({
       description: 'Obtém o conteúdo atual, versão e estatísticas do documento ativo no Canvas.',
       schema: { type: 'object', properties: {} }
     },
+    // Web & Project RAG
     {
       name: 'web_search',
       category: 'Busca Web (Web Search)',
@@ -97,9 +294,23 @@ export default function TrajectoryLedger({
       schema: {
         type: 'object',
         properties: {
-          query: { type: 'string', description: 'Termos de busca na web' }
+          query: { type: 'string', description: 'Termos de busca na web' },
+          max_results: { type: 'integer', description: 'Máximo de resultados' }
         },
         required: ['query']
+      }
+    },
+    {
+      name: 'read_url_content',
+      category: 'Web Scraping',
+      isNative: true,
+      description: 'Lê o conteúdo textual de uma página web, API ou documentação via URL.',
+      schema: {
+        type: 'object',
+        properties: {
+          url: { type: 'string', description: 'URL de destino para extração de conteúdo' }
+        },
+        required: ['url']
       }
     },
     {
@@ -158,14 +369,31 @@ export default function TrajectoryLedger({
       };
     });
 
+    const CODING_AGENT_TOOL_NAMES = [
+      'read_file', 'write_file', 'edit_file', 'list_directory', 'glob_search',
+      'grep_search', 'shell_exec', 'process_exec', 'git_status', 'git_diff',
+      'git_commit', 'read_url_content', 'run_background_task', 'list_background_tasks', 'kill_background_task'
+    ];
+
     const hasCanvasEvent = turn?.events?.some(e => e.type === 'canvas' || e.parts?.some(p => p.type === 'canvas') || e.name?.startsWith('canvas_'));
     const hasRagEvent = turn?.events?.some(e => e.type === 'project' || e.parts?.some(p => p.type === 'project') || e.name?.includes('project_'));
     const hasWebSearchEvent = turn?.events?.some(e => e.name === 'web_search');
+    
+    // Check if turn triggered coding tools or was in agent/code mode
+    const hasAgentEvent = turn?.events?.some(e => 
+      CODING_AGENT_TOOL_NAMES.includes(e.name) ||
+      e.parts?.some(p => p.type === 'workspace' || p.type === 'harness') ||
+      e.type === 'tool' ||
+      (e.type === 'assistant' && e.tool_calls?.length > 0)
+    );
 
     const nativeItems = NATIVE_TOOLS.filter(t => {
       if (t.name.startsWith('canvas_')) return hasCanvasEvent;
       if (t.name.includes('project_')) return hasRagEvent;
-      if (t.name === 'web_search') return hasWebSearchEvent;
+      if (t.name === 'web_search') return hasWebSearchEvent || hasAgentEvent;
+      if (CODING_AGENT_TOOL_NAMES.includes(t.name)) {
+        return hasAgentEvent || activeTools?.length === 0;
+      }
       return false;
     }).map(t => {
       const fullDef = {
@@ -217,7 +445,7 @@ export default function TrajectoryLedger({
       system: {
         chars: systemChars,
         estimated_tokens: Math.max(0, Math.round(totalChars > 0 ? (systemChars / totalChars) * promptTokens : systemChars / 4)),
-        rawContent: systemRaw || 'Instruções base do NeoChat com diretrizes de busca web, ferramentas Canvas, modo de agente, data/hora e regras do sistema.'
+        rawContent: systemRaw || 'Instruções base do NeoChat com diretrizes de ferramentas nativas do sistema, terminal shell, Git, modo de agente, data/hora e regras do sistema.'
       },
       user_input: {
         chars: userChars,
@@ -375,6 +603,23 @@ export default function TrajectoryLedger({
         const totalSteps = turn.events.filter(e => e.type === 'assistant' || e.type === 'tool').length;
         const totalTools = turn.events.filter(e => e.type === 'tool').length;
 
+        let turnPromptTokens = turn.usage?.prompt_tokens || turn.usage?.input_tokens || 0;
+        let turnCompletionTokens = turn.usage?.completion_tokens || turn.usage?.output_tokens || 0;
+        let turnTotalTokens = turn.usage?.total_tokens || (turnPromptTokens + turnCompletionTokens);
+
+        if (turnTotalTokens === 0) {
+          turn.events.forEach(e => {
+            if (e.type === 'assistant' && e.usage) {
+              const prompt = e.usage.prompt_tokens ?? e.usage.input_tokens ?? 0;
+              const comp = e.usage.completion_tokens ?? e.usage.output_tokens ?? 0;
+              const tot = e.usage.total_tokens || (prompt + comp);
+              turnPromptTokens += prompt;
+              turnCompletionTokens += comp;
+              turnTotalTokens += tot;
+            }
+          });
+        }
+
         return (
           <div
             key={turnId}
@@ -401,8 +646,17 @@ export default function TrajectoryLedger({
                   )}
                 </div>
 
-                {/* Steps & Tool calls summary badge */}
+                {/* Steps, Tool calls & Token summary badge */}
                 <div className="flex items-center gap-2 text-[11px] text-muted-foreground font-mono">
+                  {turnTotalTokens > 0 && (
+                    <span 
+                      className="px-2 py-0.5 rounded-full text-[11px] font-medium bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20 flex items-center gap-1 shrink-0 font-mono shadow-2xs select-none"
+                      title={`${t('trajectory.promptTokensLabel')}: ${formatNumber(turnPromptTokens)} tk · ${t('trajectory.completionTokensLabel')}: ${formatNumber(turnCompletionTokens)} tk`}
+                    >
+                      <Activity className="w-3 h-3 text-purple-500" />
+                      <span>{formatNumber(turnTotalTokens)} {t('trajectory.tokensUnit')}</span>
+                    </span>
+                  )}
                   {totalSteps > 0 && (
                     <span className="px-2 py-0.5 rounded-full bg-muted border border-border/60">
                       {t('trajectory.stepsAndTools', { steps: totalSteps, tools: totalTools })}
@@ -452,6 +706,8 @@ export default function TrajectoryLedger({
                     const hasProject = parts.some(p => p.type === 'project');
                     const hasPersona = parts.some(p => p.type === 'persona');
                     const hasCanvas = parts.some(p => p.type === 'canvas');
+                    const hasWorkspace = parts.some(p => p.type === 'workspace');
+                    const hasHarness = parts.some(p => p.type === 'harness');
                     const totalChars = event.systemPrompt ? event.systemPrompt.length : 0;
                     const totalWords = event.systemPrompt ? event.systemPrompt.trim().split(/\s+/).length : 0;
 
@@ -482,6 +738,16 @@ export default function TrajectoryLedger({
                               {hasPersona && (
                                 <span className="px-1.5 py-0.2 rounded text-[10px] bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20 font-medium">
                                   🎭 {t('trajectory.activePersona')}
+                                </span>
+                              )}
+                              {hasWorkspace && (
+                                <span className="px-1.5 py-0.2 rounded text-[10px] bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 font-medium">
+                                  📁 {t('trajectory.workspaceRules')}
+                                </span>
+                              )}
+                              {hasHarness && (
+                                <span className="px-1.5 py-0.2 rounded text-[10px] bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 font-medium">
+                                  🤖 {t('trajectory.codingHarness')}
                                 </span>
                               )}
                               {hasCanvas && (
@@ -521,6 +787,14 @@ export default function TrajectoryLedger({
                                     IconComponent = Bot;
                                     typeBadgeClass = 'bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/20';
                                     typeLabel = t('trajectory.activePersona');
+                                  } else if (part.type === 'workspace') {
+                                    IconComponent = Layers;
+                                    typeBadgeClass = 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20';
+                                    typeLabel = t('trajectory.workspaceRules');
+                                  } else if (part.type === 'harness') {
+                                    IconComponent = Zap;
+                                    typeBadgeClass = 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20';
+                                    typeLabel = t('trajectory.codingHarness');
                                   } else if (part.type === 'canvas') {
                                     IconComponent = FileText;
                                     typeBadgeClass = 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20';

@@ -1,14 +1,10 @@
 node_modules/
-.next/
-siteweb/.next/
-siteweb/.vercel/
 
 # Electron build output
 dist/
 release/
+release-verify/
 .vercel/
-docs/.vitepress/dist/
-docs/.vitepress/cache/
 
 # OS generated files
 .DS_Store

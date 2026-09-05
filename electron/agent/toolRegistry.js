@@ -12,7 +12,7 @@ const NATIVE_TOOLS = {
       properties: {
         path: {
           type: 'string',
-          description: 'Relative or absolute path to the file to read.'
+          description: 'Path relative to the authorized workspace root.'
         },
         start_line: {
           type: 'integer',
@@ -36,7 +36,7 @@ const NATIVE_TOOLS = {
       properties: {
         path: {
           type: 'string',
-          description: 'Relative or absolute path to the file to create/overwrite.'
+          description: 'Path relative to the authorized workspace root.'
         },
         content: {
           type: 'string',
@@ -60,7 +60,7 @@ const NATIVE_TOOLS = {
       properties: {
         path: {
           type: 'string',
-          description: 'Relative or absolute path to the file to edit.'
+          description: 'Path relative to the authorized workspace root.'
         },
         target_content: {
           type: 'string',
@@ -92,7 +92,7 @@ const NATIVE_TOOLS = {
       properties: {
         path: {
           type: 'string',
-          description: 'Relative or absolute directory path (defaults to current workspace root).'
+          description: 'Directory path relative to the authorized workspace root.'
         },
         recursive: {
           type: 'boolean',
@@ -180,9 +180,46 @@ const NATIVE_TOOLS = {
         timeout_ms: {
           type: 'integer',
           description: 'Execution timeout in milliseconds (default: 30000).'
+        },
+        network_access: {
+          type: 'boolean',
+          description: 'Request network access for this exact command. Requires a separately scoped approval.'
         }
       },
       required: ['command']
+    }
+  },
+
+  process_exec: {
+    name: 'process_exec',
+    type: 'native',
+    description: 'Execute one program directly without a command shell. Prefer this over shell_exec when pipelines, redirects, and shell built-ins are unnecessary.',
+    parameters: {
+      type: 'object',
+      properties: {
+        executable: {
+          type: 'string',
+          description: 'Executable name or path.'
+        },
+        arguments: {
+          type: 'array',
+          items: { type: 'string' },
+          description: 'Arguments passed directly to the executable without shell interpretation.'
+        },
+        cwd: {
+          type: 'string',
+          description: 'Workspace-relative working directory.'
+        },
+        timeout_ms: {
+          type: 'integer',
+          description: 'Execution timeout in milliseconds (default: 30000).'
+        },
+        network_access: {
+          type: 'boolean',
+          description: 'Request network access for this exact process. Requires a separately scoped approval.'
+        }
+      },
+      required: ['executable']
     }
   },
 
@@ -364,6 +401,14 @@ const NATIVE_TOOLS = {
         cwd: {
           type: 'string',
           description: 'Working directory for the task.'
+        },
+        timeout_ms: {
+          type: 'integer',
+          description: 'Execution timeout in milliseconds.'
+        },
+        network_access: {
+          type: 'boolean',
+          description: 'Request network access for this exact task. Requires a separately scoped approval.'
         }
       },
       required: ['command']
@@ -465,6 +510,7 @@ class ToolRegistry {
         NATIVE_TOOLS.list_directory,
         NATIVE_TOOLS.glob_search,
         NATIVE_TOOLS.grep_search,
+        NATIVE_TOOLS.process_exec,
         NATIVE_TOOLS.shell_exec,
         NATIVE_TOOLS.git_status,
         NATIVE_TOOLS.git_diff,

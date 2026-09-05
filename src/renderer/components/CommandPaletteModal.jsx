@@ -27,13 +27,36 @@ import {
   Command,
   ArrowRight,
   X,
-  BotOff
+  BotOff,
+  Swords,
+  Blocks,
+  Zap,
+  Sun,
+  Store,
+  Compass,
+  LayoutGrid,
+  MessageSquare
 } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
 import { useChat } from '../context/ChatContext';
 import { useCanvas } from '../context/CanvasContext';
 import { useProjects } from '../context/ProjectContext';
+import { Badge } from './ui/badge';
+import { Button } from './ui/button';
 import { cn } from '../lib/utils';
+
+export const KeyBadge = ({ children, className }) => (
+  <kbd
+    className={cn(
+      'inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 py-0.5',
+      'text-[10px] font-mono font-semibold rounded-md',
+      'bg-muted/80 text-foreground border border-border shadow-2xs select-none whitespace-nowrap',
+      className
+    )}
+  >
+    {children}
+  </kbd>
+);
 
 export function CommandPaletteModal({
   isOpen,
@@ -68,15 +91,21 @@ export function CommandPaletteModal({
   onExportChat
 }) {
   const { t } = useLanguage();
-  const { currentChatId, chatList, createNewChat, loadChat, renameChat } = useChat();
+  const { currentChatId, chatList, createNewChat, loadChat } = useChat();
   const { openCanvas, createNewDocument } = useCanvas();
   const { projects } = useProjects();
 
   const [query, setQuery] = useState('');
   const [selectedIndex, setSelectedIndex] = useState(0);
-  const [categoryFilter, setCategoryFilter] = useState('all'); // all, nav, models, personas, actions, chats
+  const [categoryFilter, setCategoryFilter] = useState('all'); // all, nav, actions, models, personas, chats
   const inputRef = useRef(null);
   const listRef = useRef(null);
+
+  const isMac = useMemo(() => {
+    return typeof navigator !== 'undefined' && /Mac|iPhone|iPod|iPad/.test(navigator.platform);
+  }, []);
+
+  const modKey = isMac ? '⌘' : 'Ctrl';
 
   useEffect(() => {
     if (isOpen) {
@@ -99,7 +128,7 @@ export function CommandPaletteModal({
         categoryLabel: 'Navegação',
         title: 'Módulos & Extensões (Plugins Hub)',
         subtitle: 'Ativar/desativar módulos com zero overhead em repouso',
-        icon: Sparkles,
+        icon: Blocks,
         action: () => { onClose(); onOpenPluginsManager?.(); }
       },
       {
@@ -108,7 +137,7 @@ export function CommandPaletteModal({
         categoryLabel: 'Navegação',
         title: 'AI Arena & Debate Multi-Modelos',
         subtitle: 'Debate em rodadas entre modelos e votação por consenso',
-        icon: Users,
+        icon: Swords,
         action: () => { onClose(); onOpenArenaModal?.(); }
       },
       {
@@ -144,7 +173,7 @@ export function CommandPaletteModal({
         categoryLabel: 'Navegação',
         title: 'Proactive Daily Briefing',
         subtitle: 'Painel matinal inteligente com agenda, commits e áudio',
-        icon: Clock,
+        icon: Sun,
         action: () => { onClose(); onOpenDailyBriefing?.(); }
       },
       {
@@ -153,7 +182,7 @@ export function CommandPaletteModal({
         categoryLabel: 'Navegação',
         title: 'Community MCP Hub & Store',
         subtitle: 'Instalação 1-click de servidores MCP e receitas prontas',
-        icon: Wand2,
+        icon: Store,
         action: () => { onClose(); onOpenMcpHub?.(); }
       },
       {
@@ -172,6 +201,7 @@ export function CommandPaletteModal({
         title: 'Abrir Configurações (Settings)',
         subtitle: 'Provedores, chaves de API, interface, observabilidade',
         icon: Settings,
+        shortcut: `${modKey}+,`,
         action: () => { onClose(); onOpenSettings?.(); }
       },
       {
@@ -181,6 +211,7 @@ export function CommandPaletteModal({
         title: 'Abrir Canvas / Artifacts Panel',
         subtitle: 'Editor de código, diff e sandbox interativo',
         icon: Columns2,
+        shortcut: `${modKey}+Shift+C`,
         action: () => { onClose(); openCanvas?.(); }
       },
       {
@@ -188,8 +219,9 @@ export function CommandPaletteModal({
         category: 'nav',
         categoryLabel: 'Navegação',
         title: 'Abrir Terminal Integrado',
-        subtitle: 'Sessão interativa de terminal shell',
+        subtitle: 'Sessão interativa de terminal shell multi-abas',
         icon: Terminal,
+        shortcut: `${modKey}+\``,
         action: () => { onClose(); onToggleTerminal?.(); }
       },
       {
@@ -253,6 +285,7 @@ export function CommandPaletteModal({
         title: 'Browser & Web Research',
         subtitle: 'Pesquisa web e visualizador de páginas',
         icon: Globe,
+        shortcut: `${modKey}+Shift+B`,
         action: () => { onClose(); onToggleBrowser?.(); }
       },
       {
@@ -262,6 +295,7 @@ export function CommandPaletteModal({
         title: 'Tarefas em Segundo Plano',
         subtitle: 'Monitorar comandos e agentes em background',
         icon: Clock,
+        shortcut: `${modKey}+Shift+T`,
         action: () => { onClose(); onToggleBackgroundTasks?.(); }
       }
     );
@@ -271,17 +305,17 @@ export function CommandPaletteModal({
       {
         id: 'action_new_chat',
         category: 'actions',
-        categoryLabel: 'Ações de Chat',
+        categoryLabel: 'Ações',
         title: 'Criar Nova Conversa',
         subtitle: 'Iniciar uma conversa limpa',
         icon: Plus,
-        shortcut: 'Ctrl+N',
+        shortcut: `${modKey}+N`,
         action: () => { onClose(); createNewChat?.(); }
       },
       {
         id: 'action_new_canvas_doc',
         category: 'actions',
-        categoryLabel: 'Ações de Chat',
+        categoryLabel: 'Ações',
         title: 'Criar Novo Documento no Canvas',
         subtitle: 'Abrir documento vazio no editor interativo',
         icon: FileCode,
@@ -290,7 +324,7 @@ export function CommandPaletteModal({
       {
         id: 'action_clear_chat',
         category: 'actions',
-        categoryLabel: 'Ações de Chat',
+        categoryLabel: 'Ações',
         title: 'Limpar Mensagens da Conversa Atual',
         subtitle: 'Resetar o histórico da conversa ativa',
         icon: Trash2,
@@ -299,7 +333,7 @@ export function CommandPaletteModal({
       {
         id: 'action_export_chat',
         category: 'actions',
-        categoryLabel: 'Ações de Chat',
+        categoryLabel: 'Ações',
         title: 'Exportar Conversa',
         subtitle: 'Salvar conversa como Markdown, HTML, JSON ou PDF',
         icon: Download,
@@ -308,7 +342,7 @@ export function CommandPaletteModal({
       {
         id: 'action_snip',
         category: 'actions',
-        categoryLabel: 'Ações de Chat',
+        categoryLabel: 'Ações',
         title: 'Capturar Tela (Snip & Ask)',
         subtitle: 'Enviar recorte visual para o modelo',
         icon: Camera,
@@ -317,10 +351,11 @@ export function CommandPaletteModal({
       {
         id: 'action_voice',
         category: 'actions',
-        categoryLabel: 'Ações de Chat',
+        categoryLabel: 'Ações',
         title: 'Ditado por Voz / Transcrição',
         subtitle: 'Falar diretamente com o chat',
         icon: Mic,
+        shortcut: `${modKey}+Alt`,
         action: () => { onClose(); onTriggerVoice?.(); }
       }
     );
@@ -334,9 +369,9 @@ export function CommandPaletteModal({
         items.push({
           id: `model_${modelId}`,
           category: 'models',
-          categoryLabel: 'Trocar Modelo',
+          categoryLabel: 'Modelos',
           title: modelName,
-          subtitle: isSelected ? 'Modelo atual selecionado' : `Alternar para ${modelId}`,
+          subtitle: isSelected ? 'Modelo atualmente em uso' : `Alternar para ${modelId}`,
           icon: Bot,
           active: isSelected,
           action: () => { onClose(); onSelectModel?.(modelId); }
@@ -352,7 +387,7 @@ export function CommandPaletteModal({
         items.push({
           id: 'persona_deactivate',
           category: 'personas',
-          categoryLabel: t('personas.dropdownTitle') || 'Personas',
+          categoryLabel: 'Personas',
           title: t('personas.deactivateCommand') || 'Desativar Persona Ativa',
           subtitle: `${t('personas.deactivateCommandDesc') || 'Desativar instruções especializadas'} (${activePersona.name || activePersona.id})`,
           icon: X,
@@ -367,7 +402,7 @@ export function CommandPaletteModal({
       items.push({
         id: 'persona_disabled_state',
         category: 'personas',
-        categoryLabel: t('personas.dropdownTitle') || 'Personas',
+        categoryLabel: 'Personas',
         title: t('personas.deactivated') || 'Desativado',
         subtitle: t('personas.deactivatedDesc') || 'Sem persona especializada ativa (conversação padrão)',
         icon: BotOff,
@@ -383,7 +418,7 @@ export function CommandPaletteModal({
         items.push({
           id: `persona_${p.id}`,
           category: 'personas',
-          categoryLabel: t('personas.dropdownTitle') || 'Personas',
+          categoryLabel: 'Personas',
           title: p.name,
           subtitle: isSelected
             ? `${p.description || ''} • (${t('personas.clickToDeactivate') || 'Clique para desativar'})`
@@ -409,7 +444,7 @@ export function CommandPaletteModal({
         items.push({
           id: `chat_${c.id}`,
           category: 'chats',
-          categoryLabel: 'Conversas Recentes',
+          categoryLabel: 'Conversas',
           title: c.title || 'Conversa sem título',
           subtitle: new Date(c.updatedAt || c.createdAt || Date.now()).toLocaleString(),
           icon: GitBranch,
@@ -427,6 +462,8 @@ export function CommandPaletteModal({
     activePersona,
     chatList,
     currentChatId,
+    modKey,
+    t,
     onClose,
     onOpenSettings,
     onOpenKnowledgeBase,
@@ -438,6 +475,14 @@ export function CommandPaletteModal({
     onToggleBackgroundTasks,
     onToggleBrowser,
     onOpenSwarmModal,
+    onOpenPluginsManager,
+    onOpenArenaModal,
+    onOpenLiveSandbox,
+    onOpenPodcastStudio,
+    onOpenKnowledgeGraph,
+    onOpenDailyBriefing,
+    onOpenMcpHub,
+    onOpenComputerVision,
     onTriggerSnip,
     onTriggerVoice,
     onSelectModel,
@@ -449,6 +494,27 @@ export function CommandPaletteModal({
     openCanvas,
     createNewDocument
   ]);
+
+  // Categories list with icons and counts
+  const categories = useMemo(() => [
+    { id: 'all', label: 'Tudo', icon: LayoutGrid },
+    { id: 'nav', label: 'Navegação', icon: Compass },
+    { id: 'actions', label: 'Ações', icon: Zap },
+    { id: 'models', label: 'Modelos', icon: Bot },
+    { id: 'personas', label: 'Personas', icon: Sparkles },
+    { id: 'chats', label: 'Conversas', icon: MessageSquare },
+  ], []);
+
+  // Category counts
+  const categoryCounts = useMemo(() => {
+    const counts = { all: allItems.length };
+    categories.forEach(cat => {
+      if (cat.id !== 'all') {
+        counts[cat.id] = allItems.filter(item => item.category === cat.id).length;
+      }
+    });
+    return counts;
+  }, [allItems, categories]);
 
   // Filter items by query and category
   const filteredItems = useMemo(() => {
@@ -505,68 +571,95 @@ export function CommandPaletteModal({
 
   return createPortal(
     <div
-      className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-start justify-center pt-[10vh] px-4 animate-in fade-in duration-150"
+      className="fixed inset-0 z-50 bg-background/80 backdrop-blur-md flex items-start justify-center pt-[10vh] sm:pt-[12vh] px-4 animate-in fade-in-0 duration-200"
       onClick={onClose}
     >
       <div
-        className="w-full max-w-2xl bg-zinc-900 border border-zinc-700/80 rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[75vh]"
+        className="w-full max-w-2xl bg-card text-card-foreground border border-border rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[78vh] ring-1 ring-border/50 animate-in zoom-in-95 duration-150"
         onClick={e => e.stopPropagation()}
         onKeyDown={handleKeyDown}
       >
         {/* Search Header */}
-        <div className="p-4 border-b border-zinc-800 flex items-center gap-3 bg-zinc-900/90">
-          <Search className="w-5 h-5 text-zinc-400 shrink-0" />
+        <div className="relative flex items-center w-full border-b border-border bg-muted/20">
+          <Search className="w-5 h-5 text-muted-foreground shrink-0 ml-4 mr-3" />
           <input
             ref={inputRef}
             type="text"
-            className="w-full bg-transparent text-zinc-100 placeholder-zinc-500 text-base outline-none font-medium"
-            placeholder="Digite um comando, modelo, persona ou navegação... (Ctrl+K)"
+            className="w-full bg-transparent text-foreground placeholder:text-muted-foreground text-sm sm:text-base outline-none font-medium py-3.5 pr-2"
+            placeholder={`Digite um comando, modelo, persona ou navegação... (${modKey}+Shift+P)`}
             value={query}
             onChange={e => setQuery(e.target.value)}
           />
-          {query && (
-            <button
-              onClick={() => setQuery('')}
-              className="text-xs px-2 py-0.5 rounded bg-zinc-800 text-zinc-400 hover:text-zinc-200"
-            >
-              Limpar
-            </button>
-          )}
-          <kbd className="hidden sm:inline-flex items-center gap-1 text-[11px] font-mono px-2 py-1 rounded bg-zinc-800 text-zinc-400 border border-zinc-700">
-            ESC para fechar
-          </kbd>
+          <div className="flex items-center gap-2 pr-4 shrink-0">
+            {query && (
+              <button
+                onClick={() => setQuery('')}
+                className="text-xs px-2 py-1 rounded-lg bg-muted text-muted-foreground hover:text-foreground hover:bg-muted/80 transition-colors flex items-center gap-1 cursor-pointer"
+              >
+                <X className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Limpar</span>
+              </button>
+            )}
+            <KeyBadge className="hidden sm:inline-flex text-[11px] h-6 px-2 text-muted-foreground">ESC fechar</KeyBadge>
+          </div>
         </div>
 
         {/* Category Filter Chips */}
-        <div className="flex items-center gap-1.5 px-4 py-2 bg-zinc-950/40 border-b border-zinc-800/60 overflow-x-auto scrollbar-none text-xs">
-          {[
-            { id: 'all', label: 'Tudo' },
-            { id: 'nav', label: 'Navegação' },
-            { id: 'actions', label: 'Ações' },
-            { id: 'models', label: 'Modelos' },
-            { id: 'personas', label: 'Personas' },
-            { id: 'chats', label: 'Conversas' },
-          ].map(tab => (
-            <button
-              key={tab.id}
-              onClick={() => setCategoryFilter(tab.id)}
-              className={cn(
-                'px-2.5 py-1 rounded-lg font-medium transition-colors shrink-0',
-                categoryFilter === tab.id
-                  ? 'bg-blue-600/20 text-blue-400 border border-blue-500/30'
-                  : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/50'
-              )}
-            >
-              {tab.label}
-            </button>
-          ))}
+        <div className="flex items-center gap-1.5 px-4 py-2.5 bg-muted/30 border-b border-border overflow-x-auto scrollbar-none text-xs">
+          {categories.map(tab => {
+            const Icon = tab.icon;
+            const count = categoryCounts[tab.id] || 0;
+            const isActive = categoryFilter === tab.id;
+
+            return (
+              <button
+                key={tab.id}
+                onClick={() => setCategoryFilter(tab.id)}
+                className={cn(
+                  'flex items-center gap-1.5 px-3 py-1.5 rounded-xl font-medium transition-all shrink-0 cursor-pointer border',
+                  isActive
+                    ? 'bg-primary text-primary-foreground border-primary shadow-xs font-semibold'
+                    : 'bg-muted/40 text-muted-foreground hover:text-foreground hover:bg-muted/80 border-border/60'
+                )}
+              >
+                <Icon className="w-3.5 h-3.5" />
+                <span>{tab.label}</span>
+                <span
+                  className={cn(
+                    'text-[10px] px-1.5 py-0.2 rounded-full font-mono font-semibold',
+                    isActive
+                      ? 'bg-primary-foreground/20 text-primary-foreground'
+                      : 'bg-muted text-muted-foreground'
+                  )}
+                >
+                  {count}
+                </span>
+              </button>
+            );
+          })}
         </div>
 
         {/* List of Results */}
-        <div ref={listRef} className="flex-1 overflow-y-auto p-2 divide-y divide-zinc-800/30 space-y-1">
+        <div ref={listRef} className="flex-1 overflow-y-auto p-2 space-y-1">
           {filteredItems.length === 0 ? (
-            <div className="py-12 text-center text-zinc-500 text-sm">
-              Nenhum comando ou resultado encontrado para &ldquo;<span className="text-zinc-400">{query}</span>&rdquo;
+            <div className="py-14 text-center text-muted-foreground flex flex-col items-center justify-center gap-2.5">
+              <div className="w-12 h-12 rounded-2xl bg-muted/50 border border-border flex items-center justify-center text-muted-foreground">
+                <Search className="w-6 h-6 opacity-40" />
+              </div>
+              <p className="text-sm font-medium text-foreground">Nenhum resultado encontrado</p>
+              <p className="text-xs text-muted-foreground max-w-sm">
+                Não encontramos comandos para &ldquo;<span className="text-foreground font-medium">{query}</span>&rdquo; nesta categoria.
+              </p>
+              {(query || categoryFilter !== 'all') && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => { setQuery(''); setCategoryFilter('all'); }}
+                  className="mt-2 text-xs h-8 cursor-pointer"
+                >
+                  Limpar busca e filtros
+                </Button>
+              )}
             </div>
           ) : (
             filteredItems.map((item, idx) => {
@@ -579,49 +672,53 @@ export function CommandPaletteModal({
                   onClick={() => item.action()}
                   onMouseEnter={() => setSelectedIndex(idx)}
                   className={cn(
-                    'group flex items-center justify-between px-3 py-2.5 rounded-xl cursor-pointer transition-all',
+                    'group flex items-center justify-between px-3.5 py-2.5 rounded-xl cursor-pointer transition-all duration-150 border',
                     isSelected
-                      ? 'bg-blue-600/15 text-zinc-100 border border-blue-500/30'
-                      : 'text-zinc-300 hover:bg-zinc-800/50'
+                      ? 'bg-primary/10 text-foreground border-primary/30 shadow-2xs ring-1 ring-primary/20'
+                      : 'text-foreground border-transparent hover:bg-muted/40 hover:border-border/40'
                   )}
                 >
                   <div className="flex items-center gap-3 min-w-0 pr-2">
                     <div
                       className={cn(
-                        'w-8 h-8 rounded-lg flex items-center justify-center shrink-0 border transition-colors',
+                        'w-9 h-9 rounded-xl flex items-center justify-center shrink-0 border transition-all duration-150',
                         isSelected
-                          ? 'bg-blue-500/20 text-blue-400 border-blue-500/40'
-                          : 'bg-zinc-800 text-zinc-400 border-zinc-700/60 group-hover:text-zinc-200'
+                          ? 'bg-primary/15 text-primary border-primary/30 shadow-2xs scale-105'
+                          : 'bg-muted/70 text-muted-foreground border-border/70 group-hover:bg-muted group-hover:text-foreground'
                       )}
                     >
                       <Icon className="w-4 h-4" />
                     </div>
-                    <div className="min-w-0">
-                      <div className="flex items-center gap-2">
-                        <span className="font-medium text-sm text-zinc-100 truncate">{item.title}</span>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="font-semibold text-sm text-foreground truncate">{item.title}</span>
                         {item.active && (
-                          <span className="px-1.5 py-0.2 text-[10px] font-semibold uppercase tracking-wider rounded bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center gap-1">
-                            <Check className="w-3 h-3" /> Ativo
-                          </span>
+                          <Badge variant="outline" className="text-[10px] bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20 py-0 px-1.5 flex items-center gap-1 font-medium">
+                            <Check className="w-2.5 h-2.5" /> Ativo
+                          </Badge>
                         )}
-                        <span className="text-[10px] text-zinc-500 px-1.5 py-0.5 rounded bg-zinc-800/80 border border-zinc-700/40">
+                        <span className="text-[10px] font-medium text-muted-foreground px-1.5 py-0.5 rounded-md bg-muted/60 border border-border/60">
                           {item.categoryLabel}
                         </span>
                       </div>
                       {item.subtitle && (
-                        <p className="text-xs text-zinc-400 truncate mt-0.5">{item.subtitle}</p>
+                        <p className="text-xs text-muted-foreground truncate mt-0.5">{item.subtitle}</p>
                       )}
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-2 shrink-0">
+                  <div className="flex items-center gap-2.5 shrink-0 ml-2">
                     {item.shortcut && (
-                      <kbd className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-zinc-800 text-zinc-400 border border-zinc-700">
-                        {item.shortcut}
-                      </kbd>
+                      <KeyBadge className="text-[10px] font-mono">{item.shortcut}</KeyBadge>
                     )}
-                    {isSelected && (
-                      <ArrowRight className="w-4 h-4 text-blue-400 animate-in fade-in slide-in-from-left-1" />
+                    {isSelected ? (
+                      <div className="w-6 h-6 rounded-lg bg-primary/20 text-primary flex items-center justify-center animate-in fade-in slide-in-from-left-1 duration-150">
+                        <ArrowRight className="w-3.5 h-3.5" />
+                      </div>
+                    ) : (
+                      <div className="w-6 h-6 opacity-0 group-hover:opacity-60 transition-opacity flex items-center justify-center text-muted-foreground">
+                        <ArrowRight className="w-3.5 h-3.5" />
+                      </div>
                     )}
                   </div>
                 </div>
@@ -631,21 +728,25 @@ export function CommandPaletteModal({
         </div>
 
         {/* Footer info */}
-        <div className="p-3 bg-zinc-950/80 border-t border-zinc-800 flex items-center justify-between text-xs text-zinc-400">
-          <div className="flex items-center gap-4">
+        <div className="px-5 py-3 bg-muted/20 border-t border-border flex items-center justify-between text-xs text-muted-foreground">
+          <div className="flex items-center gap-4 flex-wrap">
             <span className="flex items-center gap-1.5">
-              <kbd className="font-mono bg-zinc-800 px-1.5 py-0.5 rounded border border-zinc-700">↑</kbd>
-              <kbd className="font-mono bg-zinc-800 px-1.5 py-0.5 rounded border border-zinc-700">↓</kbd>
-              Navegar
+              <KeyBadge>↑</KeyBadge>
+              <KeyBadge>↓</KeyBadge>
+              <span>Navegar</span>
             </span>
             <span className="flex items-center gap-1.5">
-              <kbd className="font-mono bg-zinc-800 px-1.5 py-0.5 rounded border border-zinc-700">Enter</kbd>
-              Executar
+              <KeyBadge>Enter</KeyBadge>
+              <span>Executar</span>
+            </span>
+            <span className="hidden sm:flex items-center gap-1.5">
+              <KeyBadge>Esc</KeyBadge>
+              <span>Fechar</span>
             </span>
           </div>
-          <span className="text-zinc-400">
+          <Badge variant="secondary" className="text-[11px] font-normal px-2 py-0.5">
             {filteredItems.length} {filteredItems.length === 1 ? 'resultado' : 'resultados'}
-          </span>
+          </Badge>
         </div>
       </div>
     </div>,

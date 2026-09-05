@@ -11,6 +11,8 @@ export default function TrajectoryView({
   currentChatTitle = '',
   activeProject = null,
   activePersona = null,
+  workspaceInfo = null,
+  harnessMode = 'chat',
   canvasDoc = null,
   selectedText = '',
   selectedModel = '',
@@ -56,6 +58,36 @@ export default function TrajectoryView({
         title: pName,
         content: personaRaw,
         raw: personaRaw
+      });
+    }
+    if (workspaceInfo?.agentsDoc?.content) {
+      const docName = workspaceInfo.agentsDoc.filename || 'AGENTS.md';
+      const wPrompt = `[Regras do Workspace / ${docName}]:\n${workspaceInfo.agentsDoc.content.trim()}`;
+      activeSystemStrings.push(wPrompt);
+      activeContextParts.push({
+        type: 'workspace',
+        title: `${docName} (${workspaceInfo.name || 'Workspace'})`,
+        content: workspaceInfo.agentsDoc.content.trim(),
+        raw: wPrompt
+      });
+    } else if (workspaceInfo?.readmeDoc?.content) {
+      const wPrompt = `[README do Workspace]:\n${workspaceInfo.readmeDoc.content.trim()}`;
+      activeSystemStrings.push(wPrompt);
+      activeContextParts.push({
+        type: 'workspace',
+        title: `README (${workspaceInfo.name || 'Workspace'})`,
+        content: workspaceInfo.readmeDoc.content.trim(),
+        raw: wPrompt
+      });
+    }
+    if (harnessMode === 'code') {
+      const hPrompt = `[Diretrizes do Coding Agent Harness]:\nAcesso autônomo a ferramentas de arquivos ('read_file', 'write_file', 'edit_file', 'list_directory', 'glob_search', 'grep_search'), terminal ('shell_exec') e Git ('git_status', 'git_diff', 'git_commit').`;
+      activeSystemStrings.push(hPrompt);
+      activeContextParts.push({
+        type: 'harness',
+        title: 'Coding Agent Harness (Filesystem & Shell)',
+        content: hPrompt,
+        raw: hPrompt
       });
     }
     if (canvasDoc && canvasDoc.content) {
@@ -290,9 +322,10 @@ export default function TrajectoryView({
     turns.forEach(t => {
       t.events?.forEach(e => {
         if (e.type === 'assistant' && e.usage) {
-          const prompt = e.usage.prompt_tokens || 0;
-          const comp = e.usage.completion_tokens || 0;
-          const tot = e.usage.total_tokens || (prompt + comp);
+          const u = e.usage;
+          const prompt = u.prompt_tokens ?? u.input_tokens ?? (u.input !== undefined ? (Number(u.input || 0) + Number(u.cacheRead || 0)) : 0);
+          const comp = u.completion_tokens ?? u.output_tokens ?? u.output ?? 0;
+          const tot = u.total_tokens ?? u.totalTokens ?? (prompt + comp);
           totalPrompt += prompt;
           totalCompletion += comp;
           totalTokens += tot;

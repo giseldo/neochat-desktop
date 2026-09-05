@@ -14,6 +14,10 @@ const { checkpointsManager, CheckpointsManager } = require('./checkpoints');
 const { compactionManager, CompactionManager } = require('./compactionManager');
 const { agentLoop, AgentLoop } = require('./agentLoop');
 const { swarmManager, SwarmManager, SWARM_ROLES, SWARM_MODES } = require('./swarmManager');
+const { AgentSessionStore } = require('./sessionStore');
+const { HarnessRegistry, harnessRegistry, normalizeHarnessId } = require('./harnessRegistry');
+const { NativeHarnessAdapter } = require('./harnesses/nativeHarness');
+const { PiHarnessAdapter } = require('./harnesses/piHarness');
 
 module.exports = {
   neoAgentRuntime,
@@ -45,5 +49,11 @@ module.exports = {
   swarmManager,
   SwarmManager,
   SWARM_ROLES,
-  SWARM_MODES
+  SWARM_MODES,
+  AgentSessionStore,
+  HarnessRegistry,
+  harnessRegistry,
+  normalizeHarnessId,
+  NativeHarnessAdapter,
+  PiHarnessAdapter
 };

@@ -139,7 +139,7 @@ class KnowledgeGraphEngine {
       const cleanLine = (l) => l.replace(/^\|/, '').replace(/\|$/, '').split('|').map(c => c.trim());
       headers = cleanLine(lines[0]);
       // Skip separator line (e.g. |---|---|)
-      const contentLines = lines.slice(1).filter(l => !/^[\|\s\-:]+$/.test(l));
+      const contentLines = lines.slice(1).filter(l => !/^[|\s\-:]+$/.test(l));
       dataRows = contentLines.map(l => cleanLine(l));
     } else {
       headers = lines[0].split(separator).map(c => c.trim().replace(/^["']|["']$/g, ''));

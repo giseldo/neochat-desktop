@@ -4,7 +4,6 @@
 
 const EventEmitter = require('events');
 const { modelRouter } = require('./modelRouter');
-const { workspaceManager } = require('./workspaceManager');
 
 const SWARM_ROLES = {
   ARCHITECT: {
@@ -345,8 +344,8 @@ class SwarmManager extends EventEmitter {
         model: model || settings.selectedModel,
         settings,
         systemPrompt,
-        abortSignal: abortController.signal,
-        onChunk: (chunk) => {
+        signal: abortController.signal,
+        callbacks: { onToken: (chunk) => {
           if (typeof chunk === 'string') {
             fullOutput += chunk;
             if (onChunk) onChunk(chunk);
@@ -354,10 +353,11 @@ class SwarmManager extends EventEmitter {
             fullOutput += chunk.content;
             if (onChunk) onChunk(chunk.content);
           }
-        }
+        } }
       });
 
-      return fullOutput || response?.content || '';
+      if (!response?.success) throw new Error(response?.error || 'Agent model request failed');
+      return fullOutput || response?.message?.content || '';
     } catch (err) {
       if (abortController.signal.aborted) {
         return fullOutput || '[Agent execution cancelled]';
@@ -386,8 +386,8 @@ class SwarmManager extends EventEmitter {
         model: model || settings.selectedModel,
         settings,
         systemPrompt,
-        abortSignal: abortController.signal,
-        onChunk: (chunk) => {
+        signal: abortController.signal,
+        callbacks: { onToken: (chunk) => {
           if (typeof chunk === 'string') {
             fullSynthesis += chunk;
             if (onChunk) onChunk(chunk);
@@ -395,10 +395,11 @@ class SwarmManager extends EventEmitter {
             fullSynthesis += chunk.content;
             if (onChunk) onChunk(chunk.content);
           }
-        }
+        } }
       });
 
-      return fullSynthesis || response?.content || '';
+      if (!response?.success) throw new Error(response?.error || 'Synthesis model request failed');
+      return fullSynthesis || response?.message?.content || '';
     } catch (err) {
       if (abortController.signal.aborted) {
         return fullSynthesis || '[Synthesis cancelled]';

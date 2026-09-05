@@ -186,43 +186,69 @@ export function KnowledgeGraphModal({
     };
   }, [isOpen, activeTab, graphData]);
 
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        onClose();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, onClose]);
+
   if (!isOpen) return null;
 
   return createPortal(
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="bg-zinc-950 border border-zinc-800 rounded-2xl w-full max-w-5xl h-[88vh] flex flex-col shadow-2xl overflow-hidden text-zinc-100">
-        
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-xs animate-in fade-in duration-200">
+      <div 
+        className="bg-card border border-border text-card-foreground rounded-2xl w-full max-w-5xl h-[88vh] flex flex-col shadow-2xl overflow-hidden animate-in zoom-in-95 duration-150"
+        onClick={(e) => e.stopPropagation()}
+      >
         {/* Header */}
-        <div className="px-6 py-4 border-b border-zinc-800 flex items-center justify-between bg-zinc-900/60">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-blue-500/10 border border-blue-500/30 flex items-center justify-center text-blue-400">
+        <div className="px-6 py-4 border-b border-border flex items-center justify-between bg-muted/20">
+          <div className="flex items-center gap-3.5">
+            <div className="w-10 h-10 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center text-primary shrink-0 shadow-2xs">
               <Share2 className="w-5 h-5" />
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h2 className="text-lg font-bold">Knowledge Graph & Data Studio</h2>
-                <Badge variant="outline" className="text-xs bg-blue-500/10 text-blue-400 border-blue-500/30">
+                <h2 className="text-base sm:text-lg font-bold text-foreground">Knowledge Graph & Data Studio</h2>
+                <Badge variant="outline" className="text-[11px] bg-primary/10 text-primary border-primary/20">
                   Visual Inteligente
                 </Badge>
               </div>
-              <p className="text-xs text-zinc-400">
+              <p className="text-xs text-muted-foreground mt-0.5">
                 Visualização 2D de nós e conexões do RAG + análise automática de planilhas e gráficos
               </p>
             </div>
           </div>
 
           <div className="flex items-center gap-2">
-            <div className="bg-zinc-900 p-1 rounded-lg border border-zinc-800 flex text-xs">
+            <div className="bg-muted p-1 rounded-xl border border-border flex text-xs gap-1">
               <button
                 onClick={() => setActiveTab('graph')}
-                className={cn('px-3 py-1.5 rounded-md flex items-center gap-1.5 transition-colors', activeTab === 'graph' ? 'bg-blue-600 text-white font-medium' : 'text-zinc-400 hover:text-zinc-200')}
+                className={cn(
+                  'px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition-all text-xs font-medium cursor-pointer',
+                  activeTab === 'graph' 
+                    ? 'bg-primary text-primary-foreground font-semibold shadow-xs' 
+                    : 'text-muted-foreground hover:text-foreground hover:bg-background/50'
+                )}
               >
                 <Network className="w-3.5 h-3.5" />
                 Grafo de Conhecimento
               </button>
               <button
                 onClick={() => setActiveTab('data')}
-                className={cn('px-3 py-1.5 rounded-md flex items-center gap-1.5 transition-colors', activeTab === 'data' ? 'bg-blue-600 text-white font-medium' : 'text-zinc-400 hover:text-zinc-200')}
+                className={cn(
+                  'px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition-all text-xs font-medium cursor-pointer',
+                  activeTab === 'data' 
+                    ? 'bg-primary text-primary-foreground font-semibold shadow-xs' 
+                    : 'text-muted-foreground hover:text-foreground hover:bg-background/50'
+                )}
               >
                 <BarChart3 className="w-3.5 h-3.5" />
                 Data Studio
@@ -231,7 +257,8 @@ export function KnowledgeGraphModal({
 
             <button
               onClick={onClose}
-              className="text-zinc-400 hover:text-zinc-200 p-2 rounded-lg hover:bg-zinc-800 transition-colors"
+              className="text-muted-foreground hover:text-foreground p-2 rounded-xl hover:bg-muted transition-colors cursor-pointer"
+              title="Fechar (Esc)"
             >
               <X className="w-5 h-5" />
             </button>
@@ -242,32 +269,32 @@ export function KnowledgeGraphModal({
         <div className="flex-1 flex flex-col overflow-hidden">
           
           {activeTab === 'graph' ? (
-            <div className="flex-1 relative flex flex-col bg-zinc-950">
+            <div className="flex-1 relative flex flex-col bg-background/50">
               {/* Canvas Viewport */}
               <div className="flex-1 relative overflow-hidden">
                 <canvas ref={canvasRef} className="w-full h-full cursor-pointer" />
 
                 {/* Node Inspector Overlay */}
                 {selectedNode && (
-                  <div className="absolute top-4 right-4 w-72 bg-zinc-900/90 border border-zinc-800 backdrop-blur p-4 rounded-xl shadow-xl text-xs space-y-2">
+                  <div className="absolute top-4 right-4 w-72 bg-card/90 border border-border backdrop-blur-md p-4 rounded-xl shadow-xl text-xs space-y-2 text-card-foreground">
                     <div className="flex items-center justify-between">
-                      <span className="font-bold text-zinc-100">{selectedNode.label}</span>
-                      <button onClick={() => setSelectedNode(null)} className="text-zinc-500 hover:text-zinc-300">
+                      <span className="font-bold text-foreground">{selectedNode.label}</span>
+                      <button onClick={() => setSelectedNode(null)} className="text-muted-foreground hover:text-foreground cursor-pointer">
                         <X className="w-3.5 h-3.5" />
                       </button>
                     </div>
-                    <div className="text-zinc-400">Tipo: <span className="text-zinc-200 font-mono">{selectedNode.type}</span></div>
+                    <div className="text-muted-foreground">Tipo: <span className="text-foreground font-mono font-medium">{selectedNode.type}</span></div>
                     {selectedNode.metadata?.path && (
-                      <div className="text-zinc-400 truncate">Caminho: <span className="text-zinc-300 font-mono">{selectedNode.metadata.path}</span></div>
+                      <div className="text-muted-foreground truncate">Caminho: <span className="text-foreground font-mono">{selectedNode.metadata.path}</span></div>
                     )}
-                    <Badge variant="outline" className="text-[10px] text-blue-400 border-blue-500/30">
+                    <Badge variant="outline" className="text-[10px] text-primary bg-primary/10 border-primary/30">
                       Relevância: {selectedNode.val || 1} conexões
                     </Badge>
                   </div>
                 )}
 
                 {/* Bottom Legend */}
-                <div className="absolute bottom-4 left-4 bg-zinc-900/80 border border-zinc-800/80 backdrop-blur px-3 py-1.5 rounded-lg text-[11px] text-zinc-400 flex items-center gap-4">
+                <div className="absolute bottom-4 left-4 bg-card/90 border border-border backdrop-blur-md px-3.5 py-2 rounded-xl text-[11px] text-muted-foreground flex items-center gap-4 shadow-sm">
                   <div className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-indigo-500" /> Raiz</div>
                   <div className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-pink-500" /> Pasta</div>
                   <div className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-blue-500" /> Arquivo</div>
@@ -280,8 +307,8 @@ export function KnowledgeGraphModal({
             <div className="flex-1 flex flex-col md:flex-row overflow-hidden">
               
               {/* Left Input */}
-              <div className="w-full md:w-5/12 border-r border-zinc-800 p-4 flex flex-col space-y-3 bg-zinc-950">
-                <div className="flex items-center justify-between text-xs font-semibold text-zinc-300">
+              <div className="w-full md:w-5/12 border-r border-border p-4 flex flex-col space-y-3 bg-card">
+                <div className="flex items-center justify-between text-xs font-semibold text-foreground">
                   <span>Entrada de Dados (CSV / TSV / Markdown Table)</span>
                 </div>
                 <textarea
@@ -290,37 +317,46 @@ export function KnowledgeGraphModal({
                     setRawTableText(e.target.value);
                     handleParseTable(e.target.value);
                   }}
-                  className="flex-1 p-3 bg-zinc-900 border border-zinc-800 rounded-lg text-xs font-mono text-zinc-200 focus:outline-none focus:border-blue-500 resize-none leading-relaxed"
+                  className="flex-1 p-3.5 bg-background border border-input rounded-xl text-xs font-mono text-foreground focus:outline-none focus:ring-2 focus:ring-primary/40 resize-none leading-relaxed transition-all"
                   placeholder="Cole sua tabela aqui..."
                 />
               </div>
 
               {/* Right Chart Visualization */}
-              <div className="w-full md:w-7/12 p-6 flex flex-col bg-zinc-900/40 space-y-4 overflow-y-auto">
+              <div className="w-full md:w-7/12 p-6 flex flex-col bg-muted/10 space-y-4 overflow-y-auto">
                 <div className="flex items-center justify-between">
-                  <h3 className="text-sm font-bold text-zinc-200 flex items-center gap-2">
-                    <Sparkles className="w-4 h-4 text-blue-400" />
+                  <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
+                    <Sparkles className="w-4 h-4 text-primary" />
                     Gráfico Interativo Gerado
                   </h3>
 
-                  <div className="bg-zinc-900 p-1 rounded-lg border border-zinc-800 flex text-xs">
+                  <div className="bg-muted p-1 rounded-xl border border-border flex text-xs gap-1">
                     <button
                       onClick={() => setChartType('bar')}
-                      className={cn('p-1.5 rounded transition-colors', chartType === 'bar' ? 'bg-zinc-800 text-blue-400' : 'text-zinc-500')}
+                      className={cn(
+                        'p-1.5 rounded-lg transition-all cursor-pointer',
+                        chartType === 'bar' ? 'bg-primary text-primary-foreground shadow-xs' : 'text-muted-foreground hover:text-foreground hover:bg-background/50'
+                      )}
                       title="Barras"
                     >
                       <BarChart className="w-4 h-4" />
                     </button>
                     <button
                       onClick={() => setChartType('line')}
-                      className={cn('p-1.5 rounded transition-colors', chartType === 'line' ? 'bg-zinc-800 text-blue-400' : 'text-zinc-500')}
+                      className={cn(
+                        'p-1.5 rounded-lg transition-all cursor-pointer',
+                        chartType === 'line' ? 'bg-primary text-primary-foreground shadow-xs' : 'text-muted-foreground hover:text-foreground hover:bg-background/50'
+                      )}
                       title="Linhas"
                     >
                       <LineChart className="w-4 h-4" />
                     </button>
                     <button
                       onClick={() => setChartType('table')}
-                      className={cn('p-1.5 rounded transition-colors', chartType === 'table' ? 'bg-zinc-800 text-blue-400' : 'text-zinc-500')}
+                      className={cn(
+                        'p-1.5 rounded-lg transition-all cursor-pointer',
+                        chartType === 'table' ? 'bg-primary text-primary-foreground shadow-xs' : 'text-muted-foreground hover:text-foreground hover:bg-background/50'
+                      )}
                       title="Tabela"
                     >
                       <TableIcon className="w-4 h-4" />
@@ -329,9 +365,9 @@ export function KnowledgeGraphModal({
                 </div>
 
                 {parsedData && parsedData.rows?.length > 0 ? (
-                  <div className="flex-1 bg-zinc-950 border border-zinc-800 rounded-xl p-5 flex flex-col justify-center space-y-4">
+                  <div className="flex-1 bg-card border border-border rounded-xl p-5 flex flex-col justify-center space-y-4 shadow-2xs">
                     {/* SVG Chart Rendering */}
-                    <div className="h-64 w-full flex items-end justify-between gap-3 pt-6 px-4 border-b border-zinc-800">
+                    <div className="h-64 w-full flex items-end justify-between gap-3 pt-6 px-4 border-b border-border">
                       {parsedData.rows.map((row, rIdx) => {
                         const firstCol = parsedData.columns[0]?.key;
                         const label = row[firstCol] || `Item ${rIdx + 1}`;
@@ -343,31 +379,31 @@ export function KnowledgeGraphModal({
 
                         return (
                           <div key={rIdx} className="flex-1 flex flex-col items-center gap-2 group">
-                            <div className="text-[10px] text-zinc-400 opacity-0 group-hover:opacity-100 transition-opacity font-mono">
+                            <div className="text-[10px] text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity font-mono">
                               {val}
                             </div>
                             <div
                               className={cn(
                                 'w-full rounded-t-lg transition-all duration-300',
-                                chartType === 'line' ? 'bg-indigo-500/80 hover:bg-indigo-400' : 'bg-blue-600 hover:bg-blue-500'
+                                chartType === 'line' ? 'bg-primary/70 hover:bg-primary' : 'bg-primary hover:bg-primary/90'
                               )}
                               style={{ height: `${heightPct}%` }}
                             />
-                            <span className="text-[10px] text-zinc-500 truncate max-w-[60px] text-center">{label}</span>
+                            <span className="text-[10px] text-muted-foreground truncate max-w-[60px] text-center">{label}</span>
                           </div>
                         );
                       })}
                     </div>
 
-                    <div className="text-xs text-zinc-400 flex items-center justify-between pt-2">
+                    <div className="text-xs text-muted-foreground flex items-center justify-between pt-2">
                       <span>Total: {parsedData.totalRows} linhas processadas</span>
-                      <Badge variant="outline" className="text-zinc-400 border-zinc-800">
+                      <Badge variant="outline" className="text-muted-foreground border-border bg-muted">
                         {parsedData.columns.length} colunas identificadas
                       </Badge>
                     </div>
                   </div>
                 ) : (
-                  <div className="flex-1 flex items-center justify-center text-zinc-500 text-xs italic">
+                  <div className="flex-1 flex items-center justify-center text-muted-foreground text-xs italic">
                     Insira dados válidos à esquerda para gerar o gráfico.
                   </div>
                 )}

@@ -7,10 +7,8 @@ const {
   getActiveApiKey,
   getProviderBaseUrl,
   getProviderCandidates,
-  getDefaultModel,
-  getActiveProviders
+  getDefaultModel
 } = require('../../shared/providers.js');
-const { getModelContextSizes } = require('../../shared/models.js');
 
 class ModelRouter {
   /**
@@ -150,7 +148,8 @@ class ModelRouter {
     const payload = {
       model,
       messages: apiMessages,
-      stream: true
+      stream: true,
+      stream_options: { include_usage: true }
     };
 
     if (Array.isArray(tools) && tools.length > 0) {
@@ -218,6 +217,7 @@ class ModelRouter {
         systemPrompt
       });
 
+      const streamStartTime = Date.now();
       try {
         const stream = await client.chat.completions.create(params, { signal });
         const aggregated = {
@@ -279,9 +279,50 @@ class ModelRouter {
             aggregated.finish_reason = choice.finish_reason;
           }
 
-          if (chunk.usage) {
-            aggregated.usage = chunk.usage;
+          const rawUsage = chunk.usage || chunk.x_groq?.usage;
+          if (rawUsage) {
+            const promptTokens = rawUsage.prompt_tokens ?? rawUsage.input_tokens ?? (aggregated.usage?.prompt_tokens || 0);
+            const cachedTokens = rawUsage.prompt_tokens_details?.cached_tokens ?? rawUsage.cache_read_input_tokens ?? rawUsage.prompt_cache_hit_tokens ?? (aggregated.usage?.cached_tokens || 0);
+            const compTokens = rawUsage.completion_tokens ?? rawUsage.output_tokens ?? (aggregated.usage?.completion_tokens || 0);
+            const totalTokens = rawUsage.total_tokens ?? (promptTokens + compTokens);
+            const input = Math.max(0, promptTokens - cachedTokens);
+
+            aggregated.usage = {
+              ...rawUsage,
+              prompt_tokens: promptTokens,
+              completion_tokens: compTokens,
+              total_tokens: totalTokens,
+              cached_tokens: cachedTokens,
+              cache_read_input_tokens: cachedTokens,
+              prompt_cache_hit_tokens: cachedTokens,
+              prompt_tokens_details: {
+                cached_tokens: cachedTokens
+              },
+              input,
+              output: compTokens,
+              cacheRead: cachedTokens,
+              totalTokens
+            };
           }
+        }
+
+        const elapsedSeconds = Math.max(0.01, (Date.now() - streamStartTime) / 1000);
+        if (aggregated.usage) {
+          aggregated.usage.completion_time = aggregated.usage.completion_time || elapsedSeconds;
+          aggregated.usage.total_time = aggregated.usage.total_time || elapsedSeconds;
+          aggregated.usage.client_duration = elapsedSeconds;
+          if (aggregated.usage.completion_tokens && !aggregated.usage.tokens_per_sec) {
+            aggregated.usage.tokens_per_sec = Math.round(aggregated.usage.completion_tokens / (aggregated.usage.completion_time || elapsedSeconds));
+          }
+        } else {
+          aggregated.usage = {
+            prompt_tokens: 0,
+            completion_tokens: 0,
+            total_tokens: 0,
+            completion_time: elapsedSeconds,
+            total_time: elapsedSeconds,
+            client_duration: elapsedSeconds
+          };
         }
 
         aggregated.tool_calls = Array.from(aggregated.toolCallsMap.values()).filter(tc => Boolean(tc.function.name));

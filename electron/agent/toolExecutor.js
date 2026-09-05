@@ -6,7 +6,7 @@ const fs = require('fs');
 const path = require('path');
 const { limitContentLength } = require('../utils');
 const { executeWebSearch } = require('../webSearchService');
-const { queryKnowledge, readFileContent } = require('../ragService');
+const { queryKnowledge } = require('../ragService');
 const { handleCanvasToolCall } = require('../canvasManager');
 const { runGit, getRepositoryStatus } = require('../gitManager');
 const { shellManager } = require('./shellManager');
@@ -14,6 +14,8 @@ const { checkpointsManager } = require('./checkpoints');
 const { workspaceManager } = require('./workspaceManager');
 const { taskManager } = require('../taskManager');
 const { browserManager } = require('../browserManager');
+const { resolveWorkspacePath } = require('./pathPolicy');
+const { DEFAULT_AGENT_EXECUTABLES } = require('./processPolicy');
 
 class ToolExecutor {
   /**
@@ -31,7 +33,6 @@ class ToolExecutor {
   async execute({
     sessionId = 'default',
     toolCall,
-    toolDef,
     settings = {},
     mcpClients = {},
     discoveredTools = [],
@@ -46,7 +47,7 @@ class ToolExecutor {
 
     const toolName = toolCall.function.name;
     const toolCallId = toolCall.id;
-    const root = workspaceRoot || workspaceManager.getWorkspace(sessionId) || process.cwd();
+    const root = resolveWorkspacePath(workspaceRoot || workspaceManager.getWorkspace(sessionId) || process.cwd(), '.', { mustExist: true });
     const outputLimit = settings?.toolOutputLimit || 16000;
 
     let args = {};
@@ -103,7 +104,7 @@ class ToolExecutor {
       if (toolName === 'read_file' || toolName === 'read_project_file') {
         const rawPath = args.path || args.filePath || args.file;
         if (!rawPath) return { error: 'Missing required argument "path".', tool_call_id: toolCallId };
-        const targetPath = path.isAbsolute(rawPath) ? rawPath : path.resolve(root, rawPath);
+        const targetPath = resolveWorkspacePath(root, rawPath, { mustExist: true });
 
         if (!fs.existsSync(targetPath)) {
           return { error: `File not found: ${rawPath}`, tool_call_id: toolCallId };
@@ -137,7 +138,7 @@ class ToolExecutor {
         if (!rawPath) return { error: 'Missing required argument "path".', tool_call_id: toolCallId };
         if (args.content === undefined || args.content === null) return { error: 'Missing required argument "content".', tool_call_id: toolCallId };
 
-        const targetPath = path.isAbsolute(rawPath) ? rawPath : path.resolve(root, rawPath);
+        const targetPath = resolveWorkspacePath(root, rawPath);
         const parentDir = path.dirname(targetPath);
         if (!fs.existsSync(parentDir)) {
           fs.mkdirSync(parentDir, { recursive: true });
@@ -162,7 +163,7 @@ class ToolExecutor {
         if (!args.target_content && args.target_content !== '') return { error: 'Missing required argument "target_content".', tool_call_id: toolCallId };
         if (args.replacement_content === undefined) return { error: 'Missing required argument "replacement_content".', tool_call_id: toolCallId };
 
-        const targetPath = path.isAbsolute(rawPath) ? rawPath : path.resolve(root, rawPath);
+        const targetPath = resolveWorkspacePath(root, rawPath, { mustExist: true });
         if (!fs.existsSync(targetPath)) return { error: `File not found: ${rawPath}`, tool_call_id: toolCallId };
 
         const existingContent = fs.readFileSync(targetPath, 'utf8');
@@ -192,7 +193,7 @@ class ToolExecutor {
       // 7. Native Filesystem: list_directory
       if (toolName === 'list_directory') {
         const rawPath = args.path || '.';
-        const targetPath = path.isAbsolute(rawPath) ? rawPath : path.resolve(root, rawPath);
+        const targetPath = resolveWorkspacePath(root, rawPath, { mustExist: true });
         if (!fs.existsSync(targetPath)) return { error: `Directory not found: ${rawPath}`, tool_call_id: toolCallId };
 
         const entries = fs.readdirSync(targetPath, { withFileTypes: true });
@@ -217,7 +218,7 @@ class ToolExecutor {
       // 8. Native Filesystem: glob_search
       if (toolName === 'glob_search') {
         const pattern = (args.pattern || '').toLowerCase();
-        const baseDir = args.path ? (path.isAbsolute(args.path) ? args.path : path.resolve(root, args.path)) : root;
+        const baseDir = resolveWorkspacePath(root, args.path || '.', { mustExist: true });
         const maxResults = args.max_results || 50;
 
         const results = [];
@@ -253,7 +254,7 @@ class ToolExecutor {
       if (toolName === 'grep_search') {
         const query = args.query;
         if (!query) return { error: 'Missing required argument "query".', tool_call_id: toolCallId };
-        const baseDir = args.path ? (path.isAbsolute(args.path) ? args.path : path.resolve(root, args.path)) : root;
+        const baseDir = resolveWorkspacePath(root, args.path || '.', { mustExist: true });
         const isRegex = Boolean(args.is_regex);
         const caseSensitive = Boolean(args.case_sensitive);
         const maxResults = args.max_results || 50;
@@ -302,14 +303,46 @@ class ToolExecutor {
         };
       }
 
-      // 10. Native Shell Exec
+      // 10. Direct Process Exec (no shell interpretation)
+      if (toolName === 'process_exec') {
+        const executable = args.executable;
+        if (!executable) return { error: 'Missing required argument "executable".', tool_call_id: toolCallId };
+        const processArgs = args.arguments || [];
+        const execCwd = resolveWorkspacePath(root, args.cwd || '.', { mustExist: true });
+        const timeoutMs = Math.min(Math.max(Number(args.timeout_ms) || 30000, 1000), 120000);
+        const allowedExecutables = Array.isArray(settings.agentExecutableAllowlist)
+          ? settings.agentExecutableAllowlist
+          : DEFAULT_AGENT_EXECUTABLES;
+        const processResult = await shellManager.execFile(sessionId, executable, processArgs, {
+          cwd: execCwd,
+          timeoutMs,
+          maxOutputBytes: outputLimit,
+          networkAccess: args.network_access === true,
+          allowedExecutables,
+          envAllowlist: Array.isArray(settings.agentEnvironmentAllowlist) ? settings.agentEnvironmentAllowlist : []
+        });
+        return {
+          result: limitContentLength(JSON.stringify(processResult, null, 2), outputLimit),
+          tool_call_id: toolCallId,
+          exitCode: processResult.exitCode
+        };
+      }
+
+      // 11. Native Shell Exec
       if (toolName === 'shell_exec') {
         const command = args.command;
         if (!command) return { error: 'Missing required argument "command".', tool_call_id: toolCallId };
-        const execCwd = args.cwd ? (path.isAbsolute(args.cwd) ? args.cwd : path.resolve(root, args.cwd)) : root;
-        const timeoutMs = args.timeout_ms || 30000;
+        const execCwd = resolveWorkspacePath(root, args.cwd || '.', { mustExist: true });
+        const timeoutMs = Math.min(Math.max(Number(args.timeout_ms) || 30000, 1000), 120000);
 
-        const shellResult = await shellManager.exec(sessionId, command, { cwd: execCwd, timeoutMs });
+        const shellResult = await shellManager.exec(sessionId, command, {
+          cwd: execCwd,
+          timeoutMs,
+          maxOutputBytes: outputLimit,
+          networkAccess: args.network_access === true,
+          allowSystemCommands: settings.agentAllowSystemCommands === true,
+          envAllowlist: Array.isArray(settings.agentEnvironmentAllowlist) ? settings.agentEnvironmentAllowlist : []
+        });
         return {
           result: limitContentLength(JSON.stringify(shellResult, null, 2), outputLimit),
           tool_call_id: toolCallId,
@@ -317,9 +350,9 @@ class ToolExecutor {
         };
       }
 
-      // 11. Native Git Commands
+      // 12. Native Git Commands
       if (toolName === 'git_status') {
-        const targetRepo = args.repo_path ? path.resolve(root, args.repo_path) : root;
+        const targetRepo = resolveWorkspacePath(root, args.repo_path || '.', { mustExist: true });
         const status = await getRepositoryStatus(targetRepo);
         return {
           result: limitContentLength(JSON.stringify(status, null, 2), outputLimit),
@@ -328,7 +361,7 @@ class ToolExecutor {
       }
 
       if (toolName === 'git_diff') {
-        const targetRepo = args.repo_path ? path.resolve(root, args.repo_path) : root;
+        const targetRepo = resolveWorkspacePath(root, args.repo_path || '.', { mustExist: true });
         const gitArgs = args.cached ? ['diff', '--cached'] : ['diff', 'HEAD'];
         const diff = await runGit(targetRepo, gitArgs);
         return {
@@ -340,7 +373,7 @@ class ToolExecutor {
       if (toolName === 'git_commit') {
         const message = args.message;
         if (!message) return { error: 'Missing required argument "message".', tool_call_id: toolCallId };
-        const targetRepo = args.repo_path ? path.resolve(root, args.repo_path) : root;
+        const targetRepo = resolveWorkspacePath(root, args.repo_path || '.', { mustExist: true });
         await runGit(targetRepo, ['add', '--all']);
         const commit = await runGit(targetRepo, ['commit', '-m', message.trim()]);
         return {
@@ -364,12 +397,18 @@ class ToolExecutor {
       if (toolName === 'run_background_task') {
         const command = args.command;
         if (!command) return { error: 'Missing required argument "command".', tool_call_id: toolCallId };
-        const taskCwd = args.cwd ? (path.isAbsolute(args.cwd) ? args.cwd : path.resolve(root, args.cwd)) : root;
+        const taskCwd = resolveWorkspacePath(root, args.cwd || '.', { mustExist: true });
         const taskInfo = taskManager.runTask({
           command,
           name: args.name || command,
           runner: args.runner,
-          cwd: taskCwd
+          cwd: taskCwd,
+          timeoutMs: Math.min(Math.max(Number(args.timeout_ms) || 300000, 1000), 3600000),
+          networkAccess: args.network_access === true,
+          allowSystemCommands: settings.agentAllowSystemCommands === true,
+          restrictedEnv: true,
+          maxOutputBytes: Number(settings.toolOutputLimitBytes) || 1_000_000,
+          envAllowlist: Array.isArray(settings.agentEnvironmentAllowlist) ? settings.agentEnvironmentAllowlist : []
         });
         return {
           result: limitContentLength(JSON.stringify(taskInfo, null, 2), outputLimit),

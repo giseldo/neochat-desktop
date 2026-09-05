@@ -137,7 +137,10 @@ contextBridge.exposeInMainWorld('electron', {
     rejectTool: (sessionId, callId, reason) => ipcRenderer.invoke('agent:reject-tool', sessionId, callId, reason),
     cancel: (sessionId) => ipcRenderer.invoke('agent:cancel', sessionId),
     rollback: (sessionId) => ipcRenderer.invoke('agent:rollback', sessionId),
+    getSession: (sessionId) => ipcRenderer.invoke('agent:get-session', sessionId),
+    getTrajectory: (sessionId, options) => ipcRenderer.invoke('agent:get-trajectory', sessionId, options),
     getWorkspaceInfo: (workspaceRoot) => ipcRenderer.invoke('agent:get-workspace-info', workspaceRoot),
+    listHarnesses: () => ipcRenderer.invoke('agent:list-harnesses'),
     selectWorkspace: () => ipcRenderer.invoke('agent:select-workspace'),
     onEvent: (callback) => {
       const handler = (_, data) => callback(data);
@@ -426,6 +429,21 @@ contextBridge.exposeInMainWorld('electron', {
   screenCapture: {
     getSources: () => ipcRenderer.invoke('screen-capture-get-sources'),
     captureFullscreen: () => ipcRenderer.invoke('screen-capture-fullscreen'),
+  },
+
+  // --- User Persistent Long-Term Memory ---
+  memory: {
+    getAll: () => ipcRenderer.invoke('memory-get-all'),
+    getStats: () => ipcRenderer.invoke('memory-get-stats'),
+    add: (content, category, source) => ipcRenderer.invoke('memory-add', content, category, source),
+    update: (id, updates) => ipcRenderer.invoke('memory-update', id, updates),
+    delete: (id) => ipcRenderer.invoke('memory-delete', id),
+    clear: () => ipcRenderer.invoke('memory-clear'),
+    onMemoryUpdated: (callback) => {
+      const listener = (_, data) => callback(data);
+      ipcRenderer.on('memory-updated', listener);
+      return () => ipcRenderer.removeListener('memory-updated', listener);
+    }
   },
 
   // Generic IPC renderer access (kept for backward compatibility)
