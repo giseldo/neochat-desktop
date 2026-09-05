@@ -2530,9 +2530,6 @@ function App() {
         loading={loading}
         harnessMode={harnessMode}
         onModeChange={handleModeChange}
-        activeTab={activeTab}
-        onTabChange={setActiveTab}
-        showTrajectoryTab={showTrajectoryTab}
       />
       
       {/* Main Content Area */}
@@ -2552,6 +2549,34 @@ function App() {
                 >
                   <PanelLeft className="h-4 w-4" />
                 </Button>
+              )}
+
+              {/* Trajectory (Trajetória) View Toggle Switch */}
+              {showTrajectoryTab && (
+                <button
+                  type="button"
+                  onClick={() => setActiveTab(prev => prev === 'trajectory' ? 'chat' : 'trajectory')}
+                  className={cn(
+                    "h-7 px-2.5 text-xs flex items-center gap-2 rounded-lg border transition-all cursor-pointer select-none",
+                    activeTab === 'trajectory'
+                      ? "bg-emerald-500/15 border-emerald-500/40 text-emerald-600 dark:text-emerald-400 font-semibold shadow-2xs"
+                      : "bg-muted/40 border-border/70 text-muted-foreground hover:text-foreground hover:bg-muted/80 font-medium"
+                  )}
+                  title={activeTab === 'trajectory' ? 'Voltar para o Chat' : (t('trajectory.trajectoryTab') || 'Visualizar Trajetória')}
+                >
+                  <Activity className={cn("w-3.5 h-3.5 transition-colors", activeTab === 'trajectory' ? "text-emerald-500" : "text-muted-foreground")} />
+                  <span className="hidden sm:inline">{t('trajectory.trajectoryTab') || 'Trajetória'}</span>
+                  {/* Switch Toggle (Chave) */}
+                  <span className={cn(
+                    "w-6 h-3.5 rounded-full transition-colors relative inline-flex items-center px-0.5",
+                    activeTab === 'trajectory' ? "bg-emerald-500" : "bg-muted-foreground/30"
+                  )}>
+                    <span className={cn(
+                      "w-2.5 h-2.5 rounded-full bg-white transition-transform duration-200 shadow-xs",
+                      activeTab === 'trajectory' ? "translate-x-2.5" : "translate-x-0"
+                    )} />
+                  </span>
+                </button>
               )}
 
               {/* In Code Mode: Workspace Directory Selector Button */}

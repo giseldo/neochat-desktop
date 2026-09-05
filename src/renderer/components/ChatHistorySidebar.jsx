@@ -30,8 +30,7 @@ import {
   Archive,
   SlidersHorizontal,
   Briefcase,
-  Terminal,
-  Activity
+  Terminal
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 
@@ -229,10 +228,7 @@ function ChatHistorySidebar({
   onChatLoaded, 
   loading,
   harnessMode = 'chat',
-  onModeChange,
-  activeTab = 'chat',
-  onTabChange,
-  showTrajectoryTab = false
+  onModeChange
 }) {
   const { 
     chatList, 
@@ -1431,19 +1427,16 @@ function ChatHistorySidebar({
         </div>
       </div>
 
-      {/* Mode Switcher: Chat | Work | Code | Trajetória */}
+      {/* Mode Switcher: Chat | Work | Code */}
       {onModeChange && (
         <div className="px-2.5 pt-2 pb-0.5">
           <div className="flex items-center gap-0.5 bg-muted/60 p-0.5 rounded-xl border border-border/70 shadow-2xs">
             <button
               type="button"
-              onClick={() => {
-                if (onTabChange) onTabChange('chat');
-                onModeChange('chat');
-              }}
+              onClick={() => onModeChange('chat')}
               className={cn(
                 "flex-1 py-1 px-1.5 text-xs font-semibold rounded-lg transition-all flex items-center justify-center gap-1 cursor-pointer",
-                activeTab === 'chat' && harnessMode === 'chat'
+                harnessMode === 'chat'
                   ? "bg-background text-foreground shadow-xs font-bold"
                   : "text-muted-foreground hover:text-foreground"
               )}
@@ -1455,13 +1448,10 @@ function ChatHistorySidebar({
 
             <button
               type="button"
-              onClick={() => {
-                if (onTabChange) onTabChange('chat');
-                onModeChange('work');
-              }}
+              onClick={() => onModeChange('work')}
               className={cn(
                 "flex-1 py-1 px-1.5 text-xs font-semibold rounded-lg transition-all flex items-center justify-center gap-1 cursor-pointer",
-                activeTab === 'chat' && harnessMode === 'work'
+                harnessMode === 'work'
                   ? "bg-background text-foreground shadow-xs ring-1 ring-indigo-500/20 font-bold"
                   : "text-muted-foreground hover:text-foreground"
               )}
@@ -1473,13 +1463,10 @@ function ChatHistorySidebar({
 
             <button
               type="button"
-              onClick={() => {
-                if (onTabChange) onTabChange('chat');
-                onModeChange('code');
-              }}
+              onClick={() => onModeChange('code')}
               className={cn(
                 "flex-1 py-1 px-1.5 text-xs font-semibold rounded-lg transition-all flex items-center justify-center gap-1 cursor-pointer",
-                activeTab === 'chat' && harnessMode === 'code'
+                harnessMode === 'code'
                   ? "bg-amber-500/15 text-amber-600 dark:text-amber-400 shadow-xs ring-1 ring-amber-500/40 font-bold"
                   : "text-muted-foreground hover:text-foreground"
               )}
@@ -1488,23 +1475,6 @@ function ChatHistorySidebar({
               <Terminal className="w-3.5 h-3.5 text-amber-500 shrink-0" />
               <span className="truncate">{t('chat.chatModeCode')}</span>
             </button>
-
-            {showTrajectoryTab && (
-              <button
-                type="button"
-                onClick={() => onTabChange && onTabChange('trajectory')}
-                className={cn(
-                  "flex-1 py-1 px-1.5 text-xs font-semibold rounded-lg transition-all flex items-center justify-center gap-1 cursor-pointer",
-                  activeTab === 'trajectory'
-                    ? "bg-background text-foreground shadow-xs ring-1 ring-emerald-500/20 font-bold"
-                    : "text-muted-foreground hover:text-foreground"
-                )}
-                title={t('trajectory.trajectoryTab')}
-              >
-                <Activity className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
-                <span className="truncate">{t('trajectory.trajectoryTab')}</span>
-              </button>
-            )}
           </div>
         </div>
       )}
