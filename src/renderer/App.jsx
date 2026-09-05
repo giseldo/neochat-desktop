@@ -5,7 +5,6 @@ import ChatInput from './components/ChatInput';
 import ChatHistorySidebar from './components/ChatHistorySidebar';
 import ThemeToggle from './components/ThemeToggle';
 import PersonaSelector, { DEFAULT_PERSONAS, getStoredActivePersona, getStoredPersonas, ACTIVE_PERSONA_STORAGE_KEY } from './components/PersonaSelector';
-import AgentEngineSelector from './components/AgentEngineSelector';
 import WelcomeScreen from './components/WelcomeScreen';
 import { useChat } from './context/ChatContext';
 import { useCanvas } from './context/CanvasContext';
@@ -2529,6 +2528,11 @@ function App() {
         onNewChat={handleNewChat}
         onChatLoaded={handleChatLoaded}
         loading={loading}
+        harnessMode={harnessMode}
+        onModeChange={handleModeChange}
+        activeTab={activeTab}
+        onTabChange={setActiveTab}
+        showTrajectoryTab={showTrajectoryTab}
       />
       
       {/* Main Content Area */}
@@ -2548,93 +2552,6 @@ function App() {
                 >
                   <PanelLeft className="h-4 w-4" />
                 </Button>
-              )}
-
-              {/* 4-Option Mode & View Switcher: Chat | Work | Code | Trajetória */}
-              {isPowerUser && (
-                <div className="flex items-center gap-0.5 bg-muted/60 p-1 rounded-xl border border-border/70 shadow-2xs">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setActiveTab('chat');
-                      handleModeChange('chat');
-                    }}
-                    className={cn(
-                      "px-2.5 py-1 text-xs font-semibold rounded-lg transition-all flex items-center gap-1.5 cursor-pointer",
-                      activeTab === 'chat' && harnessMode === 'chat'
-                        ? "bg-background text-foreground shadow-xs font-bold"
-                        : "text-muted-foreground hover:text-foreground"
-                    )}
-                    title={t('chat.chatModeChat')}
-                  >
-                    <MessageSquare className="w-3.5 h-3.5 text-blue-500" />
-                    <span className="hidden md:inline">{t('chat.chatModeChat')}</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setActiveTab('chat');
-                      handleModeChange('work');
-                    }}
-                    className={cn(
-                      "px-2.5 py-1 text-xs font-semibold rounded-lg transition-all flex items-center gap-1.5 cursor-pointer",
-                      activeTab === 'chat' && harnessMode === 'work'
-                        ? "bg-background text-foreground shadow-xs ring-1 ring-indigo-500/20 font-bold"
-                        : "text-muted-foreground hover:text-foreground"
-                    )}
-                    title={t('chat.chatModeWork')}
-                  >
-                    <Briefcase className="w-3.5 h-3.5 text-indigo-500" />
-                    <span className="hidden md:inline">{t('chat.chatModeWork')}</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setActiveTab('chat');
-                      handleModeChange('code');
-                    }}
-                    className={cn(
-                      "px-2.5 py-1 text-xs font-semibold rounded-lg transition-all flex items-center gap-1.5 cursor-pointer",
-                      activeTab === 'chat' && harnessMode === 'code'
-                        ? "bg-amber-500/15 text-amber-600 dark:text-amber-400 shadow-xs ring-1 ring-amber-500/40 font-bold"
-                        : "text-muted-foreground hover:text-foreground"
-                    )}
-                    title={t('chat.chatModeCodeTooltip')}
-                  >
-                    <Terminal className="w-3.5 h-3.5 text-amber-500" />
-                    <span className="hidden md:inline">{t('chat.chatModeCode')}</span>
-                  </button>
-
-                  {showTrajectoryTab && (
-                    <button
-                      type="button"
-                      onClick={() => setActiveTab('trajectory')}
-                      className={cn(
-                        "px-2.5 py-1 text-xs font-semibold rounded-lg transition-all flex items-center gap-1.5 cursor-pointer",
-                        activeTab === 'trajectory'
-                          ? "bg-background text-foreground shadow-xs ring-1 ring-emerald-500/20 font-bold"
-                          : "text-muted-foreground hover:text-foreground"
-                      )}
-                      title={t('trajectory.trajectoryTab')}
-                    >
-                      <Activity className="w-3.5 h-3.5 text-emerald-500" />
-                      <span className="hidden md:inline">{t('trajectory.trajectoryTab')}</span>
-                      {messages.length > 0 && (
-                        <span className="w-1.5 h-1.5 rounded-full bg-primary" />
-                      )}
-                    </button>
-                  )}
-                </div>
-              )}
-
-              {/* Agent Engine Switcher (Neo Native / Pi Agent Core) */}
-              {isPowerUser && (
-                <AgentEngineSelector
-                  agentHarness={agentHarness}
-                  onHarnessChange={handleAgentHarnessChange}
-                />
               )}
 
               {/* In Code Mode: Workspace Directory Selector Button */}
@@ -2732,23 +2649,22 @@ function App() {
               {isPowerUser && (
                 <div className="relative" ref={toolsDropdownRef}>
                   <Button
-                    variant={isToolsDropdownOpen ? "default" : "outline"}
-                    size="sm"
+                    variant={isToolsDropdownOpen ? "default" : "ghost"}
+                    size="icon"
                     onClick={() => setIsToolsDropdownOpen(!isToolsDropdownOpen)}
                     className={cn(
-                      "h-8 px-2.5 text-xs border-border transition-all rounded-xl shadow-2xs flex items-center gap-1.5",
+                      "h-8 w-8 rounded-xl relative transition-all",
                       isToolsDropdownOpen
                         ? "bg-primary text-primary-foreground shadow-xs"
-                        : "text-foreground hover:bg-muted/80 bg-background/80"
+                        : "text-muted-foreground hover:text-foreground hover:bg-muted"
                     )}
                     title={t('header.toolsMenu') || 'Ferramentas e Recursos'}
+                    aria-label={t('header.toolsMenu') || 'Ferramentas e Recursos'}
                   >
-                    <LayoutGrid className={cn("h-3.5 w-3.5", isToolsDropdownOpen ? "text-primary-foreground" : "text-primary")} />
-                    <span className="hidden sm:inline font-medium">{t('header.tools') || 'Ferramentas'}</span>
+                    <LayoutGrid className="h-4 w-4" />
                     {(runningTasksCount > 0 || isTerminalOpen || isCanvasOpen) && (
-                      <span className="w-2 h-2 rounded-full bg-primary animate-pulse shrink-0" />
+                      <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-primary animate-pulse" />
                     )}
-                    <ChevronDown className={cn("w-3 h-3 text-muted-foreground transition-transform duration-200", isToolsDropdownOpen && "rotate-180 text-primary-foreground")} />
                   </Button>
 
                   {/* Dropdown Menu */}
