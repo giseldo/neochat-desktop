@@ -3781,29 +3781,22 @@ function Settings() {
                   </div>
                 </div>
 
-                {/* Explanatory Info Box */}
-                <div className="rounded-xl border border-border/70 bg-muted/20 p-3.5 space-y-2 text-xs">
-                  <div className="flex items-start gap-2.5">
-                    <Info className="w-4 h-4 text-primary shrink-0 mt-0.5" />
-                    <div className="space-y-1.5 text-foreground/90">
-                      <p className="font-semibold text-foreground">
-                        {t('settings.voiceInputInfoTitle')}
-                      </p>
-                      <p className="text-muted-foreground leading-relaxed">
-                        {t('settings.voiceInputInfoModel')}
-                      </p>
-                      <p className="text-muted-foreground leading-relaxed">
-                        {t('settings.voiceInputInfoDedicatedKey')}
-                      </p>
-                      <p className="text-muted-foreground leading-relaxed">
-                        {t('settings.voiceInputInfoUniversal')}
-                      </p>
-                      <p className="text-muted-foreground leading-relaxed">
-                        {t('settings.voiceInputInfoShortcut')}
-                      </p>
+                {/* Explanatory Info Box (Collapsible) */}
+                <details className="group rounded-xl border border-border/70 bg-muted/20 text-xs transition-colors">
+                  <summary className="flex items-center justify-between p-3.5 cursor-pointer select-none text-foreground font-semibold hover:bg-muted/30 list-none [&::-webkit-details-marker]:hidden">
+                    <div className="flex items-center gap-2.5">
+                      <Info className="w-4 h-4 text-primary shrink-0" />
+                      <span>{t('settings.voiceInputInfoTitle')}</span>
                     </div>
+                    <ChevronDown className="w-4 h-4 text-muted-foreground transition-transform duration-200 group-open:rotate-180 shrink-0" />
+                  </summary>
+                  <div className="px-3.5 pb-3.5 pt-2.5 space-y-1.5 pl-10 text-muted-foreground leading-relaxed border-t border-border/40">
+                    <p>{t('settings.voiceInputInfoModel')}</p>
+                    <p>{t('settings.voiceInputInfoDedicatedKey')}</p>
+                    <p>{t('settings.voiceInputInfoUniversal')}</p>
+                    <p>{t('settings.voiceInputInfoShortcut')}</p>
                   </div>
-                </div>
+                </details>
               </CardContent>
             </Card>
         )}
