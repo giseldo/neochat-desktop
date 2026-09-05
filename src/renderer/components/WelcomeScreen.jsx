@@ -109,11 +109,11 @@ export default function WelcomeScreen({
         title={lang === 'pt' ? 'Clique para trocar saudação' : 'Click to change greeting'}
       >
         <NeoSymbol 
-          className="w-8 h-8 md:w-9 md:h-9 group-hover:scale-110 transition-transform duration-300" 
-          spinning={true}
+          className="w-6 h-6 md:w-7 md:h-7 group-hover:scale-110 transition-transform duration-300"
+          spinning={false}
           spinBurst={isGreetingSpinning}
         />
-        <h2 className="text-2xl md:text-3xl lg:text-[2rem] font-medium tracking-tight text-foreground font-serif group-hover:text-primary transition-colors">
+        <h2 className="text-2xl md:text-[28px] font-medium tracking-tight text-foreground font-sans group-hover:text-primary transition-colors">
           {greeting}
         </h2>
       </div>

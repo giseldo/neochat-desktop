@@ -411,9 +411,9 @@ export function PersonaSelector({ activePersona, onSelectPersona, className }) {
         type="button"
         onClick={() => setIsOpen(!isOpen)}
         className={cn(
-          "h-7 flex items-center gap-1.5 px-2.5 rounded-lg border text-xs transition-colors shadow-xs group/btn cursor-pointer",
+          "h-7 flex items-center gap-1.5 px-2.5 rounded-lg text-xs transition-colors group/btn cursor-pointer",
           !isDeactivated
-            ? "border-primary/40 bg-primary/10 text-primary hover:bg-primary/15 font-semibold"
+            ? "text-foreground hover:bg-muted font-medium"
             : "border-border bg-background hover:bg-muted text-muted-foreground font-medium"
         )}
         title={!isDeactivated ? `${currentPersona?.name} • ${t('personas.clickToDeactivate') || 'Clique para desativar'}` : t('personas.buttonTitle')}

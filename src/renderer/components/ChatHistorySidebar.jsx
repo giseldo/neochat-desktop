@@ -1277,7 +1277,7 @@ function ChatHistorySidebar({
     <div 
       ref={sidebarRef}
       className={cn(
-        "flex flex-col h-full bg-background border-r border-border relative select-none",
+        "flex flex-col h-full bg-muted/25 border-r border-border/40 relative select-none",
         isResizing ? "" : "transition-all duration-200 ease-in-out"
       )}
       style={{ 
@@ -1297,21 +1297,10 @@ function ChatHistorySidebar({
       />
 
       {/* Header */}
-      <div className="flex items-center justify-between p-2.5 border-b border-border/80 bg-background/50">
-        <h2 className="font-semibold text-xs text-foreground uppercase tracking-wider pl-1">{t('sidebar.title')}</h2>
+      <div className="flex items-center justify-between px-3 py-3">
+        <h2 className="font-semibold text-sm text-foreground tracking-tight pl-1">NeoChat</h2>
         
         <div className="flex items-center gap-0.5">
-          {/* New Project button */}
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={openCreateProjectModal}
-            className="h-7 w-7 text-muted-foreground hover:text-primary hover:bg-muted/80 rounded-lg"
-            title={t('projects.newProject')}
-          >
-            <FolderPlus className="h-3.5 w-3.5" />
-          </Button>
-
           {/* New Chat button */}
           <Button
             variant="ghost"
@@ -1336,17 +1325,26 @@ function ChatHistorySidebar({
                   ? "text-primary bg-primary/10" 
                   : "text-muted-foreground hover:text-foreground hover:bg-muted/80"
               )}
-              title={t('sidebar.sort')}
+              title={t('header.toolsMenu')}
+              aria-label={t('header.toolsMenu')}
+              aria-expanded={isOptionsOpen}
             >
-              <SlidersHorizontal className="h-3.5 w-3.5" />
+              <MoreVertical className="h-3.5 w-3.5" />
             </Button>
 
             {/* Options Dropdown Menu */}
             {isOptionsOpen && (
               <div
                 ref={optionsMenuRef}
-                className="absolute left-0 top-full mt-1.5 w-48 bg-popover border border-border rounded-xl shadow-xl p-1 z-[9999] text-xs animate-in fade-in-0 zoom-in-95 space-y-1"
+                className="absolute right-0 top-full mt-1.5 w-48 bg-popover border border-border rounded-xl shadow-xl p-1 z-[9999] text-xs animate-in fade-in-0 zoom-in-95 space-y-1"
               >
+                <button type="button" onClick={() => { setIsOptionsOpen(false); openCreateProjectModal(); }} className="w-full flex items-center gap-2 px-2.5 py-2 rounded-md hover:bg-muted text-left">
+                  <FolderPlus className="w-3.5 h-3.5" />{t('projects.newProject')}
+                </button>
+                {chatList.length > 0 && <button type="button" onClick={() => { setIsOptionsOpen(false); setIsDeletingAllModalOpen(true); }} className="w-full flex items-center gap-2 px-2.5 py-2 rounded-md hover:bg-destructive/10 text-destructive text-left">
+                  <Trash2 className="w-3.5 h-3.5" />{t('sidebar.deleteAllChats')}
+                </button>}
+                <div className="my-1 border-t border-border" />
                 <div className="px-2 py-1 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
                   {t('sidebar.sort')}
                 </div>
@@ -1400,19 +1398,6 @@ function ChatHistorySidebar({
             )}
           </div>
 
-          {/* Delete All button */}
-          {chatList.length > 0 && (
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => setIsDeletingAllModalOpen(true)}
-              className="h-7 w-7 text-muted-foreground hover:text-destructive hover:bg-muted/80 rounded-lg"
-              title={t('sidebar.deleteAllChats')}
-            >
-              <Trash2 className="h-3.5 w-3.5" />
-            </Button>
-          )}
-
           {/* Collapse sidebar */}
           <Button
             variant="ghost"
@@ -1429,19 +1414,19 @@ function ChatHistorySidebar({
       {/* Mode Switcher: Chat | Code */}
       {onModeChange && (
         <div className="px-2.5 pt-2 pb-0.5">
-          <div className="flex items-center gap-0.5 bg-muted/60 p-0.5 rounded-xl border border-border/70 shadow-2xs">
+          <div className="flex items-center gap-1 p-0.5">
             <button
               type="button"
               onClick={() => onModeChange('chat')}
               className={cn(
                 "flex-1 py-1 px-1.5 text-xs font-semibold rounded-lg transition-all flex items-center justify-center gap-1.5 cursor-pointer",
                 harnessMode === 'chat'
-                  ? "bg-background text-foreground shadow-xs font-bold"
+                  ? "bg-muted text-foreground font-medium"
                   : "text-muted-foreground hover:text-foreground"
               )}
               title={t('chat.chatModeChatTooltip') || t('chat.chatModeChat')}
             >
-              <MessageSquare className="w-3.5 h-3.5 text-blue-500 shrink-0" />
+              <MessageSquare className="w-3.5 h-3.5 shrink-0" />
               <span className="truncate">{t('chat.chatModeChat')}</span>
             </button>
 
@@ -1451,12 +1436,12 @@ function ChatHistorySidebar({
               className={cn(
                 "flex-1 py-1 px-1.5 text-xs font-semibold rounded-lg transition-all flex items-center justify-center gap-1.5 cursor-pointer",
                 harnessMode === 'code'
-                  ? "bg-amber-500/15 text-amber-600 dark:text-amber-400 shadow-xs ring-1 ring-amber-500/40 font-bold"
+                  ? "bg-muted text-foreground font-medium"
                   : "text-muted-foreground hover:text-foreground"
               )}
               title={t('chat.chatModeCodeTooltip')}
             >
-              <Terminal className="w-3.5 h-3.5 text-amber-500 shrink-0" />
+              <Terminal className="w-3.5 h-3.5 shrink-0" />
               <span className="truncate">{t('chat.chatModeCode')}</span>
             </button>
           </div>
@@ -1472,7 +1457,7 @@ function ChatHistorySidebar({
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder={t('sidebar.searchPlaceholder')}
-            className="w-full pl-8 pr-7 py-1.5 text-xs rounded-lg bg-muted/60 border border-border/80 text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary transition-all"
+            className="w-full pl-8 pr-7 py-1.5 text-xs rounded-lg bg-transparent border border-transparent text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary transition-all"
           />
           {searchQuery && (
             <button
@@ -1562,7 +1547,7 @@ function ChatHistorySidebar({
                 <button
                   type="button"
                   onClick={() => setIsProjectsSectionOpen(prev => !prev)}
-                  className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider hover:text-foreground transition-colors"
+                  className="flex items-center gap-1.5 text-xs font-medium hover:text-foreground transition-colors"
                 >
                   <ChevronDown className={cn("w-3 h-3 transition-transform duration-200", !isProjectsSectionOpen && "-rotate-90")} />
                   <span>{t('projects.title')}</span>
@@ -1739,7 +1724,7 @@ function ChatHistorySidebar({
                 <button
                   type="button"
                   onClick={() => setIsChatsSectionOpen(prev => !prev)}
-                  className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider hover:text-foreground transition-colors"
+                  className="flex items-center gap-1.5 text-xs font-medium hover:text-foreground transition-colors"
                 >
                   <ChevronDown className={cn("w-3 h-3 transition-transform duration-200", !isChatsSectionOpen && "-rotate-90")} />
                   <span>{t('sidebar.chatsSection')}</span>

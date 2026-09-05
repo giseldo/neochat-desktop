@@ -787,7 +787,7 @@ function ChatInput({
 	return (
     <div 
 			className={cn(
-				"flex flex-col gap-4 border rounded-2xl w-full p-3 bg-muted/60 dark:bg-muted/30 backdrop-blur-sm relative transition-colors",
+				"flex flex-col gap-2 border rounded-2xl w-full max-w-[880px] mx-auto p-3 bg-background relative transition-colors focus-within:border-primary/40",
 				harnessMode === 'code' ? "border-amber-500/40 ring-1 ring-amber-500/20" : "border-border/80",
 				isDragOver 
 					? "border-primary border-2 bg-primary/5 transition-all duration-200" 
@@ -1022,9 +1022,10 @@ function ChatInput({
 					</div>
 					<div className="self-start">
 						<Button
+							aria-label={loading ? (t("chat.stopGeneration") || "Parar") : (t("chat.send") || "Enviar")}
 							type={loading ? "button" : "submit"}
 							size="icon"
-							className="h-12 w-12 rounded-2xl bg-primary hover:bg-primary/90 shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-105"
+							className="h-10 w-10 rounded-xl bg-primary hover:bg-primary/90 transition-colors"
 							disabled={!loading && (!message.trim() && files.length === 0)}
 							onClick={loading ? (e) => {
 								e.preventDefault();
@@ -1062,7 +1063,7 @@ function ChatInput({
 								size="sm"
 								onClick={() => setIsPlusMenuOpen(!isPlusMenuOpen)}
 								className={cn(
-									"h-8 w-8 p-0 rounded-xl transition-all duration-200 flex items-center justify-center flex-shrink-0 cursor-pointer shadow-2xs",
+									"h-8 w-8 p-0 rounded-xl transition-all duration-200 flex items-center justify-center flex-shrink-0 cursor-pointer",
 									isPlusMenuOpen
 										? "bg-primary text-primary-foreground shadow-xs"
 										: "text-muted-foreground hover:text-foreground hover:bg-muted/80 bg-background/60 border border-border/70"
