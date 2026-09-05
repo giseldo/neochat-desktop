@@ -28,9 +28,7 @@ import {
   Check,
   Star,
   Archive,
-  ArchiveRestore,
-  SlidersHorizontal,
-  LayoutList
+  SlidersHorizontal
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 
@@ -1316,20 +1314,6 @@ function ChatHistorySidebar({ onNewChat, onChatLoaded, loading }) {
             title={t('sidebar.newChat')}
           >
             <Plus className="h-4 w-4" />
-          </Button>
-
-          {/* Quick Density Toggle */}
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={toggleCompactMode}
-            className={cn(
-              "h-7 w-7 rounded-lg transition-colors",
-              isCompactMode ? "text-primary bg-primary/10 hover:bg-primary/20" : "text-muted-foreground hover:text-foreground hover:bg-muted/80"
-            )}
-            title={isCompactMode ? t('sidebar.comfortableMode') : t('sidebar.compactMode')}
-          >
-            <LayoutList className="h-3.5 w-3.5" />
           </Button>
 
           {/* Options / Sort & Filter Menu Trigger */}
