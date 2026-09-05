@@ -190,16 +190,38 @@ function sanitizeMessageHistory(messages) {
 
       // Normalize tool_calls
       if (Array.isArray(cleanMsg.tool_calls) && cleanMsg.tool_calls.length > 0) {
-        cleanMsg.tool_calls = cleanMsg.tool_calls.map((tc, idx) => ({
-          id: tc.id || `call_${Date.now()}_${idx}`,
-          type: tc.type || 'function',
-          function: {
-            name: tc.function?.name || 'unknown_tool',
-            arguments: typeof tc.function?.arguments === 'string'
-              ? tc.function.arguments
-              : JSON.stringify(tc.function?.arguments || {})
+        cleanMsg.tool_calls = cleanMsg.tool_calls.map((tc, idx) => {
+          const signature = tc.thought_signature ||
+            tc.thoughtSignature ||
+            tc.extra_content?.google?.thought_signature ||
+            tc.function?.thought_signature ||
+            tc.function?.thoughtSignature;
+
+          const formattedTc = {
+            id: tc.id || `call_${Date.now()}_${idx}`,
+            type: tc.type || 'function',
+            function: {
+              name: tc.function?.name || 'unknown_tool',
+              arguments: typeof tc.function?.arguments === 'string'
+                ? tc.function.arguments
+                : JSON.stringify(tc.function?.arguments || {})
+            }
+          };
+
+          if (signature) {
+            formattedTc.thought_signature = signature;
+            formattedTc.thoughtSignature = signature;
+            formattedTc.extra_content = tc.extra_content || {
+              google: {
+                thought_signature: signature
+              }
+            };
+          } else if (tc.extra_content) {
+            formattedTc.extra_content = tc.extra_content;
           }
-        }));
+
+          return formattedTc;
+        });
       } else {
         delete cleanMsg.tool_calls;
       }

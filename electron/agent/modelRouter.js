@@ -112,6 +112,12 @@ class ModelRouter {
       });
     }
 
+    const isGemini =
+      settings.provider === 'gemini' ||
+      settings.provider === 'google' ||
+      String(model || '').toLowerCase().includes('gemini') ||
+      (settings.baseUrl && (settings.baseUrl.includes('googleapis.com') || settings.baseUrl.includes('generativelanguage')));
+
     // Sanitize conversation messages
     for (const msg of messages) {
       if (!msg) continue;
@@ -125,16 +131,39 @@ class ModelRouter {
       }
 
       if (msg.role === 'assistant' && Array.isArray(msg.tool_calls) && msg.tool_calls.length > 0) {
-        formatted.tool_calls = msg.tool_calls.map(tc => ({
-          id: tc.id,
-          type: 'function',
-          function: {
-            name: tc.function?.name || tc.name,
-            arguments: typeof tc.function?.arguments === 'string'
-              ? tc.function.arguments
-              : JSON.stringify(tc.function?.arguments || {})
+        formatted.tool_calls = msg.tool_calls.map(tc => {
+          const signature = tc.thought_signature ||
+            tc.thoughtSignature ||
+            tc.extra_content?.google?.thought_signature ||
+            tc.function?.thought_signature ||
+            tc.function?.thoughtSignature ||
+            (isGemini ? 'skip_thought_signature_validator' : undefined);
+
+          const formattedTc = {
+            id: tc.id,
+            type: 'function',
+            function: {
+              name: tc.function?.name || tc.name,
+              arguments: typeof tc.function?.arguments === 'string'
+                ? tc.function.arguments
+                : JSON.stringify(tc.function?.arguments || {})
+            }
+          };
+
+          if (signature) {
+            formattedTc.thought_signature = signature;
+            formattedTc.thoughtSignature = signature;
+            formattedTc.extra_content = tc.extra_content || {
+              google: {
+                thought_signature: signature
+              }
+            };
+          } else if (tc.extra_content) {
+            formattedTc.extra_content = tc.extra_content;
           }
-        }));
+
+          return formattedTc;
+        });
       }
 
       if (msg.role === 'tool') {
@@ -257,20 +286,57 @@ class ModelRouter {
           if (Array.isArray(delta.tool_calls)) {
             for (const tcDelta of delta.tool_calls) {
               const tcIndex = tcDelta.index ?? 0;
+              const signature = tcDelta.thought_signature ||
+                tcDelta.thoughtSignature ||
+                tcDelta.extra_content?.google?.thought_signature ||
+                tcDelta.function?.thought_signature ||
+                tcDelta.function?.thoughtSignature ||
+                delta.thought_signature ||
+                delta.thoughtSignature ||
+                delta.extra_content?.google?.thought_signature ||
+                choice.delta?.thought_signature ||
+                choice.delta?.thoughtSignature ||
+                choice.delta?.extra_content?.google?.thought_signature;
+
+              const extraContent = tcDelta.extra_content || delta.extra_content || choice.delta?.extra_content;
+
               if (!aggregated.toolCallsMap.has(tcIndex)) {
-                aggregated.toolCallsMap.set(tcIndex, {
+                const item = {
                   id: tcDelta.id || `call_${Date.now()}_${tcIndex}`,
                   type: 'function',
                   function: {
                     name: tcDelta.function?.name || '',
                     arguments: tcDelta.function?.arguments || ''
                   }
-                });
+                };
+                if (signature) {
+                  item.thought_signature = signature;
+                  item.thoughtSignature = signature;
+                  item.extra_content = extraContent || {
+                    google: {
+                      thought_signature: signature
+                    }
+                  };
+                } else if (extraContent) {
+                  item.extra_content = extraContent;
+                }
+                aggregated.toolCallsMap.set(tcIndex, item);
               } else {
                 const existing = aggregated.toolCallsMap.get(tcIndex);
                 if (tcDelta.id && !existing.id) existing.id = tcDelta.id;
                 if (tcDelta.function?.name) existing.function.name += tcDelta.function.name;
                 if (tcDelta.function?.arguments) existing.function.arguments += tcDelta.function.arguments;
+                if (signature) {
+                  existing.thought_signature = signature;
+                  existing.thoughtSignature = signature;
+                  existing.extra_content = extraContent || existing.extra_content || {
+                    google: {
+                      thought_signature: signature
+                    }
+                  };
+                } else if (extraContent && !existing.extra_content) {
+                  existing.extra_content = extraContent;
+                }
               }
             }
           }

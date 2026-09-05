@@ -569,9 +569,41 @@ Always prioritize creating and editing files directly on disk using 'write_file'
         // Tools skipped for compound models
     }
 
+    const isGemini = String(settings.provider || '').toLowerCase() === 'gemini' ||
+        String(settings.provider || '').toLowerCase() === 'google' ||
+        String(modelToUse || '').toLowerCase().includes('gemini') ||
+        (settings.baseUrl && (settings.baseUrl.includes('googleapis.com') || settings.baseUrl.includes('generativelanguage')));
+
     // Extract any incoming system messages and non-system messages
     const customSystemMessages = prunedMessages.filter(m => m.role === 'system');
-    const nonSystemMessages = prunedMessages.filter(m => m.role !== 'system');
+    const nonSystemMessages = prunedMessages.filter(m => m.role !== 'system').map(m => {
+        if (m.role === 'assistant' && Array.isArray(m.tool_calls) && m.tool_calls.length > 0) {
+            return {
+                ...m,
+                tool_calls: m.tool_calls.map(tc => {
+                    const signature = tc.thought_signature ||
+                        tc.thoughtSignature ||
+                        tc.extra_content?.google?.thought_signature ||
+                        tc.function?.thought_signature ||
+                        tc.function?.thoughtSignature ||
+                        (isGemini ? 'skip_thought_signature_validator' : undefined);
+
+                    const formattedTc = { ...tc };
+                    if (signature) {
+                        formattedTc.thought_signature = signature;
+                        formattedTc.thoughtSignature = signature;
+                        formattedTc.extra_content = tc.extra_content || {
+                            google: {
+                                thought_signature: signature
+                            }
+                        };
+                    }
+                    return formattedTc;
+                })
+            };
+        }
+        return m;
+    });
 
     if (customSystemMessages.length > 0) {
         const customPromptText = customSystemMessages
@@ -769,9 +801,18 @@ function processStreamChunk(chunk, event, accumulatedData, groq, streamId, setti
     if (delta?.tool_calls?.length > 0) {
         for (const toolCallDelta of delta.tool_calls) {
             let existingCall = accumulatedData.toolCalls.find(tc => tc.index === toolCallDelta.index);
+            const signature = toolCallDelta.thought_signature ||
+                toolCallDelta.thoughtSignature ||
+                toolCallDelta.extra_content?.google?.thought_signature ||
+                toolCallDelta.function?.thought_signature ||
+                toolCallDelta.function?.thoughtSignature ||
+                delta.thought_signature ||
+                delta.thoughtSignature ||
+                delta.extra_content?.google?.thought_signature;
+            const extraContent = toolCallDelta.extra_content || delta.extra_content;
 
             if (!existingCall) {
-                accumulatedData.toolCalls.push({
+                const newCall = {
                     index: toolCallDelta.index,
                     id: toolCallDelta.id || `tool_${Date.now()}_${toolCallDelta.index}`,
                     type: toolCallDelta.type || 'function',
@@ -779,7 +820,19 @@ function processStreamChunk(chunk, event, accumulatedData, groq, streamId, setti
                         name: toolCallDelta.function?.name || "",
                         arguments: toolCallDelta.function?.arguments || ""
                     }
-                });
+                };
+                if (signature) {
+                    newCall.thought_signature = signature;
+                    newCall.thoughtSignature = signature;
+                    newCall.extra_content = extraContent || {
+                        google: {
+                            thought_signature: signature
+                        }
+                    };
+                } else if (extraContent) {
+                    newCall.extra_content = extraContent;
+                }
+                accumulatedData.toolCalls.push(newCall);
             } else {
                 if (toolCallDelta.function?.arguments) {
                     existingCall.function.arguments += toolCallDelta.function.arguments;
@@ -789,6 +842,17 @@ function processStreamChunk(chunk, event, accumulatedData, groq, streamId, setti
                 }
                 if (toolCallDelta.id) {
                     existingCall.id = toolCallDelta.id;
+                }
+                if (signature) {
+                    existingCall.thought_signature = signature;
+                    existingCall.thoughtSignature = signature;
+                    existingCall.extra_content = extraContent || existingCall.extra_content || {
+                        google: {
+                            thought_signature: signature
+                        }
+                    };
+                } else if (extraContent && !existingCall.extra_content) {
+                    existingCall.extra_content = extraContent;
                 }
             }
         }
@@ -2210,9 +2274,41 @@ async function runSingleStreamForCompare(event, messages, model, settings, model
         const cleanedMessages = cleanMessages(messages);
         const prunedMessages = pruneMessageHistory(cleanedMessages, modelToUse, modelContextSizes);
 
+        const isGemini = String(modelSettings.provider || '').toLowerCase() === 'gemini' ||
+            String(modelSettings.provider || '').toLowerCase() === 'google' ||
+            String(modelToUse || '').toLowerCase().includes('gemini') ||
+            (modelSettings.baseUrl && (modelSettings.baseUrl.includes('googleapis.com') || modelSettings.baseUrl.includes('generativelanguage')));
+
         // Include system prompt if available
         const customSystemMessages = prunedMessages.filter(m => m.role === 'system');
-        const nonSystemMessages = prunedMessages.filter(m => m.role !== 'system');
+        const nonSystemMessages = prunedMessages.filter(m => m.role !== 'system').map(m => {
+            if (m.role === 'assistant' && Array.isArray(m.tool_calls) && m.tool_calls.length > 0) {
+                return {
+                    ...m,
+                    tool_calls: m.tool_calls.map(tc => {
+                        const signature = tc.thought_signature ||
+                            tc.thoughtSignature ||
+                            tc.extra_content?.google?.thought_signature ||
+                            tc.function?.thought_signature ||
+                            tc.function?.thoughtSignature ||
+                            (isGemini ? 'skip_thought_signature_validator' : undefined);
+
+                        const formattedTc = { ...tc };
+                        if (signature) {
+                            formattedTc.thought_signature = signature;
+                            formattedTc.thoughtSignature = signature;
+                            formattedTc.extra_content = tc.extra_content || {
+                                google: {
+                                    thought_signature: signature
+                                }
+                            };
+                        }
+                        return formattedTc;
+                    })
+                };
+            }
+            return m;
+        });
         let systemPrompt = 'You are a helpful assistant. Format responses using Markdown.';
         if (settings.customSystemPrompt && settings.customSystemPrompt.trim()) {
             systemPrompt = settings.customSystemPrompt.trim();
