@@ -1098,7 +1098,10 @@ export const translations = {
       activeModelsCount: '{active} de {total} modelos ativos',
       enableAllModels: 'Ativar Todos',
       disableAllModels: 'Desativar Todos',
+      expandAllModels: 'Expandir Todos',
+      collapseAllModels: 'Recolher Todos',
       searchModelsPlaceholder: 'Filtrar modelos por nome, ID ou provedor...',
+      showingMatchingModels: 'Exibindo {count} modelo(s) em {providers} provedor(es)',
       noModelsAvailable: 'Nenhum modelo disponível para os provedores configurados. É necessário cadastrar uma chave de API nas configurações.',
 
       // Model Filters
@@ -2585,7 +2588,10 @@ export const translations = {
       activeModelsCount: '{active} of {total} active models',
       enableAllModels: 'Enable All',
       disableAllModels: 'Disable All',
+      expandAllModels: 'Expand All',
+      collapseAllModels: 'Collapse All',
       searchModelsPlaceholder: 'Filter models by name, ID, or provider...',
+      showingMatchingModels: 'Showing {count} model(s) across {providers} provider(s)',
       noModelsAvailable: 'No models available for configured providers. You need to configure an API key in settings.',
 
       // Model Filters

@@ -453,6 +453,7 @@ function Settings() {
   const [modelConfigs, setModelConfigs] = useState({});
   const [allLoadedModels, setAllLoadedModels] = useState([]);
   const [providerModelSearchQuery, setProviderModelSearchQuery] = useState('');
+  const [expandedProviderGroups, setExpandedProviderGroups] = useState(new Set());
   const [isRefreshingModels, setIsRefreshingModels] = useState(false);
   
   // Remote MCP Server state
@@ -2441,6 +2442,26 @@ function Settings() {
     setSettings(updatedSettings);
     await saveSettingsImmediate(updatedSettings);
     await fetchAndSetModelConfigs(false);
+  };
+
+  const toggleProviderGroup = (group) => {
+    setExpandedProviderGroups(prev => {
+      const next = new Set(prev);
+      if (next.has(group)) {
+        next.delete(group);
+      } else {
+        next.add(group);
+      }
+      return next;
+    });
+  };
+
+  const handleExpandAllProviderGroups = (allGroups) => {
+    setExpandedProviderGroups(new Set(allGroups));
+  };
+
+  const handleCollapseAllProviderGroups = () => {
+    setExpandedProviderGroups(new Set());
   };
 
   // Custom Model Management Functions
@@ -5142,47 +5163,105 @@ function Settings() {
                   </Button>
                 </div>
               </CardHeader>
-              <CardContent className="space-y-5">
-                {/* Search Bar for provider models */}
-                {allLoadedModels.length > 3 && (
-                  <div className="relative">
-                    <Input
-                      type="text"
-                      value={providerModelSearchQuery}
-                      onChange={(e) => setProviderModelSearchQuery(e.target.value)}
-                      placeholder={t('settings.searchModelsPlaceholder')}
-                      className="text-xs sm:text-sm h-9 pr-8"
-                    />
-                    {providerModelSearchQuery && (
-                      <button
-                        type="button"
-                        onClick={() => setProviderModelSearchQuery('')}
-                        className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground text-xs"
-                      >
-                        ✕
-                      </button>
-                    )}
+              <CardContent className="space-y-4">
+                {/* Search Bar & Global Expand/Collapse for provider models */}
+                {allLoadedModels.length > 0 && (
+                  <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5">
+                    <div className="relative flex-1">
+                      <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
+                      <Input
+                        type="text"
+                        value={providerModelSearchQuery}
+                        onChange={(e) => setProviderModelSearchQuery(e.target.value)}
+                        placeholder={t('settings.searchModelsPlaceholder')}
+                        className="text-xs sm:text-sm h-9 pl-8 pr-8"
+                      />
+                      {providerModelSearchQuery && (
+                        <button
+                          type="button"
+                          onClick={() => setProviderModelSearchQuery('')}
+                          className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground text-xs"
+                          title={t('common.clear')}
+                        >
+                          ✕
+                        </button>
+                      )}
+                    </div>
+                    {(() => {
+                      const allGroupNames = Array.from(new Set(allLoadedModels.map(id => {
+                        const cfg = modelConfigs[id] || {};
+                        return cfg.group || cfg.provider || getModelGroup(id, cfg);
+                      })));
+
+                      return (
+                        <div className="flex items-center gap-1.5 self-end sm:self-auto shrink-0">
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleExpandAllProviderGroups(allGroupNames)}
+                            className="text-xs h-9 px-2.5"
+                            title={t('settings.expandAllModels')}
+                          >
+                            <ChevronDown className="h-3.5 w-3.5 mr-1" />
+                            <span>{t('settings.expandAllModels')}</span>
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={handleCollapseAllProviderGroups}
+                            className="text-xs h-9 px-2.5"
+                            title={t('settings.collapseAllModels')}
+                          >
+                            <ChevronUp className="h-3.5 w-3.5 mr-1" />
+                            <span>{t('settings.collapseAllModels')}</span>
+                          </Button>
+                        </div>
+                      );
+                    })()}
                   </div>
                 )}
 
                 {allLoadedModels.length > 0 ? (
-                  <div className="space-y-5">
+                  <div className="space-y-3">
                     {(() => {
                       const query = providerModelSearchQuery.trim().toLowerCase();
-                      const filteredModelIds = query
+                      const isSearchActive = query.length > 0;
+                      const filteredModelIds = isSearchActive
                         ? allLoadedModels.filter(id => {
                             const cfg = modelConfigs[id] || {};
-                            const rawId = cfg.rawModelId || (id.includes('::') ? id.split('::')[1] : id);
+                            const rawId = (cfg.rawModelId || (id.includes('::') ? id.split('::')[1] : id)).toLowerCase();
                             const name = (cfg.displayName || rawId).toLowerCase();
                             const grp = (cfg.group || cfg.provider || getModelGroup(id, cfg)).toLowerCase();
-                            return id.toLowerCase().includes(query) || rawId.toLowerCase().includes(query) || name.includes(query) || grp.includes(query);
+                            const contextStr = cfg.context ? String(cfg.context) : '';
+                            const hasVision = cfg.vision_supported ? 'vision' : '';
+                            const hasTools = cfg.builtin_tools_supported ? 'tools tool' : '';
+                            return id.toLowerCase().includes(query) ||
+                                   rawId.includes(query) ||
+                                   name.includes(query) ||
+                                   grp.includes(query) ||
+                                   contextStr.includes(query) ||
+                                   hasVision.includes(query) ||
+                                   hasTools.includes(query);
                           })
                         : allLoadedModels;
 
                       if (filteredModelIds.length === 0) {
                         return (
-                          <div className="text-center py-6 text-xs text-muted-foreground border rounded-xl bg-muted/20">
-                            {t('common.noModelsFound')}
+                          <div className="text-center py-8 text-xs text-muted-foreground border border-dashed rounded-xl bg-muted/10 space-y-2">
+                            <p className="font-medium text-sm text-foreground/80">{t('common.noModelsFound')}</p>
+                            {isSearchActive && (
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                onClick={() => setProviderModelSearchQuery('')}
+                                className="text-xs h-7"
+                              >
+                                {t('common.clear')}
+                              </Button>
+                            )}
                           </div>
                         );
                       }
@@ -5190,113 +5269,191 @@ function Settings() {
                       const groups = groupModels(filteredModelIds, modelConfigs);
                       const disabledList = Array.isArray(settings.disabledModels) ? settings.disabledModels : [];
 
-                      return groups.map(({ group, models: groupModelIds }) => {
-                        const isModelActive = (id) => {
-                          const cfg = modelConfigs[id];
-                          const rawId = cfg?.rawModelId;
-                          return !disabledList.includes(id) && (!rawId || !disabledList.includes(rawId));
-                        };
-                        const activeCount = groupModelIds.filter(isModelActive).length;
-                        const totalCount = groupModelIds.length;
-
-                        return (
-                          <div key={group} className="border rounded-xl p-3.5 sm:p-4 bg-card/60 space-y-3 shadow-xs">
-                            {/* Group Header */}
-                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2 border-b border-border/50">
-                              <div className="flex items-center gap-2">
-                                <span className="font-semibold text-sm text-foreground tracking-wide">{group}</span>
-                                <Badge variant={activeCount > 0 ? "secondary" : "outline"} className="text-[11px] px-2">
-                                  {t('settings.activeModelsCount', { active: activeCount, total: totalCount })}
-                                </Badge>
-                              </div>
-                              <div className="flex items-center gap-2">
-                                <Button
-                                  type="button"
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => handleEnableAllInGroup(groupModelIds)}
-                                  disabled={activeCount === totalCount}
-                                  className="text-xs h-7 px-2 text-primary hover:text-primary"
-                                >
-                                  {t('settings.enableAllModels')}
-                                </Button>
-                                <span className="text-muted-foreground text-xs">•</span>
-                                <Button
-                                  type="button"
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => handleDisableAllInGroup(groupModelIds)}
-                                  disabled={activeCount === 0}
-                                  className="text-xs h-7 px-2 text-muted-foreground hover:text-destructive"
-                                >
-                                  {t('settings.disableAllModels')}
-                                </Button>
-                              </div>
+                      return (
+                        <>
+                          {isSearchActive && (
+                            <div className="text-xs text-muted-foreground flex items-center justify-between px-1 pb-1">
+                              <span>
+                                {t('settings.showingMatchingModels', { count: filteredModelIds.length, providers: groups.length })}
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() => setProviderModelSearchQuery('')}
+                                className="text-primary hover:underline text-xs"
+                              >
+                                {t('common.clear')}
+                              </button>
                             </div>
+                          )}
 
-                            {/* Model Grid */}
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5 pt-1">
-                              {groupModelIds.map(modelId => {
-                                const config = modelConfigs[modelId] || {};
-                                const rawId = config.rawModelId || (modelId.includes('::') ? modelId.split('::')[1] : modelId);
-                                const displayName = config.displayName || rawId;
-                                const isEnabled = !disabledList.includes(modelId) && (!config.rawModelId || !disabledList.includes(config.rawModelId));
+                          {groups.map(({ group, models: groupModelIds }) => {
+                            const isModelActive = (id) => {
+                              const cfg = modelConfigs[id];
+                              const rawId = cfg?.rawModelId;
+                              return !disabledList.includes(id) && (!rawId || !disabledList.includes(rawId));
+                            };
+                            const activeCount = groupModelIds.filter(isModelActive).length;
+                            const totalCount = groupModelIds.length;
+                            const isExpanded = isSearchActive ? true : expandedProviderGroups.has(group);
 
-                                return (
-                                  <div
-                                    key={modelId}
-                                    className={cn(
-                                      "flex items-center justify-between p-2.5 rounded-lg border transition-colors",
-                                      isEnabled
-                                        ? "bg-background border-border/80 hover:border-border"
-                                        : "bg-muted/30 border-dashed border-border/40 opacity-70"
-                                    )}
-                                  >
-                                    <div className="flex items-center gap-2.5 min-w-0 mr-2">
-                                      <Switch
-                                        id={`toggle-${modelId}`}
-                                        checked={isEnabled}
-                                        onChange={() => handleToggleModelEnabled(modelId)}
-                                        aria-label={`Toggle ${displayName}`}
+                            return (
+                              <div
+                                key={group}
+                                className={cn(
+                                  "border rounded-xl bg-card/60 shadow-xs transition-all duration-200 overflow-hidden",
+                                  isExpanded ? "border-border/80" : "border-border/50 hover:border-border"
+                                )}
+                              >
+                                {/* Group Header (Accordion Panel Trigger) */}
+                                <div
+                                  onClick={() => toggleProviderGroup(group)}
+                                  role="button"
+                                  tabIndex={0}
+                                  onKeyDown={(e) => {
+                                    if (e.key === 'Enter' || e.key === ' ') {
+                                      e.preventDefault();
+                                      toggleProviderGroup(group);
+                                    }
+                                  }}
+                                  className={cn(
+                                    "w-full flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 p-3 sm:p-3.5 cursor-pointer select-none transition-colors",
+                                    isExpanded ? "bg-muted/30 border-b border-border/50" : "hover:bg-muted/20"
+                                  )}
+                                >
+                                  {/* Left: Chevron & Provider Info */}
+                                  <div className="flex items-center gap-2.5 min-w-0">
+                                    <div className="p-1 rounded-md bg-muted/60 text-muted-foreground flex items-center justify-center shrink-0">
+                                      <ChevronDown
+                                        className={cn(
+                                          "h-4 w-4 transition-transform duration-200",
+                                          isExpanded ? "rotate-0 text-foreground" : "-rotate-90 text-muted-foreground"
+                                        )}
                                       />
-                                      <div className="min-w-0 space-y-0.5">
-                                        <div className="flex items-center gap-1.5 truncate">
-                                          <span className="font-medium text-xs text-foreground truncate">
-                                            {displayName}
-                                          </span>
-                                          {config.vision_supported && (
-                                            <Badge variant="outline" className="text-[9px] px-1 py-0 bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/30">
-                                              Vision
-                                            </Badge>
-                                          )}
-                                          {config.builtin_tools_supported && (
-                                            <Badge variant="outline" className="text-[9px] px-1 py-0 bg-green-500/10 text-green-600 dark:text-green-400 border-green-500/30">
-                                              Tools
-                                            </Badge>
-                                          )}
-                                        </div>
-                                        <div className="text-[10.5px] text-muted-foreground font-mono truncate">
-                                          {rawId} {config.context ? `(${Number(config.context).toLocaleString()} tokens)` : ''}
-                                        </div>
-                                      </div>
                                     </div>
-
-                                    <Badge
-                                      variant={isEnabled ? "secondary" : "outline"}
-                                      className={cn(
-                                        "text-[10px] shrink-0 font-normal",
-                                        isEnabled ? "bg-green-500/10 text-green-700 dark:text-green-300 border-green-500/20" : "text-muted-foreground"
+                                    <div className="flex items-center gap-2 flex-wrap min-w-0">
+                                      <span className="font-semibold text-sm text-foreground tracking-wide truncate">
+                                        {group}
+                                      </span>
+                                      <Badge
+                                        variant={activeCount > 0 ? "secondary" : "outline"}
+                                        className={cn(
+                                          "text-[11px] px-2 font-normal",
+                                          activeCount > 0 && "bg-primary/10 text-primary border-primary/20"
+                                        )}
+                                      >
+                                        {t('settings.activeModelsCount', { active: activeCount, total: totalCount })}
+                                      </Badge>
+                                      {!isExpanded && activeCount > 0 && (
+                                        <span className="hidden md:inline-block text-[11px] text-muted-foreground truncate max-w-[280px]">
+                                          ({groupModelIds
+                                            .filter(isModelActive)
+                                            .slice(0, 3)
+                                            .map(id => modelConfigs[id]?.displayName || (id.includes('::') ? id.split('::')[1] : id))
+                                            .join(', ')}
+                                          {activeCount > 3 ? ` +${activeCount - 3}` : ''})
+                                        </span>
                                       )}
-                                    >
-                                      {isEnabled ? t('settings.statusActive') : t('settings.statusInactive')}
-                                    </Badge>
+                                    </div>
                                   </div>
-                                );
-                              })}
-                            </div>
-                          </div>
-                        );
-                      });
+
+                                  {/* Right: Enable/Disable All Buttons */}
+                                  <div
+                                    className="flex items-center gap-2 self-end sm:self-auto shrink-0"
+                                    onClick={(e) => e.stopPropagation()}
+                                  >
+                                    <Button
+                                      type="button"
+                                      variant="ghost"
+                                      size="sm"
+                                      onClick={() => handleEnableAllInGroup(groupModelIds)}
+                                      disabled={activeCount === totalCount}
+                                      className="text-xs h-7 px-2 text-primary hover:text-primary hover:bg-primary/10"
+                                    >
+                                      {t('settings.enableAllModels')}
+                                    </Button>
+                                    <span className="text-muted-foreground text-xs">•</span>
+                                    <Button
+                                      type="button"
+                                      variant="ghost"
+                                      size="sm"
+                                      onClick={() => handleDisableAllInGroup(groupModelIds)}
+                                      disabled={activeCount === 0}
+                                      className="text-xs h-7 px-2 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                                    >
+                                      {t('settings.disableAllModels')}
+                                    </Button>
+                                  </div>
+                                </div>
+
+                                {/* Model Grid (Visible when Expanded) */}
+                                {isExpanded && (
+                                  <div className="p-3 sm:p-4 pt-3 bg-card/30 animate-in fade-in-0 duration-150">
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
+                                      {groupModelIds.map(modelId => {
+                                        const config = modelConfigs[modelId] || {};
+                                        const rawId = config.rawModelId || (modelId.includes('::') ? modelId.split('::')[1] : modelId);
+                                        const displayName = config.displayName || rawId;
+                                        const isEnabled = isModelActive(modelId);
+
+                                        return (
+                                          <div
+                                            key={modelId}
+                                            className={cn(
+                                              "flex items-center justify-between p-2.5 rounded-lg border transition-colors",
+                                              isEnabled
+                                                ? "bg-background border-border/80 hover:border-border shadow-2xs"
+                                                : "bg-muted/20 border-dashed border-border/40 opacity-70"
+                                            )}
+                                          >
+                                            <div className="flex items-center gap-2.5 min-w-0 mr-2">
+                                              <Switch
+                                                id={`toggle-${modelId}`}
+                                                checked={isEnabled}
+                                                onChange={() => handleToggleModelEnabled(modelId)}
+                                                aria-label={`Toggle ${displayName}`}
+                                              />
+                                              <div className="min-w-0 space-y-0.5">
+                                                <div className="flex items-center gap-1.5 truncate">
+                                                  <span className="font-medium text-xs text-foreground truncate">
+                                                    {displayName}
+                                                  </span>
+                                                  {config.vision_supported && (
+                                                    <Badge variant="outline" className="text-[9px] px-1 py-0 bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/30">
+                                                      Vision
+                                                    </Badge>
+                                                  )}
+                                                  {config.builtin_tools_supported && (
+                                                    <Badge variant="outline" className="text-[9px] px-1 py-0 bg-green-500/10 text-green-600 dark:text-green-400 border-green-500/30">
+                                                      Tools
+                                                    </Badge>
+                                                  )}
+                                                </div>
+                                                <div className="text-[10.5px] text-muted-foreground font-mono truncate">
+                                                  {rawId} {config.context ? `(${Number(config.context).toLocaleString()} tokens)` : ''}
+                                                </div>
+                                              </div>
+                                            </div>
+
+                                            <Badge
+                                              variant={isEnabled ? "secondary" : "outline"}
+                                              className={cn(
+                                                "text-[10px] shrink-0 font-normal",
+                                                isEnabled ? "bg-green-500/10 text-green-700 dark:text-green-300 border-green-500/20" : "text-muted-foreground"
+                                              )}
+                                            >
+                                              {isEnabled ? t('settings.statusActive') : t('settings.statusInactive')}
+                                            </Badge>
+                                          </div>
+                                        );
+                                      })}
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </>
+                      );
                     })()}
                   </div>
                 ) : (
