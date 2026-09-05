@@ -261,7 +261,7 @@ app.whenReady().then(async () => {
   }
 
   // Helper to fetch and merge all models across active providers with unique keys
-  async function getMergedModelConfigs(currentSettings) {
+  async function getMergedModelConfigs(currentSettings, forceRefresh = false) {
     const activeProviders = getActiveProviders(currentSettings);
     let allApiModels = {};
 
@@ -274,7 +274,7 @@ app.whenReady().then(async () => {
           const providerModels = await getModelsFromAPIWithCache(
             apiKey,
             modelsUrl,
-            false,
+            forceRefresh,
             { providerId: provider.id, providerName: provider.name }
           );
           if (providerModels) {
@@ -307,10 +307,10 @@ app.whenReady().then(async () => {
   }
 
   // --- Early IPC Handlers required by popup and renderer before other init --- //
-  ipcMain.handle('get-model-configs', async () => {
+  ipcMain.handle('get-model-configs', async (event, forceRefresh = false) => {
     // Return a copy to prevent accidental modification with custom models merged in
     const currentSettings = loadSettings();
-    const mergedModelContextSizes = await getMergedModelConfigs(currentSettings);
+    const mergedModelContextSizes = await getMergedModelConfigs(currentSettings, forceRefresh);
     return JSON.parse(JSON.stringify(mergedModelContextSizes));
   });
 

@@ -265,7 +265,7 @@ contextBridge.exposeInMainWorld('electron', {
   disconnectMcpServer: (serverId) => ipcRenderer.invoke('disconnect-mcp-server', serverId),
   getMcpTools: () => ipcRenderer.invoke('get-mcp-tools'),
   // Function to get model configurations
-  getModelConfigs: () => ipcRenderer.invoke('get-model-configs'),
+  getModelConfigs: (forceRefresh = false) => ipcRenderer.invoke('get-model-configs', forceRefresh),
   // List of supported providers (for the settings UI)
   getProviders: () => ipcRenderer.invoke('get-providers'),
   // Test connection to a provider

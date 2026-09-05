@@ -1159,6 +1159,41 @@ function Settings() {
     };
   }, []);
 
+  // Save settings immediately without debounce (used when adding/updating models/providers)
+  const saveSettingsImmediate = async (updatedSettings) => {
+    if (saveTimeoutRef.current) {
+      clearTimeout(saveTimeoutRef.current);
+      saveTimeoutRef.current = null;
+    }
+
+    setIsSaving(true);
+    try {
+      const settingsToSave = {
+        ...updatedSettings,
+        disabledMcpServers: updatedSettings.disabledMcpServers || []
+      };
+      const result = await window.electron.saveSettings(settingsToSave);
+      if (result?.success) {
+        setSaveStatus({ type: 'success', message: t('settings.savedSuccess') });
+        if (statusTimeoutRef.current) {
+          clearTimeout(statusTimeoutRef.current);
+        }
+        statusTimeoutRef.current = setTimeout(() => {
+          setSaveStatus(null);
+        }, 2000);
+      } else {
+        setSaveStatus({ type: 'error', message: t('settings.failedSave', { error: result?.error }) });
+      }
+      return result;
+    } catch (error) {
+      console.error('Error saving settings immediately:', error);
+      setSaveStatus({ type: 'error', message: t('settings.errorSaving', { error: error.message }) });
+      return { success: false, error: error.message };
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   // Save settings with debounce
   const saveSettings = (updatedSettings) => {
     if (saveTimeoutRef.current) {
@@ -1174,7 +1209,7 @@ function Settings() {
             disabledMcpServers: updatedSettings.disabledMcpServers || []
         };
         const result = await window.electron.saveSettings(settingsToSave);
-        if (result.success) {
+        if (result?.success) {
           setSaveStatus({ type: 'success', message: t('settings.savedSuccess') });
           
           if (statusTimeoutRef.current) {
@@ -1184,7 +1219,7 @@ function Settings() {
             setSaveStatus(null);
           }, 2000);
         } else {
-          setSaveStatus({ type: 'error', message: t('settings.failedSave', { error: result.error }) });
+          setSaveStatus({ type: 'error', message: t('settings.failedSave', { error: result?.error }) });
         }
       } catch (error) {
         console.error('Error saving settings:', error);
@@ -1308,7 +1343,7 @@ function Settings() {
     }
   };
 
-  const refreshProvidersAndModels = async () => {
+  const refreshProvidersAndModels = async (forceRefresh = false) => {
     try {
       const list = await window.electron.getProviders();
       if (Array.isArray(list) && list.length > 0) {
@@ -1335,9 +1370,7 @@ function Settings() {
         });
         setProviders(fallbackList);
       }
-      const configs = await window.electron.getModelConfigs();
-      setModelConfigs(configs || {});
-      setAllLoadedModels(Object.keys(configs || {}).filter(k => k !== 'default'));
+      await fetchAndSetModelConfigs(forceRefresh);
     } catch (err) {
       console.error('Error refreshing providers and models:', err);
     }
@@ -1361,8 +1394,8 @@ function Settings() {
       enabledProviders: newEnabled
     };
     setSettings(updatedSettings);
-    await saveSettings(updatedSettings);
-    await refreshProvidersAndModels();
+    await saveSettingsImmediate(updatedSettings);
+    await refreshProvidersAndModels(true);
   };
 
   const handleSetPrimaryProvider = async (providerId) => {
@@ -1382,8 +1415,8 @@ function Settings() {
     setSettings(updatedSettings);
     const provider = providers.find(p => p.id === providerId);
     setActiveProvider(provider || null);
-    await saveSettings(updatedSettings);
-    await refreshProvidersAndModels();
+    await saveSettingsImmediate(updatedSettings);
+    await refreshProvidersAndModels(true);
   };
 
   const handleProviderApiKeyChange = (providerId, value) => {
@@ -1668,10 +1701,9 @@ function Settings() {
     };
 
     setSettings(updatedSettings);
-    await saveSettings(updatedSettings);
+    await saveSettingsImmediate(updatedSettings);
     setIsAddProviderModalOpen(false);
-    await refreshProvidersAndModels();
-    await fetchAndSetModelConfigs();
+    await refreshProvidersAndModels(true);
   };
 
   const handleDeleteCustomProviderConfirm = async () => {
@@ -1701,9 +1733,9 @@ function Settings() {
     };
 
     setSettings(updatedSettings);
-    await saveSettings(updatedSettings);
+    await saveSettingsImmediate(updatedSettings);
     setDeletingCustomProvider(null);
-    await refreshProvidersAndModels();
+    await refreshProvidersAndModels(true);
   };
 
   const toggleProviderApiKeyVisibility = (providerId) => {
@@ -1738,15 +1770,13 @@ function Settings() {
     }
   };
 
-  const handleProviderChange = (value) => {
+  const handleProviderChange = async (value) => {
     const updatedSettings = { ...settings, provider: value };
     setSettings(updatedSettings);
-    saveSettings(updatedSettings);
+    await saveSettingsImmediate(updatedSettings);
     const provider = providers.find(p => p.id === value);
     setActiveProvider(provider || null);
-    setTimeout(() => {
-      fetchAndSetModelConfigs();
-    }, 1000);
+    await fetchAndSetModelConfigs(true);
   };
 
   const getActiveApiKeyValue = () => {
@@ -2344,10 +2374,10 @@ function Settings() {
   };
 
   // Model Management and Activation Handlers
-  const fetchAndSetModelConfigs = async () => {
+  const fetchAndSetModelConfigs = async (forceRefresh = false) => {
     setIsRefreshingModels(true);
     try {
-      const configs = await window.electron.getModelConfigs();
+      const configs = await window.electron.getModelConfigs(forceRefresh);
       setModelConfigs(configs || {});
       const ids = Object.keys(configs || {}).filter(k => k !== 'default');
       setAllLoadedModels(ids);
@@ -2358,7 +2388,7 @@ function Settings() {
     }
   };
 
-  const handleToggleModelEnabled = (modelId) => {
+  const handleToggleModelEnabled = async (modelId) => {
     const currentDisabled = Array.isArray(settings.disabledModels) ? settings.disabledModels : [];
     const cfg = modelConfigs[modelId];
     const rawId = cfg?.rawModelId;
@@ -2379,10 +2409,11 @@ function Settings() {
     };
 
     setSettings(updatedSettings);
-    saveSettings(updatedSettings);
+    await saveSettingsImmediate(updatedSettings);
+    await fetchAndSetModelConfigs(false);
   };
 
-  const handleEnableAllInGroup = (modelIds) => {
+  const handleEnableAllInGroup = async (modelIds) => {
     const currentDisabled = Array.isArray(settings.disabledModels) ? settings.disabledModels : [];
     const rawIdsToRemove = new Set(modelIds);
     modelIds.forEach(id => {
@@ -2395,10 +2426,11 @@ function Settings() {
       disabledModels: updatedDisabled
     };
     setSettings(updatedSettings);
-    saveSettings(updatedSettings);
+    await saveSettingsImmediate(updatedSettings);
+    await fetchAndSetModelConfigs(false);
   };
 
-  const handleDisableAllInGroup = (modelIds) => {
+  const handleDisableAllInGroup = async (modelIds) => {
     const currentDisabled = Array.isArray(settings.disabledModels) ? settings.disabledModels : [];
     const toAdd = modelIds.filter(id => !currentDisabled.includes(id));
     const updatedDisabled = [...currentDisabled, ...toAdd];
@@ -2407,7 +2439,8 @@ function Settings() {
       disabledModels: updatedDisabled
     };
     setSettings(updatedSettings);
-    saveSettings(updatedSettings);
+    await saveSettingsImmediate(updatedSettings);
+    await fetchAndSetModelConfigs(false);
   };
 
   // Custom Model Management Functions
@@ -2419,8 +2452,8 @@ function Settings() {
     }));
   };
 
-  const handleSaveCustomModel = (e) => {
-    e.preventDefault();
+  const handleSaveCustomModel = async (e) => {
+    e?.preventDefault?.();
     
     if (!newCustomModel.id.trim()) {
       setSaveStatus({ type: 'error', message: 'Model ID is required' });
@@ -2453,16 +2486,16 @@ function Settings() {
     };
 
     setSettings(updatedSettings);
-    saveSettings(updatedSettings);
+    await saveSettingsImmediate(updatedSettings);
     
     // Clear the form
     setNewCustomModel({ id: '', displayName: '', group: '', context: 1000000, vision_supported: false, builtin_tools_supported: false });
     setEditingModelId(null);
     setSaveStatus({ type: 'success', message: t('settings.savedSuccess') });
-    fetchAndSetModelConfigs();
+    await fetchAndSetModelConfigs(true);
   };
 
-  const handleSaveBulkModels = (e) => {
+  const handleSaveBulkModels = async (e) => {
     e?.preventDefault?.();
     const parsedModels = parseBulkModelsInput(bulkModelsInput, {
       context: bulkDefaultContext,
@@ -2493,16 +2526,16 @@ function Settings() {
     };
 
     setSettings(updatedSettings);
-    saveSettings(updatedSettings);
+    await saveSettingsImmediate(updatedSettings);
     setBulkModelsInput('');
     setSaveStatus({
       type: 'success',
       message: t('settings.modelsAddedSuccess', { count: parsedModels.length })
     });
-    fetchAndSetModelConfigs();
+    await fetchAndSetModelConfigs(true);
   };
 
-  const handleImportCustomModelsJson = () => {
+  const handleImportCustomModelsJson = async () => {
     try {
       const parsedModels = parseBulkModelsInput(customModelsJsonInput);
       if (parsedModels.length === 0) {
@@ -2527,13 +2560,13 @@ function Settings() {
       };
 
       setSettings(updatedSettings);
-      saveSettings(updatedSettings);
+      await saveSettingsImmediate(updatedSettings);
       setCustomModelsJsonInput('');
       setSaveStatus({
         type: 'success',
         message: t('settings.importJsonSuccess', { count: parsedModels.length })
       });
-      fetchAndSetModelConfigs();
+      await fetchAndSetModelConfigs(true);
     } catch (err) {
       setSaveStatus({ type: 'error', message: t('settings.importJsonError') });
     }
@@ -2549,21 +2582,21 @@ function Settings() {
     }
   };
 
-  const handleDeleteAllCustomModels = () => {
+  const handleDeleteAllCustomModels = async () => {
     if (window.confirm(t('settings.deleteAllCustomModelsConfirm'))) {
       const updatedSettings = {
         ...settings,
         customModels: {}
       };
       setSettings(updatedSettings);
-      saveSettings(updatedSettings);
+      await saveSettingsImmediate(updatedSettings);
       cancelModelEditing();
       setSaveStatus({ type: 'success', message: t('settings.savedSuccess') });
-      fetchAndSetModelConfigs();
+      await fetchAndSetModelConfigs(true);
     }
   };
 
-  const removeCustomModel = (modelId) => {
+  const removeCustomModel = async (modelId) => {
     const updatedCustomModels = { ...settings.customModels };
     delete updatedCustomModels[modelId];
     
@@ -2573,13 +2606,13 @@ function Settings() {
     };
     
     setSettings(updatedSettings);
-    saveSettings(updatedSettings);
+    await saveSettingsImmediate(updatedSettings);
 
     // If the removed model was being edited, cancel the edit
     if (editingModelId === modelId) {
       cancelModelEditing();
     }
-    fetchAndSetModelConfigs();
+    await fetchAndSetModelConfigs(true);
   };
 
   const startModelEditing = (modelId) => {
@@ -5107,7 +5140,7 @@ function Settings() {
                     type="button"
                     variant="outline"
                     size="sm"
-                    onClick={fetchAndSetModelConfigs}
+                    onClick={() => fetchAndSetModelConfigs(true)}
                     disabled={isRefreshingModels}
                     className="text-xs h-8 self-start sm:self-auto shrink-0"
                   >
@@ -5281,7 +5314,7 @@ function Settings() {
                       type="button"
                       variant="outline"
                       size="sm"
-                      onClick={fetchAndSetModelConfigs}
+                      onClick={() => fetchAndSetModelConfigs(true)}
                       className="mt-3 text-xs"
                     >
                       <RefreshCw className="h-3.5 w-3.5 mr-1.5" />
