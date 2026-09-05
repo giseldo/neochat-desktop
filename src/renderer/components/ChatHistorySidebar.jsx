@@ -1560,7 +1560,8 @@ function ChatHistorySidebar({
                 <button
                   type="button"
                   onClick={openCreateProjectModal}
-                  className="opacity-0 group-hover:opacity-100 p-1 rounded hover:bg-muted text-muted-foreground hover:text-primary transition-all"
+                  className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-primary transition-colors"
+                  aria-label={t('projects.newProject')}
                   title={t('projects.newProject')}
                 >
                   <Plus className="w-3.5 h-3.5" />
@@ -1571,15 +1572,8 @@ function ChatHistorySidebar({
               {isProjectsSectionOpen && (
                 <div className="space-y-0.5 px-1">
                   {projects.length === 0 ? (
-                    <div className="px-3 py-2 text-[11px] text-muted-foreground/80 flex items-center justify-between">
-                      <span>{t('projects.noProjects')}</span>
-                      <button
-                        type="button"
-                        onClick={openCreateProjectModal}
-                        className="text-primary hover:underline font-medium flex items-center gap-0.5"
-                      >
-                        <Plus className="w-3 h-3" /> {t('projects.createProject')}
-                      </button>
+                    <div className="px-3 py-2 text-[11px] text-muted-foreground/80">
+                      {t('projects.noProjects')}
                     </div>
                   ) : (
                     projects.map((project) => {
