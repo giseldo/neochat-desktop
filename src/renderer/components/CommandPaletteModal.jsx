@@ -88,6 +88,7 @@ export function CommandPaletteModal({
   activePersona,
   onSelectPersona,
   onClearChat,
+  onNewChat,
   onExportChat
 }) {
   const { t } = useLanguage();
@@ -310,7 +311,7 @@ export function CommandPaletteModal({
         subtitle: 'Iniciar uma conversa limpa',
         icon: Plus,
         shortcut: `${modKey}+N`,
-        action: () => { onClose(); createNewChat?.(); }
+        action: () => { onClose(); (onNewChat || createNewChat)?.(); }
       },
       {
         id: 'action_new_canvas_doc',

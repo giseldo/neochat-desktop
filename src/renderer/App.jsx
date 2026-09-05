@@ -2358,6 +2358,9 @@ function App() {
       setPendingApprovalCall(null);
       setPausedChatState(null);
     }
+
+    // Switch back to chat tab if currently on trajectory or other tab
+    setActiveTab('chat');
     
     const projId = targetProjectId !== undefined ? targetProjectId : activeProjectId;
     if (targetProjectId !== undefined) {
@@ -2466,6 +2469,9 @@ function App() {
 
     // Reset active artifact preview when switching chats
     setActiveArtifact(null);
+
+    // Switch back to chat tab
+    setActiveTab('chat');
 
     // Load canvas document if this chat has one
     if (chat.canvasDoc) {
@@ -3475,6 +3481,7 @@ function App() {
           activePersona={activePersona}
           onSelectPersona={(p) => setActivePersona(p)}
           onClearChat={clearCurrentChat}
+          onNewChat={handleNewChat}
           onExportChat={handleExportChat}
         />
 
