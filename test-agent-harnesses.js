@@ -135,46 +135,54 @@ async function main() {
   assert.ok(seenEvents.some(item => item.eventName === AGENT_EVENTS.TOOL_RESULT));
   assert.ok(seenEvents.some(item => item.eventName === AGENT_EVENTS.TOKEN_DELTA));
 
-  const [{ Agent }, { createFauxCore, fauxAssistantMessage, fauxToolCall }] = await Promise.all([
-    import('@earendil-works/pi-agent-core'),
-    import('@earendil-works/pi-ai')
-  ]);
-  const faux = createFauxCore({
-    api: 'openai-completions',
-    provider: 'groq',
-    models: [{ id: 'test-model' }],
-    tokensPerSecond: 0
-  });
-  faux.setResponses([
-    fauxAssistantMessage(fauxToolCall('read_file', { path: 'README.md' }, { id: 'call_real_pi' }), { stopReason: 'toolUse' }),
-    fauxAssistantMessage('Real Pi loop completed.')
-  ]);
-  const realRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'neochat-real-pi-'));
-  let realExecutions = 0;
-  const realAdapter = new PiHarnessAdapter({
-    moduleLoader: async () => ({ Agent, streamSimple: faux.streamSimple }),
-    toolExecutor: {
-      execute: async () => {
-        realExecutions += 1;
-        return { result: 'README contents' };
+  try {
+    const [{ Agent }, { createFauxCore, fauxAssistantMessage, fauxToolCall }] = await Promise.all([
+      import('@earendil-works/pi-agent-core'),
+      import('@earendil-works/pi-ai')
+    ]);
+    const faux = createFauxCore({
+      api: 'openai-completions',
+      provider: 'groq',
+      models: [{ id: 'test-model' }],
+      tokensPerSecond: 0
+    });
+    faux.setResponses([
+      fauxAssistantMessage(fauxToolCall('read_file', { path: 'README.md' }, { id: 'call_real_pi' }), { stopReason: 'toolUse' }),
+      fauxAssistantMessage('Real Pi loop completed.')
+    ]);
+    const realRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'neochat-real-pi-'));
+    let realExecutions = 0;
+    const realAdapter = new PiHarnessAdapter({
+      moduleLoader: async () => ({ Agent, streamSimple: faux.streamSimple }),
+      toolExecutor: {
+        execute: async () => {
+          realExecutions += 1;
+          return { result: 'README contents' };
+        }
       }
+    });
+    const realResult = await realAdapter.run({
+      sessionId: 'real_pi_test',
+      messages: [{ role: 'user', content: 'Use a tool', timestamp: Date.now() }],
+      model: 'groq::test-model',
+      settings: { provider: 'groq', GROQ_API_KEY: 'test-key', apiKeys: { groq: 'test-key' }, agentMode: true },
+      toolRegistry: new ToolRegistry(),
+      permissionEngine: new PermissionEngine({ agentMode: true }),
+      eventBus: new AgentEventBus('real_pi_test'),
+      workspaceRoot: realRoot,
+      maxIterations: 5
+    });
+    fs.rmSync(realRoot, { recursive: true, force: true });
+    assert.strictEqual(realResult.status, 'completed');
+    assert.strictEqual(realExecutions, 1, 'The real Pi Agent loop must route tool execution through NeoChat');
+    assert.ok(realResult.message.content.includes('Real Pi loop completed.'));
+  } catch (err) {
+    if (err.code === 'ERR_MODULE_NOT_FOUND' || err.message?.includes('Cannot find package')) {
+      console.log('Optional Pi packages not installed; skipping real Pi mock test.');
+    } else {
+      throw err;
     }
-  });
-  const realResult = await realAdapter.run({
-    sessionId: 'real_pi_test',
-    messages: [{ role: 'user', content: 'Use a tool', timestamp: Date.now() }],
-    model: 'groq::test-model',
-    settings: { provider: 'groq', GROQ_API_KEY: 'test-key', apiKeys: { groq: 'test-key' }, agentMode: true },
-    toolRegistry: new ToolRegistry(),
-    permissionEngine: new PermissionEngine({ agentMode: true }),
-    eventBus: new AgentEventBus('real_pi_test'),
-    workspaceRoot: realRoot,
-    maxIterations: 5
-  });
-  fs.rmSync(realRoot, { recursive: true, force: true });
-  assert.strictEqual(realResult.status, 'completed');
-  assert.strictEqual(realExecutions, 1, 'The real Pi Agent loop must route tool execution through NeoChat');
-  assert.ok(realResult.message.content.includes('Real Pi loop completed.'));
+  }
 
   console.log('Agent harness adapter tests passed.');
 }

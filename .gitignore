@@ -39,3 +39,7 @@ pnpm-debug.log*
 # Local test scripts
 local-test-scripts/
 .vercel
+
+# VitePress
+docs/.vitepress/cache/
+docs/.vitepress/dist/
