@@ -1346,7 +1346,7 @@ function ChatHistorySidebar({
             {isOptionsOpen && (
               <div
                 ref={optionsMenuRef}
-                className="absolute right-0 top-full mt-1.5 w-48 bg-popover border border-border rounded-xl shadow-xl p-1 z-[9999] text-xs animate-in fade-in-0 zoom-in-95 space-y-1"
+                className="absolute left-0 top-full mt-1.5 w-48 bg-popover border border-border rounded-xl shadow-xl p-1 z-[9999] text-xs animate-in fade-in-0 zoom-in-95 space-y-1"
               >
                 <div className="px-2 py-1 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
                   {t('sidebar.sort')}
