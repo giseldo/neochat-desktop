@@ -1378,34 +1378,6 @@ function ChatInput({
 							)}
 						</div>
 
-						{/* Image Generation Toggle Button */}
-						{imageGenerationSettings?.enabled !== false && (
-							<Button
-								type="button"
-								variant="ghost"
-								size="sm"
-								onClick={() => {
-									const next = !imageMode;
-									setImageMode(next);
-									if (next) {
-										setTimeout(() => textareaRef.current?.focus(), 50);
-									}
-								}}
-								className={cn(
-									"h-8 px-2.5 rounded-xl text-xs font-medium flex-shrink-0 transition-all duration-200 flex items-center gap-1.5",
-									imageMode
-										? "bg-purple-500/20 text-purple-600 dark:text-purple-400 border border-purple-500/40 shadow-xs"
-										: "text-muted-foreground hover:text-foreground hover:bg-muted/80"
-								)}
-								title={t('chat.generateImageTooltip') || 'Gerar imagem com IA (xAI Grok / OpenAI)'}
-								disabled={loading}
-							>
-								<Sparkles className={cn("w-3.5 h-3.5 text-purple-500", imageMode && "animate-pulse")} />
-								{showButtonLabels && (
-									<span>{t('chat.generateImage') || 'Gerar imagem'}</span>
-								)}
-							</Button>
-						)}
 
 						{/* Voice Dictation (Whisper) Button */}
 						{voiceInputEnabled && (
