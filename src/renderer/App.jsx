@@ -2685,7 +2685,7 @@ function App() {
 
                   {/* Dropdown Menu */}
                   {isToolsDropdownOpen && (
-                    <div className="absolute right-0 mt-2 w-68 p-1.5 rounded-2xl bg-popover border border-border text-popover-foreground shadow-2xl z-50 animate-in fade-in-0 zoom-in-95 space-y-0.5 text-xs">
+                    <div className="absolute right-0 mt-2 w-72 max-h-[calc(100vh-5rem)] overflow-y-auto overscroll-contain custom-scrollbar p-1.5 rounded-2xl bg-popover border border-border text-popover-foreground shadow-2xl z-50 animate-in fade-in-0 zoom-in-95 space-y-0.5 text-xs">
                       {/* Terminal Workspace */}
                       <button
                         type="button"
