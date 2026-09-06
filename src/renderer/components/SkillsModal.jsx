@@ -611,7 +611,9 @@ export function SkillsModal({
 
                           <div className="flex items-center gap-2">
                             <Switch
+                              id={`skill-switch-${skill.id}`}
                               checked={skill.enabled !== false}
+                              onChange={() => handleToggle(skill.id, skill.enabled !== false)}
                               onCheckedChange={() => handleToggle(skill.id, skill.enabled !== false)}
                               aria-label={`Toggle ${skill.name}`}
                             />
