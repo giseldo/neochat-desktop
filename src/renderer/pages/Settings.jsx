@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { Link, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Search, Eye, EyeOff, Plus, Trash2, Edit3, Save, X, RefreshCw, Key, Settings as SettingsIcon, Zap, Cpu, Server, AlertCircle, CheckCircle, Sun, Moon, Laptop, Languages, Check, Terminal, Globe, Palette, Type, Sparkles, Sliders, ExternalLink, Route, User, Wrench, Download, UploadCloud, BarChart3, GitBranch, Mic, Volume2, Info, Keyboard, Folder, FolderOpen, RotateCcw, Lightbulb, Star, ChevronDown, ChevronUp, HardDrive, Brain, Flame, AlignJustify, Maximize2, Blocks, Bot, HelpCircle, Copy, ShieldCheck, Github } from 'lucide-react';
+import { ArrowLeft, Search, Eye, EyeOff, Plus, Trash2, Edit3, Save, X, RefreshCw, Key, Settings as SettingsIcon, Zap, Cpu, Server, AlertCircle, CheckCircle, Sun, Moon, Laptop, Languages, Check, Terminal, Globe, Palette, Type, Sparkles, Sliders, ExternalLink, Route, User, Wrench, Download, UploadCloud, BarChart3, GitBranch, Mic, Volume2, Info, Keyboard, Folder, FolderOpen, RotateCcw, Lightbulb, Star, ChevronDown, ChevronUp, HardDrive, Brain, Flame, AlignJustify, Maximize2, Blocks, Bot, HelpCircle, Copy, Github } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, SettingsRow, SettingsChoices, SettingsSelect } from '../components/settings/SettingsSection';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
@@ -909,8 +909,8 @@ function Settings() {
       id: 'aboutApp',
       category: 'help',
       title: t('settings.aboutTitle') || 'Sobre o NeoChat Desktop',
-      desc: t('settings.aboutDesc') || 'Versão instalada, licença e direitos autorais do aplicativo',
-      keywords: 'ajuda help sobre about versao version copyright direitos autorais licenca mit electron update info lancamento',
+      desc: t('settings.aboutDesc') || 'Versão instalada e direitos autorais do aplicativo',
+      keywords: 'ajuda help sobre about versao version copyright direitos autorais electron update info lancamento',
       isPowerOnly: false
     },
     {
@@ -7005,7 +7005,6 @@ function Settings() {
 
     const versionStr = appInfo?.version || updateStatus?.currentVersion || '1.4.10';
     const copyrightStr = appInfo?.copyright || t('settings.copyrightNotice') || 'Copyright © 2025-2026 NeoChat Desktop / Groq, Inc. Todos os direitos reservados.';
-    const licenseStr = appInfo?.license || t('settings.appLicenseDesc') || 'MIT License (Código Aberto)';
 
     const handleCopyDiagnostics = () => {
       const diagData = {
@@ -7109,23 +7108,10 @@ function Settings() {
 
                 <div className="rounded-xl border bg-muted/30 p-3.5 space-y-1">
                   <span className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">
-                    {t('settings.appLicense')}
-                  </span>
-                  <div className="flex items-center gap-2">
-                    <ShieldCheck className="w-4 h-4 text-emerald-500" />
-                    <span className="text-sm font-semibold text-foreground">{licenseStr}</span>
-                  </div>
-                </div>
-
-                <div className="rounded-xl border bg-muted/30 p-3.5 space-y-1 md:col-span-2">
-                  <span className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">
                     {t('settings.copyrightTitle')}
                   </span>
-                  <p className="text-xs font-medium text-foreground">
+                  <p className="text-xs font-semibold text-foreground leading-relaxed">
                     {copyrightStr}
-                  </p>
-                  <p className="text-[11px] text-muted-foreground">
-                    Licensed under MIT. Base software developed with universal multi-provider inference and open protocols.
                   </p>
                 </div>
               </div>

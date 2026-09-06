@@ -1147,7 +1147,7 @@ export const translations = {
 
       // Help & About
       aboutTitle: 'Sobre o NeoChat Desktop',
-      aboutDesc: 'Versão instalada, licença e direitos autorais do aplicativo.',
+      aboutDesc: 'Versão instalada e direitos autorais do aplicativo.',
       appVersion: 'Versão Instalada',
       appChannel: 'Canal',
       appLicense: 'Licença',
@@ -2742,7 +2742,7 @@ export const translations = {
 
       // Help & About
       aboutTitle: 'About NeoChat Desktop',
-      aboutDesc: 'Installed version, license, and application copyright.',
+      aboutDesc: 'Installed version and application copyright.',
       appVersion: 'Installed Version',
       appChannel: 'Channel',
       appLicense: 'License',
