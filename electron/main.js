@@ -50,6 +50,7 @@ const { initializeToolPermissionHandlers } = require('./toolPermissionManager');
 const { autoUpdater } = require('electron-updater');
 const { initializeUpdateManager } = require('./updateManager');
 const { pluginManager } = require('./pluginManager');
+const { skillManager } = require('./skillManager');
 
 // Import context capture system
 const ContextCapture = require('./contextCapture');
@@ -452,6 +453,83 @@ app.whenReady().then(async () => {
     shell,
     loadSettings,
     saveSettings
+  });
+
+  // --- Initialize AI Skills System --- //
+  console.log("[Main Init] Initializing Skill Manager...");
+  skillManager.initialize(app, { loadSettings, saveSettings });
+
+  // Register AI Skills IPC Handlers
+  ipcMain.handle('skills:list', async (_event, workspaceRoot) => {
+    return skillManager.listSkills(workspaceRoot);
+  });
+  ipcMain.handle('skills:get-catalog', async () => {
+    return skillManager.getCatalog();
+  });
+  ipcMain.handle('skills:install-from-catalog', async (_event, catalogId) => {
+    return skillManager.installFromCatalog(catalogId);
+  });
+  ipcMain.handle('skills:create', async (_event, skillData) => {
+    return skillManager.installSkill(skillData);
+  });
+  ipcMain.handle('skills:update', async (_event, skillData) => {
+    return skillManager.installSkill(skillData);
+  });
+  ipcMain.handle('skills:delete', async (_event, skillId) => {
+    return skillManager.deleteSkill(skillId);
+  });
+  ipcMain.handle('skills:toggle', async (_event, { skillId, enabled }) => {
+    return skillManager.toggleSkill(skillId, enabled);
+  });
+  ipcMain.handle('skills:import-file', async () => {
+    if (!mainWindow) return { success: false, error: 'Janela principal não disponível.' };
+    const { canceled, filePaths } = await dialog.showOpenDialog(mainWindow, {
+      title: 'Importar Skill (SKILL.md ou JSON)',
+      filters: [
+        { name: 'Arquivos de Skill', extensions: ['md', 'json', 'yaml', 'yml'] },
+        { name: 'Todos os Arquivos', extensions: ['*'] }
+      ],
+      properties: ['openFile']
+    });
+    if (canceled || !filePaths || filePaths.length === 0) {
+      return { success: false, cancelled: true };
+    }
+    try {
+      const content = fs.readFileSync(filePaths[0], 'utf8');
+      const filename = path.basename(filePaths[0]);
+      return skillManager.importSkillFromContent(content, filename);
+    } catch (err) {
+      return { success: false, error: err.message };
+    }
+  });
+  ipcMain.handle('skills:import-content', async (_event, { content, filename }) => {
+    return skillManager.importSkillFromContent(content, filename);
+  });
+  ipcMain.handle('skills:import-url', async (_event, url) => {
+    return await skillManager.importSkillFromUrl(url);
+  });
+  ipcMain.handle('skills:export', async (_event, { skillId, format = 'md' }) => {
+    const exported = skillManager.exportSkill(skillId, format);
+    if (!mainWindow) return exported;
+    
+    // Prompt save dialog
+    const { canceled, filePath } = await dialog.showSaveDialog(mainWindow, {
+      title: 'Exportar Skill',
+      defaultPath: exported.filename,
+      filters: [
+        format === 'json'
+          ? { name: 'JSON Skill', extensions: ['json'] }
+          : { name: 'Markdown Skill', extensions: ['md'] }
+      ]
+    });
+    if (!canceled && filePath) {
+      fs.writeFileSync(filePath, exported.content, 'utf8');
+      return { ...exported, savedPath: filePath, success: true };
+    }
+    return { ...exported, cancelled: true };
+  });
+  ipcMain.handle('skills:get-active', async (_event, workspaceRoot) => {
+    return skillManager.getActiveSkills(workspaceRoot);
   });
 
   // --- Register Core App IPC Handlers --- //

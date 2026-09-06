@@ -91,6 +91,21 @@ contextBridge.exposeInMainWorld('electron', {
     list: () => ipcRenderer.invoke('plugins:list'),
     toggle: (pluginId, enabled) => ipcRenderer.invoke('plugins:toggle', { pluginId, enabled }),
   },
+  // AI Skills System API (Catalog, Custom, Import/Export, Execution)
+  skills: {
+    list: (workspaceRoot) => ipcRenderer.invoke('skills:list', workspaceRoot),
+    getCatalog: () => ipcRenderer.invoke('skills:get-catalog'),
+    installFromCatalog: (catalogId) => ipcRenderer.invoke('skills:install-from-catalog', catalogId),
+    create: (skillData) => ipcRenderer.invoke('skills:create', skillData),
+    update: (skillData) => ipcRenderer.invoke('skills:update', skillData),
+    delete: (skillId) => ipcRenderer.invoke('skills:delete', skillId),
+    toggle: (skillId, enabled) => ipcRenderer.invoke('skills:toggle', { skillId, enabled }),
+    importFile: () => ipcRenderer.invoke('skills:import-file'),
+    importContent: (content, filename) => ipcRenderer.invoke('skills:import-content', { content, filename }),
+    importUrl: (url) => ipcRenderer.invoke('skills:import-url', url),
+    export: (skillId, format) => ipcRenderer.invoke('skills:export', { skillId, format }),
+    getActive: (workspaceRoot) => ipcRenderer.invoke('skills:get-active', workspaceRoot),
+  },
   // Arena & Multi-Model Debate API
   arena: {
     runDebate: (params) => ipcRenderer.invoke('arena:run-debate', params),

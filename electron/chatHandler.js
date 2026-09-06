@@ -537,6 +537,20 @@ Always prioritize creating and editing files directly on disk using 'write_file'
         }
     }
 
+    // Inject Active AI Skills System Prompt
+    try {
+        const { skillManager } = require('./skillManager');
+        const activeSkillsPrompt = (settings.skillsPrompt && typeof settings.skillsPrompt === 'string' && settings.skillsPrompt.trim())
+            ? settings.skillsPrompt.trim()
+            : skillManager.buildSkillsPrompt(settings.activeSkills || null, settings.invokedSkillId || null);
+
+        if (activeSkillsPrompt) {
+            systemPrompt += `\n\n${activeSkillsPrompt}`;
+        }
+    } catch (err) {
+        console.warn('[ChatHandler] Failed to build skills prompt:', err.message);
+    }
+
     // Prepare built-in tools if enabled and supported by the model
     const builtInTools = [];
     if (supportsBuiltInTools(modelToUse, modelContextSizes) && settings.builtInTools) {

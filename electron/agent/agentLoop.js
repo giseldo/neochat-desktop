@@ -53,9 +53,20 @@ class AgentLoop {
     const mode = settings.agentMode ? 'code' : (settings.mode || 'chat');
 
     // Build rich workspace context for system prompt
+    let skillsContext = '';
+    try {
+      const { skillManager } = require('../skillManager');
+      skillsContext = (settings.skillsPrompt && typeof settings.skillsPrompt === 'string')
+        ? settings.skillsPrompt.trim()
+        : skillManager.buildSkillsPrompt(settings.activeSkills || null, settings.invokedSkillId || null);
+    } catch (err) {
+      console.warn('[AgentLoop] Failed to build skills prompt:', err.message);
+    }
+
     const workspaceContext = [
       await workspaceManager.buildWorkspaceContextString(root),
-      typeof settings.agentSystemPrompt === 'string' ? settings.agentSystemPrompt.trim() : ''
+      typeof settings.agentSystemPrompt === 'string' ? settings.agentSystemPrompt.trim() : '',
+      skillsContext
     ].filter(Boolean).join('\n\n');
     
     // Assemble tools based on mode and settings

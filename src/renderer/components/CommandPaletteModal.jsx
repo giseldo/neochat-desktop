@@ -72,6 +72,7 @@ export function CommandPaletteModal({
   onToggleBrowser,
   onOpenSwarmModal,
   onOpenPluginsManager,
+  onOpenSkills,
   onOpenArenaModal,
   onOpenLiveSandbox,
   onOpenPodcastStudio,
@@ -242,6 +243,24 @@ export function CommandPaletteModal({
         subtitle: 'Indexar pastas, PDFs, código e documentos',
         icon: BookOpen,
         action: () => { onClose(); onOpenKnowledgeBase?.(); }
+      },
+      {
+        id: 'nav_skills',
+        category: 'nav',
+        categoryLabel: 'Navegação',
+        title: 'Hub de Skills & Habilidades de IA',
+        subtitle: 'Catálogo de skills, criação, importação de SKILL.md e regras',
+        icon: Sparkles,
+        action: () => { onClose(); onOpenSkills?.(); }
+      },
+      {
+        id: 'nav_skills_create',
+        category: 'nav',
+        categoryLabel: 'Navegação',
+        title: 'Criar Nova Skill Personalizada',
+        subtitle: 'Definir novo comando de barra e instruções especializadas',
+        icon: Plus,
+        action: () => { onClose(); onOpenSkills?.('create'); }
       },
       {
         id: 'nav_workflows',

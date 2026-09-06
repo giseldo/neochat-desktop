@@ -1,4 +1,4 @@
-import { ArrowRight, Loader2, ImagePlus, Hammer, Upload, Zap, ZapOff, Square, Mic, MicOff, Terminal, Globe, BookOpen, SlidersHorizontal, Camera, Bot, Key, Layout, X, Code2, Briefcase, MessageSquare, RotateCcw, Plus, Check, Cpu, Blocks } from "lucide-react";
+import { ArrowRight, Loader2, ImagePlus, Hammer, Upload, Zap, ZapOff, Square, Mic, MicOff, Terminal, Globe, BookOpen, SlidersHorizontal, Camera, Bot, Key, Layout, X, Code2, Briefcase, MessageSquare, RotateCcw, Plus, Check, Cpu, Blocks, Sparkles } from "lucide-react";
 import React, { useContext, useEffect, useRef, useState, useMemo } from "react";
 import { createPortal } from "react-dom";
 import { Link } from "react-router-dom";
@@ -26,6 +26,7 @@ function ChatInput({
 	selectedModel = "",
 	onModelChange,
 	onOpenMcpTools,
+	onOpenSkillsModal,
 	toolsCount = 0,
 	mcpTools = [],
 	modelConfigs = {},
@@ -147,6 +148,24 @@ function ChatInput({
 		loadCustomTemplates();
 	}, []);
 
+	// Installed AI Skills state
+	const [installedSkills, setInstalledSkills] = useState([]);
+	useEffect(() => {
+		let isMounted = true;
+		const loadSkills = async () => {
+			if (window.electron?.skills?.list) {
+				try {
+					const list = await window.electron.skills.list(workspaceInfo?.root || null);
+					if (isMounted) setInstalledSkills(list || []);
+				} catch (err) {
+					console.warn("Failed to load skills in ChatInput:", err);
+				}
+			}
+		};
+		loadSkills();
+		return () => { isMounted = false; };
+	}, [focusSignal, workspaceInfo?.root]);
+
 	// Sync web search and voice input states with settings
 	useEffect(() => {
 		let isMounted = true;
@@ -190,10 +209,22 @@ function ChatInput({
 		}
 	};
 
-	// All available prompt commands
+	// All available prompt commands (Templates + Installed Skills)
 	const allPromptCommands = useMemo(() => {
-		return getAllPromptCommands(customTemplates, t, language);
-	}, [customTemplates, t, language]);
+		const baseCommands = getAllPromptCommands(customTemplates, t, language);
+		const skillCommands = (installedSkills || []).map(skill => ({
+			id: `skill-${skill.id}`,
+			command: skill.slashCommand || skill.id,
+			title: skill.displayName || skill.name,
+			description: skill.description || '',
+			icon: skill.icon || 'Sparkles',
+			isSkill: true,
+			isBuiltIn: false,
+			template: `/${skill.slashCommand || skill.id} {{input}}`,
+			skillData: skill
+		}));
+		return [...skillCommands, ...baseCommands];
+	}, [customTemplates, installedSkills, t, language]);
 
 	// Filtered slash commands based on typed query
 	const filteredSlashCommands = useMemo(() => {
@@ -1168,6 +1199,31 @@ function ChatInput({
 										</button>
 									)}
 
+									{/* AI Skills Hub */}
+									{onOpenSkillsModal && (
+										<button
+											type="button"
+											onClick={() => {
+												setIsPlusMenuOpen(false);
+												onOpenSkillsModal();
+											}}
+											className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-muted/80 text-foreground transition-colors text-left"
+										>
+											<Sparkles className="w-4 h-4 text-purple-500 shrink-0" />
+											<div className="flex-1 min-w-0">
+												<div className="font-semibold text-foreground flex items-center gap-1.5">
+													<span>{t('skills.title') || 'Skills de IA'}</span>
+													{installedSkills.filter(s => s.enabled !== false).length > 0 && (
+														<span className="px-1.5 py-0.2 rounded-full bg-purple-500/15 text-purple-600 dark:text-purple-400 font-mono text-[9px] font-bold">
+															{installedSkills.filter(s => s.enabled !== false).length}
+														</span>
+													)}
+												</div>
+												<div className="text-[10px] text-muted-foreground truncate">{t('skills.subtitle') || 'Habilidades especializadas e comandos'}</div>
+											</div>
+										</button>
+									)}
+
 									{/* Canvas Workspace */}
 									{powerUserMode && (
 										<button
@@ -1239,6 +1295,32 @@ function ChatInput({
 								</div>
 							)}
 						</div>
+
+						{/* Skills Toolbar Quick Button */}
+						{onOpenSkillsModal && (
+							<Button
+								type="button"
+								variant="ghost"
+								size="sm"
+								onClick={onOpenSkillsModal}
+								className={cn(
+									"h-8 px-2.5 rounded-xl text-xs font-medium flex-shrink-0 transition-all duration-200 flex items-center gap-1.5",
+									installedSkills.filter(s => s.enabled !== false).length > 0
+										? "bg-purple-500/10 hover:bg-purple-500/20 text-purple-600 dark:text-purple-400 border border-purple-500/20"
+										: "text-muted-foreground hover:text-foreground hover:bg-muted/80"
+								)}
+								title={t('skills.title') || 'Skills & Habilidades de IA'}
+							>
+								<Sparkles className="w-3.5 h-3.5 text-purple-500" />
+								{showButtonLabels ? (
+									<span>{t('skills.title') || 'Skills'}</span>
+								) : installedSkills.filter(s => s.enabled !== false).length > 0 ? (
+									<span className="font-mono text-[10px] font-bold">
+										{installedSkills.filter(s => s.enabled !== false).length}
+									</span>
+								) : null}
+							</Button>
+						)}
 
 						{/* Voice Dictation (Whisper) Button */}
 						{voiceInputEnabled && (

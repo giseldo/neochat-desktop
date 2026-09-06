@@ -148,7 +148,18 @@ export default function SlashCommandsPopover({
                     >
                       {cmd.title}
                     </span>
-                    {!cmd.isBuiltIn && (
+                    {cmd.isSkill ? (
+                      <span
+                        className={cn(
+                          "text-[9px] px-1.5 py-0.2 rounded-md font-mono uppercase font-bold tracking-wider",
+                          isSelected
+                            ? "bg-primary-foreground/25 text-primary-foreground"
+                            : "bg-primary/15 text-primary"
+                        )}
+                      >
+                        Skill
+                      </span>
+                    ) : !cmd.isBuiltIn && (
                       <span
                         className={cn(
                           "text-[9px] px-1 py-0.2 rounded font-mono uppercase font-semibold",

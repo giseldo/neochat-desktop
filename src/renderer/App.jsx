@@ -53,6 +53,7 @@ const DailyBriefingModal = lazy(() => import('./components/DailyBriefingModal'))
 const McpHubModal = lazy(() => import('./components/McpHubModal'));
 const ComputerVisionModal = lazy(() => import('./components/ComputerVisionModal'));
 const UserMemoryModal = lazy(() => import('./components/UserMemoryModal'));
+const SkillsModal = lazy(() => import('./components/SkillsModal'));
 
 function App() {
   // const [messages, setMessages] = useState([]); // Remove local state
@@ -154,6 +155,8 @@ function App() {
   const [isSwarmModalOpen, setIsSwarmModalOpen] = useState(false);
   const [isAppSnipModalOpen, setIsAppSnipModalOpen] = useState(false);
   const [isPluginsManagerOpen, setIsPluginsManagerOpen] = useState(false);
+  const [isSkillsModalOpen, setIsSkillsModalOpen] = useState(false);
+  const [skillsModalInitialTab, setSkillsModalInitialTab] = useState('installed');
   const [isArenaModalOpen, setIsArenaModalOpen] = useState(false);
   const [isLiveSandboxOpen, setIsLiveSandboxOpen] = useState(false);
   const [isPodcastStudioOpen, setIsPodcastStudioOpen] = useState(false);
@@ -162,6 +165,11 @@ function App() {
   const [isMcpHubOpen, setIsMcpHubOpen] = useState(false);
   const [isComputerVisionOpen, setIsComputerVisionOpen] = useState(false);
   const { isToolsDropdownOpen, setIsToolsDropdownOpen, toolsDropdownRef } = useToolsDropdown();
+
+  const handleOpenSkillsModal = useCallback((tab = 'installed') => {
+    setSkillsModalInitialTab(tab);
+    setIsSkillsModalOpen(true);
+  }, []);
 
   const handleStartSnip = useCallback(() => {
     setIsAppSnipModalOpen(true);
@@ -3286,6 +3294,7 @@ function App() {
                       selectedModel={selectedModel}
                       onModelChange={setSelectedModel}
                       onOpenMcpTools={() => setIsToolsPanelOpen(true)}
+                      onOpenSkillsModal={() => handleOpenSkillsModal('installed')}
                       toolsCount={mcpTools.length}
                       modelConfigs={modelConfigs}
                       focusSignal={chatFocusSignal}
@@ -3433,6 +3442,7 @@ function App() {
           onToggleBrowser={() => setIsBrowserOpen(prev => !prev)}
           onOpenSwarmModal={() => setIsSwarmModalOpen(true)}
           onOpenPluginsManager={() => setIsPluginsManagerOpen(true)}
+          onOpenSkills={(tab) => handleOpenSkillsModal(tab || 'installed')}
           onOpenArenaModal={() => setIsArenaModalOpen(true)}
           onOpenLiveSandbox={() => setIsLiveSandboxOpen(true)}
           onOpenPodcastStudio={() => setIsPodcastStudioOpen(true)}
@@ -3554,6 +3564,17 @@ function App() {
         <UserMemoryModal
           isOpen={isUserMemoryModalOpen}
           onClose={() => setIsUserMemoryModalOpen(false)}
+        />
+
+        {/* AI Skills & Capabilities Central Hub */}
+        <SkillsModal
+          isOpen={isSkillsModalOpen}
+          onClose={() => setIsSkillsModalOpen(false)}
+          initialTab={skillsModalInitialTab}
+          onInvokeSkill={(skill) => {
+            const cmd = skill.slashCommand || skill.id;
+            handleSendMessage(`/${cmd} `);
+          }}
         />
       </Suspense>
 
