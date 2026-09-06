@@ -121,7 +121,8 @@ function App() {
   // const models = Object.keys(MODEL_CONTEXT_SIZES).filter(key => key !== 'default'); // Old way
   const [modelConfigs, setModelConfigs] = useState({}); // State for model configurations
   const [models, setModels] = useState([]); // State for model list
-  const [disabledModels, setDisabledModels] = useState([]); // State for disabled models list
+  const [enabledModels, setEnabledModels] = useState([]); // State for enabled models list (strict opt-in)
+  const [disabledModels, setDisabledModels] = useState([]); // State for disabled models list (legacy compatibility)
   const [favoriteModels, setFavoriteModels] = useState([]); // State for favorite models list
 
   // State for current model's vision capability
@@ -483,13 +484,13 @@ function App() {
   // Sort and group models by provider/category and display name
   // and apply model filter if configured
   const sortedModels = useMemo(() => {
-    // First apply disabled models filter
-    const filteredModels = filterModels(models, modelConfigs, disabledModels);
+    // Strict opt-in: filter using enabledModels (with fallback to disabledModels if not set)
+    const filteredModels = filterModels(models, modelConfigs, enabledModels?.length > 0 ? enabledModels : { enabledModels, disabledModels });
     
     // Group and sort models logically by group and display name
     const groups = groupModels(filteredModels, modelConfigs);
     return groups.flatMap(g => g.models);
-  }, [models, modelConfigs, disabledModels]);
+  }, [models, modelConfigs, enabledModels, disabledModels]);
 
   // Initialize compare models when sortedModels change
   useEffect(() => {
@@ -597,38 +598,43 @@ function App() {
         setShowWelcomeTips(settings.showWelcomeTips === true);
         setShowWelcomeSuggestions(settings.showWelcomeSuggestions === true);
         setShowButtonLabels(settings.showButtonLabels === true);
+        setEnabledModels(settings.enabledModels || []);
         setDisabledModels(settings.disabledModels || []);
         setFavoriteModels(settings.favoriteModels || []);
         // Load useResponsesApi setting
         setUseResponsesApi(settings.useResponsesApi || false);
-        let effectiveModel = availableModels.length > 0 ? availableModels[0] : 'default'; // Default fallback if no models or no setting
+
+        // Strict opt-in: filter available models by enabledModels
+        const activeModels = filterModels(availableModels, configs, settings.enabledModels || []);
+        const validCandidates = activeModels.length > 0 ? activeModels : availableModels;
+        let effectiveModel = validCandidates.length > 0 ? validCandidates[0] : 'default';
 
         const isInvalidChatModel = (m) => !m || m.includes('canopylabs') || m.includes('orpheus');
 
         if (settings && settings.model) {
-            // Ensure the saved model is still valid against the loaded configs
-            if (configs[settings.model] && !isInvalidChatModel(settings.model)) {
+            // Ensure the saved model is still valid against the loaded configs and is active
+            const isSavedModelActive = activeModels.includes(settings.model) || (configs[settings.model]?.rawModelId && activeModels.includes(configs[settings.model].rawModelId));
+            if (configs[settings.model] && !isInvalidChatModel(settings.model) && isSavedModelActive) {
                 effectiveModel = settings.model;
             } else {
-                // Try finding by rawModelId or suffix
-                const matchingKey = availableModels.find(k =>
+                // Try finding matching active model
+                const matchingKey = validCandidates.find(k =>
                   (k === settings.model ||
                   configs[k]?.rawModelId === settings.model ||
                   k.endsWith(`::${settings.model}`)) && !isInvalidChatModel(k)
                 );
                 if (matchingKey) {
                   effectiveModel = matchingKey;
-                } else if (availableModels.length > 0) {
-                  const fallback = availableModels.find(m => m.includes('llama-3.3-70b') || m.includes('llama-3.1-70b') || m.includes('gpt')) || availableModels[0];
+                } else if (validCandidates.length > 0) {
+                  const fallback = validCandidates.find(m => m.includes('llama-3.3-70b') || m.includes('llama-3.1-70b') || m.includes('gpt')) || validCandidates[0];
                   effectiveModel = fallback;
-                  console.warn(`Saved model "${settings.model}" invalid or not found in loaded configs. Falling back to ${effectiveModel}.`);
+                  console.warn(`Saved model "${settings.model}" inactive or not found. Falling back to ${effectiveModel}.`);
                 }
             }
-        } else if (availableModels.length > 0) {
-            const fallback = availableModels.find(m => m.includes('llama-3.3-70b') || m.includes('llama-3.1-70b') || m.includes('gpt')) || availableModels[0];
+        } else if (validCandidates.length > 0) {
+            const fallback = validCandidates.find(m => m.includes('llama-3.3-70b') || m.includes('llama-3.1-70b') || m.includes('gpt')) || validCandidates[0];
             effectiveModel = fallback;
         }
-        // If no model in settings and no available models, effectiveModel remains 'default'
 
         setSelectedModel(effectiveModel); // Set the final selected model state
 
@@ -689,6 +695,7 @@ function App() {
         if (!trajectoryEnabled) {
           setActiveTab('chat');
         }
+        setEnabledModels(settings.enabledModels || []);
         setDisabledModels(settings.disabledModels || []);
         setFavoriteModels(settings.favoriteModels || []);
         setUseResponsesApi(settings.useResponsesApi || false);
@@ -700,10 +707,15 @@ function App() {
         const availableModels = Object.keys(configs).filter(key => key !== 'default');
         setModels(availableModels);
 
-        // If the currently selected model no longer exists or is invalid (e.g. canopylabs TTS), try matching by rawModelId or fallback
+        const activeModels = filterModels(availableModels, configs, settings.enabledModels || []);
+        const validCandidates = activeModels.length > 0 ? activeModels : availableModels;
+
+        // If the currently selected model is no longer active, fallback to an active one
         const isInvalidChatModel = (m) => !m || m.includes('canopylabs') || m.includes('orpheus');
-        if (availableModels.length > 0 && selectedModel && (!configs[selectedModel] || isInvalidChatModel(selectedModel))) {
-          const matchingKey = availableModels.find(k =>
+        const isSelectedActive = activeModels.includes(selectedModel) || (configs[selectedModel]?.rawModelId && activeModels.includes(configs[selectedModel].rawModelId));
+
+        if (validCandidates.length > 0 && selectedModel && (!configs[selectedModel] || isInvalidChatModel(selectedModel) || !isSelectedActive)) {
+          const matchingKey = validCandidates.find(k =>
             (k === selectedModel ||
             configs[k]?.rawModelId === selectedModel ||
             k.endsWith(`::${selectedModel}`)) && !isInvalidChatModel(k)
@@ -711,7 +723,7 @@ function App() {
           if (matchingKey) {
             setSelectedModel(matchingKey);
           } else {
-            const fallback = availableModels.find(m => m.includes('llama-3.3-70b') || m.includes('llama-3.1-70b') || m.includes('gpt')) || availableModels[0];
+            const fallback = validCandidates.find(m => m.includes('llama-3.3-70b') || m.includes('llama-3.1-70b') || m.includes('gpt')) || validCandidates[0];
             setSelectedModel(fallback);
           }
         }

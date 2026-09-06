@@ -1138,7 +1138,7 @@ export const translations = {
 
       // Models by Provider
       modelsByProviderTitle: 'Modelos Ativos por Provedor',
-      modelsByProviderDesc: 'Ative ou desative individualmente os modelos de cada provedor configurado (ex: Groq, DeepSeek, OpenAI). Apenas modelos ativos aparecem no seletor de modelos da conversa.',
+      modelsByProviderDesc: 'Ativação estrita (Opt-in): marque individualmente os modelos que você deseja usar. Apenas os modelos ativos aparecem no seletor da conversa. Novos modelos de APIs remotas nunca são ativados automaticamente.',
       activeModelsCount: '{active} de {total} modelos ativos',
       favoriteModelsCount: '{count} favorito(s)',
       onlyFavorites: 'Apenas Favoritos',
@@ -2758,7 +2758,7 @@ export const translations = {
 
       // Models by Provider
       modelsByProviderTitle: 'Active Models by Provider',
-      modelsByProviderDesc: 'Individually enable or disable models for each configured provider (e.g., Groq, DeepSeek, OpenAI). Only active models will appear in model selectors.',
+      modelsByProviderDesc: 'Strict opt-in: individually choose which models you want to use. Only active models will appear in the chat selector. New remote API models are never automatically enabled.',
       activeModelsCount: '{active} of {total} active models',
       favoriteModelsCount: '{count} favorite(s)',
       onlyFavorites: 'Favorites Only',

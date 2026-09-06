@@ -719,6 +719,22 @@ function getProviderCandidates(settings = {}) {
   });
 }
 
+function getDefaultEnabledModels(settings = {}) {
+  const models = new Set();
+  Object.values(PROVIDERS).forEach(p => {
+    if (Array.isArray(p.popularModels)) {
+      p.popularModels.forEach(m => models.add(m));
+    }
+    if (p.defaultModel) {
+      models.add(p.defaultModel);
+    }
+  });
+  if (settings && typeof settings.model === 'string' && settings.model) {
+    models.add(settings.model);
+  }
+  return Array.from(models);
+}
+
 module.exports = {
   PROVIDERS,
   PROVIDER_LIST,
@@ -739,4 +755,5 @@ module.exports = {
   getConfiguredProviders,
   getProviderCandidates,
   getKnownApiKeyUrl,
+  getDefaultEnabledModels,
 };

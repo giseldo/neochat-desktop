@@ -2446,23 +2446,23 @@ function Settings() {
   };
 
   const handleToggleModelEnabled = async (modelId) => {
-    const currentDisabled = Array.isArray(settings.disabledModels) ? settings.disabledModels : [];
+    const currentEnabled = Array.isArray(settings.enabledModels) ? settings.enabledModels : [];
     const cfg = modelConfigs[modelId];
     const rawId = cfg?.rawModelId;
-    const isCurrentlyDisabled = currentDisabled.includes(modelId) || (rawId && currentDisabled.includes(rawId));
+    const isCurrentlyEnabled = currentEnabled.includes(modelId) || (rawId && currentEnabled.includes(rawId));
     
-    let updatedDisabled;
-    if (isCurrentlyDisabled) {
-      // Re-enable: remove both modelId and rawId
-      updatedDisabled = currentDisabled.filter(id => id !== modelId && id !== rawId);
+    let updatedEnabled;
+    if (isCurrentlyEnabled) {
+      // Deactivate: remove both modelId and rawId
+      updatedEnabled = currentEnabled.filter(id => id !== modelId && id !== rawId);
     } else {
-      // Disable: add modelId
-      updatedDisabled = [...currentDisabled.filter(id => id !== rawId), modelId];
+      // Activate: add modelId
+      updatedEnabled = [...currentEnabled, modelId];
     }
 
     const updatedSettings = {
       ...settings,
-      disabledModels: updatedDisabled
+      enabledModels: updatedEnabled
     };
 
     setSettings(updatedSettings);
@@ -2471,16 +2471,12 @@ function Settings() {
   };
 
   const handleEnableAllInGroup = async (modelIds) => {
-    const currentDisabled = Array.isArray(settings.disabledModels) ? settings.disabledModels : [];
-    const rawIdsToRemove = new Set(modelIds);
-    modelIds.forEach(id => {
-      const raw = modelConfigs[id]?.rawModelId;
-      if (raw) rawIdsToRemove.add(raw);
-    });
-    const updatedDisabled = currentDisabled.filter(id => !rawIdsToRemove.has(id));
+    const currentEnabled = Array.isArray(settings.enabledModels) ? settings.enabledModels : [];
+    const toAdd = modelIds.filter(id => !currentEnabled.includes(id));
+    const updatedEnabled = [...currentEnabled, ...toAdd];
     const updatedSettings = {
       ...settings,
-      disabledModels: updatedDisabled
+      enabledModels: updatedEnabled
     };
     setSettings(updatedSettings);
     await saveSettingsImmediate(updatedSettings);
@@ -2488,12 +2484,16 @@ function Settings() {
   };
 
   const handleDisableAllInGroup = async (modelIds) => {
-    const currentDisabled = Array.isArray(settings.disabledModels) ? settings.disabledModels : [];
-    const toAdd = modelIds.filter(id => !currentDisabled.includes(id));
-    const updatedDisabled = [...currentDisabled, ...toAdd];
+    const currentEnabled = Array.isArray(settings.enabledModels) ? settings.enabledModels : [];
+    const idsToRemove = new Set(modelIds);
+    modelIds.forEach(id => {
+      const raw = modelConfigs[id]?.rawModelId;
+      if (raw) idsToRemove.add(raw);
+    });
+    const updatedEnabled = currentEnabled.filter(id => !idsToRemove.has(id));
     const updatedSettings = {
       ...settings,
-      disabledModels: updatedDisabled
+      enabledModels: updatedEnabled
     };
     setSettings(updatedSettings);
     await saveSettingsImmediate(updatedSettings);
@@ -5291,7 +5291,7 @@ function Settings() {
                       }
 
                       const groups = groupModels(filteredModelIds, modelConfigs);
-                      const disabledList = Array.isArray(settings.disabledModels) ? settings.disabledModels : [];
+                      const enabledList = Array.isArray(settings.enabledModels) ? settings.enabledModels : [];
 
                       return (
                         <>
@@ -5314,7 +5314,7 @@ function Settings() {
                             const isModelActive = (id) => {
                               const cfg = modelConfigs[id];
                               const rawId = cfg?.rawModelId;
-                              return !disabledList.includes(id) && (!rawId || !disabledList.includes(rawId));
+                              return enabledList.includes(id) || (rawId && enabledList.includes(rawId));
                             };
                             const activeCount = groupModelIds.filter(isModelActive).length;
                             const totalCount = groupModelIds.length;

@@ -2,6 +2,7 @@ const fs = require('fs');
 const path = require('path');
 const { createSecretStore } = require('./secretStore');
 const { invalidateModelsCache } = require('../shared/models.js');
+const { getDefaultEnabledModels } = require('../shared/providers.js');
 
 // Load environment variables from .env file
 require('dotenv').config();
@@ -83,6 +84,7 @@ function loadSettings() {
             customApiBaseUrlEnabled: false,
             customModels: {},
             disabledModels: [],
+            enabledModels: getDefaultEnabledModels(),
             favoriteModels: [],
             enableThinkingSummaries: true,
             useResponsesApi: false,
@@ -166,6 +168,7 @@ function loadSettings() {
         customApiBaseUrlEnabled: false,
         customModels: {},
         disabledModels: [],
+        enabledModels: getDefaultEnabledModels(),
         favoriteModels: [],
         enableThinkingSummaries: true,
         useResponsesApi: false,
@@ -248,6 +251,13 @@ function loadSettings() {
                     }
                 });
                 settings.enabledProviders = Array.from(initialEnabled);
+            }
+
+            // Normalize enabledModels (strict opt-in model activation)
+            if (!Array.isArray(settings.enabledModels)) {
+                const defaults = getDefaultEnabledModels(settings);
+                const disabled = Array.isArray(settings.disabledModels) ? settings.disabledModels : [];
+                settings.enabledModels = defaults.filter(m => !disabled.includes(m));
             }
             
             settings.fallbackProviders = Array.isArray(settings.fallbackProviders) ? settings.fallbackProviders : [];

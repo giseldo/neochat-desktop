@@ -313,8 +313,12 @@ const PopupPage = () => {
         return modelInfo?.displayName || modelId;
       };
       
-      // Filter models first (disabled models)
-      const filteredModels = filterModels(availableModels, configs, settings.disabledModels || []);
+      // Filter models first (strict opt-in: enabledModels)
+      const filteredModels = filterModels(
+        availableModels,
+        configs,
+        settings.enabledModels?.length > 0 ? settings.enabledModels : (settings.disabledModels || [])
+      );
       
       // Then sort
       const sortedModels = filteredModels.sort((a, b) => {
