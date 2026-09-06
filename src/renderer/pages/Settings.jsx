@@ -816,6 +816,7 @@ function Settings() {
       keywords: 'modelos ativos provider models ativar desativar habilitar grupos groq llama gpt claude deepseek lista',
       isPowerOnly: true
     },
+    /* Oculto temporariamente por solicitação do usuário
     {
       id: 'customModels',
       category: 'models',
@@ -824,6 +825,7 @@ function Settings() {
       keywords: 'modelos customizados custom models adicionar em massa bulk json import export filtro inclusao exclusao context vision tools',
       isPowerOnly: true
     },
+    */
     {
       id: 'agentHarness',
       category: 'integrations',
@@ -4157,8 +4159,7 @@ function Settings() {
     const hasVisible =
       visibleCardIds.has('api') ||
       visibleCardIds.has('generationParams') ||
-      visibleCardIds.has('modelsByProvider') ||
-      visibleCardIds.has('customModels');
+      visibleCardIds.has('modelsByProvider');
 
     if (!hasVisible && activeCategory !== 'models') return null;
 
@@ -5294,6 +5295,7 @@ function Settings() {
             </Card>
         )}
 
+        {/* Oculto temporariamente por solicitação do usuário (não incluído em CARDS_METADATA) */}
         {visibleCardIds.has('customModels') && (
           <Card>
               <CardHeader>
