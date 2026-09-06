@@ -1378,32 +1378,6 @@ function ChatInput({
 							)}
 						</div>
 
-						{/* Skills Toolbar Quick Button */}
-						{onOpenSkillsModal && (
-							<Button
-								type="button"
-								variant="ghost"
-								size="sm"
-								onClick={onOpenSkillsModal}
-								className={cn(
-									"h-8 px-2.5 rounded-xl text-xs font-medium flex-shrink-0 transition-all duration-200 flex items-center gap-1.5",
-									installedSkills.filter(s => s.enabled !== false).length > 0
-										? "bg-purple-500/10 hover:bg-purple-500/20 text-purple-600 dark:text-purple-400 border border-purple-500/20"
-										: "text-muted-foreground hover:text-foreground hover:bg-muted/80"
-								)}
-								title={t('skills.title') || 'Skills & Habilidades de IA'}
-							>
-								<Sparkles className="w-3.5 h-3.5 text-purple-500" />
-								{showButtonLabels ? (
-									<span>{t('skills.title') || 'Skills'}</span>
-								) : installedSkills.filter(s => s.enabled !== false).length > 0 ? (
-									<span className="font-mono text-[10px] font-bold">
-										{installedSkills.filter(s => s.enabled !== false).length}
-									</span>
-								) : null}
-							</Button>
-						)}
-
 						{/* Image Generation Toggle Button */}
 						{imageGenerationSettings?.enabled !== false && (
 							<Button
