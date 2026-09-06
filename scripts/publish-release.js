@@ -65,7 +65,7 @@ if (releaseExists) {
   }
   const tempNotesFile = path.join(releaseDir, 'RELEASE_NOTES.md');
   fs.writeFileSync(tempNotesFile, notes, 'utf8');
-  execSync('gh release create --repo ' + REPO_TARGET + ' ' + tag + ' ' + quotedFiles + ' --title "' + title + '" --notes-file "' + tempNotesFile + '"', { stdio: 'inherit' });
+  execSync('gh release create --repo ' + REPO_TARGET + ' ' + tag + ' ' + quotedFiles + ' --title "' + title + '" --notes-file "' + tempNotesFile + '" --latest', { stdio: 'inherit' });
   try { fs.unlinkSync(tempNotesFile); } catch (_) {}
 }
 

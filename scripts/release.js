@@ -43,13 +43,13 @@ function calculateNextVersion(currentVersion, bumpType = 'patch') {
     return `${parsed.major + 1}.0.0`;
   }
 
-  // Explicit version string provided (e.g. 1.4.1 or v1.4.1)
+  // Explicit version string provided (e.g. 0.0.1 or v0.0.1)
   const explicit = bumpType.replace(/^v/, '');
   if (parseSemver(explicit)) {
     return explicit;
   }
 
-  throw new Error(`Unknown bump type or invalid version: "${bumpType}". Expected: "patch", "minor", "major", or a version like "1.4.1".`);
+  throw new Error(`Unknown bump type or invalid version: "${bumpType}". Expected: "patch", "minor", "major", or a version like "0.0.2".`);
 }
 
 function main() {
@@ -68,10 +68,10 @@ Usage:
   pnpm release:create [patch|minor|major|<version>] [options]
 
 Arguments:
-  patch                  Increment patch version (1.4.0 -> 1.4.1) [Default]
-  minor                  Increment minor version (1.4.0 -> 1.5.0)
-  major                  Increment major version (1.4.0 -> 2.0.0)
-  <version>              Specify exact version (e.g. 1.4.2)
+  patch                  Increment patch version (0.0.1 -> 0.0.2) [Default]
+  minor                  Increment minor version (0.0.1 -> 0.1.0)
+  major                  Increment major version (0.0.1 -> 1.0.0)
+  <version>              Specify exact version (e.g. 0.0.2)
 
 Options:
   --platform=<win|all>   Target platform to build (default: win)
@@ -146,7 +146,7 @@ Options:
 
   // 6. Commit & Tag
   console.log(`\n[3/5] Creating Git commit and tag (${tag})...`);
-  run('git add package.json', { dryRun: isDryRun });
+  run('git add -A', { dryRun: isDryRun });
   run(`git commit -m "chore(release): bump version to ${nextVersion}"`, { dryRun: isDryRun });
   run(`git tag ${tag}`, { dryRun: isDryRun });
   console.log(`✔ Git commit and tag ${tag} created.`);
