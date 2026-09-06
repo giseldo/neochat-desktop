@@ -354,13 +354,13 @@ export function SkillsModal({
   if (!isOpen) return null;
 
   return createPortal(
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-black/75 backdrop-blur-xs animate-in fade-in duration-200">
+    <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in duration-150">
       <div 
-        className="bg-card border border-border text-card-foreground rounded-2xl w-full max-w-5xl max-h-[88vh] flex flex-col shadow-2xl overflow-hidden animate-in zoom-in-95 duration-150"
+        className="w-full max-w-5xl bg-card border border-border text-card-foreground rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[88vh] animate-in zoom-in-95 duration-150"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="px-6 py-4.5 border-b border-border flex items-center justify-between bg-muted/20">
+        <div className="px-6 py-4 border-b border-border flex items-center justify-between bg-muted/20">
           <div className="flex items-center gap-3.5">
             <div className="w-10 h-10 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center text-primary shrink-0 shadow-2xs">
               <Sparkles className="w-5 h-5" />
@@ -775,7 +775,7 @@ export function SkillsModal({
                       <div
                         key={item.id}
                         className={cn(
-                          "rounded-xl border p-4.5 bg-background transition-all flex flex-col justify-between",
+                          "rounded-xl border p-4 bg-background transition-all flex flex-col justify-between",
                           isInstalled ? "border-emerald-500/30 bg-emerald-500/5" : "border-border hover:border-primary/40 shadow-xs"
                         )}
                       >
