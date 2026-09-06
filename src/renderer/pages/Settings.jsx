@@ -1230,6 +1230,7 @@ function Settings() {
         disabledMcpServers: updatedSettings.disabledMcpServers || []
       };
       const result = await window.electron.saveSettings(settingsToSave);
+      window.dispatchEvent(new CustomEvent('neochat:settings-updated', { detail: settingsToSave }));
       if (result?.success) {
         setSaveStatus({ type: 'success', message: t('settings.savedSuccess') });
         if (statusTimeoutRef.current) {
@@ -1266,6 +1267,7 @@ function Settings() {
             disabledMcpServers: updatedSettings.disabledMcpServers || []
         };
         const result = await window.electron.saveSettings(settingsToSave);
+        window.dispatchEvent(new CustomEvent('neochat:settings-updated', { detail: settingsToSave }));
         if (result?.success) {
           setSaveStatus({ type: 'success', message: t('settings.savedSuccess') });
           
@@ -3048,6 +3050,7 @@ function Settings() {
     const updatedSettings = { ...settings, voiceInput: { ...(settings.voiceInput || {}), ...updates } };
     setSettings(updatedSettings);
     saveSettings(updatedSettings);
+    window.dispatchEvent(new CustomEvent('neochat:settings-updated', { detail: updatedSettings }));
   };
 
   const updateImageGeneration = (updates) => {
@@ -3440,8 +3443,15 @@ function Settings() {
           </div>
         )}
 
-        {visibleCardIds.has('voiceInput') && (
-          <Card>
+        {visibleCardIds.has('voiceInput') && (() => {
+          const hasVoiceApiKey = Boolean(settings.voiceInput?.apiKey && settings.voiceInput.apiKey.trim() && settings.voiceInput.apiKey.trim() !== '<replace me>');
+          const groqProviderKey = settings.apiKeys?.groq || settings.GROQ_API_KEY;
+          const isGroqProviderEnabled = !Array.isArray(settings.enabledProviders) || settings.enabledProviders.includes('groq');
+          const hasGeneralGroqKey = Boolean(groqProviderKey && groqProviderKey.trim() && groqProviderKey.trim() !== '<replace me>' && isGroqProviderEnabled);
+          const hasGroqKeyForVoice = hasVoiceApiKey || hasGeneralGroqKey;
+
+          return (
+            <Card>
               <CardHeader>
                 <CardTitle className="flex items-center space-x-2">
                   <Mic className="h-5 w-5 text-primary" />
@@ -3452,7 +3462,14 @@ function Settings() {
               <CardContent className="space-y-4">
                 <div className="flex items-center justify-between">
                   <div className="space-y-0.5">
-                    <Label>{t('settings.voiceInputEnabled')}</Label>
+                    <div className="flex items-center gap-2">
+                      <Label>{t('settings.voiceInputEnabled')}</Label>
+                      {settings.voiceInput?.enabled !== false && !hasGroqKeyForVoice && (
+                        <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
+                          {t('settings.voiceInputNeedsKey')}
+                        </span>
+                      )}
+                    </div>
                     <p className="text-xs text-muted-foreground">{t('settings.voiceInputEnabledDesc')}</p>
                   </div>
                   <Switch
@@ -3524,6 +3541,7 @@ function Settings() {
                   </summary>
                   <div className="px-3.5 pb-3.5 pt-2.5 space-y-1.5 pl-10 text-muted-foreground leading-relaxed border-t border-border/40">
                     <p>{t('settings.voiceInputInfoModel')}</p>
+                    <p className="font-medium text-foreground/90">{t('settings.voiceInputInfoVisibility')}</p>
                     <p>{t('settings.voiceInputInfoDedicatedKey')}</p>
                     <p>{t('settings.voiceInputInfoUniversal')}</p>
                     <p>{t('settings.voiceInputInfoShortcut')}</p>
@@ -3531,7 +3549,8 @@ function Settings() {
                 </details>
               </CardContent>
             </Card>
-        )}
+          );
+        })()}
 
         {visibleCardIds.has('imageGeneration') && (
           <Card>

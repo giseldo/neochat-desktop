@@ -762,10 +762,14 @@ app.whenReady().then(async () => {
       return { success: false, error: 'O recurso de voz está desativado nas configurações.' };
     }
     const voiceApiKey = currentSettings.voiceInput?.apiKey?.trim();
+    const hasVoiceKey = Boolean(voiceApiKey && voiceApiKey !== '<replace me>');
     const fallbackApiKey = currentSettings.GROQ_API_KEY || (currentSettings.apiKeys && currentSettings.apiKeys.groq) || process.env.GROQ_API_KEY;
-    const apiKey = (voiceApiKey && voiceApiKey !== '<replace me>') ? voiceApiKey : fallbackApiKey;
-    if (!apiKey || apiKey === '<replace me>') {
-      return { success: false, error: 'Chave Groq API Key não configurada para a voz. Insira sua chave nas configurações de Voz.' };
+    const isGroqProviderEnabled = !Array.isArray(currentSettings.enabledProviders) || currentSettings.enabledProviders.includes('groq');
+    const hasFallbackKey = Boolean(fallbackApiKey && fallbackApiKey !== '<replace me>' && isGroqProviderEnabled);
+
+    const apiKey = hasVoiceKey ? voiceApiKey : (hasFallbackKey ? fallbackApiKey : null);
+    if (!apiKey) {
+      return { success: false, error: 'Chave Groq API Key não configurada ou desabilitada para a voz. Configure uma chave nas configurações de Voz ou habilite o provedor Groq.' };
     }
 
     const ext = mimeType.includes('wav') ? 'wav' : (mimeType.includes('mp4') ? 'm4a' : 'webm');

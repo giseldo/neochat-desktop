@@ -17,6 +17,18 @@ const SnipModal = React.lazy(() => import("./SnipModal"));
 import { getAllPromptCommands, PROMPT_TEMPLATES_STORAGE_KEY } from "../lib/defaultPromptCommands";
 import { getModelGroup, getModelDisplayName as getModelDisplayNameLib, groupModels } from "../lib/modelGrouping";
 
+function isVoiceFeatureAvailable(settings) {
+	if (!settings || settings.voiceInput?.enabled === false) {
+		return false;
+	}
+	const isKeyValid = (k) => Boolean(k && typeof k === 'string' && k.trim() && k.trim() !== '<replace me>');
+	const hasVoiceApiKey = isKeyValid(settings.voiceInput?.apiKey);
+	const groqProviderKey = settings.apiKeys?.groq || settings.GROQ_API_KEY;
+	const isGroqProviderEnabled = !Array.isArray(settings.enabledProviders) || settings.enabledProviders.includes('groq');
+	const hasGeneralGroqKey = isKeyValid(groqProviderKey) && isGroqProviderEnabled;
+	return hasVoiceApiKey || hasGeneralGroqKey;
+}
+
 function ChatInput({
 	onSendMessage,
 	onStopGeneration,
@@ -82,7 +94,7 @@ function ChatInput({
 	const [rowHeight, setRowHeight] = useState(null);
 	const [isRecording, setIsRecording] = useState(false);
 	const [isTranscribing, setIsTranscribing] = useState(false);
-	const [voiceInputEnabled, setVoiceInputEnabled] = useState(true);
+	const [voiceInputEnabled, setVoiceInputEnabled] = useState(false);
 	const [imageGenerationSettings, setImageGenerationSettings] = useState({
 		enabled: true,
 		provider: 'grok',
@@ -97,7 +109,7 @@ function ChatInput({
 	const audioChunksRef = useRef([]);
 	const isRecordingRef = useRef(false);
 	const isTranscribingRef = useRef(false);
-	const voiceInputEnabledRef = useRef(true);
+	const voiceInputEnabledRef = useRef(false);
 	const loadingRef = useRef(loading);
 	const isHoldingVoiceRef = useRef(false);
 	const shouldStopImmediatelyRef = useRef(false);
@@ -134,23 +146,24 @@ function ChatInput({
 
 	// Load custom prompt templates and settings on mount
 	useEffect(() => {
+		let isMounted = true;
 		const loadInputSettings = async () => {
 			try {
 				if (window.electron?.getSettings) {
 					const settings = await window.electron.getSettings();
-					if (settings?.imageGeneration) {
-						setImageGenerationSettings(settings.imageGeneration);
-					}
-					if (settings?.voiceInput?.enabled !== undefined) {
-						setVoiceInputEnabled(settings.voiceInput.enabled);
-					}
-					if (Array.isArray(settings?.customPromptTemplates)) {
-						setCustomTemplates(settings.customPromptTemplates);
-						return;
+					if (isMounted && settings) {
+						if (settings.imageGeneration) {
+							setImageGenerationSettings(settings.imageGeneration);
+						}
+						setVoiceInputEnabled(isVoiceFeatureAvailable(settings));
+						if (Array.isArray(settings.customPromptTemplates)) {
+							setCustomTemplates(settings.customPromptTemplates);
+							return;
+						}
 					}
 				}
 				const saved = localStorage.getItem(PROMPT_TEMPLATES_STORAGE_KEY);
-				if (saved) {
+				if (saved && isMounted) {
 					setCustomTemplates(JSON.parse(saved));
 				}
 			} catch (err) {
@@ -158,6 +171,7 @@ function ChatInput({
 			}
 		};
 		loadInputSettings();
+		return () => { isMounted = false; };
 	}, []);
 
 	// Installed AI Skills state
@@ -181,25 +195,40 @@ function ChatInput({
 	// Sync web search and voice input states with settings
 	useEffect(() => {
 		let isMounted = true;
-		const syncSettings = async () => {
+		const syncSettings = async (targetSettings) => {
 			try {
-				if (window.electron?.getSettings) {
-					const settings = await window.electron.getSettings();
-					if (isMounted) {
-						if (settings?.webSearch) {
-							setWebSearchActive(Boolean(settings.webSearch.enabled));
-						}
-						if (settings?.voiceInput) {
-							setVoiceInputEnabled(settings.voiceInput.enabled !== false);
-						}
+				const settings = targetSettings || (window.electron?.getSettings ? await window.electron.getSettings() : null);
+				if (isMounted && settings) {
+					if (settings.webSearch) {
+						setWebSearchActive(Boolean(settings.webSearch.enabled));
 					}
+					if (settings.imageGeneration) {
+						setImageGenerationSettings(settings.imageGeneration);
+					}
+					setVoiceInputEnabled(isVoiceFeatureAvailable(settings));
 				}
 			} catch (err) {
 				console.error("Error loading settings in ChatInput:", err);
 			}
 		};
 		syncSettings();
-		return () => { isMounted = false; };
+
+		const handleWindowFocus = () => {
+			syncSettings();
+		};
+
+		const handleSettingsUpdated = (e) => {
+			syncSettings(e?.detail || null);
+		};
+
+		window.addEventListener('focus', handleWindowFocus);
+		window.addEventListener('neochat:settings-updated', handleSettingsUpdated);
+
+		return () => {
+			isMounted = false;
+			window.removeEventListener('focus', handleWindowFocus);
+			window.removeEventListener('neochat:settings-updated', handleSettingsUpdated);
+		};
 	}, [focusSignal]);
 
 	const handleToggleWebSearch = async () => {
