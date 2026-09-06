@@ -1794,6 +1794,9 @@ function App() {
       setLoading(true);
 
       try {
+        if (typeof window.electron?.generateImage !== 'function') {
+          throw new Error('O aplicativo NeoChat precisa ser reiniciado para carregar as novas funções nativas de imagem do Electron. Por favor, feche a janela do NeoChat e reabra o aplicativo (ou reinicie o terminal com `pnpm dev`).');
+        }
         const res = await window.electron.generateImage({
           prompt: promptText,
           provider: options.imageSettings?.provider,
