@@ -39,6 +39,8 @@ function ChatInput({
 	onHarnessChange,
 	workspaceInfo = null,
 	onSelectWorkspace,
+	favoriteModels = [],
+	onToggleFavoriteModel,
 }) {
 	const effectiveToolsCount = typeof toolsCount === 'number' && toolsCount > 0
 		? toolsCount
@@ -1335,6 +1337,8 @@ function ChatInput({
 									getOptionValue={(model) => model}
 									groupBy={(model) => getModelGroup(model, modelConfigs[model])}
 									dropdownWidthClass="w-72 sm:w-80"
+									favoriteItems={favoriteModels}
+									onToggleFavorite={onToggleFavoriteModel}
 								/>
 								<Button
 									type="button"

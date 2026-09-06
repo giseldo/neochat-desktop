@@ -84,7 +84,7 @@ const filterModels = (modelList, filterText, excludeText, configs, disabledList 
   return filteredModels;
 };
 
-const CustomModelSelector = ({ selectedModel, models, onModelChange, isCompact = false, modelConfigs = {}, placeholder = "Select model" }) => {
+const CustomModelSelector = ({ selectedModel, models, onModelChange, isCompact = false, modelConfigs = {}, placeholder = "Select model", favoriteModels = [], onToggleFavoriteModel = null }) => {
   const getDisplayName = (model) => {
     const displayName = getModelDisplayName(model, modelConfigs[model]);
     if (isCompact) {
@@ -113,6 +113,8 @@ const CustomModelSelector = ({ selectedModel, models, onModelChange, isCompact =
         getOptionValue={(model) => model}
         groupBy={(model) => getModelGroup(model, modelConfigs[model])}
         dropdownWidthClass="w-72"
+        favoriteItems={favoriteModels}
+        onToggleFavorite={onToggleFavoriteModel}
       />
     </div>
   );
@@ -129,6 +131,7 @@ const PopupPage = () => {
   const [modelConfigs, setModelConfigs] = useState({});
   const [modelFilter, setModelFilter] = useState(''); // State for model filter setting
   const [modelFilterExclude, setModelFilterExclude] = useState(''); // State for model filter exclude setting
+  const [favoriteModels, setFavoriteModels] = useState([]); // State for favorite models list
   const [showContext, setShowContext] = useState(true);
   const [isExpanded, setIsExpanded] = useState(false);
   const [files, setFiles] = useState([]);
@@ -366,6 +369,7 @@ const PopupPage = () => {
       const excludeText = settings.modelFilterExclude || '';
       setModelFilter(filterText);
       setModelFilterExclude(excludeText);
+      setFavoriteModels(settings.favoriteModels || []);
       
       // Apply filter and sort models alphabetically by display name
       const getDisplayName = (modelId) => {
@@ -399,6 +403,31 @@ const PopupPage = () => {
       }
     } catch (error) {
       console.error('Error initializing popup:', error);
+    }
+  };
+
+  const handleToggleFavoriteModel = async (modelId) => {
+    try {
+      const currentSettings = await window.electron.getSettings();
+      const currentFavorites = Array.isArray(currentSettings.favoriteModels) ? currentSettings.favoriteModels : [];
+      const cfg = modelConfigs[modelId];
+      const rawId = cfg?.rawModelId;
+      const isFav = currentFavorites.includes(modelId) || (rawId && currentFavorites.includes(rawId));
+
+      let updatedFavorites;
+      if (isFav) {
+        updatedFavorites = currentFavorites.filter(id => id !== modelId && id !== rawId);
+      } else {
+        updatedFavorites = [...currentFavorites, modelId];
+      }
+
+      setFavoriteModels(updatedFavorites);
+      await window.electron.saveSettings({
+        ...currentSettings,
+        favoriteModels: updatedFavorites
+      });
+    } catch (err) {
+      console.error('Error toggling favorite model in popup:', err);
     }
   };
 
@@ -786,6 +815,8 @@ const PopupPage = () => {
                   onModelChange={handleModelChange}
                   modelConfigs={modelConfigs}
                   placeholder={t('chat.selectModel')}
+                  favoriteModels={favoriteModels}
+                  onToggleFavoriteModel={handleToggleFavoriteModel}
                 />
               </div>
             </div>
@@ -851,6 +882,8 @@ const PopupPage = () => {
                   isCompact={true}
                   modelConfigs={modelConfigs}
                   placeholder={t('chat.selectModel')}
+                  favoriteModels={favoriteModels}
+                  onToggleFavoriteModel={handleToggleFavoriteModel}
                 />
               </div>
             )}

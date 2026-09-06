@@ -122,6 +122,7 @@ function App() {
   const [modelFilter, setModelFilter] = useState(''); // State for model filter setting
   const [modelFilterExclude, setModelFilterExclude] = useState(''); // State for model filter exclude setting
   const [disabledModels, setDisabledModels] = useState([]); // State for disabled models list
+  const [favoriteModels, setFavoriteModels] = useState([]); // State for favorite models list
 
   // State for current model's vision capability
   const [visionSupported, setVisionSupported] = useState(false);
@@ -581,6 +582,7 @@ function App() {
         setModelFilter(settings.modelFilter || '');
         setModelFilterExclude(settings.modelFilterExclude || '');
         setDisabledModels(settings.disabledModels || []);
+        setFavoriteModels(settings.favoriteModels || []);
         // Load useResponsesApi setting
         setUseResponsesApi(settings.useResponsesApi || false);
         let effectiveModel = availableModels.length > 0 ? availableModels[0] : 'default'; // Default fallback if no models or no setting
@@ -669,6 +671,7 @@ function App() {
         setModelFilter(settings.modelFilter || '');
         setModelFilterExclude(settings.modelFilterExclude || '');
         setDisabledModels(settings.disabledModels || []);
+        setFavoriteModels(settings.favoriteModels || []);
         setUseResponsesApi(settings.useResponsesApi || false);
 
         // Refresh model configs (e.g., after switching provider in Settings).
@@ -750,6 +753,32 @@ function App() {
       }
     }
   }, []);
+
+  // Callback to toggle favorite model
+  const handleToggleFavoriteModel = useCallback(async (modelId) => {
+    try {
+      const currentSettings = await window.electron.getSettings();
+      const currentFavorites = Array.isArray(currentSettings.favoriteModels) ? currentSettings.favoriteModels : [];
+      const cfg = modelConfigs[modelId];
+      const rawId = cfg?.rawModelId;
+      const isFav = currentFavorites.includes(modelId) || (rawId && currentFavorites.includes(rawId));
+
+      let updatedFavorites;
+      if (isFav) {
+        updatedFavorites = currentFavorites.filter(id => id !== modelId && id !== rawId);
+      } else {
+        updatedFavorites = [...currentFavorites, modelId];
+      }
+
+      setFavoriteModels(updatedFavorites);
+      await window.electron.saveSettings({
+        ...currentSettings,
+        favoriteModels: updatedFavorites
+      });
+    } catch (err) {
+      console.error('Error toggling favorite model:', err);
+    }
+  }, [modelConfigs]);
 
   // Callback to toggle interfaceMode (user / power) from Quick Menu
   const handleInterfaceModeChange = useCallback(async (newMode) => {
@@ -3093,6 +3122,8 @@ function App() {
                       onHarnessChange={handleAgentHarnessChange}
                       workspaceInfo={workspaceInfo}
                       onSelectWorkspace={handleSelectWorkspace}
+                      favoriteModels={favoriteModels}
+                      onToggleFavoriteModel={handleToggleFavoriteModel}
                     />
                   </div>
                 </div>
@@ -3134,6 +3165,8 @@ function App() {
                       onHarnessChange={handleAgentHarnessChange}
                       workspaceInfo={workspaceInfo}
                       onSelectWorkspace={handleSelectWorkspace}
+                      favoriteModels={favoriteModels}
+                      onToggleFavoriteModel={handleToggleFavoriteModel}
                     />
                   </div>
                 </div>
@@ -3182,6 +3215,8 @@ function App() {
                       onHarnessChange={handleAgentHarnessChange}
                       workspaceInfo={workspaceInfo}
                       onSelectWorkspace={handleSelectWorkspace}
+                      favoriteModels={favoriteModels}
+                      onToggleFavoriteModel={handleToggleFavoriteModel}
                     />
                   </div>
                 </div>
@@ -3261,6 +3296,8 @@ function App() {
                       onHarnessChange={handleAgentHarnessChange}
                       workspaceInfo={workspaceInfo}
                       onSelectWorkspace={handleSelectWorkspace}
+                      favoriteModels={favoriteModels}
+                      onToggleFavoriteModel={handleToggleFavoriteModel}
                     />
                   </div>
                 </div>

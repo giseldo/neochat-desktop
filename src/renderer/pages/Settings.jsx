@@ -453,6 +453,7 @@ function Settings() {
   const [modelConfigs, setModelConfigs] = useState({});
   const [allLoadedModels, setAllLoadedModels] = useState([]);
   const [providerModelSearchQuery, setProviderModelSearchQuery] = useState('');
+  const [filterOnlyFavorites, setFilterOnlyFavorites] = useState(false);
   const [expandedProviderGroups, setExpandedProviderGroups] = useState(new Set());
   const [isRefreshingModels, setIsRefreshingModels] = useState(false);
   
@@ -2441,6 +2442,35 @@ function Settings() {
     setSettings(updatedSettings);
     await saveSettingsImmediate(updatedSettings);
     await fetchAndSetModelConfigs(false);
+  };
+
+  const handleToggleFavoriteModel = async (modelId) => {
+    const currentFavorites = Array.isArray(settings.favoriteModels) ? settings.favoriteModels : [];
+    const cfg = modelConfigs[modelId];
+    const rawId = cfg?.rawModelId;
+    const isFav = currentFavorites.includes(modelId) || (rawId && currentFavorites.includes(rawId));
+
+    let updatedFavorites;
+    if (isFav) {
+      updatedFavorites = currentFavorites.filter(id => id !== modelId && id !== rawId);
+    } else {
+      updatedFavorites = [...currentFavorites, modelId];
+    }
+
+    const updatedSettings = {
+      ...settings,
+      favoriteModels: updatedFavorites,
+    };
+
+    setSettings(updatedSettings);
+    await saveSettingsImmediate(updatedSettings);
+  };
+
+  const isModelFavorite = (modelId) => {
+    const favorites = Array.isArray(settings.favoriteModels) ? settings.favoriteModels : [];
+    const cfg = modelConfigs[modelId];
+    const rawId = cfg?.rawModelId;
+    return favorites.includes(modelId) || (rawId && favorites.includes(rawId));
   };
 
   const toggleProviderGroup = (group) => {
@@ -4792,7 +4822,31 @@ function Settings() {
                       })));
 
                       return (
-                        <div className="flex items-center gap-1.5 self-end sm:self-auto shrink-0">
+                        <div className="flex items-center gap-1.5 self-end sm:self-auto shrink-0 flex-wrap">
+                          <Button
+                            type="button"
+                            variant={filterOnlyFavorites ? "default" : "outline"}
+                            size="sm"
+                            onClick={() => setFilterOnlyFavorites(prev => !prev)}
+                            className={cn(
+                              "text-xs h-9 px-2.5 transition-colors",
+                              filterOnlyFavorites 
+                                ? "bg-amber-500 hover:bg-amber-600 text-white border-amber-500" 
+                                : "text-muted-foreground hover:text-amber-500 hover:border-amber-500/30"
+                            )}
+                            title={t('settings.onlyFavorites') || 'Apenas Favoritos'}
+                          >
+                            <Star className={cn("h-3.5 w-3.5 mr-1", (filterOnlyFavorites || (Array.isArray(settings.favoriteModels) && settings.favoriteModels.length > 0)) && "fill-current")} />
+                            <span>{t('common.favorites') || 'Favoritos'}</span>
+                            {Array.isArray(settings.favoriteModels) && settings.favoriteModels.length > 0 && (
+                              <span className={cn(
+                                "ml-1.5 px-1.5 py-0.5 rounded-full text-[10px] font-mono leading-none",
+                                filterOnlyFavorites ? "bg-white/20 text-white" : "bg-amber-500/15 text-amber-600 dark:text-amber-400"
+                              )}>
+                                {settings.favoriteModels.length}
+                              </span>
+                            )}
+                          </Button>
                           <Button
                             type="button"
                             variant="outline"
@@ -4826,8 +4880,11 @@ function Settings() {
                     {(() => {
                       const query = providerModelSearchQuery.trim().toLowerCase();
                       const isSearchActive = query.length > 0;
+                      const baseModels = filterOnlyFavorites
+                        ? allLoadedModels.filter(id => isModelFavorite(id))
+                        : allLoadedModels;
                       const filteredModelIds = isSearchActive
-                        ? allLoadedModels.filter(id => {
+                        ? baseModels.filter(id => {
                             const cfg = modelConfigs[id] || {};
                             const rawId = (cfg.rawModelId || (id.includes('::') ? id.split('::')[1] : id)).toLowerCase();
                             const name = (cfg.displayName || rawId).toLowerCase();
@@ -4843,7 +4900,7 @@ function Settings() {
                                    hasVision.includes(query) ||
                                    hasTools.includes(query);
                           })
-                        : allLoadedModels;
+                        : baseModels;
 
                       if (filteredModelIds.length === 0) {
                         return (
@@ -4992,6 +5049,7 @@ function Settings() {
                                         const rawId = config.rawModelId || (modelId.includes('::') ? modelId.split('::')[1] : modelId);
                                         const displayName = config.displayName || rawId;
                                         const isEnabled = isModelActive(modelId);
+                                        const isFav = isModelFavorite(modelId);
 
                                         return (
                                           <div
@@ -5032,15 +5090,31 @@ function Settings() {
                                               </div>
                                             </div>
 
-                                            <Badge
-                                              variant={isEnabled ? "secondary" : "outline"}
-                                              className={cn(
-                                                "text-[10px] shrink-0 font-normal",
-                                                isEnabled ? "bg-green-500/10 text-green-700 dark:text-green-300 border-green-500/20" : "text-muted-foreground"
-                                              )}
-                                            >
-                                              {isEnabled ? t('settings.statusActive') : t('settings.statusInactive')}
-                                            </Badge>
+                                            <div className="flex items-center gap-1.5 shrink-0">
+                                              <button
+                                                type="button"
+                                                onClick={() => handleToggleFavoriteModel(modelId)}
+                                                className={cn(
+                                                  "p-1.5 rounded-lg border transition-all flex items-center justify-center cursor-pointer",
+                                                  isFav
+                                                    ? "bg-amber-500/15 border-amber-500/30 text-amber-500 dark:text-amber-400 hover:bg-amber-500/25 shadow-2xs"
+                                                    : "bg-muted/40 border-border/50 text-muted-foreground/40 hover:text-amber-500 hover:bg-muted/80 hover:border-amber-500/30"
+                                                )}
+                                                title={isFav ? (t('common.removeFromFavorites') || 'Remover dos favoritos') : (t('common.addToFavorites') || 'Adicionar aos favoritos')}
+                                                aria-label={isFav ? "Remover dos favoritos" : "Adicionar aos favoritos"}
+                                              >
+                                                <Star className={cn("h-3.5 w-3.5 transition-transform active:scale-125", isFav && "fill-amber-400 text-amber-400")} />
+                                              </button>
+                                              <Badge
+                                                variant={isEnabled ? "secondary" : "outline"}
+                                                className={cn(
+                                                  "text-[10px] shrink-0 font-normal",
+                                                  isEnabled ? "bg-green-500/10 text-green-700 dark:text-green-300 border-green-500/20" : "text-muted-foreground"
+                                                )}
+                                              >
+                                                {isEnabled ? t('settings.statusActive') : t('settings.statusInactive')}
+                                              </Badge>
+                                            </div>
                                           </div>
                                         );
                                       })}

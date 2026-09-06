@@ -174,6 +174,8 @@ export function getModelGroup(modelId, config = null) {
  * Priority order for common model groups so the list appears well structured
  */
 const GROUP_PRIORITY = [
+  'Favoritos',
+  'Favorites',
   'OpenAI',
   'Canopy Labs',
   'DeepSeek',
