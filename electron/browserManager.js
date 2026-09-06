@@ -2,10 +2,12 @@
  * BrowserManager - In-App Browser preview, content extraction, and popup window management.
  */
 
-const { BrowserWindow, shell } = require('electron');
+const { app, BrowserWindow, shell } = require('electron');
 const path = require('path');
+const fs = require('fs');
 const http = require('http');
 const https = require('https');
+const { pathToFileURL } = require('url');
 
 class BrowserManager {
   constructor() {
@@ -134,6 +136,28 @@ class BrowserManager {
       const normalized = this.normalizeUrl(url);
       shell.openExternal(normalized);
       return { success: true, url: normalized };
+    });
+
+    safeHandle('browser:open-html', async (_event, { html, title }) => {
+      try {
+        const tempDir = app.getPath('temp');
+        const cleanTitle = (title || 'preview')
+          .toLowerCase()
+          .replace(/[^a-z0-9]/g, '-')
+          .replace(/-+/g, '-')
+          .slice(0, 30);
+        const tempFile = path.join(tempDir, `neochat-${cleanTitle || 'preview'}-${Date.now()}.html`);
+        await fs.promises.writeFile(tempFile, html || '', 'utf8');
+
+        const openErr = await shell.openPath(tempFile);
+        if (openErr) {
+          await shell.openExternal(pathToFileURL(tempFile).href);
+        }
+        return { success: true, path: tempFile };
+      } catch (err) {
+        console.error('[BrowserManager] Failed to open HTML in external browser:', err);
+        return { success: false, error: err.message };
+      }
     });
   }
 }

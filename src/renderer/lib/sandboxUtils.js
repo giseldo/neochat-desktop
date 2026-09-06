@@ -8,18 +8,38 @@
  */
 export function isReactCode(code = '') {
   if (!code || typeof code !== 'string') return false;
-  return (
+
+  // Complete HTML documents or standard HTML fragments should never be parsed as standalone React components
+  if (/<!DOCTYPE html|<html[\s>]|<head[\s>]|<body[\s>]/i.test(code)) {
+    return false;
+  }
+
+  // React imports or exports
+  if (
     code.includes('import React') ||
-    code.includes('export default function') ||
-    code.includes('export default') ||
-    code.includes('function App') ||
-    code.includes('const App =') ||
-    code.includes('useState(') ||
-    code.includes('useEffect(') ||
-    code.includes('useRef(') ||
-    code.includes('className=') ||
-    /<\w+[\s\S]*>[\s\S]*<\/\w+>/.test(code)
-  );
+    code.includes("from 'react'") ||
+    code.includes('from "react"') ||
+    /export\s+default\s+(function|class)?/i.test(code)
+  ) {
+    return true;
+  }
+
+  // Standard React hooks
+  if (/\b(useState|useEffect|useRef|useMemo|useCallback|useContext|useReducer)\s*\(/.test(code)) {
+    return true;
+  }
+
+  // React component declarations (e.g. function App(), const Main = () =>)
+  if (/function\s+[A-Z]\w*\s*\(/.test(code) || /const\s+[A-Z]\w*\s*=\s*(\([^)]*\)|[a-zA-Z0-9_]+)\s*=>/.test(code)) {
+    return true;
+  }
+
+  // JSX returns inside functions
+  if (/return\s*\(\s*<[\w.-]+/i.test(code) || /return\s+<[\w.-]+/i.test(code)) {
+    return true;
+  }
+
+  return false;
 }
 
 /**
@@ -173,7 +193,7 @@ export function buildReactSandboxDoc(code = '', isDark = true) {
   <!-- Lucide Icons -->
   <script src="https://unpkg.com/lucide@latest"></script>
   <!-- Babel Standalone -->
-  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js" crossorigin="anonymous"></script>
   <script>${CONSOLE_INTERCEPT_SCRIPT}</script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <style>

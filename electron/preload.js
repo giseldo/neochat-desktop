@@ -26,6 +26,7 @@ function cleanupChatStreamListeners() {
 contextBridge.exposeInMainWorld('electron', {
   getAppInfo: () => ipcRenderer.invoke('get-app-info'),
   openExternal: (url) => ipcRenderer.invoke('browser:open-external', { url }),
+  openHtmlInBrowser: (html, title) => ipcRenderer.invoke('browser:open-html', { html, title }),
   getSettings: () => ipcRenderer.invoke('get-settings'),
   saveSettings: (settings) => ipcRenderer.invoke('save-settings', settings),
   getSettingsPath: () => ipcRenderer.invoke('get-settings-path'),
@@ -503,7 +504,8 @@ contextBridge.exposeInMainWorld('electron', {
   browser: {
     fetchPage: (url, timeoutMs) => ipcRenderer.invoke('browser:fetch-page', { url, timeoutMs }),
     openPopout: (url) => ipcRenderer.invoke('browser:open-popout', { url }),
-    openExternal: (url) => ipcRenderer.invoke('browser:open-external', { url })
+    openExternal: (url) => ipcRenderer.invoke('browser:open-external', { url }),
+    openHtml: (html, title) => ipcRenderer.invoke('browser:open-html', { html, title })
   },
 
   // --- Zoom Controls ---

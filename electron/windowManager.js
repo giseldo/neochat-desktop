@@ -83,11 +83,11 @@ function initializeWindowManager(app, screen, shell, BrowserWindow) {
 
     // Handle external links to open in default browser
     createdWindow.webContents.setWindowOpenHandler(({ url }) => {
-      if (url.startsWith('http:') || url.startsWith('https:')) {
+      if (url.startsWith('http:') || url.startsWith('https:') || url.startsWith('file:')) {
         shell.openExternal(url);
         return { action: 'deny' };
       }
-      return { action: 'allow' };
+      return { action: 'deny' };
     });
 
     // Handle clicked links in the app (prevent navigation away from app)

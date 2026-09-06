@@ -158,8 +158,10 @@ export function ArtifactsPanel({ artifact, onClose, className }) {
       setSandboxLogs([]);
 
       const rawType = (artifact.type || '').toLowerCase();
-      const isVisual = ['html', 'svg', 'mermaid', 'markdown', 'md', 'jsx', 'tsx', 'react'].includes(rawType) || isReactCode(code);
-      const isExecutableType = ['js', 'javascript', 'ts', 'typescript', 'py', 'python'].includes(rawType) && !isReactCode(code);
+      const isHtml = rawType === 'html' || rawType === 'htm' || rawType === 'svg' || /<!DOCTYPE html|<html[\s>]/i.test(code);
+      const hasReact = !isHtml && (['jsx', 'tsx', 'react'].includes(rawType) || isReactCode(code));
+      const isVisual = ['html', 'htm', 'svg', 'mermaid', 'markdown', 'md', 'jsx', 'tsx', 'react'].includes(rawType) || isHtml || hasReact;
+      const isExecutableType = ['js', 'javascript', 'ts', 'typescript', 'py', 'python'].includes(rawType) && !hasReact;
 
       if (isVisual) {
         setActiveTab('preview');
@@ -213,13 +215,14 @@ export function ArtifactsPanel({ artifact, onClose, className }) {
   }, []);
 
   const rawType = (artifact?.type || 'html').toLowerCase();
-  const title = artifact?.title || t('artifacts.defaultTitle', { type: rawType.toUpperCase() });
+  const isHtml = rawType === 'html' || rawType === 'htm' || rawType === 'svg' || /<!DOCTYPE html|<html[\s>]/i.test(currentCode);
+  const title = artifact?.title || t('artifacts.defaultTitle', { type: (isHtml ? (rawType === 'svg' ? 'SVG' : 'HTML') : rawType).toUpperCase() });
 
-  const hasReact = isReactCode(currentCode) || rawType === 'jsx' || rawType === 'tsx' || rawType === 'react';
+  const hasReact = !isHtml && (rawType === 'jsx' || rawType === 'tsx' || rawType === 'react' || isReactCode(currentCode));
   const isPython = rawType === 'py' || rawType === 'python';
   const isJS = (rawType === 'js' || rawType === 'javascript' || rawType === 'ts' || rawType === 'typescript') && !hasReact;
   const isExecutable = isPython || isJS;
-  const isVisual = ['html', 'svg', 'mermaid', 'markdown', 'md', 'jsx', 'tsx', 'react'].includes(rawType) || hasReact;
+  const isVisual = ['html', 'htm', 'svg', 'mermaid', 'markdown', 'md', 'jsx', 'tsx', 'react'].includes(rawType) || isHtml || hasReact;
 
   // Build live sandbox iframe doc
   const sandboxDoc = useMemo(() => {
@@ -230,11 +233,11 @@ export function ArtifactsPanel({ artifact, onClose, className }) {
     if (hasReact) {
       return buildReactSandboxDoc(currentCode, isDark);
     }
-    if (rawType === 'html' || rawType === 'svg') {
+    if (isHtml || rawType === 'html' || rawType === 'svg') {
       return buildHtmlSandboxDoc(currentCode, isDark);
     }
     return buildHtmlSandboxDoc(currentCode, isDark);
-  }, [artifact, currentCode, rawType, hasReact, isDark]);
+  }, [artifact, currentCode, rawType, hasReact, isHtml, isDark]);
 
   const handleCopy = async (textToCopy = currentCode) => {
     try {
@@ -273,10 +276,30 @@ export function ArtifactsPanel({ artifact, onClose, className }) {
     URL.revokeObjectURL(url);
   };
 
-  const handleOpenInBrowser = () => {
-    const blob = new Blob([sandboxDoc], { type: 'text/html;charset=utf-8' });
+  const handleOpenInBrowser = async () => {
+    const isFullDoc = /<!DOCTYPE html|<html[\s>]/i.test(currentCode);
+    const htmlToOpen = (isHtml && isFullDoc) ? currentCode : sandboxDoc;
+
+    try {
+      if (window.electron?.openHtmlInBrowser) {
+        await window.electron.openHtmlInBrowser(htmlToOpen, title);
+        return;
+      }
+      if (window.electron?.browser?.openHtml) {
+        await window.electron.browser.openHtml(htmlToOpen, title);
+        return;
+      }
+    } catch (err) {
+      console.warn('Electron browser helper failed, falling back to blob:', err);
+    }
+
+    const blob = new Blob([htmlToOpen], { type: 'text/html;charset=utf-8' });
     const url = URL.createObjectURL(blob);
-    window.open(url, '_blank');
+    const a = document.createElement('a');
+    a.href = url;
+    a.target = '_blank';
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 10000);
   };
 
   const handleFormatCode = () => {
@@ -434,7 +457,7 @@ export function ArtifactsPanel({ artifact, onClose, className }) {
           <div className="min-w-0">
             <h3 className="font-semibold text-xs text-foreground truncate">{title}</h3>
             <div className="flex items-center gap-1.5 mt-0.5">
-              <span className="text-[10px] text-muted-foreground uppercase font-mono">{hasReact ? 'React (JSX)' : rawType}</span>
+              <span className="text-[10px] text-muted-foreground uppercase font-mono">{hasReact ? 'React (JSX)' : (isHtml ? (rawType === 'svg' ? 'SVG' : 'HTML') : rawType)}</span>
               {isVisual && (
                 <span className="text-[9px] px-1.5 py-0.2 rounded-full bg-blue-500/10 text-blue-600 dark:text-blue-400 font-mono font-medium">
                   Live Sandbox
