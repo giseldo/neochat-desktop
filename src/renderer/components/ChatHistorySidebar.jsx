@@ -1336,7 +1336,7 @@ function ChatHistorySidebar({
             {isOptionsOpen && (
               <div
                 ref={optionsMenuRef}
-                className="absolute -right-7 top-full mt-1.5 w-56 bg-popover border border-border rounded-xl shadow-xl p-1 z-[9999] text-xs animate-in fade-in-0 zoom-in-95 space-y-0.5"
+                className="absolute left-0 top-full mt-1.5 w-56 bg-popover border border-border rounded-xl shadow-xl p-1 z-[9999] text-xs animate-in fade-in-0 zoom-in-95 space-y-0.5"
               >
                 <button
                   type="button"
