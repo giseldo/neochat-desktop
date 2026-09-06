@@ -91,15 +91,21 @@ class ArenaEngine {
   /**
    * Run a structured multi-round debate between models
    */
-  async runDebate({ debateId, topic, context = '', participants = [], judgeModel = null, rounds = 2, settings = {}, onRoundProgress }) {
+  async runDebate({ debateId, topic, context = '', project = null, participants = [], judgeModel = null, rounds = 2, settings = {}, onRoundProgress }) {
     if (!participants || participants.length < 2) {
       throw new Error('Debate requires at least 2 participant models');
     }
 
+    const projectContext = project?.name
+      ? `[Projeto Ativo: "${project.name}"]${project.customPrompt ? `\nDiretrizes do Projeto:\n${project.customPrompt}` : ''}`
+      : '';
+    const fullContext = [projectContext, context].filter(Boolean).join('\n\n');
+
     const debateState = {
       id: debateId || `debate-${Date.now()}`,
       topic,
-      context,
+      context: fullContext,
+      project: project ? { id: project.id, name: project.name } : null,
       roundsData: [],
       synthesis: null,
       status: 'running',
@@ -129,9 +135,9 @@ class ArenaEngine {
               content: `Você está participando de um debate técnico e analítico de alto nível no NeoChat Desktop.
 Seu papel: ${role}.
 Tema: "${topic}".
-${context ? `Contexto adicional:\n${context}\n` : ''}
+${fullContext ? `Contexto do Projeto / Informações adicionais:\n${fullContext}\n` : ''}
 Regras:
-1. Seja incisivo, técnico, claro e fundamentado com exemplos concretos.
+1. Seja incisivo, técnico, claro e fundamentado com exemplos concretos alinhados ao projeto.
 2. Na Rodada ${r} de ${rounds}: ${r === 1 ? 'Apresente seus argumentos fundamentais e plano de ação.' : 'Analise as fraquezas dos argumentos dos outros participantes e defenda suas premissas com refutações lógicas.'}
 3. Responda em Português formatado em Markdown limpo.`
             }

@@ -3502,6 +3502,10 @@ function App() {
           isOpen={isArenaModalOpen}
           onClose={() => setIsArenaModalOpen(false)}
           currentModel={selectedModel}
+          availableModels={sortedModels}
+          modelConfigs={modelConfigs}
+          activeProject={activeProject}
+          projects={projects}
           onSendToChat={(content) => handleSendMessage(content)}
           onOpenCanvas={() => handleToggleCanvas()}
         />

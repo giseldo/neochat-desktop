@@ -15,110 +15,14 @@ import {
   Bot,
   Search,
   ChevronDown,
-  Brain,
-  Zap,
-  Code2,
-  Globe,
-  Flame
+  FolderKanban,
+  Flame,
+  Info,
+  SlidersHorizontal
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { Badge } from './ui/badge';
 import { Button } from './ui/button';
-
-// Curated 2025/2026 Frontier & Popular Models Catalog
-const CURATED_MODELS_CATALOG = [
-  // Anthropic
-  { id: 'anthropic/claude-3.7-sonnet', name: 'Claude 3.7 Sonnet', provider: 'anthropic', category: 'frontier', badge: 'Frontier SOTA' },
-  { id: 'anthropic/claude-3.7-sonnet:thinking', name: 'Claude 3.7 Sonnet (Thinking)', provider: 'anthropic', category: 'reasoning', badge: 'Hybrid Reasoning' },
-  { id: 'anthropic/claude-3.5-sonnet', name: 'Claude 3.5 Sonnet', provider: 'anthropic', category: 'coding', badge: 'Coding Leader' },
-  { id: 'anthropic/claude-3.5-haiku', name: 'Claude 3.5 Haiku', provider: 'anthropic', category: 'fast', badge: 'Ultra-Fast' },
-
-  // OpenAI
-  { id: 'gpt-4o', name: 'GPT-4o', provider: 'openai', category: 'frontier', badge: 'Flagship Multimodal' },
-  { id: 'gpt-4o-mini', name: 'GPT-4o Mini', provider: 'openai', category: 'fast', badge: 'Fast & Efficient' },
-  { id: 'o3-mini', name: 'o3-mini', provider: 'openai', category: 'reasoning', badge: 'STEM Reasoning' },
-  { id: 'o1', name: 'o1', provider: 'openai', category: 'reasoning', badge: 'Deep Reasoning' },
-  { id: 'gpt-4.5-preview', name: 'GPT-4.5 Preview', provider: 'openai', category: 'frontier', badge: 'Frontier Next-Gen' },
-
-  // Google Gemini
-  { id: 'gemini-2.5-flash', name: 'Gemini 2.5 Flash', provider: 'gemini', category: 'fast', badge: 'Next-Gen Speed' },
-  { id: 'gemini-2.5-pro', name: 'Gemini 2.5 Pro', provider: 'gemini', category: 'frontier', badge: 'Next-Gen Pro' },
-  { id: 'gemini-2.0-flash', name: 'Gemini 2.0 Flash', provider: 'gemini', category: 'fast', badge: 'Real-time Multimodal' },
-  { id: 'gemini-2.0-flash-thinking-exp-01-21', name: 'Gemini 2.0 Flash Thinking', provider: 'gemini', category: 'reasoning', badge: 'Reasoning Exp' },
-  { id: 'gemini-1.5-pro', name: 'Gemini 1.5 Pro', provider: 'gemini', category: 'frontier', badge: '2M Context' },
-
-  // DeepSeek
-  { id: 'deepseek-reasoner', name: 'DeepSeek R1', provider: 'deepseek', category: 'reasoning', badge: 'Open SOTA Reasoning' },
-  { id: 'deepseek-chat', name: 'DeepSeek V3', provider: 'deepseek', category: 'frontier', badge: '671B MoE' },
-
-  // Groq (LPU Ultra-Fast)
-  { id: 'llama-3.3-70b-versatile', name: 'Llama 3.3 70B (Groq)', provider: 'groq', category: 'frontier', badge: 'LPU Ultra-Fast' },
-  { id: 'deepseek-r1-distill-llama-70b', name: 'DeepSeek R1 Distill 70B (Groq)', provider: 'groq', category: 'reasoning', badge: 'Fast Reasoning' },
-  { id: 'qwen-2.5-coder-32b', name: 'Qwen 2.5 Coder 32B (Groq)', provider: 'groq', category: 'coding', badge: 'Fast Code LPU' },
-  { id: 'deepseek-r1-distill-qwen-32b', name: 'DeepSeek R1 Distill Qwen 32B (Groq)', provider: 'groq', category: 'reasoning', badge: 'Distill Qwen' },
-  { id: 'llama-3.1-8b-instant', name: 'Llama 3.1 8B Instant (Groq)', provider: 'groq', category: 'fast', badge: 'Instant Response' },
-
-  // xAI (Grok)
-  { id: 'grok-2-latest', name: 'Grok 2', provider: 'grok', category: 'frontier', badge: 'xAI Flagship' },
-  { id: 'grok-3', name: 'Grok 3', provider: 'grok', category: 'reasoning', badge: 'xAI Reasoning' },
-
-  // Perplexity
-  { id: 'sonar-pro', name: 'Sonar Pro', provider: 'perplexity', category: 'frontier', badge: 'Live Web Search' },
-  { id: 'sonar-reasoning-pro', name: 'Sonar Reasoning Pro', provider: 'perplexity', category: 'reasoning', badge: 'Web Reasoning' },
-
-  // Mistral AI
-  { id: 'mistral-large-latest', name: 'Mistral Large', provider: 'mistral', category: 'frontier', badge: 'Flagship European' },
-  { id: 'codestral-latest', name: 'Codestral', provider: 'mistral', category: 'coding', badge: 'Specialized Code' }
-];
-
-// Curated Battle Presets
-const BATTLE_PRESETS = [
-  {
-    id: 'frontier-titans',
-    name: '👑 Frontier Titans',
-    tag: 'Claude 3.7 vs GPT-4o',
-    topic: 'Quais os trade-offs fundamentais entre microsserviços orientados a eventos vs monolito modular em sistemas de alta escala?',
-    participantA: { name: 'Debatedor A (Claude 3.7)', model: 'anthropic/claude-3.7-sonnet', provider: 'anthropic', role: 'Proponente (Visão Sistêmica)' },
-    participantB: { name: 'Debatedor B (GPT-4o)', model: 'gpt-4o', provider: 'openai', role: 'Crítico (Visão Pragmática & Operacional)' },
-    judge: { name: 'Juiz (DeepSeek R1)', model: 'deepseek-reasoner', provider: 'deepseek' }
-  },
-  {
-    id: 'reasoning-masters',
-    name: '🧠 Raciocínio Profundo',
-    tag: 'DeepSeek R1 vs Claude 3.7 Thinking',
-    topic: 'Como resolver formalmente problemas de concorrência com consistência eventual sem deadlocks em bancos distribuídos?',
-    participantA: { name: 'Debatedor A (DeepSeek R1)', model: 'deepseek-reasoner', provider: 'deepseek', role: 'Proponente (Análise Matemática/Algorítmica)' },
-    participantB: { name: 'Debatedor B (Claude 3.7 Thinking)', model: 'anthropic/claude-3.7-sonnet:thinking', provider: 'anthropic', role: 'Crítico (Casos Limítrofes & Falhas)' },
-    judge: { name: 'Juiz (GPT-4o)', model: 'gpt-4o', provider: 'openai' }
-  },
-  {
-    id: 'speed-demons',
-    name: '⚡ Ultra-Velozes',
-    tag: 'Gemini 2.5 Flash vs GPT-4o Mini',
-    topic: 'Qual a estratégia ideal de cache multi-camadas (Redis, Edge CDN, Local Memory) para APIs com SLA sub-10ms?',
-    participantA: { name: 'Debatedor A (Gemini 2.5 Flash)', model: 'gemini-2.5-flash', provider: 'gemini', role: 'Proponente (Alta Vazão)' },
-    participantB: { name: 'Debatedor B (GPT-4o Mini)', model: 'gpt-4o-mini', provider: 'openai', role: 'Crítico (Invalidação & Consistência)' },
-    judge: { name: 'Juiz (Claude 3.7 Sonnet)', model: 'anthropic/claude-3.7-sonnet', provider: 'anthropic' }
-  },
-  {
-    id: 'code-champions',
-    name: '💻 Mestres de Código',
-    tag: 'Qwen 2.5 Coder vs Claude 3.5 Sonnet',
-    topic: 'React 19 Server Components vs Client-Side SPA com Signals: qual oferece a melhor experiência de desenvolvimento e performance em 2026?',
-    participantA: { name: 'Debatedor A (Qwen 2.5 Coder)', model: 'qwen-2.5-coder-32b', provider: 'groq', role: 'Proponente (Arquitetura & DX)' },
-    participantB: { name: 'Debatedor B (Claude 3.5 Sonnet)', model: 'anthropic/claude-3.5-sonnet', provider: 'anthropic', role: 'Crítico (Complexidade & SSR Trade-offs)' },
-    judge: { name: 'Juiz (Claude 3.7 Sonnet)', model: 'anthropic/claude-3.7-sonnet', provider: 'anthropic' }
-  },
-  {
-    id: 'opensource-heavyweights',
-    name: '🦙 Open-Source Titans',
-    tag: 'Llama 3.3 70B vs DeepSeek R1 Distill',
-    topic: 'Rust vs Go para backend de infraestrutura moderna: quando a segurança de memória justifica o custo de curva de aprendizado?',
-    participantA: { name: 'Debatedor A (Llama 3.3 70B)', model: 'llama-3.3-70b-versatile', provider: 'groq', role: 'Proponente (Produtividade & Robustez)' },
-    participantB: { name: 'Debatedor B (DeepSeek R1 Distill)', model: 'deepseek-r1-distill-llama-70b', provider: 'groq', role: 'Crítico (Performance & Zero-Cost Abstractions)' },
-    judge: { name: 'Juiz (Llama 3.3 70B)', model: 'llama-3.3-70b-versatile', provider: 'groq' }
-  }
-];
 
 // Helper to select an appropriate provider icon or badge color
 function getProviderColor(provider) {
@@ -136,23 +40,25 @@ function getProviderColor(provider) {
     case 'perplexity':
       return 'bg-cyan-500/10 text-cyan-500 border-cyan-500/30';
     case 'grok':
+    case 'xai':
       return 'bg-zinc-500/10 text-zinc-400 border-zinc-500/30';
+    case 'mistral':
+      return 'bg-red-500/10 text-red-500 border-red-500/30';
     default:
       return 'bg-muted text-muted-foreground border-border';
   }
 }
 
-// Custom Searchable Model Dropdown Component
-function ModelPickerPopover({
+// Custom Searchable Model Dropdown Component (Lists ONLY active models of NeoChat)
+function ActiveModelPickerPopover({
   value,
   provider,
   onChange,
-  modelOptions,
+  activeModels = [],
   className
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const [search, setSearch] = useState('');
-  const [customInput, setCustomInput] = useState('');
   const popoverRef = useRef(null);
 
   useEffect(() => {
@@ -169,50 +75,30 @@ function ModelPickerPopover({
 
   const filteredOptions = useMemo(() => {
     const q = search.toLowerCase().trim();
-    if (!q) return modelOptions;
-    return modelOptions.filter(m =>
+    if (!q) return activeModels;
+    return activeModels.filter(m =>
       (m.name || '').toLowerCase().includes(q) ||
       (m.id || '').toLowerCase().includes(q) ||
       (m.provider || '').toLowerCase().includes(q) ||
-      (m.badge || '').toLowerCase().includes(q)
+      (m.group || '').toLowerCase().includes(q)
     );
-  }, [modelOptions, search]);
+  }, [activeModels, search]);
 
-  const currentOption = modelOptions.find(m => m.id === value) || {
+  const currentOption = activeModels.find(m => m.id === value || m.rawId === value) || {
     id: value,
     name: value,
     provider: provider || 'groq',
-    badge: 'Custom'
+    group: provider || 'Groq'
   };
 
   const handleSelect = (item) => {
     onChange({
-      model: item.id,
+      model: item.rawId || item.id,
       provider: item.provider || 'groq',
       name: item.name || item.id
     });
     setIsOpen(false);
     setSearch('');
-  };
-
-  const handleApplyCustom = () => {
-    if (customInput.trim()) {
-      let inferredProvider = 'groq';
-      const val = customInput.trim();
-      if (val.includes('claude')) inferredProvider = 'anthropic';
-      else if (val.includes('gpt') || val.startsWith('o1') || val.startsWith('o3')) inferredProvider = 'openai';
-      else if (val.includes('gemini')) inferredProvider = 'gemini';
-      else if (val.includes('deepseek')) inferredProvider = 'deepseek';
-      else if (val.includes('sonar')) inferredProvider = 'perplexity';
-
-      onChange({
-        model: val,
-        provider: inferredProvider,
-        name: val
-      });
-      setIsOpen(false);
-      setCustomInput('');
-    }
   };
 
   return (
@@ -243,7 +129,7 @@ function ModelPickerPopover({
               type="text"
               value={search}
               onChange={e => setSearch(e.target.value)}
-              placeholder="Buscar por modelo, ID ou provedor..."
+              placeholder="Buscar entre modelos ativos..."
               autoFocus
               className="w-full pl-8 pr-3 py-1.5 bg-muted/40 border border-input rounded-lg text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/40"
             />
@@ -253,11 +139,11 @@ function ModelPickerPopover({
           <div className="max-h-56 overflow-y-auto space-y-1 pr-1 custom-scrollbar">
             {filteredOptions.length === 0 ? (
               <div className="p-3 text-center text-xs text-muted-foreground">
-                Nenhum modelo predefinido encontrado para "{search}".
+                Nenhum modelo ativo corresponde à busca "{search}".
               </div>
             ) : (
               filteredOptions.map((item) => {
-                const isSelected = item.id === value;
+                const isSelected = item.id === value || item.rawId === value;
                 return (
                   <button
                     key={`${item.provider}-${item.id}`}
@@ -271,11 +157,6 @@ function ModelPickerPopover({
                     <div className="flex flex-col min-w-0 pr-2">
                       <div className="flex items-center gap-1.5">
                         <span className="truncate">{item.name || item.id}</span>
-                        {item.badge && (
-                          <span className="text-[9px] px-1 rounded bg-muted text-muted-foreground font-normal">
-                            {item.badge}
-                          </span>
-                        )}
                       </div>
                       <span className="text-[10px] font-mono text-muted-foreground truncate">{item.id}</span>
                     </div>
@@ -290,33 +171,6 @@ function ModelPickerPopover({
               })
             )}
           </div>
-
-          {/* Custom Model Direct Input */}
-          <div className="pt-2 border-t border-border flex items-center gap-1.5">
-            <input
-              type="text"
-              value={customInput}
-              onChange={e => setCustomInput(e.target.value)}
-              placeholder="Outro ID (ex: claude-3-7-sonnet-20250219)"
-              className="flex-1 px-2.5 py-1.5 bg-background border border-input rounded-lg text-xs font-mono text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
-              onKeyDown={e => {
-                if (e.key === 'Enter') {
-                  e.preventDefault();
-                  handleApplyCustom();
-                }
-              }}
-            />
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={handleApplyCustom}
-              disabled={!customInput.trim()}
-              className="text-xs px-2.5 py-1.5 h-auto cursor-pointer"
-            >
-              Usar
-            </Button>
-          </div>
         </div>
       )}
     </div>
@@ -327,6 +181,10 @@ export function ArenaModal({
   isOpen,
   onClose,
   currentModel,
+  availableModels = [],
+  modelConfigs = {},
+  activeProject = null,
+  projects = [],
   onSendToChat,
   onOpenCanvas
 }) {
@@ -338,13 +196,123 @@ export function ArenaModal({
   const [copied, setCopied] = useState(false);
   const [showJudgeConfig, setShowJudgeConfig] = useState(false);
 
-  // Available models from settings / context & curated list
-  const [apiModels, setApiModels] = useState([]);
-  const [participants, setParticipants] = useState([
-    { id: 'p1', name: 'Debatedor A (Claude 3.7)', model: 'anthropic/claude-3.7-sonnet', provider: 'anthropic', role: 'Proponente (Abordagem A)' },
-    { id: 'p2', name: 'Debatedor B (GPT-4o)', model: 'gpt-4o', provider: 'openai', role: 'Crítico / Refutador (Abordagem B)' }
-  ]);
-  const [judgeModel, setJudgeModel] = useState({ name: 'Juiz e Sintetizador', model: 'deepseek-reasoner', provider: 'deepseek' });
+  // Selected project for this arena session (defaults to NeoChat's active project)
+  const [selectedProjectId, setSelectedProjectId] = useState(activeProject?.id || null);
+
+  // Sync selected project when modal opens or activeProject changes
+  useEffect(() => {
+    if (isOpen) {
+      setSelectedProjectId(activeProject?.id || null);
+    }
+  }, [isOpen, activeProject]);
+
+  const currentActiveProject = useMemo(() => {
+    if (!selectedProjectId) return null;
+    return projects.find(p => p.id === selectedProjectId) || activeProject || null;
+  }, [projects, selectedProjectId, activeProject]);
+
+  // Extract strictly ACTIVE models of NeoChat
+  const activeModelOptions = useMemo(() => {
+    if (!Array.isArray(availableModels) || availableModels.length === 0) {
+      if (currentModel) {
+        const cfg = modelConfigs?.[currentModel] || {};
+        return [{
+          id: currentModel,
+          rawId: currentModel,
+          name: cfg.displayName || currentModel,
+          provider: cfg.provider || 'groq',
+          group: cfg.group || 'Groq'
+        }];
+      }
+      return [];
+    }
+
+    return availableModels.map(modelId => {
+      const cfg = modelConfigs?.[modelId] || {};
+      return {
+        id: cfg.rawModelId || modelId,
+        rawId: modelId,
+        name: cfg.displayName || cfg.rawModelId || modelId,
+        provider: cfg.provider || 'groq',
+        group: cfg.group || cfg.provider || 'Groq'
+      };
+    });
+  }, [availableModels, modelConfigs, currentModel]);
+
+  // Initialize participants from NeoChat's active models
+  const [participants, setParticipants] = useState([]);
+  const [judgeModel, setJudgeModel] = useState({ name: 'Juiz e Sintetizador', model: '', provider: 'groq' });
+
+  // Update default participants when activeModelOptions change
+  useEffect(() => {
+    if (activeModelOptions.length > 0) {
+      const first = activeModelOptions.find(m => m.id === currentModel || m.rawId === currentModel) || activeModelOptions[0];
+      const second = activeModelOptions.length > 1
+        ? (activeModelOptions.find(m => m.id !== first.id && m.rawId !== first.rawId) || activeModelOptions[1])
+        : first;
+
+      setParticipants([
+        {
+          id: 'p1',
+          name: `Debatedor A (${first.name})`,
+          model: first.rawId || first.id,
+          provider: first.provider,
+          role: 'Proponente (Abordagem A)'
+        },
+        {
+          id: 'p2',
+          name: `Debatedor B (${second.name})`,
+          model: second.rawId || second.id,
+          provider: second.provider,
+          role: 'Crítico / Refutador (Abordagem B)'
+        }
+      ]);
+
+      setJudgeModel({
+        name: `Juiz (${first.name})`,
+        model: first.rawId || first.id,
+        provider: first.provider
+      });
+    }
+  }, [activeModelOptions, currentModel, isOpen]);
+
+  // Dynamically generate duels from the user's active models
+  const dynamicPresets = useMemo(() => {
+    if (activeModelOptions.length < 2) return [];
+
+    const presets = [];
+    const m1 = activeModelOptions[0];
+    const m2 = activeModelOptions[1];
+    const m3 = activeModelOptions.length > 2 ? activeModelOptions[2] : null;
+
+    presets.push({
+      id: 'active-duel-1',
+      name: `⚔️ ${m1.name} vs ${m2.name}`,
+      tag: 'Duelo Principal',
+      topic: currentActiveProject?.name
+        ? `Qual a melhor abordagem técnica para implementar os novos requisitos do projeto "${currentActiveProject.name}" mantendo alta manutenibilidade e performance?`
+        : 'Qual a melhor arquitetura para estado global e fluxo de dados em aplicações modernas: React 19 Actions/Hooks, Zustand ou Signals?',
+      participantA: { name: `Debatedor A (${m1.name})`, model: m1.rawId || m1.id, provider: m1.provider, role: 'Proponente (Visão Estrutural)' },
+      participantB: { name: `Debatedor B (${m2.name})`, model: m2.rawId || m2.id, provider: m2.provider, role: 'Crítico (Trade-offs & Falhas)' },
+      judge: { name: `Juiz (${m1.name})`, model: m1.rawId || m1.id, provider: m1.provider }
+    });
+
+    if (m3) {
+      presets.push({
+        id: 'active-duel-2',
+        name: `🧠 ${m1.name} vs ${m3.name}`,
+        tag: 'Duelo Alternativo',
+        topic: currentActiveProject?.name
+          ? `Quais os principais riscos de segurança, gargalos de performance e dívidas técnicas na arquitetura do projeto "${currentActiveProject.name}"?`
+          : 'Monolito Modular vs Microsserviços orientados a eventos: quando migrar e quais os trade-offs operacionais reais?',
+        participantA: { name: `Debatedor A (${m1.name})`, model: m1.rawId || m1.id, provider: m1.provider, role: 'Proponente (Modular)' },
+        participantB: { name: `Debatedor B (${m3.name})`, model: m3.rawId || m3.id, provider: m3.provider, role: 'Crítico (Pragmático)' },
+        judge: { name: `Juiz (${m2.name})`, model: m2.rawId || m2.id, provider: m2.provider }
+      });
+    }
+
+    return presets;
+  }, [activeModelOptions, currentActiveProject]);
 
   const [currentProgress, setCurrentProgress] = useState(null);
   const [roundsData, setRoundsData] = useState([]);
@@ -352,50 +320,6 @@ export function ArenaModal({
   const [consensusResults, setConsensusResults] = useState(null);
 
   const eventListenerRef = useRef(null);
-
-  // Combine curated models with live API models fetched from electron
-  useEffect(() => {
-    const loadModels = async () => {
-      if (window.electron?.getModelConfigs) {
-        try {
-          const configs = await window.electron.getModelConfigs();
-          if (configs) {
-            const list = Object.entries(configs)
-              .filter(([k]) => k !== 'default')
-              .map(([id, cfg]) => ({
-                id: cfg.rawModelId || id,
-                name: cfg.displayName || id,
-                provider: cfg.provider || 'groq',
-                badge: cfg.provider ? `${cfg.provider}` : undefined
-              }));
-            if (list.length > 0) {
-              setApiModels(list);
-            }
-          }
-        } catch (e) {
-          console.warn('Could not fetch model configs for arena:', e);
-        }
-      }
-    };
-    if (isOpen) {
-      loadModels();
-    }
-  }, [isOpen]);
-
-  // Unified all model options
-  const allModelOptions = useMemo(() => {
-    const map = new Map();
-    // 1. Add curated models first
-    CURATED_MODELS_CATALOG.forEach(m => map.set(`${m.provider}::${m.id}`, m));
-    // 2. Merge API models
-    apiModels.forEach(m => {
-      const key = `${m.provider}::${m.id}`;
-      if (!map.has(key)) {
-        map.set(key, m);
-      }
-    });
-    return Array.from(map.values());
-  }, [apiModels]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -412,7 +336,7 @@ export function ArenaModal({
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, isRunning, topic, mode, rounds, participants, judgeModel]);
+  }, [isOpen, isRunning, topic, mode, rounds, participants, judgeModel, currentActiveProject]);
 
   useEffect(() => {
     if (window.electron?.arena?.onEvent) {
@@ -465,6 +389,11 @@ export function ArenaModal({
         await window.electron.arena.runDebate({
           topic,
           context,
+          project: currentActiveProject ? {
+            id: currentActiveProject.id,
+            name: currentActiveProject.name,
+            customPrompt: currentActiveProject.customPrompt
+          } : null,
           rounds,
           participants,
           judgeModel
@@ -520,9 +449,12 @@ export function ArenaModal({
                 <Badge variant="outline" className="text-[11px] bg-primary/10 text-primary border-primary/20">
                   {mode === 'debate' ? 'Debate em Rodadas' : 'Votação por Consenso'}
                 </Badge>
+                <span className="text-[11px] text-muted-foreground font-medium hidden sm:inline">
+                  • {activeModelOptions.length} {activeModelOptions.length === 1 ? 'modelo ativo' : 'modelos ativos no NeoChat'}
+                </span>
               </div>
               <p className="text-xs text-muted-foreground mt-0.5">
-                Coloque os modelos mais avançados de 2025/2026 para debater premissas e obter a síntese perfeita
+                Debate técnico automatizado entre os modelos ativos com síntese imparcial
               </p>
             </div>
           </div>
@@ -563,35 +495,91 @@ export function ArenaModal({
         </div>
 
         {/* Content Body */}
-        <div className="flex-1 overflow-y-auto p-6 space-y-6">
-          
-          {/* Quick Battle Presets Carousel / Bar */}
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-bold text-foreground flex items-center gap-1.5">
-                <Flame className="w-3.5 h-3.5 text-orange-500" />
-                Duelos Recomendados (Frontier SOTA 2025/2026):
-              </span>
+        <div className="flex-1 overflow-y-auto p-6 space-y-5">
+
+          {/* Project Context Integration Bar */}
+          <div className="bg-muted/40 border border-border/80 rounded-xl p-3 flex flex-wrap items-center justify-between gap-3 shadow-2xs">
+            <div className="flex items-center gap-2.5 min-w-0">
+              <div className="p-2 rounded-lg bg-primary/10 text-primary shrink-0">
+                <FolderKanban className="w-4 h-4" />
+              </div>
+              <div className="min-w-0">
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-bold text-foreground">Projeto Vinculado:</span>
+                  {currentActiveProject ? (
+                    <span 
+                      className="text-xs font-semibold px-2 py-0.5 rounded-md border truncate"
+                      style={{
+                        backgroundColor: `${currentActiveProject.color || '#f55036'}18`,
+                        borderColor: `${currentActiveProject.color || '#f55036'}40`,
+                        color: currentActiveProject.color || '#f55036'
+                      }}
+                    >
+                      {currentActiveProject.icon || '📁'} {currentActiveProject.name}
+                    </span>
+                  ) : (
+                    <span className="text-xs text-muted-foreground italic">
+                      Geral (Sem projeto)
+                    </span>
+                  )}
+                </div>
+                {currentActiveProject?.customPrompt && (
+                  <p className="text-[11px] text-muted-foreground truncate max-w-lg mt-0.5">
+                    Diretrizes: {currentActiveProject.customPrompt}
+                  </p>
+                )}
+              </div>
             </div>
-            <div className="flex items-center gap-2 overflow-x-auto pb-1.5 custom-scrollbar">
-              {BATTLE_PRESETS.map((preset) => (
-                <button
-                  key={preset.id}
-                  type="button"
-                  onClick={() => handleApplyPreset(preset)}
+
+            {/* Project Switcher */}
+            {projects && projects.length > 0 && (
+              <div className="flex items-center gap-2 shrink-0">
+                <select
+                  value={selectedProjectId || ''}
+                  onChange={e => setSelectedProjectId(e.target.value ? e.target.value : null)}
                   disabled={isRunning}
-                  className="px-3 py-2 bg-muted/40 hover:bg-muted border border-border/80 hover:border-primary/40 rounded-xl text-left shrink-0 transition-all cursor-pointer shadow-2xs group"
+                  className="bg-background border border-input rounded-lg px-2.5 py-1 text-xs text-foreground focus:ring-1 focus:ring-primary focus:outline-none cursor-pointer"
                 >
-                  <div className="text-xs font-semibold text-foreground group-hover:text-primary transition-colors flex items-center gap-1.5">
-                    {preset.name}
-                  </div>
-                  <div className="text-[10px] text-muted-foreground font-medium mt-0.5">
-                    {preset.tag}
-                  </div>
-                </button>
-              ))}
-            </div>
+                  <option value="">🌐 Geral (Sem Projeto)</option>
+                  {projects.map(p => (
+                    <option key={p.id} value={p.id}>
+                      {p.icon || '📁'} {p.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
           </div>
+          
+          {/* Quick Battle Presets Carousel (if active models >= 2) */}
+          {dynamicPresets.length > 0 && (
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold text-foreground flex items-center gap-1.5">
+                  <Flame className="w-3.5 h-3.5 text-orange-500" />
+                  Duelos Rápidos com seus Modelos Ativos:
+                </span>
+              </div>
+              <div className="flex items-center gap-2 overflow-x-auto pb-1 custom-scrollbar">
+                {dynamicPresets.map((preset) => (
+                  <button
+                    key={preset.id}
+                    type="button"
+                    onClick={() => handleApplyPreset(preset)}
+                    disabled={isRunning}
+                    className="px-3 py-2 bg-muted/30 hover:bg-muted border border-border/80 hover:border-primary/40 rounded-xl text-left shrink-0 transition-all cursor-pointer shadow-2xs group"
+                  >
+                    <div className="text-xs font-semibold text-foreground group-hover:text-primary transition-colors flex items-center gap-1.5">
+                      {preset.name}
+                    </div>
+                    <div className="text-[10px] text-muted-foreground font-medium mt-0.5">
+                      {preset.tag}
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Configuration Card */}
           <div className="bg-muted/30 border border-border/80 rounded-2xl p-5 space-y-4 shadow-2xs">
@@ -607,14 +595,14 @@ export function ArenaModal({
               <textarea
                 value={topic}
                 onChange={e => setTopic(e.target.value)}
-                placeholder="Ex: Qual a melhor arquitetura para estado global em React 19: Signals, Zustand ou Context? Defenda e aponte trade-offs."
+                placeholder={currentActiveProject ? `Ex: Qual a melhor arquitetura de componentes e estado para o projeto "${currentActiveProject.name}"? Defenda e aponte trade-offs.` : "Ex: Qual a melhor arquitetura para estado global em React 19: Signals, Zustand ou Context? Defenda e aponte trade-offs."}
                 rows={2}
                 disabled={isRunning}
                 className="w-full px-3.5 py-2.5 bg-background border border-input rounded-xl text-xs sm:text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/40 transition-all resize-y min-h-[72px]"
               />
             </div>
 
-            {/* Participants Grid */}
+            {/* Participants Grid (Strictly Active Models) */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {participants.map((p, idx) => (
                 <div key={p.id} className="p-4 bg-background border border-border/80 rounded-xl space-y-3 shadow-2xs">
@@ -628,11 +616,11 @@ export function ArenaModal({
                     </Badge>
                   </div>
 
-                  {/* Interactive Model Selector Dropdown */}
-                  <ModelPickerPopover
+                  {/* Active Models Only Selector */}
+                  <ActiveModelPickerPopover
                     value={p.model}
                     provider={p.provider}
-                    modelOptions={allModelOptions}
+                    activeModels={activeModelOptions}
                     onChange={({ model, provider, name }) => {
                       const updated = [...participants];
                       updated[idx].model = model;
@@ -692,7 +680,7 @@ export function ArenaModal({
 
               <Button
                 onClick={handleStartDebate}
-                disabled={isRunning || !topic.trim()}
+                disabled={isRunning || !topic.trim() || activeModelOptions.length === 0}
                 className="bg-primary hover:bg-primary/90 text-primary-foreground font-semibold text-xs sm:text-sm px-5 py-2.5 rounded-xl shadow-xs transition-all flex items-center gap-2 cursor-pointer disabled:opacity-50 ring-2 ring-primary/30"
               >
                 {isRunning ? (
@@ -721,10 +709,10 @@ export function ArenaModal({
                     {judgeModel.provider}
                   </Badge>
                 </div>
-                <ModelPickerPopover
+                <ActiveModelPickerPopover
                   value={judgeModel.model}
                   provider={judgeModel.provider}
-                  modelOptions={allModelOptions}
+                  activeModels={activeModelOptions}
                   onChange={({ model, provider, name }) => {
                     setJudgeModel({
                       name: `Juiz (${name})`,
@@ -830,7 +818,8 @@ export function ArenaModal({
                     <button
                       onClick={() => {
                         onClose();
-                        onSendToChat(`### Síntese do Debate Multi-Modelos: ${topic}\n\n${synthesis.content}`);
+                        const projectHeader = currentActiveProject ? ` [Projeto: ${currentActiveProject.name}]` : '';
+                        onSendToChat(`### ⚔️ Síntese do Debate Multi-Modelos${projectHeader}: ${topic}\n\n${synthesis.content}`);
                       }}
                       className="px-3.5 py-1.5 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground text-xs flex items-center gap-1.5 font-medium transition-all shadow-xs cursor-pointer ring-2 ring-primary/30"
                     >
