@@ -24,6 +24,8 @@ function cleanupChatStreamListeners() {
 }
 
 contextBridge.exposeInMainWorld('electron', {
+  getAppInfo: () => ipcRenderer.invoke('get-app-info'),
+  openExternal: (url) => ipcRenderer.invoke('browser:open-external', { url }),
   getSettings: () => ipcRenderer.invoke('get-settings'),
   saveSettings: (settings) => ipcRenderer.invoke('save-settings', settings),
   getSettingsPath: () => ipcRenderer.invoke('get-settings-path'),

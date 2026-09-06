@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { Link, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Search, Eye, EyeOff, Plus, Trash2, Edit3, Save, X, RefreshCw, Key, Settings as SettingsIcon, Zap, Cpu, Server, AlertCircle, CheckCircle, Sun, Moon, Laptop, Languages, Check, Terminal, Globe, Palette, Type, Sparkles, Sliders, ExternalLink, Route, User, Wrench, Download, UploadCloud, BarChart3, GitBranch, Mic, Volume2, Info, Keyboard, Folder, FolderOpen, RotateCcw, Lightbulb, Star, ChevronDown, ChevronUp, HardDrive, Brain, Flame, AlignJustify, Maximize2, Blocks, Bot } from 'lucide-react';
+import { ArrowLeft, Search, Eye, EyeOff, Plus, Trash2, Edit3, Save, X, RefreshCw, Key, Settings as SettingsIcon, Zap, Cpu, Server, AlertCircle, CheckCircle, Sun, Moon, Laptop, Languages, Check, Terminal, Globe, Palette, Type, Sparkles, Sliders, ExternalLink, Route, User, Wrench, Download, UploadCloud, BarChart3, GitBranch, Mic, Volume2, Info, Keyboard, Folder, FolderOpen, RotateCcw, Lightbulb, Star, ChevronDown, ChevronUp, HardDrive, Brain, Flame, AlignJustify, Maximize2, Blocks, Bot, HelpCircle, Copy, ShieldCheck, Github } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, SettingsRow, SettingsChoices, SettingsSelect } from '../components/settings/SettingsSection';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
@@ -482,6 +482,8 @@ function Settings() {
   const [isShortcutsModalOpen, setIsShortcutsModalOpen] = useState(false);
   const [isRecordingShortcut, setIsRecordingShortcut] = useState(false);
   const [shortcutStatus, setShortcutStatus] = useState(null);
+  const [appInfo, setAppInfo] = useState(null);
+  const [copiedDiagnostics, setCopiedDiagnostics] = useState(false);
 
   const isMac = useMemo(() => {
     return typeof navigator !== 'undefined' && /Mac|iPhone|iPod|iPad/.test(navigator.platform);
@@ -513,6 +515,11 @@ function Settings() {
       window.electron.getGlobalShortcutStatus()
         .then(status => setShortcutStatus(status))
         .catch(err => console.warn('Error fetching shortcut status:', err));
+    }
+    if (window.electron?.getAppInfo) {
+      window.electron.getAppInfo()
+        .then(info => setAppInfo(info))
+        .catch(err => console.warn('Error fetching app info:', err));
     }
     loadMemoryStats();
   }, []);
@@ -646,6 +653,7 @@ function Settings() {
     { id: 'models', label: t('settings.navModels') || 'Modelos & Provedores', icon: Cpu, desc: 'Provedores de IA, chaves de API, parâmetros e catálogo de modelos' },
     { id: 'integrations', label: t('settings.navIntegrations') || 'Integrações & MCP', icon: Server, desc: 'Servidores MCP locais e remotos, conectores Google e permissões' },
     { id: 'system', label: t('settings.navSystem') || 'Sistema & Dados', icon: Folder, desc: 'Pasta de armazenamento, atualizações, backups e histórico' },
+    { id: 'help', label: t('settings.navHelp') || 'Ajuda', icon: HelpCircle, desc: t('settings.helpCategoryDesc') || 'Informações da versão, direitos autorais, atalhos de teclado e documentação de suporte' },
   ], [t]);
 
   const CARDS_METADATA = useMemo(() => [
@@ -896,6 +904,46 @@ function Settings() {
       desc: t('settings.dataHistoryDesc') || 'Exportar/importar backup e apagar conversas',
       keywords: 'backup exportar importar conversas historico data apagar excluir resetar limpar tudo delete chats',
       isPowerOnly: true
+    },
+    {
+      id: 'aboutApp',
+      category: 'help',
+      title: t('settings.aboutTitle') || 'Sobre o NeoChat Desktop',
+      desc: t('settings.aboutDesc') || 'Versão instalada, licença e direitos autorais do aplicativo',
+      keywords: 'ajuda help sobre about versao version copyright direitos autorais licenca mit electron update info lancamento',
+      isPowerOnly: false
+    },
+    {
+      id: 'quickShortcuts',
+      category: 'help',
+      title: t('settings.quickShortcutsTitle') || 'Atalhos & Navegação Rápida',
+      desc: t('settings.quickShortcutsDesc') || 'Gerencie e consulte todas as teclas de atalho configuradas no aplicativo',
+      keywords: 'atalhos teclado shortcuts teclas rapido hotkeys comandos navegacao',
+      isPowerOnly: false
+    },
+    {
+      id: 'helpTips',
+      category: 'help',
+      title: t('settings.tipsTitle') || 'Dicas Rápidas de Produtividade',
+      desc: t('settings.tipsDesc') || 'Recursos essenciais para o fluxo de trabalho no NeoChat',
+      keywords: 'dicas tips popup atalho slash comandos mcp ferramentas modelos produtividade',
+      isPowerOnly: false
+    },
+    {
+      id: 'helpDocs',
+      category: 'help',
+      title: t('settings.helpDocsTitle') || 'Guias & Documentação',
+      desc: t('settings.helpDocsDesc') || 'Acesse guias passo a passo, documentação e links da comunidade',
+      keywords: 'documentacao docs github suporte issues bug feedback ajuda manual',
+      isPowerOnly: false
+    },
+    {
+      id: 'systemDiagnostics',
+      category: 'help',
+      title: t('settings.systemDiagnosticsTitle') || 'Diagnóstico & Ambiente',
+      desc: t('settings.systemDiagnosticsDesc') || 'Detalhes da plataforma, Electron, Chrome e Node.js para suporte técnico',
+      keywords: 'diagnostico sistema ambiente electron chrome node v8 plataforma os memoria copiar specs',
+      isPowerOnly: false
     }
   ], [t, updateStatus.currentVersion, usageSummary?.month]);
 
@@ -903,7 +951,7 @@ function Settings() {
     const q = searchQuery.trim().toLowerCase();
     if (!q) return null;
     const isPower = settings.interfaceMode === 'power';
-    const counts = { all: 0, interface: 0, features: 0, models: 0, integrations: 0, system: 0 };
+    const counts = { all: 0, interface: 0, plugins: 0, features: 0, models: 0, integrations: 0, system: 0, help: 0 };
     
     CARDS_METADATA.forEach(card => {
       if (card.isPowerOnly && !isPower) return;
@@ -6945,6 +6993,375 @@ function Settings() {
     );
   };
 
+  const renderHelpSection = () => {
+    const hasVisible =
+      visibleCardIds.has('aboutApp') ||
+      visibleCardIds.has('quickShortcuts') ||
+      visibleCardIds.has('helpTips') ||
+      visibleCardIds.has('helpDocs') ||
+      visibleCardIds.has('systemDiagnostics');
+
+    if (!hasVisible && activeCategory !== 'help' && activeCategory !== 'all') return null;
+
+    const versionStr = appInfo?.version || updateStatus?.currentVersion || '1.4.10';
+    const copyrightStr = appInfo?.copyright || t('settings.copyrightNotice') || 'Copyright © 2025-2026 NeoChat Desktop / Groq, Inc. Todos os direitos reservados.';
+    const licenseStr = appInfo?.license || t('settings.appLicenseDesc') || 'MIT License (Código Aberto)';
+
+    const handleCopyDiagnostics = () => {
+      const diagData = {
+        app: 'NeoChat Desktop',
+        version: versionStr,
+        channel: settings.autoUpdate?.channel || 'stable',
+        electron: appInfo?.electronVersion || '39.8.10',
+        chrome: appInfo?.chromeVersion || '130.0.0.0',
+        node: appInfo?.nodeVersion || '22.19.0',
+        v8: appInfo?.v8Version || '13.0',
+        platform: appInfo?.platform || 'win32',
+        arch: appInfo?.arch || 'x64',
+        packaged: appInfo?.packaged ?? true,
+        primaryProvider: settings.provider || 'groq',
+        interfaceMode: settings.interfaceMode || 'user',
+        theme: settings.theme || 'dark',
+      };
+      navigator.clipboard.writeText(JSON.stringify(diagData, null, 2));
+      setCopiedDiagnostics(true);
+      setTimeout(() => setCopiedDiagnostics(false), 2000);
+    };
+
+    const handleOpenLink = (url) => {
+      if (window.electron?.openExternal) {
+        window.electron.openExternal(url);
+      } else if (window.electron?.browser?.openExternal) {
+        window.electron.browser.openExternal(url);
+      } else {
+        window.open(url, '_blank', 'noopener,noreferrer');
+      }
+    };
+
+    return (
+      <div className="space-y-6">
+        {activeCategory === 'all' && !searchQuery && (
+          <div className="flex items-center gap-2 pb-2 border-b border-border/60 pt-4">
+            <HelpCircle className="w-5 h-5 text-primary" />
+            <div>
+              <h2 className="text-base font-bold text-foreground">{t('settings.navHelp')}</h2>
+              <p className="text-xs text-muted-foreground">{t('settings.helpCategoryDesc')}</p>
+            </div>
+          </div>
+        )}
+
+        {/* Card: Sobre o NeoChat Desktop (Version & Copyright) */}
+        {visibleCardIds.has('aboutApp') && (
+          <Card className="overflow-hidden border-border/80 shadow-xs">
+            <CardHeader className="pb-4 border-b border-border/40 bg-muted/20">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div className="flex items-center gap-3.5">
+                  <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-primary/20 via-primary/10 to-transparent border border-primary/30 flex items-center justify-center text-primary shadow-xs">
+                    <Bot className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <CardTitle className="text-lg font-bold tracking-tight">NeoChat Desktop</CardTitle>
+                      <Badge variant="outline" className="font-mono text-xs px-2 py-0.5 border-primary/40 bg-primary/10 text-primary font-semibold">
+                        v{versionStr}
+                      </Badge>
+                      <Badge variant="secondary" className="text-[11px] px-2 py-0.5">
+                        {settings.autoUpdate?.channel === 'beta' ? 'Beta Channel' : 'Stable'}
+                      </Badge>
+                    </div>
+                    <CardDescription className="text-xs mt-0.5">
+                      {t('settings.aboutDesc')}
+                    </CardDescription>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="text-xs h-8"
+                    onClick={() => window.electron?.updater?.check?.()}
+                    disabled={updateStatus.status === 'checking'}
+                  >
+                    <RefreshCw className={cn("w-3.5 h-3.5 mr-1.5", updateStatus.status === 'checking' && "animate-spin")} />
+                    {updateStatus.status === 'checking' ? 'Verificando...' : t('settings.checkUpdates')}
+                  </Button>
+                </div>
+              </div>
+            </CardHeader>
+
+            <CardContent className="space-y-4 pt-4">
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                Ambiente de trabalho de inteligência artificial desktop com suporte multi-provedor (Groq, OpenAI, Gemini, Claude, DeepSeek, Ollama, LM Studio), MCP (Model Context Protocol), ferramentas locais e runtime de agentes autônomos.
+              </p>
+
+              {/* Informações Oficiais / Copyright / Versão */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-1">
+                <div className="rounded-xl border bg-muted/30 p-3.5 space-y-1">
+                  <span className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">
+                    {t('settings.appVersion')}
+                  </span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-semibold text-foreground font-mono">v{versionStr}</span>
+                    <span className="text-[11px] text-muted-foreground">({appInfo?.packaged ? 'Build Oficial' : 'Dev Mode'})</span>
+                  </div>
+                </div>
+
+                <div className="rounded-xl border bg-muted/30 p-3.5 space-y-1">
+                  <span className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">
+                    {t('settings.appLicense')}
+                  </span>
+                  <div className="flex items-center gap-2">
+                    <ShieldCheck className="w-4 h-4 text-emerald-500" />
+                    <span className="text-sm font-semibold text-foreground">{licenseStr}</span>
+                  </div>
+                </div>
+
+                <div className="rounded-xl border bg-muted/30 p-3.5 space-y-1 md:col-span-2">
+                  <span className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">
+                    {t('settings.copyrightTitle')}
+                  </span>
+                  <p className="text-xs font-medium text-foreground">
+                    {copyrightStr}
+                  </p>
+                  <p className="text-[11px] text-muted-foreground">
+                    Licensed under MIT. Base software developed with universal multi-provider inference and open protocols.
+                  </p>
+                </div>
+              </div>
+
+              {/* Links Oficiais */}
+              <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-border/50">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleOpenLink('https://github.com/giseldo/neochat-desktop')}
+                  className="text-xs h-8"
+                >
+                  <Github className="w-3.5 h-3.5 mr-1.5" />
+                  {t('settings.officialRepo')}
+                  <ExternalLink className="w-3 h-3 ml-1.5 opacity-60" />
+                </Button>
+
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleOpenLink('https://github.com/giseldo/neochat-releases')}
+                  className="text-xs h-8"
+                >
+                  <Sparkles className="w-3.5 h-3.5 mr-1.5 text-amber-500" />
+                  {t('settings.releasesPage')}
+                  <ExternalLink className="w-3 h-3 ml-1.5 opacity-60" />
+                </Button>
+
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => handleOpenLink('https://github.com/giseldo/neochat-desktop/issues')}
+                  className="text-xs h-8 text-muted-foreground hover:text-foreground"
+                >
+                  {t('settings.openGithubIssues')}
+                  <ExternalLink className="w-3 h-3 ml-1.5 opacity-60" />
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Card: Atalhos Rápidos de Teclado */}
+        {visibleCardIds.has('quickShortcuts') && (
+          <Card>
+            <CardHeader className="pb-3">
+              <div className="flex items-center justify-between gap-2 flex-wrap">
+                <div className="space-y-1">
+                  <CardTitle className="flex items-center space-x-2 text-base">
+                    <Keyboard className="h-5 w-5 text-primary" />
+                    <span>{t('settings.quickShortcutsTitle')}</span>
+                  </CardTitle>
+                  <CardDescription>
+                    {t('settings.quickShortcutsDesc')}
+                  </CardDescription>
+                </div>
+                <Button
+                  variant="default"
+                  size="sm"
+                  onClick={() => setIsShortcutsModalOpen(true)}
+                  className="text-xs h-8 font-medium shadow-xs"
+                >
+                  <Keyboard className="w-3.5 h-3.5 mr-1.5" />
+                  {t('settings.viewAllShortcutsBtn')}
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
+                <div className="p-3 rounded-xl border bg-muted/30 flex items-center justify-between gap-2">
+                  <span className="text-xs text-foreground font-medium">Popup Global Rápido</span>
+                  <KeyBadge combo={formatAccelerator(settings.popupShortcut || 'CommandOrControl+Shift+Space', isMac)} />
+                </div>
+                <div className="p-3 rounded-xl border bg-muted/30 flex items-center justify-between gap-2">
+                  <span className="text-xs text-foreground font-medium">Nova Conversa</span>
+                  <KeyBadge combo={formatAccelerator('CommandOrControl+N', isMac)} />
+                </div>
+                <div className="p-3 rounded-xl border bg-muted/30 flex items-center justify-between gap-2">
+                  <span className="text-xs text-foreground font-medium">Pesquisar Chat</span>
+                  <KeyBadge combo={formatAccelerator('CommandOrControl+K', isMac)} />
+                </div>
+                <div className="p-3 rounded-xl border bg-muted/30 flex items-center justify-between gap-2">
+                  <span className="text-xs text-foreground font-medium">Alternar Sidebar</span>
+                  <KeyBadge combo={formatAccelerator('CommandOrControl+B', isMac)} />
+                </div>
+                <div className="p-3 rounded-xl border bg-muted/30 flex items-center justify-between gap-2">
+                  <span className="text-xs text-foreground font-medium">Modo Power User</span>
+                  <KeyBadge combo={formatAccelerator('CommandOrControl+Shift+P', isMac)} />
+                </div>
+                <div className="p-3 rounded-xl border bg-muted/30 flex items-center justify-between gap-2">
+                  <span className="text-xs text-foreground font-medium">Configurações</span>
+                  <KeyBadge combo={formatAccelerator('CommandOrControl+,', isMac)} />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Card: Dicas de Produtividade */}
+        {visibleCardIds.has('helpTips') && (
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="flex items-center space-x-2 text-base">
+                <Lightbulb className="h-5 w-5 text-amber-500" />
+                <span>{t('settings.tipsTitle')}</span>
+              </CardTitle>
+              <CardDescription>
+                {t('settings.tipsDesc')}
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="p-3.5 rounded-xl border bg-muted/20 space-y-1.5">
+                  <div className="flex items-center gap-2">
+                    <Zap className="w-4 h-4 text-orange-500 shrink-0" />
+                    <h4 className="text-xs font-semibold text-foreground">{t('settings.tipPopupTitle')}</h4>
+                  </div>
+                  <p className="text-xs text-muted-foreground leading-relaxed">
+                    {t('settings.tipPopupDesc')}
+                  </p>
+                </div>
+
+                <div className="p-3.5 rounded-xl border bg-muted/20 space-y-1.5">
+                  <div className="flex items-center gap-2">
+                    <Terminal className="w-4 h-4 text-blue-500 shrink-0" />
+                    <h4 className="text-xs font-semibold text-foreground">{t('settings.tipSlashTitle')}</h4>
+                  </div>
+                  <p className="text-xs text-muted-foreground leading-relaxed">
+                    {t('settings.tipSlashDesc')}
+                  </p>
+                </div>
+
+                <div className="p-3.5 rounded-xl border bg-muted/20 space-y-1.5">
+                  <div className="flex items-center gap-2">
+                    <Server className="w-4 h-4 text-emerald-500 shrink-0" />
+                    <h4 className="text-xs font-semibold text-foreground">{t('settings.tipMcpTitle')}</h4>
+                  </div>
+                  <p className="text-xs text-muted-foreground leading-relaxed">
+                    {t('settings.tipMcpDesc')}
+                  </p>
+                </div>
+
+                <div className="p-3.5 rounded-xl border bg-muted/20 space-y-1.5">
+                  <div className="flex items-center gap-2">
+                    <Cpu className="w-4 h-4 text-purple-500 shrink-0" />
+                    <h4 className="text-xs font-semibold text-foreground">{t('settings.tipModelsTitle')}</h4>
+                  </div>
+                  <p className="text-xs text-muted-foreground leading-relaxed">
+                    {t('settings.tipModelsDesc')}
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Card: Diagnóstico do Sistema */}
+        {visibleCardIds.has('systemDiagnostics') && (
+          <Card>
+            <CardHeader className="pb-3">
+              <div className="flex items-center justify-between gap-2 flex-wrap">
+                <div className="space-y-1">
+                  <CardTitle className="flex items-center space-x-2 text-base">
+                    <Info className="h-5 w-5 text-primary" />
+                    <span>{t('settings.systemDiagnosticsTitle')}</span>
+                  </CardTitle>
+                  <CardDescription>
+                    {t('settings.systemDiagnosticsDesc')}
+                  </CardDescription>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleCopyDiagnostics}
+                  className="text-xs h-8"
+                >
+                  {copiedDiagnostics ? (
+                    <>
+                      <Check className="w-3.5 h-3.5 mr-1.5 text-emerald-500" />
+                      <span className="text-emerald-500 font-medium">{t('settings.diagnosticsCopied')}</span>
+                    </>
+                  ) : (
+                    <>
+                      <Copy className="w-3.5 h-3.5 mr-1.5" />
+                      <span>{t('settings.copyDiagnosticsBtn')}</span>
+                    </>
+                  )}
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="rounded-xl border bg-muted/40 p-3.5 font-mono text-[11px] space-y-2">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                  <div>
+                    <span className="text-muted-foreground block text-[10px]">App Version</span>
+                    <span className="text-foreground font-semibold">v{versionStr}</span>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground block text-[10px]">Electron</span>
+                    <span className="text-foreground font-semibold">{appInfo?.electronVersion || '39.8.10'}</span>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground block text-[10px]">Chromium</span>
+                    <span className="text-foreground font-semibold">{appInfo?.chromeVersion || '130.0.0.0'}</span>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground block text-[10px]">Node.js</span>
+                    <span className="text-foreground font-semibold">{appInfo?.nodeVersion || '22.19.0'}</span>
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-2 border-t border-border/40">
+                  <div>
+                    <span className="text-muted-foreground block text-[10px]">Platform</span>
+                    <span className="text-foreground font-semibold">{appInfo?.platform || 'win32'}</span>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground block text-[10px]">Architecture</span>
+                    <span className="text-foreground font-semibold">{appInfo?.arch || 'x64'}</span>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground block text-[10px]">Interface Mode</span>
+                    <span className="text-foreground font-semibold capitalize">{settings.interfaceMode || 'user'}</span>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground block text-[10px]">Active Provider</span>
+                    <span className="text-foreground font-semibold uppercase">{settings.provider || 'groq'}</span>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+      </div>
+    );
+  };
+
 
   return (
     <div className="min-h-screen bg-background">
@@ -7192,6 +7609,7 @@ function Settings() {
             {(activeCategory === 'all' || activeCategory === 'models' || searchQuery) && renderModelsSection()}
             {(activeCategory === 'all' || activeCategory === 'integrations' || searchQuery) && renderIntegrationsSection()}
             {(activeCategory === 'all' || activeCategory === 'system' || searchQuery) && renderSystemSection()}
+            {(activeCategory === 'all' || activeCategory === 'help' || searchQuery) && renderHelpSection()}
           </div>
         </div>
       </main>

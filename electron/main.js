@@ -315,6 +315,26 @@ app.whenReady().then(async () => {
     return JSON.parse(JSON.stringify(mergedModelContextSizes));
   });
 
+  // Return app identity, version, and runtime diagnostics
+  ipcMain.handle('get-app-info', async () => {
+    return {
+      name: app.getName() || 'NeoChat Desktop',
+      version: app.getVersion(),
+      packaged: app.isPackaged,
+      electronVersion: process.versions.electron,
+      chromeVersion: process.versions.chrome,
+      nodeVersion: process.versions.node,
+      v8Version: process.versions.v8,
+      platform: process.platform,
+      arch: process.arch,
+      copyright: 'Copyright © 2025-2026 NeoChat Desktop / Groq, Inc. Todos os direitos reservados.',
+      license: 'MIT License',
+      homepage: 'https://github.com/giseldo/neochat-desktop',
+      repository: 'https://github.com/giseldo/neochat-desktop',
+      releasesUrl: 'https://github.com/giseldo/neochat-releases'
+    };
+  });
+
   // Return the list of supported and custom providers (for the settings UI)
   ipcMain.handle('get-providers', async () => {
     const currentSettings = loadSettings();
