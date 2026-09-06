@@ -384,6 +384,23 @@ export function SkillsModal({
             <Button
               variant="outline"
               size="sm"
+              onClick={() => {
+                if (window.electron?.openExternal) {
+                  window.electron.openExternal('https://skillsmp.com/');
+                } else {
+                  window.open('https://skillsmp.com/', '_blank');
+                }
+              }}
+              className="flex items-center gap-1.5 text-xs font-semibold text-foreground hover:text-primary hover:border-primary/40 transition-colors shadow-2xs"
+              title="Explorar SkillsMP.com - Marketplace de AI Skills"
+            >
+              <ExternalLink className="w-3.5 h-3.5 text-primary" />
+              <span>SkillsMP.com</span>
+            </Button>
+
+            <Button
+              variant="outline"
+              size="sm"
               onClick={handleStartCreate}
               className="hidden sm:flex items-center gap-1.5 text-xs font-semibold"
             >
@@ -710,6 +727,38 @@ export function SkillsModal({
           {/* TAB 2: SKILLS CATALOG & HUB */}
           {activeTab === 'catalog' && (
             <div>
+              {/* SkillsMP.com Banner */}
+              <div className="mb-4 p-4 rounded-xl border border-primary/25 bg-gradient-to-r from-primary/10 via-background to-primary/5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-2xs">
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-xl bg-primary/15 text-primary border border-primary/20 flex items-center justify-center shrink-0">
+                    <Globe className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <div className="text-xs sm:text-sm font-bold text-foreground flex items-center gap-2">
+                      <span>SkillsMP • Marketplace Global de AI Skills</span>
+                      <span className="text-[10px] px-1.5 py-0.2 rounded-md bg-primary/20 text-primary font-mono font-semibold">
+                        skillsmp.com
+                      </span>
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      Descubra milhares de skills criadas pela comunidade para Claude, OpenAI, Antigravity e importe diretamente via URL ou arquivo.
+                    </p>
+                  </div>
+                </div>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => {
+                    if (window.electron?.openExternal) window.electron.openExternal('https://skillsmp.com/');
+                    else window.open('https://skillsmp.com/', '_blank');
+                  }}
+                  className="shrink-0 text-xs font-semibold flex items-center gap-1.5 hover:text-primary hover:border-primary/40 bg-background"
+                >
+                  <span>Explorar SkillsMP</span>
+                  <ExternalLink className="w-3.5 h-3.5 text-primary" />
+                </Button>
+              </div>
+
               {filteredCatalog.length === 0 ? (
                 <div className="text-center py-16 text-muted-foreground text-xs">
                   <Flame className="w-8 h-8 opacity-40 mx-auto mb-2 text-amber-500" />
@@ -1052,6 +1101,31 @@ export function SkillsModal({
                     <span>{t('skills.importButton')}</span>
                   </Button>
                 </div>
+              </div>
+
+              {/* Option 3: SkillsMP Directory */}
+              <div className="p-4 rounded-xl border border-border/80 bg-muted/20 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                <div className="flex items-center gap-2.5">
+                  <ExternalLink className="w-4 h-4 text-primary shrink-0" />
+                  <div className="text-xs">
+                    <span className="font-bold text-foreground">Procurando mais skills? </span>
+                    <span className="text-muted-foreground">Acesse o </span>
+                    <span className="font-semibold text-primary">skillsmp.com</span>
+                    <span className="text-muted-foreground"> para explorar e copiar URLs de skills da comunidade.</span>
+                  </div>
+                </div>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => {
+                    if (window.electron?.openExternal) window.electron.openExternal('https://skillsmp.com/');
+                    else window.open('https://skillsmp.com/', '_blank');
+                  }}
+                  className="shrink-0 text-xs font-semibold flex items-center gap-1.5 bg-background"
+                >
+                  <span>Abrir skillsmp.com</span>
+                  <ExternalLink className="w-3 h-3 text-primary" />
+                </Button>
               </div>
             </div>
           )}
