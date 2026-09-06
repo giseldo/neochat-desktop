@@ -7,8 +7,8 @@
  * - Side-by-side comparative benchmarking
  */
 
-const { getActiveApiKey, getBaseUrlForProvider, getModelContextSizes } = require('../settingsManager');
-const { getApiKeyForProvider } = require('../../shared/providers');
+const { getModelContextSizes } = require('../../shared/models');
+const { getApiKeyForProvider, getBaseUrlForProvider, getActiveApiKey } = require('../../shared/providers');
 
 class ArenaEngine {
   constructor() {
@@ -22,14 +22,24 @@ class ArenaEngine {
     const fetch = global.fetch || require('node-fetch');
     const startTime = Date.now();
 
+    let rawModel = modelId || '';
+    let resolvedProvider = providerId;
+
+    // If modelId is formatted like "provider::raw-model-id" (e.g. "mistral::mistral-small-2603")
+    if (typeof rawModel === 'string' && rawModel.includes('::')) {
+      const [p, ...rest] = rawModel.split('::');
+      resolvedProvider = resolvedProvider || p;
+      rawModel = rest.join('::');
+    }
+
     // Resolve provider endpoint and API key
     let baseUrl = 'https://api.groq.com/openai/v1';
     let apiKey = process.env.GROQ_API_KEY || '';
 
     if (settings) {
-      if (providerId) {
-        baseUrl = getBaseUrlForProvider(settings, providerId) || baseUrl;
-        const resolvedKey = getApiKeyForProvider(settings, providerId);
+      if (resolvedProvider) {
+        baseUrl = getBaseUrlForProvider(settings, resolvedProvider) || baseUrl;
+        const resolvedKey = getApiKeyForProvider(settings, resolvedProvider);
         if (resolvedKey && resolvedKey !== '<replace me>') {
           apiKey = resolvedKey;
         }
@@ -46,7 +56,7 @@ class ArenaEngine {
     };
 
     const payload = {
-      model: modelId,
+      model: rawModel,
       messages,
       temperature,
       max_tokens: maxTokens
