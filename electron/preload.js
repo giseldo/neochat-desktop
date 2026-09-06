@@ -179,6 +179,8 @@ contextBridge.exposeInMainWorld('electron', {
   // Chat API - streaming only
   executeToolCall: (toolCall) => ipcRenderer.invoke('execute-tool-call', toolCall),
   testWebSearch: (query, options) => ipcRenderer.invoke('test-web-search', query, options),
+  generateImage: (options) => ipcRenderer.invoke('generate-image', options),
+  saveImage: (options) => ipcRenderer.invoke('save-image', options),
   
   // NOTE: sendMcpApprovalResponse removed - Groq does not yet support mcp_approval_response
   

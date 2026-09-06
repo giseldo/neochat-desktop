@@ -83,6 +83,12 @@ function ChatInput({
 	const [isRecording, setIsRecording] = useState(false);
 	const [isTranscribing, setIsTranscribing] = useState(false);
 	const [voiceInputEnabled, setVoiceInputEnabled] = useState(true);
+	const [imageGenerationSettings, setImageGenerationSettings] = useState({
+		enabled: true,
+		provider: 'grok',
+		model: 'grok-imagine-image'
+	});
+	const [imageMode, setImageMode] = useState(false);
 	const [isSnipModalOpen, setIsSnipModalOpen] = useState(false);
 	const [isPlusMenuOpen, setIsPlusMenuOpen] = useState(false);
 	const plusMenuRef = useRef(null);
@@ -126,12 +132,18 @@ function ChatInput({
 		loadingRef.current = loading;
 	}, [loading]);
 
-	// Load custom prompt templates on mount
+	// Load custom prompt templates and settings on mount
 	useEffect(() => {
-		const loadCustomTemplates = async () => {
+		const loadInputSettings = async () => {
 			try {
 				if (window.electron?.getSettings) {
 					const settings = await window.electron.getSettings();
+					if (settings?.imageGeneration) {
+						setImageGenerationSettings(settings.imageGeneration);
+					}
+					if (settings?.voiceInput?.enabled !== undefined) {
+						setVoiceInputEnabled(settings.voiceInput.enabled);
+					}
 					if (Array.isArray(settings?.customPromptTemplates)) {
 						setCustomTemplates(settings.customPromptTemplates);
 						return;
@@ -142,10 +154,10 @@ function ChatInput({
 					setCustomTemplates(JSON.parse(saved));
 				}
 			} catch (err) {
-				console.error("Error loading custom prompt templates in ChatInput:", err);
+				console.error("Error loading settings in ChatInput:", err);
 			}
 		};
-		loadCustomTemplates();
+		loadInputSettings();
 	}, []);
 
 	// Installed AI Skills state
@@ -686,6 +698,20 @@ function ChatInput({
 		const hasText = textContent.length > 0;
 		const hasFiles = files.length > 0;
 
+		if (imageMode) {
+			if (hasText && !loading) {
+				onSendMessage(textContent, {
+					isImageGeneration: true,
+					imageSettings: imageGenerationSettings
+				});
+				setMessage("");
+				setFiles([]);
+				setSuggestion("");
+				setImageMode(false);
+			}
+			return;
+		}
+
 		if ((hasText || hasFiles) && !loading) {
 			if (!models || models.length === 0 || !selectedModel || selectedModel === 'default') {
 				alert(t('chat.noModelsAlert'));
@@ -996,6 +1022,27 @@ function ChatInput({
 				</div>
 			)}
 
+			{/* Active Image Generation Mode Chip */}
+			{imageMode && (
+				<div className="flex items-center gap-1.5 px-4 pt-1 select-none animate-in fade-in duration-200">
+					<div className="inline-flex items-center gap-2 px-3 py-1 rounded-xl bg-purple-500/15 border border-purple-500/30 text-purple-600 dark:text-purple-400 text-xs font-medium shadow-2xs">
+						<Sparkles className="w-3.5 h-3.5 text-purple-500 shrink-0 animate-pulse" />
+						<span className="font-semibold">{t('chat.imageGenerationActive') || 'Modo Gerar Imagem'}</span>
+						<span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-purple-500/20 text-purple-700 dark:text-purple-300">
+							{imageGenerationSettings?.provider === 'openai' ? 'OpenAI · ' : 'xAI · '}{imageGenerationSettings?.model || 'grok-imagine-image'}
+						</span>
+						<button
+							type="button"
+							onClick={() => setImageMode(false)}
+							className="p-0.5 ml-1 rounded-full text-purple-600/70 dark:text-purple-400/70 hover:text-foreground hover:bg-purple-500/25 transition-colors cursor-pointer"
+							title="Desativar modo gerar imagem"
+						>
+							<X className="w-3.5 h-3.5" />
+						</button>
+					</div>
+				</div>
+			)}
+
 			<div className="flex flex-col gap-3">
 				{/* Input Area with Submit Button */}
 				<div className="flex items-center gap-3">
@@ -1023,11 +1070,13 @@ function ChatInput({
 							onPaste={handlePaste}
 							onHeightChange={handleHeightChange}
 							placeholder={
-								isDragOver 
-									? t('chat.dropFilesHere') 
-									: (!models || models.length === 0 
-										? t('chat.noModelsInputPlaceholder') 
-										: t('chat.askAnything'))
+								imageMode
+									? (t('chat.imageGenerationPromptPlaceholder') || 'Descreva em detalhes a imagem que deseja gerar...')
+									: isDragOver 
+										? t('chat.dropFilesHere') 
+										: (!models || models.length === 0 
+											? t('chat.noModelsInputPlaceholder') 
+											: t('chat.askAnything'))
 							}
 							className={cn(
 								"w-full px-4 py-3 bg-transparent resize-none border-0 rounded-2xl text-foreground placeholder:text-muted-foreground focus:outline-none",
@@ -1055,10 +1104,15 @@ function ChatInput({
 					</div>
 					<div className="self-start">
 						<Button
-							aria-label={loading ? (t("chat.stopGeneration") || "Parar") : (t("chat.send") || "Enviar")}
+							aria-label={loading ? (t("chat.stopGeneration") || "Parar") : (imageMode ? (t("chat.generateImage") || "Gerar") : (t("chat.send") || "Enviar"))}
 							type={loading ? "button" : "submit"}
 							size="icon"
-							className="h-10 w-10 rounded-xl bg-primary hover:bg-primary/90 transition-colors"
+							className={cn(
+								"h-10 w-10 rounded-xl transition-colors",
+								imageMode 
+									? "bg-purple-600 hover:bg-purple-700 text-white shadow-md shadow-purple-500/20" 
+									: "bg-primary hover:bg-primary/90 text-primary-foreground"
+							)}
 							disabled={!loading && (!message.trim() && files.length === 0)}
 							onClick={loading ? (e) => {
 								e.preventDefault();
@@ -1067,6 +1121,8 @@ function ChatInput({
 						>
 							{loading ? (
 								<Square className="w-5 h-5" aria-hidden="true" />
+							) : imageMode ? (
+								<Sparkles className="w-5 h-5" aria-hidden="true" />
 							) : (
 								<ArrowRight className="w-5 h-5" aria-hidden="true" />
 							)}
@@ -1110,6 +1166,32 @@ function ChatInput({
 							{/* Dropdown Menu */}
 							{isPlusMenuOpen && (
 								<div className="absolute bottom-full left-0 mb-2 w-72 p-1.5 rounded-2xl bg-popover border border-border text-popover-foreground shadow-2xl z-50 animate-in fade-in-0 zoom-in-95 space-y-0.5 text-xs">
+									{/* Gerar Imagem */}
+									{imageGenerationSettings?.enabled !== false && (
+										<button
+											type="button"
+											onClick={() => {
+												setIsPlusMenuOpen(false);
+												setImageMode(true);
+												textareaRef.current?.focus();
+											}}
+											className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-muted/80 text-foreground transition-colors text-left"
+										>
+											<Sparkles className="w-4 h-4 text-purple-500 shrink-0" />
+											<div className="flex-1 min-w-0">
+												<div className="font-semibold text-foreground flex items-center gap-1.5">
+													<span>{t('chat.generateImage') || 'Gerar Imagem'}</span>
+													<span className="px-1.5 py-0.2 rounded-full bg-purple-500/15 text-purple-600 dark:text-purple-400 font-mono text-[9px] font-bold">
+														{imageGenerationSettings?.provider === 'openai' ? 'OpenAI' : 'xAI'}
+													</span>
+												</div>
+												<div className="text-[10px] text-muted-foreground truncate">
+													{imageGenerationSettings?.model || 'grok-imagine-image'}
+												</div>
+											</div>
+										</button>
+									)}
+
 									{/* Anexar Arquivo */}
 									{files.length < 5 && (
 										<button
@@ -1319,6 +1401,35 @@ function ChatInput({
 										{installedSkills.filter(s => s.enabled !== false).length}
 									</span>
 								) : null}
+							</Button>
+						)}
+
+						{/* Image Generation Toggle Button */}
+						{imageGenerationSettings?.enabled !== false && (
+							<Button
+								type="button"
+								variant="ghost"
+								size="sm"
+								onClick={() => {
+									const next = !imageMode;
+									setImageMode(next);
+									if (next) {
+										setTimeout(() => textareaRef.current?.focus(), 50);
+									}
+								}}
+								className={cn(
+									"h-8 px-2.5 rounded-xl text-xs font-medium flex-shrink-0 transition-all duration-200 flex items-center gap-1.5",
+									imageMode
+										? "bg-purple-500/20 text-purple-600 dark:text-purple-400 border border-purple-500/40 shadow-xs"
+										: "text-muted-foreground hover:text-foreground hover:bg-muted/80"
+								)}
+								title={t('chat.generateImageTooltip') || 'Gerar imagem com IA (xAI Grok / OpenAI)'}
+								disabled={loading}
+							>
+								<Sparkles className={cn("w-3.5 h-3.5 text-purple-500", imageMode && "animate-pulse")} />
+								{showButtonLabels && (
+									<span>{t('chat.generateImage') || 'Gerar imagem'}</span>
+								)}
 							</Button>
 						)}
 

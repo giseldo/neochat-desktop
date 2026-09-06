@@ -29,6 +29,23 @@ function normalizeVoiceInput(value = {}) {
     };
 }
 
+function normalizeImageGeneration(value = {}) {
+    const validAspectRatios = ['1:1', '16:9', '9:16'];
+    const validQualities = ['standard', 'hd'];
+    const provider = typeof value.provider === 'string' && value.provider.trim() ? value.provider.trim().toLowerCase() : 'grok';
+    const effectiveProvider = provider === 'xai' ? 'grok' : provider;
+
+    return {
+        enabled: value.enabled !== false,
+        provider: effectiveProvider,
+        useCustomApiKey: Boolean(value.useCustomApiKey),
+        apiKey: typeof value.apiKey === 'string' ? value.apiKey : '',
+        model: typeof value.model === 'string' && value.model.trim() ? value.model.trim() : (effectiveProvider === 'openai' ? 'dall-e-3' : 'grok-imagine-image'),
+        aspectRatio: validAspectRatios.includes(value.aspectRatio) ? value.aspectRatio : '1:1',
+        quality: validQualities.includes(value.quality) ? value.quality : 'standard'
+    };
+}
+
 function persistSettings(settings, settingsPath) {
     const result = secretStore ? secretStore.save(settings) : { protected: false, publicSettings: settings };
     const temporaryPath = `${settingsPath}.tmp`;
@@ -78,6 +95,15 @@ function loadSettings() {
             googleTokenExpiresAt: null,
             customPromptTemplates: [],
             voiceInput: { enabled: true, apiKey: '' },
+            imageGeneration: {
+                enabled: true,
+                provider: 'grok',
+                useCustomApiKey: false,
+                apiKey: '',
+                model: 'grok-imagine-image',
+                aspectRatio: '1:1',
+                quality: 'standard'
+            },
             providerFilterTab: 'active',
             webSearch: {
                 enabled: false,
@@ -111,6 +137,15 @@ function loadSettings() {
         fallbackModels: {},
         tts: { enabled: true, autoSpeak: false, voiceURI: '', rate: 1.05, pitch: 1 },
         voiceInput: { enabled: true, apiKey: '' },
+        imageGeneration: {
+            enabled: true,
+            provider: 'grok',
+            useCustomApiKey: false,
+            apiKey: '',
+            model: 'grok-imagine-image',
+            aspectRatio: '1:1',
+            quality: 'standard'
+        },
         autoUpdate: { checkOnStartup: true, channel: 'stable' },
         observability: { monthlyBudgetUsd: 0, defaultRate: { input: 0, output: 0 }, modelRates: {} },
         gitIntegration: { repositoryPath: '' },
@@ -219,6 +254,7 @@ function loadSettings() {
             settings.fallbackModels = settings.fallbackModels || {};
             settings.tts = normalizeTts(settings.tts);
             settings.voiceInput = normalizeVoiceInput(settings.voiceInput);
+            settings.imageGeneration = normalizeImageGeneration(settings.imageGeneration);
     settings.autoUpdate = { ...defaultSettings.autoUpdate, ...(settings.autoUpdate || {}) };
     settings.observability = { ...defaultSettings.observability, ...(settings.observability || {}), defaultRate: { ...defaultSettings.observability.defaultRate, ...(settings.observability?.defaultRate || {}) } };
     settings.gitIntegration = { ...defaultSettings.gitIntegration, ...(settings.gitIntegration || {}) };
@@ -401,6 +437,7 @@ module.exports = {
     initializeSettingsHandlers,
     reinitialize,
     normalizeTts,
-    normalizeVoiceInput
+    normalizeVoiceInput,
+    normalizeImageGeneration
 };
 

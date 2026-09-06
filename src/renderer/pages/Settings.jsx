@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { Link, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Search, Eye, EyeOff, Plus, Trash2, Edit3, Save, X, RefreshCw, Key, Settings as SettingsIcon, Zap, Cpu, Server, AlertCircle, CheckCircle, Sun, Moon, Laptop, Languages, Check, Terminal, Globe, Palette, Type, Sparkles, Sliders, ExternalLink, Route, User, Wrench, Download, UploadCloud, BarChart3, GitBranch, Mic, Volume2, Info, Keyboard, Folder, FolderOpen, RotateCcw, Lightbulb, Star, ChevronDown, ChevronUp, HardDrive, Brain, Flame, AlignJustify, Maximize2, Blocks, Bot, HelpCircle, Copy, Github } from 'lucide-react';
+import { ArrowLeft, Search, Eye, EyeOff, Plus, Trash2, Edit3, Save, X, RefreshCw, Key, Settings as SettingsIcon, Zap, Cpu, Server, AlertCircle, CheckCircle, Sun, Moon, Laptop, Languages, Check, Terminal, Globe, Palette, Type, Sparkles, Sliders, ExternalLink, Route, User, Wrench, Download, UploadCloud, BarChart3, GitBranch, Mic, Volume2, Info, Keyboard, Folder, FolderOpen, RotateCcw, Lightbulb, Star, ChevronDown, ChevronUp, HardDrive, Brain, Flame, AlignJustify, Maximize2, Blocks, Bot, HelpCircle, Copy, Github, ImagePlus } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, SettingsRow, SettingsChoices, SettingsSelect } from '../components/settings/SettingsSection';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
@@ -375,6 +375,7 @@ function Settings() {
   const [isSaving, setIsSaving] = useState(false);
   const [showApiKey, setShowApiKey] = useState(false);
   const [showVoiceApiKey, setShowVoiceApiKey] = useState(false);
+  const [showImageApiKey, setShowImageApiKey] = useState(false);
   const [isDeletingAllModalOpen, setIsDeletingAllModalOpen] = useState(false);
   const [isDeletingAll, setIsDeletingAll] = useState(false);
   const [newMcpServer, setNewMcpServer] = useState({
@@ -734,6 +735,14 @@ function Settings() {
       title: t('settings.voiceInputTitle') || 'Ditado e Entrada de Voz',
       desc: t('settings.voiceInputDesc') || 'Groq Whisper para transcrição rápida',
       keywords: 'voz ditado microfone whisper audio speech to text groq stt gravar falar atalho',
+      isPowerOnly: false
+    },
+    {
+      id: 'imageGeneration',
+      category: 'features',
+      title: t('settings.imageGenerationTitle') || 'Geração de Imagens',
+      desc: t('settings.imageGenerationDesc') || 'Gere imagens com xAI (Grok) e OpenAI',
+      keywords: 'imagem image geracao gerar foto xai grok grok-imagine-image openai dall-e dall-e-3 aspecto aspect ratio picture photos',
       isPowerOnly: false
     },
     {
@@ -3041,6 +3050,12 @@ function Settings() {
     saveSettings(updatedSettings);
   };
 
+  const updateImageGeneration = (updates) => {
+    const updatedSettings = { ...settings, imageGeneration: { ...(settings.imageGeneration || {}), ...updates } };
+    setSettings(updatedSettings);
+    saveSettings(updatedSettings);
+  };
+
   const updateAutoUpdate = (updates) => {
     const updatedSettings = { ...settings, autoUpdate: { ...(settings.autoUpdate || {}), ...updates } };
     setSettings(updatedSettings);
@@ -3403,6 +3418,7 @@ function Settings() {
   const renderFeaturesSection = () => {
     const hasVisible =
       visibleCardIds.has('voiceInput') ||
+      visibleCardIds.has('imageGeneration') ||
       visibleCardIds.has('tts') ||
       visibleCardIds.has('popupWindow') ||
       visibleCardIds.has('webSearch') ||
@@ -3515,6 +3531,212 @@ function Settings() {
                 </details>
               </CardContent>
             </Card>
+        )}
+
+        {visibleCardIds.has('imageGeneration') && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center space-x-2">
+                <ImagePlus className="h-5 w-5 text-primary" />
+                <span>{t('settings.imageGenerationTitle')}</span>
+              </CardTitle>
+              <CardDescription>{t('settings.imageGenerationDesc')}</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {/* Enable Switch */}
+              <div className="flex items-center justify-between">
+                <div className="space-y-0.5">
+                  <Label>{t('settings.imageGenerationEnabled')}</Label>
+                  <p className="text-xs text-muted-foreground">{t('settings.imageGenerationEnabledDesc')}</p>
+                </div>
+                <Switch
+                  checked={settings.imageGeneration?.enabled !== false}
+                  onChange={event => updateImageGeneration({ enabled: event.target.checked })}
+                />
+              </div>
+
+              {/* Provider Selection */}
+              <div className="space-y-2">
+                <Label>{t('settings.imageGenerationProvider')}</Label>
+                <select
+                  className="w-full h-10 rounded-md border border-input bg-background px-3 text-sm text-foreground focus:outline-hidden focus:ring-2 focus:ring-ring"
+                  value={settings.imageGeneration?.provider || 'grok'}
+                  onChange={event => {
+                    const newProvider = event.target.value;
+                    const defaultModel = newProvider === 'openai' ? 'dall-e-3' : 'grok-imagine-image';
+                    updateImageGeneration({ provider: newProvider, model: defaultModel });
+                  }}
+                >
+                  <option value="grok">xAI (Grok / grok-imagine-image)</option>
+                  <option value="openai">OpenAI (DALL-E 3 / DALL-E 2)</option>
+                </select>
+                <p className="text-xs text-muted-foreground">{t('settings.imageGenerationProviderDesc')}</p>
+              </div>
+
+              {/* API Key Mode: Reusing Provider Key vs Dedicated Key */}
+              <div className="space-y-3 p-3.5 rounded-xl border border-border/70 bg-muted/20">
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label className="text-xs font-semibold">{t('settings.imageGenerationUseCustomKey')}</Label>
+                    <p className="text-[11px] text-muted-foreground">{t('settings.imageGenerationUseCustomKeyDesc')}</p>
+                  </div>
+                  <Switch
+                    checked={Boolean(settings.imageGeneration?.useCustomApiKey)}
+                    onChange={event => updateImageGeneration({ useCustomApiKey: event.target.checked })}
+                  />
+                </div>
+
+                {!settings.imageGeneration?.useCustomApiKey ? (
+                  /* Reusing configured key */
+                  <div className="flex items-center justify-between text-xs py-2 px-3 rounded-lg bg-background/80 border border-border/50">
+                    <div className="flex items-center gap-2">
+                      <Key className="w-3.5 h-3.5 text-primary shrink-0" />
+                      {(() => {
+                        const provId = settings.imageGeneration?.provider === 'openai' ? 'openai' : 'grok';
+                        const provName = provId === 'openai' ? 'OpenAI' : 'xAI';
+                        const hasKey = Boolean((settings.apiKeys?.[provId] && settings.apiKeys[provId] !== '<replace me>') || (provId === 'grok' ? process.env.XAI_API_KEY : process.env.OPENAI_API_KEY));
+                        return (
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="font-medium text-foreground">
+                              {t('settings.imageGenerationReusingKey', { provider: provName })}
+                            </span>
+                            {hasKey ? (
+                              <span className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30">
+                                {t('common.configured') || 'Configurada'}
+                              </span>
+                            ) : (
+                              <span className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30">
+                                {t('settings.imageGenerationNoKeyWarning')}
+                              </span>
+                            )}
+                          </div>
+                        );
+                      })()}
+                    </div>
+                    <a
+                      href={settings.imageGeneration?.provider === 'openai' ? 'https://platform.openai.com/api-keys' : 'https://console.x.ai/'}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-[11px] text-primary hover:underline inline-flex items-center gap-1 font-medium shrink-0 ml-2"
+                    >
+                      {settings.imageGeneration?.provider === 'openai' ? 'platform.openai.com' : 'console.x.ai'} <ExternalLink className="w-3 h-3" />
+                    </a>
+                  </div>
+                ) : (
+                  /* Custom Dedicated Key */
+                  <div className="space-y-1.5 pt-1">
+                    <div className="flex items-center justify-between">
+                      <Label htmlFor="image-api-key" className="text-xs font-medium flex items-center gap-1.5">
+                        <Key className="w-3.5 h-3.5 text-primary" />
+                        <span>{t('settings.imageGenerationApiKeyLabel')}</span>
+                      </Label>
+                      <a
+                        href={settings.imageGeneration?.provider === 'openai' ? 'https://platform.openai.com/api-keys' : 'https://console.x.ai/'}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-[11px] text-primary hover:underline inline-flex items-center gap-1 font-medium"
+                      >
+                        {settings.imageGeneration?.provider === 'openai' ? 'platform.openai.com' : 'console.x.ai'} <ExternalLink className="w-3 h-3" />
+                      </a>
+                    </div>
+                    <div className="relative flex items-center">
+                      <Input
+                        id="image-api-key"
+                        type={showImageApiKey ? "text" : "password"}
+                        value={settings.imageGeneration?.apiKey || ''}
+                        onChange={(e) => updateImageGeneration({ apiKey: e.target.value })}
+                        placeholder={settings.imageGeneration?.provider === 'openai' ? 'sk-proj-...' : 'xai-...'}
+                        className="pr-10"
+                      />
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="absolute right-0 h-full px-3 py-2 hover:bg-transparent text-muted-foreground hover:text-foreground"
+                        onClick={() => setShowImageApiKey(!showImageApiKey)}
+                        tabIndex={-1}
+                        title={showImageApiKey ? "Ocultar chave" : "Exibir chave"}
+                      >
+                        {showImageApiKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Model Selection */}
+              <div className="space-y-2">
+                <Label>{t('settings.imageGenerationModel')}</Label>
+                {settings.imageGeneration?.provider === 'openai' ? (
+                  <select
+                    className="w-full h-10 rounded-md border border-input bg-background px-3 text-sm text-foreground focus:outline-hidden focus:ring-2 focus:ring-ring"
+                    value={settings.imageGeneration?.model || 'dall-e-3'}
+                    onChange={e => updateImageGeneration({ model: e.target.value })}
+                  >
+                    <option value="dall-e-3">DALL-E 3 (OpenAI - Alta qualidade, 1024x1024 / 1792x1024)</option>
+                    <option value="dall-e-2">DALL-E 2 (OpenAI - Legado rápido)</option>
+                  </select>
+                ) : (
+                  <select
+                    className="w-full h-10 rounded-md border border-input bg-background px-3 text-sm text-foreground focus:outline-hidden focus:ring-2 focus:ring-ring"
+                    value={settings.imageGeneration?.model || 'grok-imagine-image'}
+                    onChange={e => updateImageGeneration({ model: e.target.value })}
+                  >
+                    <option value="grok-imagine-image">grok-imagine-image (xAI padrão oficial)</option>
+                    <option value="grok-imagine-image-2.0">grok-imagine-image-2.0 (xAI v2)</option>
+                  </select>
+                )}
+              </div>
+
+              {/* Preferences: Aspect Ratio & Quality */}
+              <div className="grid sm:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>{t('settings.imageGenerationAspectRatio')}</Label>
+                  <select
+                    className="w-full h-10 rounded-md border border-input bg-background px-3 text-sm text-foreground focus:outline-hidden focus:ring-2 focus:ring-ring"
+                    value={settings.imageGeneration?.aspectRatio || '1:1'}
+                    onChange={e => updateImageGeneration({ aspectRatio: e.target.value })}
+                  >
+                    <option value="1:1">{t('settings.imageGenerationAspectSquare')}</option>
+                    <option value="16:9">{t('settings.imageGenerationAspectLandscape')}</option>
+                    <option value="9:16">{t('settings.imageGenerationAspectPortrait')}</option>
+                  </select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label>{t('settings.imageGenerationQuality')}</Label>
+                  <select
+                    className="w-full h-10 rounded-md border border-input bg-background px-3 text-sm text-foreground focus:outline-hidden focus:ring-2 focus:ring-ring"
+                    value={settings.imageGeneration?.quality || 'standard'}
+                    onChange={e => updateImageGeneration({ quality: e.target.value })}
+                    disabled={settings.imageGeneration?.provider === 'grok'}
+                  >
+                    <option value="standard">{t('settings.imageGenerationQualityStandard')}</option>
+                    <option value="hd">{t('settings.imageGenerationQualityHd')}</option>
+                  </select>
+                  {settings.imageGeneration?.provider === 'grok' && (
+                    <p className="text-[10px] text-muted-foreground">xAI ajusta a qualidade de forma autônoma.</p>
+                  )}
+                </div>
+              </div>
+
+              {/* Explanatory Collapsible Box */}
+              <details className="group rounded-xl border border-border/70 bg-muted/20 text-xs transition-colors">
+                <summary className="flex items-center justify-between p-3.5 cursor-pointer select-none text-foreground font-semibold hover:bg-muted/30 list-none [&::-webkit-details-marker]:hidden">
+                  <div className="flex items-center gap-2.5">
+                    <Info className="w-4 h-4 text-primary shrink-0" />
+                    <span>{t('settings.imageGenerationInfoTitle')}</span>
+                  </div>
+                  <ChevronDown className="w-4 h-4 text-muted-foreground transition-transform duration-200 group-open:rotate-180 shrink-0" />
+                </summary>
+                <div className="px-3.5 pb-3.5 pt-2.5 space-y-1.5 pl-10 text-muted-foreground leading-relaxed border-t border-border/40">
+                  <p>{t('settings.imageGenerationInfoEndpoint')}</p>
+                  <p>{t('settings.imageGenerationInfoKey')}</p>
+                  <p>{t('settings.imageGenerationInfoPersistence')}</p>
+                </div>
+              </details>
+            </CardContent>
+          </Card>
         )}
 
         {visibleCardIds.has('tts') && (

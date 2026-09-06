@@ -29,6 +29,10 @@ function createSecretStore({ userDataPath, safeStorage }) {
             secrets.voiceInputApiKey = publicSettings.voiceInput.apiKey;
             delete publicSettings.voiceInput.apiKey;
         }
+        if (publicSettings.imageGeneration?.apiKey !== undefined) {
+            secrets.imageGenerationApiKey = publicSettings.imageGeneration.apiKey;
+            delete publicSettings.imageGeneration.apiKey;
+        }
         return { publicSettings, secrets };
     }
 
@@ -56,6 +60,9 @@ function createSecretStore({ userDataPath, safeStorage }) {
             }
             if (secrets.voiceInputApiKey !== undefined) {
                 hydrated.voiceInput = { ...(hydrated.voiceInput || {}), apiKey: secrets.voiceInputApiKey };
+            }
+            if (secrets.imageGenerationApiKey !== undefined) {
+                hydrated.imageGeneration = { ...(hydrated.imageGeneration || {}), apiKey: secrets.imageGenerationApiKey };
             }
             return hydrated;
         } catch (error) {

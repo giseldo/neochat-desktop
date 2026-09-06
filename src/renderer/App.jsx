@@ -1738,11 +1738,11 @@ function App() {
     };
   };
 
-  // Handle sending message (text or structured content with images)
-  const handleSendMessage = async (content) => {
+  // Handle sending message (text, structured content, or image generation)
+  const handleSendMessage = async (content, options = {}) => {
     // Check if content is structured (array) or just text (string)
     const isStructuredContent = Array.isArray(content);
-    const hasContent = isStructuredContent ? content.some(part => (part.type === 'text' && part.text.trim()) || part.type === 'image_url') : content.trim();
+    const hasContent = isStructuredContent ? content.some(part => (part.type === 'text' && part.text.trim()) || part.type === 'image_url') : (typeof content === 'string' ? content.trim() : Boolean(content));
 
     if (!hasContent) return;
 
@@ -1760,6 +1760,101 @@ function App() {
     // Reset user scrolling flag so new messages auto-scroll
     userScrollingRef.current = false;
     setIsUserScrolling(false);
+
+    // --- Special Mode: Image Generation ---
+    if (options?.isImageGeneration) {
+      const promptText = typeof content === 'string'
+        ? content.trim()
+        : Array.isArray(content)
+          ? content.map(p => p.text || '').join(' ').trim()
+          : String(content).trim();
+
+      const userMessage = {
+        role: 'user',
+        content: promptText,
+        isImagePrompt: true,
+        createdAt: new Date().toISOString(),
+        timestamp: Date.now()
+      };
+
+      const initialMessages = [...messages, userMessage];
+      setMessages(initialMessages);
+
+      const assistantLoading = {
+        role: 'assistant',
+        content: '',
+        isGeneratingImage: true,
+        imagePrompt: promptText,
+        imageModel: options.imageSettings?.model,
+        createdAt: new Date().toISOString(),
+        timestamp: Date.now() + 1
+      };
+
+      setMessages([...initialMessages, assistantLoading]);
+      setLoading(true);
+
+      try {
+        const res = await window.electron.generateImage({
+          prompt: promptText,
+          provider: options.imageSettings?.provider,
+          model: options.imageSettings?.model,
+          aspectRatio: options.imageSettings?.aspectRatio,
+          quality: options.imageSettings?.quality
+        });
+
+        if (res?.success) {
+          const completedAssistantMessage = {
+            role: 'assistant',
+            content: res.revisedPrompt && res.revisedPrompt !== promptText ? res.revisedPrompt : '',
+            isGeneratedImage: true,
+            image: {
+              dataUrl: res.dataUrl,
+              url: res.rawUrl || res.dataUrl,
+              revisedPrompt: res.revisedPrompt,
+              model: res.model,
+              provider: res.provider,
+              prompt: promptText
+            },
+            createdAt: new Date().toISOString(),
+            timestamp: Date.now() + 2
+          };
+          const finalMessages = [...initialMessages, completedAssistantMessage];
+          setMessages(finalMessages);
+          if (activeChatId) {
+            await window.electron.chatHistory.saveMessages(activeChatId, finalMessages);
+          }
+        } else {
+          const errorMsg = {
+            role: 'assistant',
+            content: `❌ **${t('chat.imageGenerationFailed', { error: res?.error || 'Erro desconhecido' })}**`,
+            isError: true,
+            createdAt: new Date().toISOString(),
+            timestamp: Date.now() + 2
+          };
+          const finalMessages = [...initialMessages, errorMsg];
+          setMessages(finalMessages);
+          if (activeChatId) {
+            await window.electron.chatHistory.saveMessages(activeChatId, finalMessages);
+          }
+        }
+      } catch (err) {
+        const errorMsg = {
+          role: 'assistant',
+          content: `❌ **${t('chat.imageGenerationFailed', { error: err.message || 'Erro inesperado' })}**`,
+          isError: true,
+          createdAt: new Date().toISOString(),
+          timestamp: Date.now() + 2
+        };
+        const finalMessages = [...initialMessages, errorMsg];
+        setMessages(finalMessages);
+        if (activeChatId) {
+          await window.electron.chatHistory.saveMessages(activeChatId, finalMessages);
+        }
+      } finally {
+        setLoading(false);
+      }
+      return;
+    }
 
     // Format the user message based on content type
     const userMessage = {
@@ -3144,9 +3239,9 @@ function App() {
                   {/* Chat Input */}
                   <div className="w-full">
                     <ChatInput
-                      onSendMessage={(msg, files) => {
+                      onSendMessage={(msg, opts) => {
                         setPresetInputMessage('');
-                        handleSendMessage(msg, files);
+                        handleSendMessage(msg, opts);
                       }}
                       onStopGeneration={handleStopGeneration}
                       loading={loading}

@@ -51,6 +51,7 @@ const { autoUpdater } = require('electron-updater');
 const { initializeUpdateManager } = require('./updateManager');
 const { pluginManager } = require('./pluginManager');
 const { skillManager } = require('./skillManager');
+const imageGenerationManager = require('./imageGenerationManager');
 
 // Import context capture system
 const ContextCapture = require('./contextCapture');
@@ -826,6 +827,16 @@ app.whenReady().then(async () => {
       console.error('Error saving exported chat:', err);
       return { success: false, error: err.message };
     }
+  });
+
+  // --- Image Generation Handlers ---
+  ipcMain.handle('generate-image', async (_event, options) => {
+    const currentSettings = loadSettings();
+    return await imageGenerationManager.generateImage(options, currentSettings);
+  });
+
+  ipcMain.handle('save-image', async (_event, { dataUrl, defaultName }) => {
+    return await imageGenerationManager.saveImageToFile(dataUrl, defaultName, mainWindow);
   });
 
   // --- Post-initialization Tasks --- //
