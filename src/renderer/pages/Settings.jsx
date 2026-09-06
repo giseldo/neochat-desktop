@@ -455,6 +455,7 @@ function Settings() {
   const [providerModelSearchQuery, setProviderModelSearchQuery] = useState('');
   const [filterOnlyFavorites, setFilterOnlyFavorites] = useState(false);
   const [expandedProviderGroups, setExpandedProviderGroups] = useState(new Set());
+  const [expandedProviderCards, setExpandedProviderCards] = useState(new Set());
   const [isRefreshingModels, setIsRefreshingModels] = useState(false);
   
   // Remote MCP Server state
@@ -2541,6 +2542,26 @@ function Settings() {
     setExpandedProviderGroups(new Set());
   };
 
+  const toggleProviderCard = (providerId) => {
+    setExpandedProviderCards(prev => {
+      const next = new Set(prev);
+      if (next.has(providerId)) {
+        next.delete(providerId);
+      } else {
+        next.add(providerId);
+      }
+      return next;
+    });
+  };
+
+  const handleExpandAllProviderCards = (allIds) => {
+    setExpandedProviderCards(new Set(allIds));
+  };
+
+  const handleCollapseAllProviderCards = () => {
+    setExpandedProviderCards(new Set());
+  };
+
   // Custom Model Management Functions
   const handleNewCustomModelChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -4339,11 +4360,11 @@ function Settings() {
                   )}
                 </div>
 
-                {/* Filter and Search Bar */}
-                <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 pt-1">
+                {/* Filter and Search Bar with Global Expand/Collapse */}
+                <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3 pt-1">
                   {/* Search Input */}
                   <div className="relative flex-1 min-w-[200px]">
-                    <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+                    <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground pointer-events-none" />
                     <Input
                       type="text"
                       value={providerSearchTerm}
@@ -4362,72 +4383,100 @@ function Settings() {
                     )}
                   </div>
 
-                  {/* Filter Pills */}
-                  <div className="flex items-center gap-1 overflow-x-auto pb-1 sm:pb-0 text-xs">
-                    <button
-                      type="button"
-                      onClick={() => handleProviderFilterTabChange('all')}
-                      className={cn(
-                        "px-2.5 py-1 rounded-lg font-medium whitespace-nowrap transition-colors",
-                        providerFilterTab === 'all'
-                          ? "bg-primary text-primary-foreground"
-                          : "bg-muted/50 hover:bg-muted text-muted-foreground"
-                      )}
-                    >
-                      {t('settings.filterAllProviders', { count: allProvidersList.length })}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleProviderFilterTabChange('active')}
-                      className={cn(
-                        "px-2.5 py-1 rounded-lg font-medium whitespace-nowrap transition-colors",
-                        providerFilterTab === 'active'
-                          ? "bg-primary text-primary-foreground"
-                          : "bg-muted/50 hover:bg-muted text-muted-foreground"
-                      )}
-                    >
-                      {t('settings.filterActiveProviders', { count: activeCount })}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleProviderFilterTabChange('configured')}
-                      className={cn(
-                        "px-2.5 py-1 rounded-lg font-medium whitespace-nowrap transition-colors",
-                        providerFilterTab === 'configured'
-                          ? "bg-primary text-primary-foreground"
-                          : "bg-muted/50 hover:bg-muted text-muted-foreground"
-                      )}
-                    >
-                      {t('settings.filterConfiguredProviders', { count: configuredCount })}
-                    </button>
-                    {localCount > 0 && (
+                  {/* Filter Pills & Expand/Collapse controls */}
+                  <div className="flex items-center gap-2 flex-wrap justify-between sm:justify-end">
+                    <div className="flex items-center gap-1 overflow-x-auto pb-1 sm:pb-0 text-xs">
                       <button
                         type="button"
-                        onClick={() => handleProviderFilterTabChange('local')}
+                        onClick={() => handleProviderFilterTabChange('all')}
                         className={cn(
                           "px-2.5 py-1 rounded-lg font-medium whitespace-nowrap transition-colors",
-                          providerFilterTab === 'local'
+                          providerFilterTab === 'all'
                             ? "bg-primary text-primary-foreground"
                             : "bg-muted/50 hover:bg-muted text-muted-foreground"
                         )}
                       >
-                        {t('settings.filterLocalProviders', { count: localCount })}
+                        {t('settings.filterAllProviders', { count: allProvidersList.length })}
                       </button>
-                    )}
-                    {customCount > 0 && (
                       <button
                         type="button"
-                        onClick={() => handleProviderFilterTabChange('custom')}
+                        onClick={() => handleProviderFilterTabChange('active')}
                         className={cn(
                           "px-2.5 py-1 rounded-lg font-medium whitespace-nowrap transition-colors",
-                          providerFilterTab === 'custom'
+                          providerFilterTab === 'active'
                             ? "bg-primary text-primary-foreground"
                             : "bg-muted/50 hover:bg-muted text-muted-foreground"
                         )}
                       >
-                        {t('settings.filterCustomProviders', { count: customCount })}
+                        {t('settings.filterActiveProviders', { count: activeCount })}
                       </button>
-                    )}
+                      <button
+                        type="button"
+                        onClick={() => handleProviderFilterTabChange('configured')}
+                        className={cn(
+                          "px-2.5 py-1 rounded-lg font-medium whitespace-nowrap transition-colors",
+                          providerFilterTab === 'configured'
+                            ? "bg-primary text-primary-foreground"
+                            : "bg-muted/50 hover:bg-muted text-muted-foreground"
+                        )}
+                      >
+                        {t('settings.filterConfiguredProviders', { count: configuredCount })}
+                      </button>
+                      {localCount > 0 && (
+                        <button
+                          type="button"
+                          onClick={() => handleProviderFilterTabChange('local')}
+                          className={cn(
+                            "px-2.5 py-1 rounded-lg font-medium whitespace-nowrap transition-colors",
+                            providerFilterTab === 'local'
+                              ? "bg-primary text-primary-foreground"
+                              : "bg-muted/50 hover:bg-muted text-muted-foreground"
+                          )}
+                        >
+                          {t('settings.filterLocalProviders', { count: localCount })}
+                        </button>
+                      )}
+                      {customCount > 0 && (
+                        <button
+                          type="button"
+                          onClick={() => handleProviderFilterTabChange('custom')}
+                          className={cn(
+                            "px-2.5 py-1 rounded-lg font-medium whitespace-nowrap transition-colors",
+                            providerFilterTab === 'custom'
+                              ? "bg-primary text-primary-foreground"
+                              : "bg-muted/50 hover:bg-muted text-muted-foreground"
+                          )}
+                        >
+                          {t('settings.filterCustomProviders', { count: customCount })}
+                        </button>
+                      )}
+                    </div>
+
+                    {/* Global Expand/Collapse for providers */}
+                    <div className="flex items-center gap-1 shrink-0">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleExpandAllProviderCards(filteredProviders.map(p => p.id))}
+                        className="text-xs h-8 px-2.5"
+                        title={t('settings.expandAllModels')}
+                      >
+                        <ChevronDown className="h-3.5 w-3.5 mr-1" />
+                        <span>{t('settings.expandAllModels')}</span>
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={handleCollapseAllProviderCards}
+                        className="text-xs h-8 px-2.5"
+                        title={t('settings.collapseAllModels')}
+                      >
+                        <ChevronUp className="h-3.5 w-3.5 mr-1" />
+                        <span>{t('settings.collapseAllModels')}</span>
+                      </Button>
+                    </div>
                   </div>
                 </div>
 
@@ -4448,21 +4497,45 @@ function Settings() {
                       const currentKey = settings.apiKeys?.[provider.id] || (provider.id === 'groq' ? settings.GROQ_API_KEY : '') || '';
                       const currentBaseUrl = settings.providerUrls?.[provider.id] || (provider.id === 'custom' ? settings.customApiBaseUrl : '') || provider.baseUrl || '';
                       const IconComp = getProviderIconComponent(provider);
+                      const isSearchActive = Boolean(providerSearchTerm.trim());
+                      const isExpanded = isSearchActive ? true : expandedProviderCards.has(provider.id);
 
                       return (
                         <div
                           key={provider.id}
                           className={cn(
-                            "border rounded-xl p-3.5 sm:p-4 transition-all space-y-3 shadow-xs",
+                            "border rounded-xl transition-all shadow-xs overflow-hidden",
                             isEnabled
                               ? "bg-card border-border hover:border-border/80"
                               : "bg-muted/20 border-dashed border-border/60 opacity-80"
                           )}
                         >
-                          {/* Card Header Row */}
-                          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2 border-b border-border/40">
-                            {/* Left: Icon, Name & Badges */}
-                            <div className="flex items-center gap-3 min-w-0">
+                          {/* Card Header Row (Accordion Trigger) */}
+                          <div
+                            onClick={() => toggleProviderCard(provider.id)}
+                            role="button"
+                            tabIndex={0}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter' || e.key === ' ') {
+                                e.preventDefault();
+                                toggleProviderCard(provider.id);
+                              }
+                            }}
+                            className={cn(
+                              "w-full flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 sm:p-3.5 cursor-pointer select-none transition-colors",
+                              isExpanded ? "bg-muted/30 border-b border-border/40" : "hover:bg-muted/20"
+                            )}
+                          >
+                            {/* Left: Chevron, Icon, Name & Badges */}
+                            <div className="flex items-center gap-2.5 min-w-0">
+                              <div className="p-1 rounded-md bg-muted/60 text-muted-foreground flex items-center justify-center shrink-0">
+                                <ChevronDown
+                                  className={cn(
+                                    "h-4 w-4 transition-transform duration-200",
+                                    isExpanded ? "rotate-0 text-foreground" : "-rotate-90 text-muted-foreground"
+                                  )}
+                                />
+                              </div>
                               <div className={cn(
                                 "w-9 h-9 rounded-xl flex items-center justify-center shrink-0 shadow-xs",
                                 isEnabled
@@ -4513,19 +4586,31 @@ function Settings() {
                                   <span className={isEnabled ? "text-green-600 dark:text-green-400 font-medium" : "text-muted-foreground"}>
                                     {isEnabled ? t('settings.statusActive') : t('settings.statusInactive')}
                                   </span>
+                                  {!isExpanded && provider.description && (
+                                    <span className="hidden xl:inline-block text-[11px] text-muted-foreground/80 truncate max-w-[320px]">
+                                      — {provider.description}
+                                    </span>
+                                  )}
                                 </div>
                               </div>
                             </div>
 
                             {/* Right: Active Switch & Quick Actions */}
-                            <div className="flex items-center gap-2 self-end sm:self-auto shrink-0 flex-wrap">
+                            <div 
+                              className="flex items-center gap-2 self-end sm:self-auto shrink-0 flex-wrap"
+                              onClick={(e) => e.stopPropagation()}
+                              onKeyDown={(e) => e.stopPropagation()}
+                            >
                               {/* Primary Provider Selector */}
                               {!isPrimary && (
                                 <Button
                                   type="button"
                                   variant="ghost"
                                   size="sm"
-                                  onClick={() => handleSetPrimaryProvider(provider.id)}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleSetPrimaryProvider(provider.id);
+                                  }}
                                   className="h-7 px-2 text-xs text-muted-foreground hover:text-foreground"
                                   title={t('settings.setAsPrimary')}
                                 >
@@ -4540,7 +4625,10 @@ function Settings() {
                                   type="button"
                                   variant={isFallback ? "secondary" : "ghost"}
                                   size="sm"
-                                  onClick={() => toggleFallbackProvider(provider.id)}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    toggleFallbackProvider(provider.id);
+                                  }}
                                   className="h-7 px-2 text-xs"
                                   title="Fallback"
                                 >
@@ -4555,7 +4643,10 @@ function Settings() {
                                     type="button"
                                     variant="ghost"
                                     size="icon"
-                                    onClick={() => handleOpenAddProviderModal(provider)}
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleOpenAddProviderModal(provider);
+                                    }}
                                     className="h-7 w-7 text-muted-foreground hover:text-foreground"
                                     title={t('common.edit')}
                                   >
@@ -4565,7 +4656,10 @@ function Settings() {
                                     type="button"
                                     variant="ghost"
                                     size="icon"
-                                    onClick={() => setDeletingCustomProvider(provider)}
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setDeletingCustomProvider(provider);
+                                    }}
                                     className="h-7 w-7 text-muted-foreground hover:text-destructive"
                                     title={t('common.delete')}
                                   >
@@ -4575,7 +4669,10 @@ function Settings() {
                               )}
 
                               {/* Active Toggle Switch */}
-                              <div className="flex items-center gap-2 pl-2 border-l border-border/60">
+                              <div 
+                                className="flex items-center gap-2 pl-2 border-l border-border/60"
+                                onClick={(e) => e.stopPropagation()}
+                              >
                                 <Label htmlFor={`provider-active-${provider.id}`} className="text-xs font-medium cursor-pointer">
                                   {isEnabled ? t('settings.statusActive') : t('settings.statusInactive')}
                                 </Label>
@@ -4589,139 +4686,144 @@ function Settings() {
                             </div>
                           </div>
 
-                          {/* Middle: Description & Endpoint Preview */}
-                          <div className="space-y-1 text-xs">
-                            <p className="text-muted-foreground">{provider.description}</p>
-                            {provider.baseUrl && (
-                              <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
-                                <span>Endpoint:</span>
-                                <code className="bg-muted/60 px-1.5 py-0.5 rounded text-foreground font-mono truncate max-w-full">
-                                  {provider.baseUrl}
-                                </code>
-                              </div>
-                            )}
-                          </div>
-
-                          {/* Bottom: Credentials & Test Connection */}
-                          <div className="pt-2 border-t border-border/40 space-y-3">
-                            <div className="grid grid-cols-1 md:grid-cols-12 gap-3 items-end">
-                              {/* API Key Input (if requires key or is custom) */}
-                              {(provider.requiresApiKey !== false || provider.isCustom) && (() => {
-                                const resolvedKeyUrl = provider.keyUrl || provider.apiKeyUrl || getKnownApiKeyUrl(provider.id, provider.baseUrl, provider.name);
-                                return (
-                                  <div className={cn(
-                                    provider.isCustom || provider.id === 'custom' ? "md:col-span-6" : "md:col-span-8",
-                                    "space-y-1.5"
-                                  )}>
-                                    <div className="flex items-center justify-between gap-2">
-                                      <Label htmlFor={`api-key-${provider.id}`} className="text-xs font-medium">
-                                        {t('settings.apiKeyLabel')}
-                                      </Label>
-                                      {resolvedKeyUrl && (
-                                        <a
-                                          href={resolvedKeyUrl}
-                                          target="_blank"
-                                          rel="noreferrer"
-                                          onClick={(e) => {
-                                            if (window.electron?.openExternal) {
-                                              e.preventDefault();
-                                              window.electron.openExternal(resolvedKeyUrl);
-                                            }
-                                          }}
-                                          className="text-[11px] text-primary hover:underline inline-flex items-center gap-1 font-medium group transition-colors cursor-pointer"
-                                          title={t('settings.getApiKeyTooltip', { provider: provider.name })}
-                                        >
-                                          <span>{t('settings.getApiKey')}</span>
-                                          <ExternalLink className="w-3 h-3 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
-                                        </a>
-                                      )}
-                                    </div>
-                                    <div className="relative">
-                                      <Input
-                                        type={showKey ? "text" : "password"}
-                                        id={`api-key-${provider.id}`}
-                                        value={currentKey}
-                                        onChange={(e) => handleProviderApiKeyChange(provider.id, e.target.value)}
-                                        placeholder={t('settings.providerCardApiKeyPlaceholder')}
-                                        className="text-xs h-8 pr-8"
-                                      />
-                                      <Button
-                                        type="button"
-                                        variant="ghost"
-                                        size="icon"
-                                        className="absolute right-0 top-0 h-8 w-8 text-muted-foreground"
-                                        onClick={() => toggleProviderApiKeyVisibility(provider.id)}
-                                      >
-                                        {showKey ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
-                                      </Button>
-                                    </div>
-                                  </div>
-                                );
-                              })()}
-
-                              {/* Base URL (if custom or overriding) */}
-                              {(provider.isCustom || provider.id === 'custom') && (
-                                <div className="md:col-span-6 space-y-1.5">
-                                  <Label htmlFor={`base-url-${provider.id}`} className="text-xs font-medium">
-                                    {t('settings.customBaseUrlLabel')}
-                                  </Label>
-                                  <Input
-                                    type="text"
-                                    id={`base-url-${provider.id}`}
-                                    value={currentBaseUrl}
-                                    onChange={(e) => handleProviderBaseUrlChange(provider.id, e.target.value)}
-                                    placeholder="https://api.exemplo.com/v1"
-                                    className="text-xs h-8"
-                                  />
-                                </div>
-                              )}
-
-                              {/* Test Connection Button */}
-                              <div className="md:col-span-4 flex items-center gap-2">
-                                <Button
-                                  type="button"
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={() => handleTestProvider(provider.id)}
-                                  disabled={testResult?.testing}
-                                  className="h-8 text-xs w-full justify-center gap-1.5"
-                                >
-                                  {testResult?.testing ? (
-                                    <>
-                                      <RefreshCw className="w-3 h-3 animate-spin text-primary" />
-                                      <span>{t('settings.testingConnection')}</span>
-                                    </>
-                                  ) : (
-                                    <>
-                                      <Zap className="w-3 h-3 text-amber-500" />
-                                      <span>{t('settings.testConnection')}</span>
-                                    </>
-                                  )}
-                                </Button>
-                              </div>
-                            </div>
-
-                            {/* Live Test Results Alert */}
-                            {testResult && !testResult.testing && (
-                              <div className="pt-1">
-                                {testResult.success ? (
-                                  <div className="flex items-center gap-2 p-2 rounded-lg bg-green-500/10 border border-green-500/20 text-xs text-green-700 dark:text-green-300">
-                                    <CheckCircle className="w-3.5 h-3.5 shrink-0" />
-                                    <span>
-                                      {t('settings.testSuccess', { count: testResult.count, latency: testResult.latencyMs })}
-                                    </span>
-                                  </div>
-                                ) : (
-                                  <div className="flex items-center gap-2 p-2 rounded-lg bg-destructive/10 border border-destructive/20 text-xs text-destructive">
-                                    <AlertCircle className="w-3.5 h-3.5 shrink-0" />
-                                    <span>
-                                      {t('settings.testError', { error: testResult.error })}
-                                    </span>
+                          {/* Collapsible Card Body */}
+                          {isExpanded && (
+                            <div className="p-3.5 sm:p-4 pt-3 space-y-3 bg-card/60">
+                              {/* Middle: Description & Endpoint Preview */}
+                              <div className="space-y-1 text-xs">
+                                <p className="text-muted-foreground">{provider.description}</p>
+                                {provider.baseUrl && (
+                                  <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+                                    <span>Endpoint:</span>
+                                    <code className="bg-muted/60 px-1.5 py-0.5 rounded text-foreground font-mono truncate max-w-full">
+                                      {provider.baseUrl}
+                                    </code>
                                   </div>
                                 )}
                               </div>
-                            )}
-                          </div>
+
+                              {/* Bottom: Credentials & Test Connection */}
+                              <div className="pt-2 border-t border-border/40 space-y-3">
+                                <div className="grid grid-cols-1 md:grid-cols-12 gap-3 items-end">
+                                  {/* API Key Input (if requires key or is custom) */}
+                                  {(provider.requiresApiKey !== false || provider.isCustom) && (() => {
+                                    const resolvedKeyUrl = provider.keyUrl || provider.apiKeyUrl || getKnownApiKeyUrl(provider.id, provider.baseUrl, provider.name);
+                                    return (
+                                      <div className={cn(
+                                        provider.isCustom || provider.id === 'custom' ? "md:col-span-6" : "md:col-span-8",
+                                        "space-y-1.5"
+                                      )}>
+                                        <div className="flex items-center justify-between gap-2">
+                                          <Label htmlFor={`api-key-${provider.id}`} className="text-xs font-medium">
+                                            {t('settings.apiKeyLabel')}
+                                          </Label>
+                                          {resolvedKeyUrl && (
+                                            <a
+                                              href={resolvedKeyUrl}
+                                              target="_blank"
+                                              rel="noreferrer"
+                                              onClick={(e) => {
+                                                if (window.electron?.openExternal) {
+                                                  e.preventDefault();
+                                                  window.electron.openExternal(resolvedKeyUrl);
+                                                }
+                                              }}
+                                              className="text-[11px] text-primary hover:underline inline-flex items-center gap-1 font-medium group transition-colors cursor-pointer"
+                                              title={t('settings.getApiKeyTooltip', { provider: provider.name })}
+                                            >
+                                              <span>{t('settings.getApiKey')}</span>
+                                              <ExternalLink className="w-3 h-3 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
+                                            </a>
+                                          )}
+                                        </div>
+                                        <div className="relative">
+                                          <Input
+                                            type={showKey ? "text" : "password"}
+                                            id={`api-key-${provider.id}`}
+                                            value={currentKey}
+                                            onChange={(e) => handleProviderApiKeyChange(provider.id, e.target.value)}
+                                            placeholder={t('settings.providerCardApiKeyPlaceholder')}
+                                            className="text-xs h-8 pr-8"
+                                          />
+                                          <Button
+                                            type="button"
+                                            variant="ghost"
+                                            size="icon"
+                                            className="absolute right-0 top-0 h-8 w-8 text-muted-foreground"
+                                            onClick={() => toggleProviderApiKeyVisibility(provider.id)}
+                                          >
+                                            {showKey ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+                                          </Button>
+                                        </div>
+                                      </div>
+                                    );
+                                  })()}
+
+                                  {/* Base URL (if custom or overriding) */}
+                                  {(provider.isCustom || provider.id === 'custom') && (
+                                    <div className="md:col-span-6 space-y-1.5">
+                                      <Label htmlFor={`base-url-${provider.id}`} className="text-xs font-medium">
+                                        {t('settings.customBaseUrlLabel')}
+                                      </Label>
+                                      <Input
+                                        type="text"
+                                        id={`base-url-${provider.id}`}
+                                        value={currentBaseUrl}
+                                        onChange={(e) => handleProviderBaseUrlChange(provider.id, e.target.value)}
+                                        placeholder="https://api.exemplo.com/v1"
+                                        className="text-xs h-8"
+                                      />
+                                    </div>
+                                  )}
+
+                                  {/* Test Connection Button */}
+                                  <div className="md:col-span-4 flex items-center gap-2">
+                                    <Button
+                                      type="button"
+                                      variant="outline"
+                                      size="sm"
+                                      onClick={() => handleTestProvider(provider.id)}
+                                      disabled={testResult?.testing}
+                                      className="h-8 text-xs w-full justify-center gap-1.5"
+                                    >
+                                      {testResult?.testing ? (
+                                        <>
+                                          <RefreshCw className="w-3 h-3 animate-spin text-primary" />
+                                          <span>{t('settings.testingConnection')}</span>
+                                        </>
+                                      ) : (
+                                        <>
+                                          <Zap className="w-3 h-3 text-amber-500" />
+                                          <span>{t('settings.testConnection')}</span>
+                                        </>
+                                      )}
+                                    </Button>
+                                  </div>
+                                </div>
+
+                                {/* Live Test Results Alert */}
+                                {testResult && !testResult.testing && (
+                                  <div className="pt-1">
+                                    {testResult.success ? (
+                                      <div className="flex items-center gap-2 p-2 rounded-lg bg-green-500/10 border border-green-500/20 text-xs text-green-700 dark:text-green-300">
+                                        <CheckCircle className="w-3.5 h-3.5 shrink-0" />
+                                        <span>
+                                          {t('settings.testSuccess', { count: testResult.count, latency: testResult.latencyMs })}
+                                        </span>
+                                      </div>
+                                    ) : (
+                                      <div className="flex items-center gap-2 p-2 rounded-lg bg-destructive/10 border border-destructive/20 text-xs text-destructive">
+                                        <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                                        <span>
+                                          {t('settings.testError', { error: testResult.error })}
+                                        </span>
+                                      </div>
+                                    )}
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          )}
                         </div>
                       );
                     })}
