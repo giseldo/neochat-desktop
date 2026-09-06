@@ -7,7 +7,6 @@ import {
   Check, 
   Terminal, 
   AlertCircle, 
-  Sparkles, 
   FolderKanban, 
   Bot, 
   FileText, 
@@ -1100,18 +1099,7 @@ export default function TrajectoryLedger({
                                         </div>
 
                                         {expandedItems[`${eventId}-card-tools`] && (
-                                          <div className="p-3 pt-0 space-y-2.5 border-t border-amber-500/20 bg-background/50">
-                                            {/* Informative explanation banner */}
-                                            <div className="p-2 rounded-md bg-amber-500/10 border border-amber-500/20 text-[11px] text-amber-900 dark:text-amber-200 leading-relaxed space-y-1">
-                                              <div className="font-semibold flex items-center gap-1.5">
-                                                <Sparkles className="w-3 h-3 text-amber-600 dark:text-amber-400" />
-                                                <span>{t('trajectory.nativeToolsClarification', { count: breakdown?.tools?.items?.filter(it => it.isNative)?.length || 7 })}</span>
-                                              </div>
-                                              <p className="text-[10px] opacity-90">
-                                                {t('trajectory.nativeToolsExplanation')}
-                                              </p>
-                                            </div>
-
+                                          <div className="p-3 pt-2.5 space-y-2.5 border-t border-amber-500/20 bg-background/50">
                                             {/* Tool Items Detailed List */}
                                             <div className="space-y-2">
                                               {(breakdown?.tools?.items || []).map((toolItem, tIdx) => {
