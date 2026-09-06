@@ -215,9 +215,9 @@ class TerminalManager {
   }
 
   async exec(sessionId, commandLine, options = {}) {
-    const session = this.sessions.get(sessionId);
+    let session = this.sessions.get(sessionId);
     if (!session) {
-      throw new Error(`Terminal session "${sessionId}" not found.`);
+      session = this.createSession({ id: sessionId || 'term-1', cwd: options.cwd });
     }
 
     const onData = (payload) => {
@@ -277,45 +277,58 @@ class TerminalManager {
   }
 
   registerIpcHandlers(ipcMain, getWindow) {
-    ipcMain.handle('terminal:create', async (_event, options) => {
+    if (!ipcMain) return;
+    const safeHandle = (channel, fn) => {
+      try {
+        if (typeof ipcMain.removeHandler === 'function') {
+          ipcMain.removeHandler(channel);
+        }
+      } catch (_) {}
+      ipcMain.handle(channel, fn);
+    };
+
+    safeHandle('terminal:create', async (_event, options) => {
       return this.createSession(options);
     });
 
-    ipcMain.handle('terminal:list', async () => {
+    safeHandle('terminal:list', async () => {
       return this.listSessions();
     });
 
-    ipcMain.handle('terminal:exec', async (_event, { sessionId, command, cwd }) => {
+    safeHandle('terminal:exec', async (_event, { sessionId, command, cwd }) => {
       return await this.exec(sessionId, command, { cwd });
     });
 
-    ipcMain.handle('terminal:write', async (_event, { sessionId, data }) => {
+    safeHandle('terminal:write', async (_event, { sessionId, data }) => {
       return this.write(sessionId, data);
     });
 
-    ipcMain.handle('terminal:kill', async (_event, { sessionId }) => {
+    safeHandle('terminal:kill', async (_event, { sessionId }) => {
       return this.kill(sessionId);
     });
 
-    ipcMain.handle('terminal:clear', async (_event, { sessionId }) => {
+    safeHandle('terminal:clear', async (_event, { sessionId }) => {
       return this.clearSession(sessionId);
     });
 
-    ipcMain.handle('terminal:destroy', async (_event, { sessionId }) => {
+    safeHandle('terminal:destroy', async (_event, { sessionId }) => {
       return this.destroySession(sessionId);
     });
 
-    ipcMain.handle('terminal:get-buffer', async (_event, { sessionId }) => {
+    safeHandle('terminal:get-buffer', async (_event, { sessionId }) => {
       return this.getBuffer(sessionId);
     });
 
-    // Pipe terminal streaming events to renderer window
-    this.onData((payload) => {
-      const win = getWindow ? getWindow() : null;
-      if (win && !win.isDestroyed()) {
-        win.webContents.send('terminal:data', payload);
-      }
-    });
+    // Pipe terminal streaming events to renderer window (avoid duplicate subscriptions)
+    if (!this._hasRegisteredDataPipe) {
+      this._hasRegisteredDataPipe = true;
+      this.onData((payload) => {
+        const win = getWindow ? getWindow() : null;
+        if (win && !win.isDestroyed()) {
+          win.webContents.send('terminal:data', payload);
+        }
+      });
+    }
   }
 }
 

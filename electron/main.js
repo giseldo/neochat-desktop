@@ -60,6 +60,11 @@ const PopupWindowManager = require('./popupWindow');
 const chatHistoryManager = require('./chatHistoryManager');
 const projectManager = require('./projectManager');
 
+// Import companion panel managers (Terminal, Tasks, Browser)
+const { terminalManager } = require('./terminalManager');
+const { taskManager } = require('./taskManager');
+const { browserManager } = require('./browserManager');
+
 // Import Neo Agent Runtime
 const { neoAgentRuntime } = require('./agent');
 const { registerAgentIpcHandlers } = require('./agent/ipcHandlers');
@@ -442,6 +447,13 @@ app.whenReady().then(async () => {
   projectManager.initialize(app, chatHistoryManager);
   projectManager.initializeProjectHandlers(ipcMain);
   console.log("[Main Init] Project manager initialized");
+
+  // Initialize Terminal, Task, and Browser companion panels
+  console.log("[Main Init] Initializing Terminal, Task, and Browser Managers...");
+  terminalManager.initialize();
+  terminalManager.registerIpcHandlers(ipcMain, () => mainWindow);
+  taskManager.registerIpcHandlers(ipcMain, () => mainWindow);
+  browserManager.registerIpcHandlers(ipcMain);
 
   // Initialize Google OAuth Manager
   console.log("[Main Init] Initializing Google OAuth Manager...");

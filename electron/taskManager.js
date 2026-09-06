@@ -233,33 +233,46 @@ class TaskManager {
   }
 
   registerIpcHandlers(ipcMain, getWindow) {
-    ipcMain.handle('tasks:list', async () => {
+    if (!ipcMain) return;
+    const safeHandle = (channel, fn) => {
+      try {
+        if (typeof ipcMain.removeHandler === 'function') {
+          ipcMain.removeHandler(channel);
+        }
+      } catch (_) {}
+      ipcMain.handle(channel, fn);
+    };
+
+    safeHandle('tasks:list', async () => {
       return this.listTasks();
     });
 
-    ipcMain.handle('tasks:run', async (_event, options) => {
+    safeHandle('tasks:run', async (_event, options) => {
       return this.runTask(options);
     });
 
-    ipcMain.handle('tasks:kill', async (_event, { taskId }) => {
+    safeHandle('tasks:kill', async (_event, { taskId }) => {
       return this.killTask(taskId);
     });
 
-    ipcMain.handle('tasks:get-logs', async (_event, { taskId }) => {
+    safeHandle('tasks:get-logs', async (_event, { taskId }) => {
       return this.getTaskLogs(taskId);
     });
 
-    ipcMain.handle('tasks:clear', async () => {
+    safeHandle('tasks:clear', async () => {
       return this.clearCompletedTasks();
     });
 
-    // Pipe background task events to renderer window
-    this.onUpdate((event, data) => {
-      const win = getWindow ? getWindow() : null;
-      if (win && !win.isDestroyed()) {
-        win.webContents.send('tasks:event', { event, data });
-      }
-    });
+    // Pipe background task events to renderer window (avoid duplicate subscriptions)
+    if (!this._hasRegisteredUpdatePipe) {
+      this._hasRegisteredUpdatePipe = true;
+      this.onUpdate((event, data) => {
+        const win = getWindow ? getWindow() : null;
+        if (win && !win.isDestroyed()) {
+          win.webContents.send('tasks:event', { event, data });
+        }
+      });
+    }
   }
 }
 

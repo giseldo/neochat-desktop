@@ -112,15 +112,25 @@ class BrowserManager {
   }
 
   registerIpcHandlers(ipcMain) {
-    ipcMain.handle('browser:fetch-page', async (_event, { url, timeoutMs }) => {
+    if (!ipcMain) return;
+    const safeHandle = (channel, fn) => {
+      try {
+        if (typeof ipcMain.removeHandler === 'function') {
+          ipcMain.removeHandler(channel);
+        }
+      } catch (_) {}
+      ipcMain.handle(channel, fn);
+    };
+
+    safeHandle('browser:fetch-page', async (_event, { url, timeoutMs }) => {
       return await this.fetchPageContent(url, timeoutMs);
     });
 
-    ipcMain.handle('browser:open-popout', async (_event, { url }) => {
+    safeHandle('browser:open-popout', async (_event, { url }) => {
       return this.openPopoutWindow(url);
     });
 
-    ipcMain.handle('browser:open-external', async (_event, { url }) => {
+    safeHandle('browser:open-external', async (_event, { url }) => {
       const normalized = this.normalizeUrl(url);
       shell.openExternal(normalized);
       return { success: true, url: normalized };
