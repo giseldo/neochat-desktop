@@ -81,6 +81,7 @@ function App() {
     selectedText
   } = useCanvas();
   const {
+    projects,
     activeProject,
     activeProjectId,
     setActiveProjectId,

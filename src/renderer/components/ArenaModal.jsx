@@ -208,7 +208,7 @@ export function ArenaModal({
 
   const currentActiveProject = useMemo(() => {
     if (!selectedProjectId) return null;
-    return projects.find(p => p.id === selectedProjectId) || activeProject || null;
+    return (Array.isArray(projects) ? projects.find(p => p.id === selectedProjectId) : null) || activeProject || null;
   }, [projects, selectedProjectId, activeProject]);
 
   // Extract strictly ACTIVE models of NeoChat
