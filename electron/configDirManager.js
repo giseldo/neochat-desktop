@@ -63,40 +63,6 @@ function bootstrapUserDataPath(app) {
             }
         }
 
-        // Check if legacy pointer file exists in old 'groq-desktop-app' folder
-        const legacyPointerPath = path.join(app.getPath('appData'), 'groq-desktop-app', POINTER_FILENAME);
-        if (fs.existsSync(legacyPointerPath)) {
-            try {
-                const raw = fs.readFileSync(legacyPointerPath, 'utf8');
-                const data = JSON.parse(raw);
-                if (data && typeof data.customUserDataPath === 'string' && data.customUserDataPath.trim()) {
-                    const customPath = path.resolve(data.customUserDataPath.trim());
-                    if (!fs.existsSync(customPath)) {
-                        fs.mkdirSync(customPath, { recursive: true });
-                    }
-                    app.setPath('userData', customPath);
-                    console.log('[ConfigDir] Using custom userData path from legacy pointer file:', customPath);
-                    return customPath;
-                }
-            } catch (legacyPointerErr) {
-                console.warn('[ConfigDir] Error reading legacy pointer file:', legacyPointerErr);
-            }
-        }
-
-        // Auto-migrate from legacy 'groq-desktop-app' folder if new folder has no settings yet
-        const legacyPath = path.join(app.getPath('appData'), 'groq-desktop-app');
-        if (
-            defaultPath.toLowerCase() !== legacyPath.toLowerCase() &&
-            !fs.existsSync(path.join(defaultPath, 'settings.json')) &&
-            fs.existsSync(path.join(legacyPath, 'settings.json'))
-        ) {
-            console.log(`[ConfigDir] Migrating legacy config & data from "${legacyPath}" to "${defaultPath}"...`);
-            if (!fs.existsSync(defaultPath)) {
-                fs.mkdirSync(defaultPath, { recursive: true });
-            }
-            copyRecursively(legacyPath, defaultPath, [POINTER_FILENAME]);
-        }
-
         // Priority 3: Default OS AppData folder (always explicitly set userData path)
         if (!fs.existsSync(defaultPath)) {
             fs.mkdirSync(defaultPath, { recursive: true });

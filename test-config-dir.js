@@ -130,10 +130,10 @@ async function run() {
         const afterResetInfo = getConfigDirInfo(mockApp);
         assert.strictEqual(afterResetInfo.isCustom, false);
 
-        // 6. Test Legacy Migration from groq-desktop-app to neochat-desktop
-        const migrationBaseDir = fs.mkdtempSync(path.join(os.tmpdir(), 'neochat-mig-test-'));
-        const legacyDir = path.join(migrationBaseDir, 'appData', 'groq-desktop-app');
-        const newDefaultDir = path.join(migrationBaseDir, 'appData', 'neochat-desktop');
+        // 6. Test that legacy groq-desktop-app is ignored and not migrated
+        const legacyTestBaseDir = fs.mkdtempSync(path.join(os.tmpdir(), 'neochat-mig-test-'));
+        const legacyDir = path.join(legacyTestBaseDir, 'appData', 'groq-desktop-app');
+        const newDefaultDir = path.join(legacyTestBaseDir, 'appData', 'neochat-desktop');
         fs.mkdirSync(legacyDir, { recursive: true });
         fs.writeFileSync(path.join(legacyDir, 'settings.json'), JSON.stringify({ legacyMigrated: true }));
         fs.writeFileSync(path.join(legacyDir, 'secrets.vault'), 'encrypted-data');
@@ -141,9 +141,9 @@ async function run() {
         let migrationUserData = newDefaultDir;
         const migrationMockApp = {
             getPath: (name) => {
-                if (name === 'appData') return path.join(migrationBaseDir, 'appData');
+                if (name === 'appData') return path.join(legacyTestBaseDir, 'appData');
                 if (name === 'userData') return migrationUserData;
-                return migrationBaseDir;
+                return legacyTestBaseDir;
             },
             setPath: (name, val) => {
                 if (name === 'userData') {
@@ -153,14 +153,11 @@ async function run() {
             getName: () => 'neochat-desktop'
         };
 
-        const migratedPath = bootstrapUserDataPath(migrationMockApp);
-        assert.strictEqual(path.resolve(migratedPath), path.resolve(newDefaultDir));
-        assert.ok(fs.existsSync(path.join(newDefaultDir, 'settings.json')), 'settings.json must be migrated from legacy folder');
-        assert.ok(fs.existsSync(path.join(newDefaultDir, 'secrets.vault')), 'secrets.vault must be migrated from legacy folder');
-        const migratedSettings = JSON.parse(fs.readFileSync(path.join(newDefaultDir, 'settings.json'), 'utf8'));
-        assert.strictEqual(migratedSettings.legacyMigrated, true);
+        const resultPath = bootstrapUserDataPath(migrationMockApp);
+        assert.strictEqual(path.resolve(resultPath), path.resolve(newDefaultDir));
+        assert.strictEqual(fs.existsSync(path.join(newDefaultDir, 'settings.json')), false, 'groq-desktop-app should NOT be migrated');
 
-        fs.rmSync(migrationBaseDir, { recursive: true, force: true });
+        fs.rmSync(legacyTestBaseDir, { recursive: true, force: true });
 
         console.log('All ConfigDirManager tests passed successfully!');
     } finally {
