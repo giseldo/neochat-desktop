@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { Link, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Search, Eye, EyeOff, Plus, Trash2, Edit3, Save, X, RefreshCw, Key, Settings as SettingsIcon, Zap, Cpu, Server, AlertCircle, CheckCircle, Sun, Moon, Laptop, Languages, Check, Terminal, Globe, Palette, Type, Sparkles, Sliders, ExternalLink, Route, User, Wrench, Download, UploadCloud, BarChart3, GitBranch, Mic, Volume2, Info, Keyboard, Folder, FolderOpen, RotateCcw, Lightbulb, Star, ChevronDown, ChevronUp, HardDrive, Brain, Flame, AlignJustify, Maximize2, Blocks, Bot } from 'lucide-react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, SettingsRow, SettingsChoices, SettingsSelect } from '../components/settings/SettingsSection';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
@@ -306,7 +306,7 @@ function Settings() {
     isDark
   } = useTheme();
   const { language, setLanguage, t } = useLanguage();
-  const [activeCategory, setActiveCategory] = useState('all');
+  const [activeCategory, setActiveCategory] = useState('interface');
   const [searchQuery, setSearchQuery] = useState('');
   const searchInputRef = useRef(null);
   const [isPromptTemplatesModalOpen, setIsPromptTemplatesModalOpen] = useState(false);
@@ -929,7 +929,6 @@ function Settings() {
           const queryWords = q.split(/\s+/).filter(Boolean);
           const matches = queryWords.every(word => searchTarget.includes(word));
           if (!matches) return false;
-          if (activeCategory !== 'all' && card.category !== activeCategory) return false;
           return true;
         }
         
@@ -3121,439 +3120,38 @@ function Settings() {
         )}
 
         {visibleCardIds.has('interfaceMode') && (
-          <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center space-x-2">
-                  <User className="h-5 w-5 text-primary" />
-                  <span>{t('settings.interfaceModeTitle')}</span>
-                </CardTitle>
-                <CardDescription>{t('settings.interfaceModeDesc')}</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  {[
-                    { id: 'user', icon: User, title: t('settings.userMode'), description: t('settings.userModeDesc') },
-                    { id: 'power', icon: Wrench, title: t('settings.powerMode'), description: t('settings.powerModeDesc') }
-                  ].map(({ id, icon: Icon, title, description }) => {
-                    const selected = settings.interfaceMode === id;
-                    return (
-                      <button
-                        key={id}
-                        type="button"
-                        onClick={() => handleSelectChange('interfaceMode', id)}
-                        className={`flex items-start gap-3 rounded-xl border p-4 text-left transition-all ${selected ? 'border-primary bg-primary/10 ring-1 ring-primary/30' : 'border-border hover:bg-muted'}`}
-                        aria-pressed={selected}
-                      >
-                        <Icon className={`h-5 w-5 mt-0.5 ${selected ? 'text-primary' : 'text-muted-foreground'}`} />
-                        <span className="flex-1">
-                          <span className="flex items-center justify-between font-semibold text-sm">
-                            {title}
-                            {selected && <Check className="h-4 w-4 text-primary" />}
-                          </span>
-                          <span className="block mt-1 text-xs text-muted-foreground leading-relaxed">{description}</span>
-                        </span>
-                      </button>
-                    );
-                  })}
-                </div>
-              </CardContent>
-            </Card>
+          <Card layout="row">
+            <CardHeader><CardTitle>{language === 'pt' ? 'Modo da interface' : 'Interface mode'}</CardTitle><CardDescription>{settings.interfaceMode === 'power' ? (language === 'pt' ? 'Inclui modelos, agentes, ferramentas e métricas.' : 'Includes models, agents, tools and metrics.') : (language === 'pt' ? 'Conversa, anexos, voz e pesquisa.' : 'Chat, attachments, voice and search.')}</CardDescription></CardHeader>
+            <CardContent><SettingsChoices value={settings.interfaceMode} onChange={id => handleSelectChange('interfaceMode', id)} options={[{ id: 'user', name: language === 'pt' ? 'Essencial' : 'Essential' }, { id: 'power', name: language === 'pt' ? 'Avançado' : 'Advanced' }]} /></CardContent>
+          </Card>
         )}
-
         {visibleCardIds.has('language') && (
-          <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center space-x-2">
-                  <Languages className="h-5 w-5 text-primary" />
-                  <span>{t('settings.langTitle')}</span>
-                </CardTitle>
-                <CardDescription>
-                  {t('settings.langDesc')}
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  {[
-                    { id: 'pt', label: t('settings.langPt'), flag: '🇧🇷', desc: t('settings.langPtDesc') },
-                    { id: 'en', label: t('settings.langEn'), flag: '🇺🇸', desc: t('settings.langEnDesc') },
-                  ].map(({ id, label, flag, desc }) => (
-                    <button
-                      key={id}
-                      type="button"
-                      onClick={() => handleLanguageChange(id)}
-                      className={`flex flex-col items-start p-3.5 rounded-xl border text-left transition-all ${
-                        language === id
-                          ? 'border-primary bg-primary/10 text-primary shadow-xs'
-                          : 'border-border bg-background hover:bg-muted text-foreground'
-                      }`}
-                    >
-                      <div className="flex items-center justify-between w-full mb-1.5">
-                        <div className="flex items-center gap-2 font-semibold text-xs">
-                          <span className="text-base leading-none">{flag}</span>
-                          <span>{label}</span>
-                        </div>
-                        {language === id && <Check className="w-4 h-4 text-primary" />}
-                      </div>
-                      <p className="text-[11px] text-muted-foreground">{desc}</p>
-                    </button>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
+          <Card layout="row">
+            <CardHeader><CardTitle>{language === 'pt' ? 'Idioma' : 'Language'}</CardTitle><CardDescription>{t('settings.langDesc')}</CardDescription></CardHeader>
+            <CardContent><SettingsSelect label={t('settings.langTitle')} value={language} onChange={handleLanguageChange} options={[{ id: 'pt', name: t('settings.langPt') }, { id: 'en', name: t('settings.langEn') }]} /></CardContent>
+          </Card>
         )}
-
         {visibleCardIds.has('appearance') && (
           <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center space-x-2">
-                  <Palette className="h-5 w-5 text-primary" />
-                  <span>{t('settings.appearanceTitle')}</span>
-                </CardTitle>
-                <CardDescription>
-                  {t('settings.appearanceDesc')}
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                {/* 1. Mode Selector */}
-                <div className="space-y-2.5">
-                  <div className="flex items-center justify-between">
-                    <Label className="text-sm font-semibold">{t('theme.modeTitle')}</Label>
-                    <span className="text-xs text-muted-foreground">{resolvedTheme === 'dark' ? t('theme.dark') : t('theme.light')} ativo</span>
-                  </div>
-                  <div className="grid grid-cols-3 gap-3">
-                    {[
-                      { id: 'light', label: t('theme.light'), icon: Sun, desc: t('theme.lightDesc') },
-                      { id: 'dark', label: t('theme.dark'), icon: Moon, desc: t('theme.darkDesc') },
-                      { id: 'system', label: t('theme.system'), icon: Laptop, desc: t('theme.systemDesc') },
-                    ].map(({ id, label, icon: Icon, desc }) => (
-                      <button
-                        key={id}
-                        type="button"
-                        onClick={() => setTheme(id)}
-                        className={`flex flex-col items-start p-3.5 rounded-xl border text-left transition-all ${
-                          theme === id
-                            ? 'border-primary bg-primary/10 text-primary shadow-xs ring-1 ring-primary/30'
-                            : 'border-border bg-background hover:bg-muted text-foreground'
-                        }`}
-                      >
-                        <div className="flex items-center justify-between w-full mb-1.5 font-semibold text-xs">
-                          <div className="flex items-center gap-2">
-                            <Icon className="h-4 w-4 text-primary" />
-                            <span>{label}</span>
-                          </div>
-                          {theme === id && <Check className="w-3.5 h-3.5 text-primary" />}
-                        </div>
-                        <p className="text-[11px] text-muted-foreground">{desc}</p>
-                      </button>
-                    ))}
-                  </div>
+            <CardHeader><CardTitle>{t('settings.appearanceTitle')}</CardTitle><CardDescription>{t('settings.appearanceDesc')}</CardDescription></CardHeader>
+            <CardContent>
+              <SettingsRow label={t('theme.modeTitle')}><SettingsChoices value={theme} onChange={setTheme} options={[{ id: 'light', name: t('theme.light') }, { id: 'dark', name: t('theme.dark') }, { id: 'system', name: t('theme.system') }]} /></SettingsRow>
+              <SettingsRow label={t('theme.colorThemeTitle')}>
+                <div className="flex flex-wrap gap-2">
+                  {COLOR_THEMES.map(c => <button key={c.id} type="button" aria-label={t(`theme.colors.${c.id}`, c.name)} title={t(`theme.colors.${c.id}`, c.name)} aria-pressed={colorTheme === c.id} onClick={() => setColorTheme(c.id)} className={cn("w-8 h-8 rounded-full flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2", colorTheme === c.id && "ring-1 ring-primary ring-offset-2 ring-offset-background")} style={{ backgroundColor: c.hex }}>{colorTheme === c.id && <Check className="h-4 w-4 text-white" />}</button>)}
                 </div>
-
-                {/* 2. Primary Accent Color Themes */}
-                <div className="space-y-2.5 pt-2 border-t border-border/60">
-                  <div className="flex items-center justify-between">
-                    <Label className="text-sm font-semibold flex items-center gap-2">
-                      <Sparkles className="w-4 h-4 text-primary" />
-                      <span>{t('theme.colorThemeTitle')}</span>
-                    </Label>
-                    <Badge variant="outline" className="text-xs border-primary/40 text-primary bg-primary/5">
-                      {COLOR_THEMES.find(c => c.id === colorTheme)?.name || colorTheme}
-                    </Badge>
-                  </div>
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
-                    {COLOR_THEMES.map((c) => {
-                      const isSelected = colorTheme === c.id;
-                      return (
-                        <button
-                          key={c.id}
-                          type="button"
-                          onClick={() => setColorTheme(c.id)}
-                          className={`flex items-center gap-3 p-3 rounded-xl border text-left transition-all group ${
-                            isSelected
-                              ? 'border-primary bg-primary/10 shadow-xs ring-1 ring-primary/30'
-                              : 'border-border bg-background hover:bg-muted text-foreground'
-                          }`}
-                        >
-                          <div
-                            className="w-6 h-6 rounded-full shrink-0 flex items-center justify-center shadow-xs transition-transform group-hover:scale-110"
-                            style={{ backgroundColor: c.hex }}
-                          >
-                            {isSelected && <Check className="w-3.5 h-3.5 text-white drop-shadow-sm" />}
-                          </div>
-                          <div className="flex flex-col min-w-0">
-                            <span className={`text-xs font-semibold truncate ${isSelected ? 'text-primary' : 'text-foreground'}`}>
-                              {t(`theme.colors.${c.id}`, c.name)}
-                            </span>
-                            <span className="text-[10px] text-muted-foreground truncate">{c.desc}</span>
-                          </div>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                {/* 3. Background Style */}
-                <div className="space-y-2.5 pt-2 border-t border-border/60">
-                  <div className="flex items-center justify-between">
-                    <Label className="text-sm font-semibold">{t('theme.bgThemeTitle')}</Label>
-                    <span className="text-xs text-muted-foreground">{isDark ? 'Modo Escuro' : 'Modo Claro'}</span>
-                  </div>
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
-                    {(isDark
-                      ? [
-                          { id: 'slate', name: t('theme.backgrounds.slate', 'Dark Slate'), desc: t('theme.backgrounds.slateDesc', 'Azul escuro profundo') },
-                          { id: 'oled', name: t('theme.backgrounds.oled', 'Preto OLED'), desc: t('theme.backgrounds.oledDesc', 'Preto absoluto (#000)') },
-                          { id: 'zinc', name: t('theme.backgrounds.zinc', 'Cinza Neutro'), desc: t('theme.backgrounds.zincDesc', 'Carvão refinado') },
-                          { id: 'tinted', name: t('theme.backgrounds.tinted', 'Acentuado'), desc: t('theme.backgrounds.tintedDesc', 'Reflexo suave do tema') },
-                        ]
-                      : [
-                          { id: 'white', name: t('theme.backgrounds.white', 'Branco Puro'), desc: t('theme.backgrounds.whiteDesc', 'Alto contraste e nitidez') },
-                          { id: 'warm', name: t('theme.backgrounds.warm', 'Papel Quente'), desc: t('theme.backgrounds.warmDesc', 'Bege acolhedor original') },
-                          { id: 'slate', name: t('theme.backgrounds.slate', 'Cinza Frio'), desc: t('theme.backgrounds.slateDesc', 'Cinza neutro suave') },
-                          { id: 'tinted', name: t('theme.backgrounds.tinted', 'Acentuado'), desc: t('theme.backgrounds.tintedDesc', 'Reflexo suave do tema') },
-                        ]
-                    ).map((b) => {
-                      const isSelected = bgTheme === b.id;
-                      return (
-                        <button
-                          key={b.id}
-                          type="button"
-                          onClick={() => setBgTheme(b.id)}
-                          className={`flex flex-col items-start p-3 rounded-xl border text-left transition-all ${
-                            isSelected
-                              ? 'border-primary bg-primary/10 text-primary shadow-xs ring-1 ring-primary/30'
-                              : 'border-border bg-background hover:bg-muted text-foreground'
-                          }`}
-                        >
-                          <div className="flex items-center justify-between w-full mb-1">
-                            <span className={`text-xs font-semibold ${isSelected ? 'text-primary' : 'text-foreground'}`}>
-                              {b.name}
-                            </span>
-                            {isSelected && <Check className="w-3.5 h-3.5 text-primary shrink-0" />}
-                          </div>
-                          <p className="text-[10px] text-muted-foreground line-clamp-2">{b.desc}</p>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                {/* 4. Font Typography Themes */}
-                <div className="space-y-2.5 pt-2 border-t border-border/60">
-                  <div className="flex items-center justify-between">
-                    <Label className="text-sm font-semibold flex items-center gap-2">
-                      <Type className="w-4 h-4 text-primary" />
-                      <span>{t('theme.fontThemeTitle')}</span>
-                    </Label>
-                    <Badge variant="outline" className="text-xs">
-                      {FONT_THEMES.find(f => f.id === fontTheme)?.name || fontTheme}
-                    </Badge>
-                  </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
-                    {FONT_THEMES.map((f) => {
-                      const isSelected = fontTheme === f.id;
-                      const sampleFontFamily =
-                        f.id === 'montserrat' ? 'Montserrat, sans-serif' :
-                        f.id === 'inter' ? 'Inter, sans-serif' :
-                        f.id === 'roboto' ? 'Roboto, sans-serif' :
-                        f.id === 'plus-jakarta' ? "'Plus Jakarta Sans', sans-serif" :
-                        f.id === 'source-sans' ? "'Source Sans 3', sans-serif" :
-                        f.id === 'jetbrains-mono' ? "'JetBrains Mono', monospace" :
-                        f.id === 'fira-code' ? "'Fira Code', monospace" :
-                        f.id === 'playfair' ? "'Playfair Display', serif" :
-                        'system-ui, sans-serif';
-
-                      return (
-                        <button
-                          key={f.id}
-                          type="button"
-                          onClick={() => setFontTheme(f.id)}
-                          className={`flex flex-col items-start p-3.5 rounded-xl border text-left transition-all ${
-                            isSelected
-                              ? 'border-primary bg-primary/10 shadow-xs ring-1 ring-primary/30'
-                              : 'border-border bg-background hover:bg-muted text-foreground'
-                          }`}
-                        >
-                          <div className="flex items-center justify-between w-full mb-1">
-                            <div className="flex items-center gap-1.5">
-                              <span className={`text-xs font-semibold ${isSelected ? 'text-primary' : 'text-foreground'}`}>
-                                {f.name}
-                              </span>
-                              <span className="text-[9px] px-1.5 py-0.2 rounded-md bg-muted text-muted-foreground">
-                                {f.category}
-                              </span>
-                            </div>
-                            {isSelected && <Check className="w-3.5 h-3.5 text-primary shrink-0" />}
-                          </div>
-                          <p className="text-[10px] text-muted-foreground mb-2">{f.desc}</p>
-                          <div
-                            className="w-full px-2.5 py-1.5 rounded-lg bg-background/80 border border-border/50 text-xs truncate"
-                            style={{ fontFamily: sampleFontFamily }}
-                          >
-                            Aa Bb 123 • Rápido lebre
-                          </div>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                {/* 5. Font Size Selector */}
-                <div className="space-y-2.5 pt-2 border-t border-border/60">
-                  <div className="flex items-center justify-between">
-                    <Label className="text-sm font-semibold flex items-center gap-2">
-                      <Sliders className="w-4 h-4 text-primary" />
-                      <span>{t('theme.fontSizeTitle')}</span>
-                    </Label>
-                    <span className="text-xs text-muted-foreground">
-                      {FONT_SIZES.find(s => s.id === fontSize)?.scale}
-                    </span>
-                  </div>
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
-                    {FONT_SIZES.map((s) => {
-                      const isSelected = fontSize === s.id;
-                      return (
-                        <button
-                          key={s.id}
-                          type="button"
-                          onClick={() => setFontSize(s.id)}
-                          className={`flex items-center justify-between p-3 rounded-xl border text-left transition-all ${
-                            isSelected
-                              ? 'border-primary bg-primary/10 text-primary shadow-xs ring-1 ring-primary/30'
-                              : 'border-border bg-background hover:bg-muted text-foreground'
-                          }`}
-                        >
-                          <div className="flex flex-col">
-                            <span className={`text-xs font-semibold ${isSelected ? 'text-primary' : 'text-foreground'}`}>
-                              {s.name}
-                            </span>
-                            <span className="text-[10px] text-muted-foreground">{s.scale}</span>
-                          </div>
-                          {isSelected && <Check className="w-3.5 h-3.5 text-primary shrink-0" />}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                {/* 6. Chat Width Layout Selector */}
-                <div className="space-y-2.5 pt-2 border-t border-border/60">
-                  <div className="flex items-center justify-between">
-                    <Label className="text-sm font-semibold flex items-center gap-2">
-                      <AlignJustify className="w-4 h-4 text-primary" />
-                      <span>{t('theme.chatWidthTitle')}</span>
-                    </Label>
-                    <Badge variant="outline" className="text-xs">
-                      {chatWidth === 'wide' ? t('theme.chatWidths.wide') : t('theme.chatWidths.full')}
-                    </Badge>
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    {t('theme.chatWidthDesc')}
-                  </p>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                    <button
-                      type="button"
-                      onClick={() => setChatWidth('wide')}
-                      className={`flex items-start gap-3 p-3.5 rounded-xl border text-left transition-all ${
-                        chatWidth === 'wide'
-                          ? 'border-primary bg-primary/10 shadow-xs ring-1 ring-primary/30'
-                          : 'border-border bg-background hover:bg-muted text-foreground'
-                      }`}
-                    >
-                      <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 mt-0.5 ${
-                        chatWidth === 'wide' ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'
-                      }`}>
-                        <AlignJustify className="w-4 h-4" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center justify-between mb-0.5">
-                          <span className={`text-xs font-semibold ${chatWidth === 'wide' ? 'text-primary' : 'text-foreground'}`}>
-                            {t('theme.chatWidths.wide')}
-                          </span>
-                          {chatWidth === 'wide' && <Check className="w-3.5 h-3.5 text-primary shrink-0" />}
-                        </div>
-                        <p className="text-[11px] text-muted-foreground leading-snug">
-                          {t('theme.chatWidths.wideDesc')}
-                        </p>
-                      </div>
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => setChatWidth('full')}
-                      className={`flex items-start gap-3 p-3.5 rounded-xl border text-left transition-all ${
-                        chatWidth === 'full'
-                          ? 'border-primary bg-primary/10 shadow-xs ring-1 ring-primary/30'
-                          : 'border-border bg-background hover:bg-muted text-foreground'
-                      }`}
-                    >
-                      <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 mt-0.5 ${
-                        chatWidth === 'full' ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'
-                      }`}>
-                        <Maximize2 className="w-4 h-4" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center justify-between mb-0.5">
-                          <span className={`text-xs font-semibold ${chatWidth === 'full' ? 'text-primary' : 'text-foreground'}`}>
-                            {t('theme.chatWidths.full')}
-                          </span>
-                          {chatWidth === 'full' && <Check className="w-3.5 h-3.5 text-primary shrink-0" />}
-                        </div>
-                        <p className="text-[11px] text-muted-foreground leading-snug">
-                          {t('theme.chatWidths.fullDesc')}
-                        </p>
-                      </div>
-                    </button>
-                  </div>
-                </div>
-
-                {/* 7. Live Interactive Preview */}
-                <div className="space-y-2.5 pt-2 border-t border-border/60">
-                  <Label className="text-sm font-semibold flex items-center gap-2">
-                    <Eye className="w-4 h-4 text-primary" />
-                    <span>{t('theme.preview')}</span>
-                  </Label>
-                  <div className="p-4 rounded-2xl border border-border/80 bg-background/50 backdrop-blur-xs space-y-3.5 shadow-inner">
-                    {/* User bubble */}
-                    <div className="flex justify-end">
-                      <div className="max-w-md px-4 py-2.5 rounded-2xl bg-primary/10 border border-primary/20 text-foreground text-xs shadow-2xs">
-                        {t('theme.previewUserMessage')}
-                      </div>
-                    </div>
-
-                    {/* Assistant bubble */}
-                    <div className="flex justify-start">
-                      <div className="max-w-lg space-y-2">
-                        <div className="flex items-center gap-2">
-                          <span className="w-5 h-5 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-[10px] font-bold">
-                            N
-                          </span>
-                          <span className="text-xs font-bold text-foreground">NeoChat AI</span>
-                          <Badge variant="outline" className="text-[9px] px-1.5 py-0 border-primary/30 text-primary">
-                            Online
-                          </Badge>
-                        </div>
-                        <div className="px-3.5 py-2.5 rounded-xl border border-border/60 bg-card text-card-foreground text-xs leading-relaxed space-y-2">
-                          <p>{t('theme.previewAssistantMessage')}</p>
-                          <div className="flex items-center gap-2 pt-1">
-                            <Button size="sm" className="h-7 text-xs bg-primary text-primary-foreground hover:bg-primary/90">
-                              {t('theme.previewButton')}
-                            </Button>
-                            <span className="text-[11px] text-muted-foreground font-mono">
-                              font: {fontTheme} ({fontSize})
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+              </SettingsRow>
+              <SettingsRow label={t('theme.bgThemeTitle')}><SettingsSelect label={t('theme.bgThemeTitle')} value={bgTheme} onChange={setBgTheme} options={BG_THEMES.filter(b => (resolvedTheme === 'dark' ? ['slate', 'oled', 'zinc', 'tinted'] : ['white', 'warm', 'slate', 'tinted']).includes(b.id)).map(b => ({ id: b.id, name: t(`theme.backgrounds.${b.id}`, b.name) }))} /></SettingsRow>
+              <SettingsRow label={t('theme.fontThemeTitle')}><SettingsSelect label={t('theme.fontThemeTitle')} value={fontTheme} onChange={setFontTheme} options={FONT_THEMES} /></SettingsRow>
+              <SettingsRow label={t('theme.fontSizeTitle')}><SettingsChoices value={fontSize} onChange={setFontSize} options={FONT_SIZES.map((f, i) => ({ id: f.id, name: (language === 'pt' ? ['Pequeno', 'Padrão', 'Grande', 'Extra'] : ['Small', 'Default', 'Large', 'Extra'])[i] }))} /></SettingsRow>
+              <SettingsRow label={t('theme.chatWidthTitle')}><SettingsChoices value={chatWidth} onChange={setChatWidth} options={[{ id: 'wide', name: language === 'pt' ? 'Centralizado' : 'Centered' }, { id: 'full', name: language === 'pt' ? 'Amplo' : 'Full width' }]} /></SettingsRow>
+              <p className="pt-4 text-muted-foreground" style={{ fontSize: FONT_SIZES.find(f => f.id === fontSize)?.scale }}>{language === 'pt' ? 'Um espaço para conversar e criar.' : 'A space to talk and create.'}</p>
+            </CardContent>
+          </Card>
         )}
 
         {visibleCardIds.has('trajectoryTab') && (
-          <Card>
+          <Card layout="row">
               <CardHeader>
                 <CardTitle className="flex items-center space-x-2">
                   <Route className="h-5 w-5 text-primary" />
@@ -3584,7 +3182,7 @@ function Settings() {
         )}
 
         {visibleCardIds.has('welcomeTips') && (
-          <Card>
+          <Card layout="row">
             <CardHeader>
               <CardTitle className="flex items-center space-x-2">
                 <Lightbulb className="h-5 w-5 text-primary" />
@@ -3615,7 +3213,7 @@ function Settings() {
         )}
 
         {visibleCardIds.has('welcomeSuggestions') && (
-          <Card>
+          <Card layout="row">
             <CardHeader>
               <CardTitle className="flex items-center space-x-2">
                 <Sparkles className="h-5 w-5 text-primary" />
@@ -3646,7 +3244,7 @@ function Settings() {
         )}
 
         {visibleCardIds.has('buttonLabels') && (
-          <Card>
+          <Card layout="row">
             <CardHeader>
               <CardTitle className="flex items-center space-x-2">
                 <Type className="h-5 w-5 text-primary" />
@@ -3677,7 +3275,7 @@ function Settings() {
         )}
 
         {visibleCardIds.has('thinkingSummaries') && (
-          <Card>
+          <Card layout="row">
               <CardHeader>
                 <CardTitle>{t('settings.thinkingSummariesTitle')}</CardTitle>
                 <CardDescription>
@@ -7205,7 +6803,7 @@ function Settings() {
         )}
 
         {visibleCardIds.has('apiLogging') && (
-          <Card>
+          <Card layout="row">
               <CardHeader>
                 <CardTitle>{t('settings.apiLoggingTitle')}</CardTitle>
                 <CardDescription>
@@ -7287,7 +6885,7 @@ function Settings() {
             </Link>
             <div className="flex items-center space-x-2">
               <SettingsIcon className="h-5 w-5 text-primary" />
-              <h1 className="text-xl font-bold text-foreground hidden sm:block">{t('settings.title')}</h1>
+              <h1 className="text-lg font-semibold text-foreground hidden sm:block">{t('settings.title')}</h1>
             </div>
           </div>
 
@@ -7367,9 +6965,9 @@ function Settings() {
         <div className="flex flex-col lg:flex-row gap-8 items-start">
           
           {/* Sidebar Navigation (Desktop) */}
-          <aside className="hidden lg:block w-64 shrink-0 sticky top-24 space-y-3">
-            <div className="p-2.5 bg-card rounded-2xl border border-border/80 shadow-xs space-y-1">
-              <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider px-3 py-1.5">
+          <aside className="hidden lg:block w-[240px] shrink-0 sticky top-24 space-y-3">
+            <div className="space-y-1">
+              <p className="text-xs font-medium text-muted-foreground px-3 py-1.5">
                 Categorias
               </p>
               {CATEGORIES.map(cat => {
@@ -7385,12 +6983,12 @@ function Settings() {
                     className={cn(
                       "w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-medium transition-all text-left group",
                       isSelected
-                        ? "bg-primary text-primary-foreground shadow-xs"
+                        ? "bg-muted text-foreground"
                         : "text-foreground hover:bg-muted"
                     )}
                   >
                     <div className="flex items-center gap-2.5 min-w-0">
-                      <Icon className={cn("w-4 h-4 shrink-0", isSelected ? "text-primary-foreground" : "text-primary group-hover:scale-110 transition-transform")} />
+                      <Icon className={cn("w-4 h-4 shrink-0", isSelected ? "text-foreground" : "text-muted-foreground")} />
                       <span className="truncate">{cat.label}</span>
                     </div>
                     {count !== null && (
@@ -7398,7 +6996,7 @@ function Settings() {
                         variant={isSelected ? "outline" : "secondary"}
                         className={cn(
                           "text-[10px] px-1.5 py-0 h-4 min-w-4 flex items-center justify-center font-mono shrink-0 ml-1.5",
-                          isSelected ? "border-primary-foreground/40 text-primary-foreground" : count > 0 ? "bg-primary/15 text-primary font-semibold" : "opacity-40"
+                          isSelected ? "border-border text-foreground" : count > 0 ? "bg-primary/15 text-primary font-semibold" : "opacity-40"
                         )}
                       >
                         {count}
@@ -7409,23 +7007,6 @@ function Settings() {
               })}
             </div>
 
-            {/* Quick Mode Switcher Widget */}
-            <div className="p-3.5 bg-muted/20 rounded-2xl border border-border/60 text-xs space-y-2">
-              <div className="flex items-center justify-between">
-                <span className="font-semibold text-foreground flex items-center gap-1.5">
-                  <User className="w-3.5 h-3.5 text-primary" />
-                  {settings.interfaceMode === 'power' ? t('settings.powerMode') : t('settings.userMode')}
-                </span>
-                <Badge variant="outline" className="text-[10px] px-1.5">
-                  {settings.interfaceMode === 'power' ? 'Power' : 'User'}
-                </Badge>
-              </div>
-              <p className="text-[11px] text-muted-foreground leading-relaxed">
-                {settings.interfaceMode === 'power'
-                  ? 'Acesso completo a modelos, MCP, conectores e configurações técnicas.'
-                  : 'Interface limpa. Alterne para Power User para acessar configurações avançadas.'}
-              </p>
-            </div>
           </aside>
 
           {/* Mobile Horizontal Tabs */}
@@ -7443,8 +7024,8 @@ function Settings() {
                   className={cn(
                     "flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-medium whitespace-nowrap shrink-0 transition-all border",
                     isSelected
-                      ? "bg-primary text-primary-foreground border-primary shadow-xs"
-                      : "bg-background border-border text-foreground hover:bg-muted"
+                      ? "bg-muted text-foreground border-transparent"
+                      : "bg-background border-transparent text-muted-foreground hover:bg-muted"
                   )}
                 >
                   <Icon className="w-3.5 h-3.5" />
@@ -7454,7 +7035,7 @@ function Settings() {
                       variant={isSelected ? "outline" : "secondary"}
                       className={cn(
                         "text-[9px] px-1 py-0 h-3.5 min-w-3.5 flex items-center justify-center font-mono ml-0.5",
-                        isSelected ? "border-primary-foreground/40 text-primary-foreground" : "bg-primary/10 text-primary"
+                        isSelected ? "border-border text-foreground" : "bg-primary/10 text-primary"
                       )}
                     >
                       {count}
@@ -7466,7 +7047,7 @@ function Settings() {
           </div>
 
           {/* Right Column: Active Cards */}
-          <div className="flex-1 min-w-0 max-w-4xl space-y-6">
+          <div className="settings-sections flex-1 min-w-0 max-w-[960px] space-y-5">
             {/* Search feedback banner */}
             {searchQuery && (
               <div className="flex items-center justify-between p-3.5 rounded-xl bg-primary/10 border border-primary/20 text-foreground text-xs">
