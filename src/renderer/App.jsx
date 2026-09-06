@@ -499,6 +499,18 @@ function App() {
     }
   }, [sortedModels]);
 
+  const persistChatMessages = async (chatId, msgs) => {
+    if (!chatId || !msgs) return;
+    try {
+      const fn = window.electron?.chatHistory?.updateMessages || window.electron?.chatHistory?.saveMessages;
+      if (typeof fn === 'function') {
+        await fn(chatId, msgs);
+      }
+    } catch (e) {
+      console.warn('Failed to persist chat messages:', e);
+    }
+  };
+
   const handleSelectWinningResponse = async (winningContent, winningModel) => {
     const assistantMsg = {
       role: 'assistant',
@@ -510,7 +522,7 @@ function App() {
     const updated = [...messages, assistantMsg];
     setMessages(updated);
     if (currentChatId) {
-      await window.electron.chatHistory.saveMessages(currentChatId, updated);
+      await persistChatMessages(currentChatId, updated);
     }
     setIsCompareMode(false);
   };
@@ -1824,7 +1836,7 @@ function App() {
           const finalMessages = [...initialMessages, completedAssistantMessage];
           setMessages(finalMessages);
           if (activeChatId) {
-            await window.electron.chatHistory.saveMessages(activeChatId, finalMessages);
+            await persistChatMessages(activeChatId, finalMessages);
           }
         } else {
           const errorMsg = {
@@ -1837,7 +1849,7 @@ function App() {
           const finalMessages = [...initialMessages, errorMsg];
           setMessages(finalMessages);
           if (activeChatId) {
-            await window.electron.chatHistory.saveMessages(activeChatId, finalMessages);
+            await persistChatMessages(activeChatId, finalMessages);
           }
         }
       } catch (err) {
@@ -1851,7 +1863,7 @@ function App() {
         const finalMessages = [...initialMessages, errorMsg];
         setMessages(finalMessages);
         if (activeChatId) {
-          await window.electron.chatHistory.saveMessages(activeChatId, finalMessages);
+          await persistChatMessages(activeChatId, finalMessages);
         }
       } finally {
         setLoading(false);
@@ -1881,7 +1893,7 @@ function App() {
       const updatedMessages = [...initialMessages, warningMsg];
       setMessages(updatedMessages);
       if (currentChatId) {
-        await window.electron.chatHistory.saveMessages(currentChatId, updatedMessages);
+        await persistChatMessages(currentChatId, updatedMessages);
       }
       return;
     }
