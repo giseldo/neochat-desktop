@@ -36,9 +36,10 @@ console.log('Test 1: Convert API models for each provider...');
 const groqModels = convertAPIModelsToContextSizes(mockGroqResponse, { providerId: 'groq', providerName: 'Groq' });
 const openrouterModels = convertAPIModelsToContextSizes(mockOpenRouterResponse, { providerId: 'openrouter', providerName: 'OpenRouter' });
 
-assert.strictEqual(Object.keys(groqModels).filter(k => k !== 'default').length, 9, 'Groq should have 9 models');
+assert.strictEqual(Object.keys(groqModels).filter(k => k !== 'default').length, 7, 'Groq should have 7 chat models (excluding canopylabs TTS)');
+assert.strictEqual(groqModels['canopylabs/orpheus-v1-english'], undefined, 'Canopy Labs audio/TTS model must be filtered out');
 assert.strictEqual(Object.keys(openrouterModels).filter(k => k !== 'default').length, 6, 'OpenRouter should have 6 models');
-console.log('  ✓ Models converted properly with metadata');
+console.log('  ✓ Models converted properly with metadata and non-chat models filtered');
 
 // 2. Test merging multi-provider models without collision
 console.log('Test 2: Merge multi-provider models with unique keys...');
@@ -76,9 +77,9 @@ Object.entries(openrouterModels).forEach(([id, cfg]) => {
 
 const mergedConfigs = getModelContextSizes({}, allApiModels);
 
-// Groq models must all 9 be present
+// Groq models must all 7 chat models be present (non-chat canopylabs filtered)
 const groqKeys = Object.keys(mergedConfigs).filter(k => k.startsWith('groq::'));
-assert.strictEqual(groqKeys.length, 9, 'Groq should still have all 9 models after OpenRouter is merged');
+assert.strictEqual(groqKeys.length, 7, 'Groq should still have all 7 chat models after OpenRouter is merged');
 assert.ok(mergedConfigs['groq::openai/gpt-oss-120b'], 'Groq openai/gpt-oss-120b must exist');
 assert.strictEqual(mergedConfigs['groq::openai/gpt-oss-120b'].provider, 'groq');
 assert.strictEqual(mergedConfigs['groq::openai/gpt-oss-120b'].group, 'Groq');
@@ -90,7 +91,7 @@ assert.ok(mergedConfigs['openrouter::openai/gpt-oss-120b'], 'OpenRouter openai/g
 assert.strictEqual(mergedConfigs['openrouter::openai/gpt-oss-120b'].provider, 'openrouter');
 assert.strictEqual(mergedConfigs['openrouter::openai/gpt-oss-120b'].group, 'OpenRouter');
 
-console.log('  ✓ Both providers preserve all models without collision (Groq: 9, OpenRouter: 6)');
+console.log('  ✓ Both providers preserve all models without collision (Groq: 7, OpenRouter: 6)');
 
 // 3. Test determineModel logic (from chatHandler)
 console.log('Test 3: determineModel provider & model routing resolution...');

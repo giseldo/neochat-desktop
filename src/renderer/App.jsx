@@ -603,25 +603,30 @@ function App() {
         setUseResponsesApi(settings.useResponsesApi || false);
         let effectiveModel = availableModels.length > 0 ? availableModels[0] : 'default'; // Default fallback if no models or no setting
 
+        const isInvalidChatModel = (m) => !m || m.includes('canopylabs') || m.includes('orpheus');
+
         if (settings && settings.model) {
             // Ensure the saved model is still valid against the loaded configs
-            if (configs[settings.model]) {
+            if (configs[settings.model] && !isInvalidChatModel(settings.model)) {
                 effectiveModel = settings.model;
             } else {
                 // Try finding by rawModelId or suffix
                 const matchingKey = availableModels.find(k =>
-                  k === settings.model ||
+                  (k === settings.model ||
                   configs[k]?.rawModelId === settings.model ||
-                  k.endsWith(`::${settings.model}`)
+                  k.endsWith(`::${settings.model}`)) && !isInvalidChatModel(k)
                 );
                 if (matchingKey) {
                   effectiveModel = matchingKey;
                 } else if (availableModels.length > 0) {
-                  console.warn(`Saved model "${settings.model}" not found in loaded configs. Falling back to ${effectiveModel}.`);
+                  const fallback = availableModels.find(m => m.includes('llama-3.3-70b') || m.includes('llama-3.1-70b') || m.includes('gpt')) || availableModels[0];
+                  effectiveModel = fallback;
+                  console.warn(`Saved model "${settings.model}" invalid or not found in loaded configs. Falling back to ${effectiveModel}.`);
                 }
             }
         } else if (availableModels.length > 0) {
-            effectiveModel = availableModels[0];
+            const fallback = availableModels.find(m => m.includes('llama-3.3-70b') || m.includes('llama-3.1-70b') || m.includes('gpt')) || availableModels[0];
+            effectiveModel = fallback;
         }
         // If no model in settings and no available models, effectiveModel remains 'default'
 
@@ -695,17 +700,19 @@ function App() {
         const availableModels = Object.keys(configs).filter(key => key !== 'default');
         setModels(availableModels);
 
-        // If the currently selected model no longer exists, try matching by rawModelId or fallback
-        if (availableModels.length > 0 && selectedModel && !configs[selectedModel]) {
+        // If the currently selected model no longer exists or is invalid (e.g. canopylabs TTS), try matching by rawModelId or fallback
+        const isInvalidChatModel = (m) => !m || m.includes('canopylabs') || m.includes('orpheus');
+        if (availableModels.length > 0 && selectedModel && (!configs[selectedModel] || isInvalidChatModel(selectedModel))) {
           const matchingKey = availableModels.find(k =>
-            k === selectedModel ||
+            (k === selectedModel ||
             configs[k]?.rawModelId === selectedModel ||
-            k.endsWith(`::${selectedModel}`)
+            k.endsWith(`::${selectedModel}`)) && !isInvalidChatModel(k)
           );
           if (matchingKey) {
             setSelectedModel(matchingKey);
           } else {
-            setSelectedModel(availableModels[0]);
+            const fallback = availableModels.find(m => m.includes('llama-3.3-70b') || m.includes('llama-3.1-70b') || m.includes('gpt')) || availableModels[0];
+            setSelectedModel(fallback);
           }
         }
       } catch (error) {

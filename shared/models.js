@@ -150,10 +150,13 @@ function convertAPIModelsToContextSizes(apiResponse, providerMeta = null) {
     return modelContextSizes;
   }
   
-  // Filter out non-chat models (audio, embeddings, guard models, etc.)
+  // Filter out non-chat models (audio, speech/tts, embeddings, guard models, image models, etc.)
   // Note: not all providers send an `active` field, so only exclude when
   // explicitly false.
-  const NON_CHAT_MARKERS = ['whisper', 'guard', 'embedding', 'tts', 'dall-e', 'moderation', 'audio'];
+  const NON_CHAT_MARKERS = [
+    'whisper', 'guard', 'embedding', 'tts', 'dall-e', 'moderation', 'audio',
+    'orpheus', 'canopylabs', 'canopy', 'speech', 'imagine', 'image', 'flux', 'stt'
+  ];
   const chatModels = apiResponse.data.filter(model => {
     const modelName = model.id.toLowerCase();
     return model.active !== false &&
