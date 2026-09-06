@@ -1335,15 +1335,6 @@ export default function TrajectoryLedger({
                                         )}
                                       </div>
                                     </div>
-
-                                    {/* Technical Tip Alert */}
-                                    <div className="p-2.5 rounded-lg bg-amber-500/10 border border-amber-500/20 flex items-start gap-2 text-amber-900 dark:text-amber-200 text-[10px] leading-relaxed">
-                                      <AlertCircle className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
-                                      <div>
-                                        <span className="font-bold block mb-0.5">{t('trajectory.whySoManyTokens')}</span>
-                                        <span>{t('trajectory.tokenOptimizationTip')}</span>
-                                      </div>
-                                    </div>
                                   </div>
                                 )}
                               </div>
