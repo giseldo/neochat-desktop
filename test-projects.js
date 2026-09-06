@@ -5,7 +5,7 @@ const os = require('os');
 const assert = require('assert');
 
 // Create a mock Electron App instance with a temp userData path
-const tempUserData = fs.mkdtempSync(path.join(os.tmpdir(), 'groq-desktop-test-'));
+const tempUserData = fs.mkdtempSync(path.join(os.tmpdir(), 'neochat-desktop-test-'));
 const mockApp = {
     getPath: (name) => {
         if (name === 'userData') return tempUserData;

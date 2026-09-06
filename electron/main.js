@@ -13,7 +13,7 @@ if (typeof app.setName === 'function') {
 // Check and bootstrap custom userData path before logs or other services initialize
 configDirManager.bootstrapUserDataPath(app);
 
-// Create ~/Library/Logs/Groq Desktop if it does not exist
+// Create ~/Library/Logs/NeoChat Desktop if it does not exist
 app.setAppLogsPath();
 const logFile = path.join(app.getPath('logs'), 'main.log');
 const logStream = fs.createWriteStream(logFile, { flags: 'a' });

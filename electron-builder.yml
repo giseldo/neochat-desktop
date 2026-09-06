@@ -1,4 +1,4 @@
-appId: com.groq.desktop
+appId: com.neochat.desktop
 productName: NeoChat Desktop
 artifactName: "${productName}-${version}.${ext}"
 copyright: "Copyright © 2026 Neo"

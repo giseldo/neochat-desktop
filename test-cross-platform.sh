@@ -11,9 +11,9 @@ node test-paths.js
 echo
 echo "🐧 Testing Linux support with Docker..."
 echo "Building Docker test container..."
-docker build -f test-linux.Dockerfile -t groq-desktop-linux-test . && \
+docker build -f test-linux.Dockerfile -t neochat-desktop-linux-test . && \
 echo "Running Linux tests..." && \
-docker run --rm groq-desktop-linux-test
+docker run --rm neochat-desktop-linux-test
 
 echo
 echo "📋 Script file check:"

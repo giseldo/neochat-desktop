@@ -15,7 +15,7 @@ You can install the latest release using [Homebrew](https://brew.sh/) via an uno
 brew tap ricklamers/groq-desktop-unofficial
 brew install --cask groq-desktop
 # Allow the app to run
-xattr -c /Applications/Groq\ Desktop.app
+xattr -c /Applications/Neochat\ Desktop.app
 ```
 
 ## Features

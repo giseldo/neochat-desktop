@@ -120,7 +120,7 @@ class StaticAuthProvider {
     async clientInformation() { return this._clientInfo; }
     // Dummy implementations for other provider methods (might not be called)
     get redirectUrl() { return 'http://127.0.0.1/callback-dummy'; }
-    get clientMetadata() { return { client_name: 'Groq Desktop (Static)', redirect_uris: [this.redirectUrl] }; }
+    get clientMetadata() { return { client_name: 'NeoChat Desktop (Static)', redirect_uris: [this.redirectUrl] }; }
     async saveClientInformation(_info) { console.warn("StaticAuthProvider saveClientInformation called unexpectedly"); }
     async saveTokens(_tokens) { console.warn("StaticAuthProvider saveTokens called unexpectedly"); }
     async redirectToAuthorization(_url) { console.warn("StaticAuthProvider redirectToAuthorization called unexpectedly"); }
