@@ -1336,14 +1336,26 @@ function ChatHistorySidebar({
             {isOptionsOpen && (
               <div
                 ref={optionsMenuRef}
-                className="absolute right-0 top-full mt-1.5 w-48 bg-popover border border-border rounded-xl shadow-xl p-1 z-[9999] text-xs animate-in fade-in-0 zoom-in-95 space-y-1"
+                className="absolute -right-7 top-full mt-1.5 w-56 bg-popover border border-border rounded-xl shadow-xl p-1 z-[9999] text-xs animate-in fade-in-0 zoom-in-95 space-y-0.5"
               >
-                <button type="button" onClick={() => { setIsOptionsOpen(false); openCreateProjectModal(); }} className="w-full flex items-center gap-2 px-2.5 py-2 rounded-md hover:bg-muted text-left">
-                  <FolderPlus className="w-3.5 h-3.5" />{t('projects.newProject')}
+                <button
+                  type="button"
+                  onClick={() => { setIsOptionsOpen(false); openCreateProjectModal(); }}
+                  className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-md hover:bg-muted text-foreground/90 transition-colors text-left whitespace-nowrap"
+                >
+                  <FolderPlus className="w-3.5 h-3.5 shrink-0" />
+                  <span>{t('projects.newProject')}</span>
                 </button>
-                {chatList.length > 0 && <button type="button" onClick={() => { setIsOptionsOpen(false); setIsDeletingAllModalOpen(true); }} className="w-full flex items-center gap-2 px-2.5 py-2 rounded-md hover:bg-destructive/10 text-destructive text-left">
-                  <Trash2 className="w-3.5 h-3.5" />{t('sidebar.deleteAllChats')}
-                </button>}
+                {chatList.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => { setIsOptionsOpen(false); setIsDeletingAllModalOpen(true); }}
+                    className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-md hover:bg-destructive/10 text-destructive text-left whitespace-nowrap font-medium transition-colors"
+                  >
+                    <Trash2 className="w-3.5 h-3.5 shrink-0" />
+                    <span>{t('sidebar.deleteAllChats')}</span>
+                  </button>
+                )}
                 <div className="my-1 border-t border-border" />
                 <div className="px-2 py-1 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
                   {t('sidebar.sort')}
@@ -1362,14 +1374,14 @@ function ChatHistorySidebar({
                       setIsOptionsOpen(false);
                     }}
                     className={cn(
-                      "w-full flex items-center justify-between px-2.5 py-1.5 rounded-md text-left transition-colors",
+                      "w-full flex items-center justify-between px-2.5 py-1.5 rounded-md text-left transition-colors whitespace-nowrap",
                       sortOrder === opt.id 
                         ? "bg-primary/15 text-primary font-medium" 
                         : "hover:bg-muted text-foreground/90"
                     )}
                   >
                     <span>{opt.label}</span>
-                    {sortOrder === opt.id && <Check className="w-3 h-3 text-primary" />}
+                    {sortOrder === opt.id && <Check className="w-3.5 h-3.5 text-primary shrink-0 ml-2" />}
                   </button>
                 ))}
 
@@ -1381,18 +1393,18 @@ function ChatHistorySidebar({
                 <button
                   type="button"
                   onClick={toggleGroupByDate}
-                  className="w-full flex items-center justify-between px-2.5 py-1.5 rounded-md hover:bg-muted text-foreground/90 transition-colors text-left"
+                  className="w-full flex items-center justify-between px-2.5 py-1.5 rounded-md hover:bg-muted text-foreground/90 transition-colors text-left whitespace-nowrap"
                 >
                   <span>{t('sidebar.groupByDate')}</span>
-                  {groupByDate && <Check className="w-3 h-3 text-primary" />}
+                  {groupByDate && <Check className="w-3.5 h-3.5 text-primary shrink-0 ml-2" />}
                 </button>
                 <button
                   type="button"
                   onClick={toggleCompactMode}
-                  className="w-full flex items-center justify-between px-2.5 py-1.5 rounded-md hover:bg-muted text-foreground/90 transition-colors text-left"
+                  className="w-full flex items-center justify-between px-2.5 py-1.5 rounded-md hover:bg-muted text-foreground/90 transition-colors text-left whitespace-nowrap"
                 >
                   <span>{t('sidebar.compactMode')}</span>
-                  {isCompactMode && <Check className="w-3 h-3 text-primary" />}
+                  {isCompactMode && <Check className="w-3.5 h-3.5 text-primary shrink-0 ml-2" />}
                 </button>
               </div>
             )}
