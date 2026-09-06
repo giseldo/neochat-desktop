@@ -60,9 +60,11 @@ function applyModelHeuristics(modelId, apiModelData) {
                            modelName.includes('vision') ||
                            modelName.includes('gemini') ||
                            modelName.includes('gpt-4o') ||
+                           modelName.includes('gpt-4.5') ||
                            modelName.includes('gpt-4-turbo') ||
-                           modelName.includes('claude-3') ||
+                           modelName.includes('claude') ||
                            modelName.includes('pixtral') ||
+                           modelName.includes('grok-2-vision') ||
                            modelName.includes('vl');
   
   return {

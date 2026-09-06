@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
-import { Check, ChevronDown, Layers, Key } from 'lucide-react';
+import { Check, ChevronDown, Layers, Key, Star } from 'lucide-react';
 import { useLanguage } from '../../context/LanguageContext';
 import { cn } from '../../lib/utils';
 
@@ -18,7 +18,9 @@ export function SearchableSelect({
   getOptionLabel,
   getOptionValue,
   groupBy = null, // Optional grouping function: (option) => string
-  dropdownWidthClass = "w-full min-w-[240px] max-w-[90vw]"
+  dropdownWidthClass = "w-full min-w-[240px] max-w-[90vw]",
+  favoriteItems = [],
+  onToggleFavorite = null,
 }) {
   const { t } = useLanguage();
   const [isOpen, setIsOpen] = useState(false);
@@ -27,6 +29,8 @@ export function SearchableSelect({
   const containerRef = useRef(null);
   const inputRef = useRef(null);
   const listRef = useRef(null);
+
+  const favoriteSet = useMemo(() => new Set(favoriteItems || []), [favoriteItems]);
 
   // Default accessors if not provided
   const displayValue = getDisplayValue 
@@ -55,6 +59,20 @@ export function SearchableSelect({
       return null;
     }
 
+    const sections = [];
+
+    // If favoriteItems is provided, create a Favoritos section at the top
+    if (favoriteItems && favoriteItems.length > 0) {
+      const favOptions = filteredOptions.filter(opt => favoriteSet.has(getValue(opt)));
+      if (favOptions.length > 0) {
+        sections.push({
+          group: t('common.favorites') || 'Favoritos',
+          isFavoriteGroup: true,
+          items: favOptions
+        });
+      }
+    }
+
     const groupsMap = new Map();
     filteredOptions.forEach(option => {
       const groupName = groupBy(option) || 'Outros';
@@ -64,11 +82,24 @@ export function SearchableSelect({
       groupsMap.get(groupName).push(option);
     });
 
-    return Array.from(groupsMap.entries()).map(([group, items]) => ({
-      group,
-      items
-    }));
-  }, [filteredOptions, groupBy]);
+    Array.from(groupsMap.entries()).forEach(([group, items]) => {
+      sections.push({
+        group,
+        isFavoriteGroup: false,
+        items
+      });
+    });
+
+    return sections;
+  }, [filteredOptions, groupBy, favoriteItems, favoriteSet, getValue, t]);
+
+  // Compute flat list of all visible items across sections for accurate keyboard navigation
+  const allDisplayItems = useMemo(() => {
+    if (groupedSections) {
+      return groupedSections.flatMap(section => section.items);
+    }
+    return filteredOptions;
+  }, [groupedSections, filteredOptions]);
 
   // Reset highlighted index when filtered options change
   useEffect(() => {
@@ -120,7 +151,7 @@ export function SearchableSelect({
       case 'ArrowDown':
         e.preventDefault();
         setHighlightedIndex(prev => 
-          prev < filteredOptions.length - 1 ? prev + 1 : prev
+          prev < allDisplayItems.length - 1 ? prev + 1 : prev
         );
         break;
       case 'ArrowUp':
@@ -129,8 +160,8 @@ export function SearchableSelect({
         break;
       case 'Enter':
         e.preventDefault();
-        if (filteredOptions[highlightedIndex]) {
-          const selectedValue = getValue(filteredOptions[highlightedIndex]);
+        if (allDisplayItems[highlightedIndex]) {
+          const selectedValue = getValue(allDisplayItems[highlightedIndex]);
           onValueChange(selectedValue);
           setIsOpen(false);
           setSearchQuery('');

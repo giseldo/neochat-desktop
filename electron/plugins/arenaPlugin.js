@@ -8,6 +8,7 @@
  */
 
 const { getActiveApiKey, getBaseUrlForProvider, getModelContextSizes } = require('../settingsManager');
+const { getApiKeyForProvider } = require('../../shared/providers');
 
 class ArenaEngine {
   constructor() {
@@ -28,9 +29,9 @@ class ArenaEngine {
     if (settings) {
       if (providerId) {
         baseUrl = getBaseUrlForProvider(settings, providerId) || baseUrl;
-        const providerKey = settings.providerApiKeys?.[providerId] || settings.apiKeys?.[providerId];
-        if (providerKey && providerKey !== '<replace me>') {
-          apiKey = providerKey;
+        const resolvedKey = getApiKeyForProvider(settings, providerId);
+        if (resolvedKey && resolvedKey !== '<replace me>') {
+          apiKey = resolvedKey;
         }
       } else {
         apiKey = getActiveApiKey(settings) || apiKey;
