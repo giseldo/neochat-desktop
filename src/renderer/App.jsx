@@ -121,8 +121,6 @@ function App() {
   // const models = Object.keys(MODEL_CONTEXT_SIZES).filter(key => key !== 'default'); // Old way
   const [modelConfigs, setModelConfigs] = useState({}); // State for model configurations
   const [models, setModels] = useState([]); // State for model list
-  const [modelFilter, setModelFilter] = useState(''); // State for model filter setting
-  const [modelFilterExclude, setModelFilterExclude] = useState(''); // State for model filter exclude setting
   const [disabledModels, setDisabledModels] = useState([]); // State for disabled models list
   const [favoriteModels, setFavoriteModels] = useState([]); // State for favorite models list
 
@@ -485,13 +483,13 @@ function App() {
   // Sort and group models by provider/category and display name
   // and apply model filter if configured
   const sortedModels = useMemo(() => {
-    // First apply the filters (inclusion, exclude, disabled)
-    const filteredModels = filterModels(models, modelFilter, modelFilterExclude, modelConfigs, disabledModels);
+    // First apply disabled models filter
+    const filteredModels = filterModels(models, modelConfigs, disabledModels);
     
     // Group and sort models logically by group and display name
     const groups = groupModels(filteredModels, modelConfigs);
     return groups.flatMap(g => g.models);
-  }, [models, modelConfigs, modelFilter, modelFilterExclude, disabledModels]);
+  }, [models, modelConfigs, disabledModels]);
 
   // Initialize compare models when sortedModels change
   useEffect(() => {
@@ -587,9 +585,6 @@ function App() {
         setShowWelcomeTips(settings.showWelcomeTips === true);
         setShowWelcomeSuggestions(settings.showWelcomeSuggestions === true);
         setShowButtonLabels(settings.showButtonLabels === true);
-        // Load model filter settings
-        setModelFilter(settings.modelFilter || '');
-        setModelFilterExclude(settings.modelFilterExclude || '');
         setDisabledModels(settings.disabledModels || []);
         setFavoriteModels(settings.favoriteModels || []);
         // Load useResponsesApi setting
@@ -677,8 +672,6 @@ function App() {
         if (!trajectoryEnabled) {
           setActiveTab('chat');
         }
-        setModelFilter(settings.modelFilter || '');
-        setModelFilterExclude(settings.modelFilterExclude || '');
         setDisabledModels(settings.disabledModels || []);
         setFavoriteModels(settings.favoriteModels || []);
         setUseResponsesApi(settings.useResponsesApi || false);

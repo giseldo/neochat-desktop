@@ -349,8 +349,6 @@ function Settings() {
       maxResults: 3,
       maxSearchesPerTurn: 2
     },
-    modelFilter: '',
-    modelFilterExclude: '',
     enableThinkingSummaries: true,
     useResponsesApi: false,
     logApiRequests: false,
@@ -1166,8 +1164,6 @@ function Settings() {
             showWelcomeTips: false,
             showWelcomeSuggestions: false,
             showButtonLabels: false,
-            modelFilter: '',
-            modelFilterExclude: '',
             enableThinkingSummaries: true,
             useResponsesApi: false,
             logApiRequests: false,
@@ -5803,50 +5799,6 @@ function Settings() {
                       </div>
                     </div>
                   )}
-                </div>
-
-                {/* Model Filter */}
-                <div className="border-t pt-6 space-y-4">
-                  <h4 className="font-medium text-sm">{t('settings.modelFilterInclusionTitle')}</h4>
-                  <div className="space-y-2">
-                    <p className="text-sm text-muted-foreground">
-                      {t('settings.modelFilterInclusionHelp')}
-                    </p>
-                    <Textarea
-                      id="model-filter"
-                      name="modelFilter"
-                      value={settings.modelFilter || ''}
-                      onChange={handleChange}
-                      rows={6}
-                      placeholder={t('settings.modelFilterInclusionPlaceholder')}
-                      className="min-h-[120px] font-mono text-sm"
-                    />
-                    <p className="text-xs text-muted-foreground">
-                      {t('settings.modelFilterInclusionExample')}
-                    </p>
-                  </div>
-                </div>
-
-                {/* Model Filter Exclude */}
-                <div className="border-t pt-6 space-y-4">
-                  <h4 className="font-medium text-sm">{t('settings.modelFilterExcludeTitle')}</h4>
-                  <div className="space-y-2">
-                    <p className="text-sm text-muted-foreground">
-                      {t('settings.modelFilterExcludeHelp')}
-                    </p>
-                    <Textarea
-                      id="model-filter-exclude"
-                      name="modelFilterExclude"
-                      value={settings.modelFilterExclude || ''}
-                      onChange={handleChange}
-                      rows={6}
-                      placeholder={t('settings.modelFilterExcludePlaceholder')}
-                      className="min-h-[120px] font-mono text-sm"
-                    />
-                    <p className="text-xs text-muted-foreground">
-                      {t('settings.modelFilterExcludeExample')}
-                    </p>
-                  </div>
                 </div>
               </CardContent>
             </Card>

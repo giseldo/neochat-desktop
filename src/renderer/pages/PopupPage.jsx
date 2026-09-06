@@ -9,6 +9,7 @@ import MessageList from '../components/MessageList';
 import { SearchableSelect } from '../components/ui/SearchableSelect';
 import { extractThinking } from '../lib/messageUtils';
 import { getModelGroup, getModelDisplayName, groupModels } from '../lib/modelGrouping';
+import { filterModels } from '../utils/modelFilters';
 
 const ContextPill = ({ title, onRemove }) => (
   <Badge variant="outline" className="inline-flex items-center gap-2 bg-background/50 backdrop-blur-sm border-border/50 text-foreground shadow-sm">
@@ -24,65 +25,6 @@ const ContextPill = ({ title, onRemove }) => (
     </Button>
   </Badge>
 );
-
-// Helper function to filter models based on modelFilter setting and disabledModels
-const filterModels = (modelList, filterText, excludeText, configs, disabledList = []) => {
-  let filteredModels = modelList;
-
-  if (Array.isArray(disabledList) && disabledList.length > 0) {
-    filteredModels = filteredModels.filter(m => {
-      const config = configs[m];
-      const rawId = config?.rawModelId;
-      return !disabledList.includes(m) && (!rawId || !disabledList.includes(rawId));
-    });
-  }
-
-  // First, apply inclusion filter if specified
-  if (filterText && filterText.trim()) {
-    const filterTerms = filterText
-      .split('\n')
-      .map(term => term.trim())
-      .filter(term => term.length > 0);
-
-    if (filterTerms.length > 0) {
-      filteredModels = filteredModels.filter(modelId => {
-        const displayName = getModelDisplayName(modelId, configs[modelId]).toLowerCase();
-        const modelIdLower = modelId.toLowerCase();
-        const rawId = (configs[modelId]?.rawModelId || '').toLowerCase();
-        
-        return filterTerms.some(term => {
-          const termLower = term.toLowerCase();
-          return modelIdLower.includes(termLower) || displayName.includes(termLower) || rawId.includes(termLower);
-        });
-      });
-    }
-  }
-
-  // Then, apply exclude filter (applies regardless of inclusion filter)
-  if (excludeText && excludeText.trim()) {
-    const excludeTerms = excludeText
-      .split('\n')
-      .map(term => term.trim())
-      .filter(term => term.length > 0);
-
-    if (excludeTerms.length > 0) {
-      filteredModels = filteredModels.filter(modelId => {
-        const displayName = getModelDisplayName(modelId, configs[modelId]).toLowerCase();
-        const modelIdLower = modelId.toLowerCase();
-        const rawId = (configs[modelId]?.rawModelId || '').toLowerCase();
-        
-        const matchesExclude = excludeTerms.some(term => {
-          const termLower = term.toLowerCase();
-          return modelIdLower.includes(termLower) || displayName.includes(termLower) || rawId.includes(termLower);
-        });
-        
-        return !matchesExclude;
-      });
-    }
-  }
-
-  return filteredModels;
-};
 
 const CustomModelSelector = ({ selectedModel, models, onModelChange, isCompact = false, modelConfigs = {}, placeholder = "Select model", favoriteModels = [], onToggleFavoriteModel = null }) => {
   const getDisplayName = (model) => {
@@ -129,8 +71,6 @@ const PopupPage = () => {
   const [selectedModel, setSelectedModel] = useState('llama-3.3-70b-versatile');
   const [models, setModels] = useState([]);
   const [modelConfigs, setModelConfigs] = useState({});
-  const [modelFilter, setModelFilter] = useState(''); // State for model filter setting
-  const [modelFilterExclude, setModelFilterExclude] = useState(''); // State for model filter exclude setting
   const [favoriteModels, setFavoriteModels] = useState([]); // State for favorite models list
   const [showContext, setShowContext] = useState(true);
   const [isExpanded, setIsExpanded] = useState(false);
@@ -365,10 +305,6 @@ const PopupPage = () => {
       if (settings.interfaceMode) {
         setInterfaceMode(settings.interfaceMode === 'power' ? 'power' : 'user');
       }
-      const filterText = settings.modelFilter || '';
-      const excludeText = settings.modelFilterExclude || '';
-      setModelFilter(filterText);
-      setModelFilterExclude(excludeText);
       setFavoriteModels(settings.favoriteModels || []);
       
       // Apply filter and sort models alphabetically by display name
@@ -377,8 +313,8 @@ const PopupPage = () => {
         return modelInfo?.displayName || modelId;
       };
       
-      // Filter models first (inclusion, exclude, disabled)
-      const filteredModels = filterModels(availableModels, filterText, excludeText, configs, settings.disabledModels || []);
+      // Filter models first (disabled models)
+      const filteredModels = filterModels(availableModels, configs, settings.disabledModels || []);
       
       // Then sort
       const sortedModels = filteredModels.sort((a, b) => {

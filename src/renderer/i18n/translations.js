@@ -1112,18 +1112,6 @@ export const translations = {
       searchModelsPlaceholder: 'Filtrar modelos por nome, ID ou provedor...',
       showingMatchingModels: 'Exibindo {count} modelo(s) em {providers} provedor(es)',
       noModelsAvailable: 'Nenhum modelo disponível para os provedores configurados. É necessário cadastrar uma chave de API nas configurações.',
-
-      // Model Filters
-      modelFilterInclusionTitle: 'Filtro de Modelos',
-      modelFilterInclusionLabel: 'Filtro de Inclusão de Modelos (um termo por linha):',
-      modelFilterInclusionPlaceholder: 'Insira um termo por linha (ex: gpt, kimi, llama)',
-      modelFilterInclusionHelp: 'Filtre modelos exibidos no seletor. Insira um termo por linha (não diferencia maiúsculas de minúsculas). Apenas modelos correspondentes serão exibidos.',
-      modelFilterInclusionExample: 'Exemplo: Insira "gpt" em uma linha e "kimi" em outra para exibir apenas modelos contendo "gpt" ou "kimi" no nome.',
-      modelFilterExcludeTitle: 'Filtrar / Ocultar Modelos',
-      modelFilterExcludeLabel: 'Filtro de Exclusão de Modelos (um termo por linha):',
-      modelFilterExcludePlaceholder: 'Insira um termo por linha (ex: deprecated, legacy, test)',
-      modelFilterExcludeHelp: 'Modelos contendo estas palavras serão ocultados independentemente dos filtros de inclusão. Insira um termo por linha (não diferencia maiúsculas de minúsculas).',
-      modelFilterExcludeExample: 'Exemplo: Insira "deprecated" em uma linha para ocultar todos os modelos contendo "deprecated" em seu nome, mesmo se corresponderem aos filtros de inclusão.',
       
       // Data & History
       dataHistoryTitle: 'Dados e Histórico',
@@ -2707,18 +2695,6 @@ export const translations = {
       searchModelsPlaceholder: 'Filter models by name, ID, or provider...',
       showingMatchingModels: 'Showing {count} model(s) across {providers} provider(s)',
       noModelsAvailable: 'No models available for configured providers. You need to configure an API key in settings.',
-
-      // Model Filters
-      modelFilterInclusionTitle: 'Model Filter',
-      modelFilterInclusionLabel: 'Model Inclusion Filter (one term per line):',
-      modelFilterInclusionPlaceholder: 'Enter one filter term per line (e.g., gpt, kimi, llama)',
-      modelFilterInclusionHelp: 'Filter models shown in the selector. Enter one filter term per line (case-insensitive). Only matching models will be displayed.',
-      modelFilterInclusionExample: 'Example: Enter "gpt" on one line and "kimi" on another to show only models containing "gpt" or "kimi" (case-insensitive).',
-      modelFilterExcludeTitle: 'Filter Out Models',
-      modelFilterExcludeLabel: 'Model Exclusion Filter (one term per line):',
-      modelFilterExcludePlaceholder: 'Enter one filter term per line (e.g., deprecated, legacy, test)',
-      modelFilterExcludeHelp: 'Models containing these words will be filtered out regardless of inclusion filters. Enter one filter term per line (case-insensitive).',
-      modelFilterExcludeExample: 'Example: Enter "deprecated" on one line to hide all models containing "deprecated" in their name, even if they match inclusion filters.',
       
       // Data & History
       dataHistoryTitle: 'Data & History',
