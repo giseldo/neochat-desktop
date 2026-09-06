@@ -3594,7 +3594,12 @@ function Settings() {
                       {(() => {
                         const provId = settings.imageGeneration?.provider === 'openai' ? 'openai' : 'grok';
                         const provName = provId === 'openai' ? 'OpenAI' : 'xAI';
-                        const hasKey = Boolean((settings.apiKeys?.[provId] && settings.apiKeys[provId] !== '<replace me>') || (provId === 'grok' ? process.env.XAI_API_KEY : process.env.OPENAI_API_KEY));
+                        const providerObj = (providers || []).find(p => p.id === provId);
+                        const hasKey = Boolean(
+                          providerObj?.isConfigured ||
+                          (settings.apiKeys?.[provId] && settings.apiKeys[provId] !== '<replace me>') ||
+                          (providerObj?.apiKey && providerObj.apiKey !== '<replace me>')
+                        );
                         return (
                           <div className="flex items-center gap-2 flex-wrap">
                             <span className="font-medium text-foreground">
