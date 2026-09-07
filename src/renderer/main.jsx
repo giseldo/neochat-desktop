@@ -9,6 +9,7 @@ import { ThemeProvider } from './context/ThemeContext';
 import { LanguageProvider } from './context/LanguageContext';
 import { ErrorBoundary } from './components/ErrorBoundary';
 
+const ResearchApp = lazy(() => import('./research/ResearchApp'));
 const App = lazy(() => import('./App'));
 const Settings = lazy(() => import('./pages/Settings'));
 const PopupPage = lazy(() => import('./pages/PopupPage'));
@@ -52,7 +53,7 @@ const router = createHashRouter([
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
     <ErrorBoundary>
-      <LanguageProvider>
+      {window.research ? <Suspense fallback={<PageLoader />}><ResearchApp /></Suspense> : <LanguageProvider>
         <ThemeProvider>
           <ProjectProvider>
             <ChatProvider>
@@ -62,7 +63,7 @@ ReactDOM.createRoot(document.getElementById('root')).render(
             </ChatProvider>
           </ProjectProvider>
         </ThemeProvider>
-      </LanguageProvider>
+      </LanguageProvider>}
     </ErrorBoundary>
   </React.StrictMode>
 );
