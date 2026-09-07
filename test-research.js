@@ -31,6 +31,11 @@ try {
   assert.equal(imported.project.references[1].duplicateOf, imported.project.references[0].id);
   assert.throws(() => store.importRis({ id: updated.id, revision: imported.project.revision, text: 'TY  - JOUR\nTI  - Broken' }), /incompleto/);
   assert.equal(store.get(updated.id).revision, imported.project.revision);
+  assert.throws(() => store.save({ ...imported.project, references: imported.project.references.map(item => ({ ...item, screening: 'exclude' })) }), /motivo/);
+  assert.throws(() => store.save({ ...imported.project, references: imported.project.references.map(item => ({ ...item, fullText: 'include' })) }), /triagem/);
+  const screened = store.save({ ...imported.project, references: imported.project.references.map(item => ({ ...item, screening: 'exclude', screeningReason: 'Fora do período' })) });
+  assert.equal(screened.history.length, 2);
+  assert.equal(screened.history[0].actor, 'researcher');
   console.log('Research: persistence, validation, traversal and revision conflict checks passed.');
 } finally {
   fs.rmSync(directory, { recursive: true, force: true });

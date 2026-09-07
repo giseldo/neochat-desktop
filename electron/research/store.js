@@ -49,7 +49,14 @@ class ResearchStore {
     if (previous && input.revision !== previous.revision) throw new Error('O projeto mudou. Reabra antes de salvar.');
     const now = new Date().toISOString();
     const references = librarySchema.parse(input.references ?? previous?.references ?? []);
-    const project = { ...values, references, id: previous?.id || randomUUID(), createdAt: previous?.createdAt || now, updatedAt: now, revision: (previous?.revision || 0) + 1, schemaVersion: 1 };
+    const history = [...(previous?.history || [])];
+    for (const item of references) {
+      const old = previous?.references?.find(reference => reference.id === item.id);
+      for (const stage of ['screening', 'fullText']) {
+        if ((old?.[stage] || 'pending') !== item[stage] || (old?.[`${stage}Reason`] || '') !== item[`${stage}Reason`]) history.push({ referenceId: item.id, stage, decision: item[stage], reason: item[`${stage}Reason`], at: now, actor: 'researcher' });
+      }
+    }
+    const project = { ...values, references, history, id: previous?.id || randomUUID(), createdAt: previous?.createdAt || now, updatedAt: now, revision: (previous?.revision || 0) + 1, schemaVersion: 1 };
     const target = this.file(project.id);
     const temporary = `${target}.tmp`;
     fs.writeFileSync(temporary, JSON.stringify(project, null, 2), 'utf8');
