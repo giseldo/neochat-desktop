@@ -315,6 +315,21 @@ export function CanvasProvider({ children }) {
       return;
     }
 
+    if (format === 'docx') {
+      if (window.electron?.canvas?.exportDocx) {
+        try {
+          return await window.electron.canvas.exportDocx({
+            title: canvasDoc.title || 'documento',
+            content: canvasDoc.content || '',
+            language: canvasDoc.language || 'markdown'
+          });
+        } catch (err) {
+          console.error('Failed to export canvas to DOCX via Electron:', err);
+        }
+      }
+      return;
+    }
+
     const extMap = {
       markdown: 'md',
       text: 'txt',

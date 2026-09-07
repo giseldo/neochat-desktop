@@ -38,7 +38,9 @@ async function run() {
 
   const expectedChannels = [
     'agent:create-session', 'agent:prompt', 'agent:approve-tool', 'agent:reject-tool',
-    'agent:cancel', 'agent:rollback', 'agent:get-workspace-info', 'agent:list-harnesses', 'agent:get-session',
+    'agent:cancel', 'agent:rollback', 'agent:get-workspace-info',
+    'agent:get-workspace-tree', 'agent:read-workspace-file', 'agent:reveal-in-explorer', 'agent:open-path',
+    'agent:list-harnesses', 'agent:get-session',
     'agent:get-trajectory', 'agent:select-workspace'
   ];
   assert.deepStrictEqual([...handlers.keys()], expectedChannels);

@@ -921,6 +921,599 @@ async function exportCanvasToPdf({ title, content, language, htmlContent, parent
     }
 }
 
+/**
+ * Parses inline markdown tokens into an array of docx TextRun and ExternalHyperlink elements
+ */
+function parseInlineToDocxRuns(text = '') {
+    const { TextRun, ExternalHyperlink } = require('docx');
+    if (!text) return [new TextRun({ text: '' })];
+
+    const runs = [];
+    const pattern = /(`([^`\n]+?)`)|(\*\*\*([^*]+?)\*\*\*)|(\*\*([^*]+?)\*\*|__([^_]+?)__)|(\*([^*]+?)\*|_([^_]+?)_)|(~~([^~]+?)~~)|(\[([^\]]+?)\]\(([^)]+?)\))/g;
+    let lastIndex = 0;
+    let match;
+
+    while ((match = pattern.exec(text)) !== null) {
+        if (match.index > lastIndex) {
+            runs.push(new TextRun({ text: text.substring(lastIndex, match.index) }));
+        }
+
+        if (match[1]) {
+            // Code: `...`
+            runs.push(new TextRun({
+                text: match[2],
+                font: 'Consolas',
+                shading: { fill: 'F1F5F9' },
+                color: '0F172A'
+            }));
+        } else if (match[3]) {
+            // Bold Italic: ***...***
+            runs.push(new TextRun({
+                text: match[4],
+                bold: true,
+                italics: true
+            }));
+        } else if (match[5]) {
+            // Bold: **...** or __...__
+            runs.push(new TextRun({
+                text: match[6] || match[7],
+                bold: true
+            }));
+        } else if (match[8]) {
+            // Italic: *...* or _..._
+            runs.push(new TextRun({
+                text: match[9] || match[10],
+                italics: true
+            }));
+        } else if (match[11]) {
+            // Strikethrough: ~~...~~
+            runs.push(new TextRun({
+                text: match[12],
+                strike: true
+            }));
+        } else if (match[13]) {
+            // Link: [text](url)
+            runs.push(new ExternalHyperlink({
+                children: [
+                    new TextRun({
+                        text: match[14],
+                        style: 'Hyperlink',
+                        color: '2563EB',
+                        underline: {}
+                    })
+                ],
+                link: match[15]
+            }));
+        }
+
+        lastIndex = pattern.lastIndex;
+    }
+
+    if (lastIndex < text.length) {
+        runs.push(new TextRun({ text: text.substring(lastIndex) }));
+    }
+
+    return runs.length > 0 ? runs : [new TextRun({ text: '' })];
+}
+
+/**
+ * Converts markdown content into an array of docx children elements (Paragraphs, Tables)
+ */
+function convertMarkdownToDocxChildren(markdown = '') {
+    const {
+        Paragraph,
+        TextRun,
+        HeadingLevel,
+        Table,
+        TableRow,
+        TableCell,
+        WidthType,
+        BorderStyle,
+        AlignmentType
+    } = require('docx');
+
+    const rawLines = normalizeLineEndings(markdown).split('\n');
+    const docChildren = [];
+    let i = 0;
+
+    while (i < rawLines.length) {
+        const line = rawLines[i];
+
+        if (!line.trim()) {
+            i++;
+            continue;
+        }
+
+        // 1. LaTeX Display Math: $$ ... $$ or \[ ... \]
+        if (line.trim().startsWith('$$') || line.trim().startsWith('\\[')) {
+            const isBracket = line.trim().startsWith('\\[');
+            const closeMarker = isBracket ? '\\]' : '$$';
+            let mathLines = [];
+            let firstLine = line.trim().replace(isBracket ? /^\s*\\\[/ : /^\s*\$\$/, '');
+            if (firstLine.endsWith(closeMarker) && firstLine.length >= closeMarker.length) {
+                mathLines.push(firstLine.slice(0, -closeMarker.length));
+                i++;
+            } else {
+                if (firstLine) mathLines.push(firstLine);
+                i++;
+                while (i < rawLines.length) {
+                    const current = rawLines[i];
+                    if (current.includes(closeMarker)) {
+                        const content = current.slice(0, current.indexOf(closeMarker));
+                        if (content) mathLines.push(content);
+                        i++;
+                        break;
+                    } else {
+                        mathLines.push(current);
+                        i++;
+                    }
+                }
+            }
+            const mathContent = mathLines.join(' ').trim();
+            docChildren.push(
+                new Paragraph({
+                    children: [
+                        new TextRun({
+                            text: mathContent,
+                            font: 'Cambria Math',
+                            italics: true,
+                            size: 24
+                        })
+                    ],
+                    alignment: AlignmentType.CENTER,
+                    spacing: { before: 140, after: 140 }
+                })
+            );
+            continue;
+        }
+
+        // 2. Fenced code block: ```lang ... ```
+        if (line.trim().startsWith('```')) {
+            const langMatch = line.trim().match(/^```([a-zA-Z0-9_-]*)/);
+            const language = (langMatch && langMatch[1]) ? langMatch[1].toUpperCase() : 'CODE';
+            const codeLines = [];
+            i++;
+            while (i < rawLines.length && !rawLines[i].trim().startsWith('```')) {
+                codeLines.push(rawLines[i]);
+                i++;
+            }
+            if (i < rawLines.length && rawLines[i].trim().startsWith('```')) {
+                i++;
+            }
+
+            docChildren.push(
+                new Table({
+                    width: { size: 100, type: WidthType.PERCENTAGE },
+                    margins: { top: 120, bottom: 120 },
+                    rows: [
+                        new TableRow({
+                            children: [
+                                new TableCell({
+                                    shading: { fill: '0F172A' },
+                                    margins: { top: 140, bottom: 140, left: 180, right: 180 },
+                                    borders: {
+                                        top: { style: BorderStyle.SINGLE, size: 6, color: '334155' },
+                                        bottom: { style: BorderStyle.SINGLE, size: 6, color: '334155' },
+                                        left: { style: BorderStyle.SINGLE, size: 6, color: '334155' },
+                                        right: { style: BorderStyle.SINGLE, size: 6, color: '334155' }
+                                    },
+                                    children: [
+                                        new Paragraph({
+                                            children: [
+                                                new TextRun({
+                                                    text: '// ' + language,
+                                                    font: 'Consolas',
+                                                    size: 17,
+                                                    color: '94A3B8'
+                                                })
+                                            ],
+                                            spacing: { after: 80 }
+                                        }),
+                                        ...codeLines.map(codeLine => new Paragraph({
+                                            children: [
+                                                new TextRun({
+                                                    text: codeLine || ' ',
+                                                    font: 'Consolas',
+                                                    size: 19,
+                                                    color: 'F8FAFC'
+                                                })
+                                            ],
+                                            spacing: { line: 240, before: 0, after: 0 }
+                                        }))
+                                    ]
+                                })
+                            ]
+                        })
+                    ]
+                })
+            );
+            continue;
+        }
+
+        // 3. Headings: # to ######
+        const headingMatch = line.match(/^(#{1,6})\s+(.+)$/);
+        if (headingMatch) {
+            const level = headingMatch[1].length;
+            const headingText = headingMatch[2].trim();
+            const headingLevels = {
+                1: HeadingLevel.HEADING_1,
+                2: HeadingLevel.HEADING_2,
+                3: HeadingLevel.HEADING_3,
+                4: HeadingLevel.HEADING_4,
+                5: HeadingLevel.HEADING_5,
+                6: HeadingLevel.HEADING_6
+            };
+
+            docChildren.push(
+                new Paragraph({
+                    heading: headingLevels[level] || HeadingLevel.HEADING_1,
+                    children: parseInlineToDocxRuns(headingText),
+                    spacing: { before: Math.max(120, 260 - (level * 20)), after: 100 }
+                })
+            );
+            i++;
+            continue;
+        }
+
+        // 4. Horizontal Rule: ---, ***, ___
+        if (/^(\s*[-*_]\s*){3,}$/.test(line)) {
+            docChildren.push(
+                new Paragraph({
+                    border: {
+                        bottom: {
+                            color: 'CBD5E1',
+                            space: 1,
+                            style: BorderStyle.SINGLE,
+                            size: 8
+                        }
+                    },
+                    spacing: { before: 180, after: 180 }
+                })
+            );
+            i++;
+            continue;
+        }
+
+        // 5. Blockquote: > ...
+        if (line.trim().startsWith('>')) {
+            const quoteLines = [];
+            while (i < rawLines.length && rawLines[i].trim().startsWith('>')) {
+                quoteLines.push(rawLines[i].replace(/^\s*>\s?/, ''));
+                i++;
+            }
+            const quoteText = quoteLines.join(' ');
+            const runs = parseInlineToDocxRuns(quoteText);
+            runs.forEach(r => {
+                if (r instanceof TextRun) {
+                    r.italics = true;
+                }
+            });
+
+            docChildren.push(
+                new Paragraph({
+                    children: runs,
+                    indent: { left: 720 },
+                    border: {
+                        left: {
+                            color: '3B82F6',
+                            space: 12,
+                            style: BorderStyle.SINGLE,
+                            size: 24
+                        }
+                    },
+                    spacing: { before: 140, after: 140 }
+                })
+            );
+            continue;
+        }
+
+        // 6. Tables: | ... |
+        if (line.trim().startsWith('|') && line.includes('|')) {
+            const tableLines = [];
+            while (i < rawLines.length && rawLines[i].trim().startsWith('|')) {
+                tableLines.push(rawLines[i].trim());
+                i++;
+            }
+
+            if (tableLines.length >= 2) {
+                const headerCells = tableLines[0].split('|').slice(1, -1).map(c => c.trim());
+                const rows = [
+                    new TableRow({
+                        children: headerCells.map(cell => new TableCell({
+                            shading: { fill: 'F1F5F9' },
+                            margins: { top: 100, bottom: 100, left: 140, right: 140 },
+                            children: [
+                                new Paragraph({
+                                    children: parseInlineToDocxRuns(cell).map(r => {
+                                        if (r instanceof TextRun) r.bold = true;
+                                        return r;
+                                    })
+                                })
+                            ]
+                        }))
+                    })
+                ];
+
+                for (let r = 2; r < tableLines.length; r++) {
+                    const rowCells = tableLines[r].split('|').slice(1, -1).map(c => c.trim());
+                    rows.push(
+                        new TableRow({
+                            children: rowCells.map(cell => new TableCell({
+                                margins: { top: 80, bottom: 80, left: 140, right: 140 },
+                                children: [
+                                    new Paragraph({
+                                        children: parseInlineToDocxRuns(cell)
+                                    })
+                                ]
+                            }))
+                        })
+                    );
+                }
+
+                docChildren.push(
+                    new Table({
+                        width: { size: 100, type: WidthType.PERCENTAGE },
+                        margins: { top: 120, bottom: 160 },
+                        rows
+                    })
+                );
+                continue;
+            }
+        }
+
+        // 7. Task item: - [ ] or - [x]
+        const taskMatch = line.trim().match(/^[-*+]\s+\[([ xX])\]\s+(.*)$/);
+        if (taskMatch) {
+            const isChecked = taskMatch[1].toLowerCase() === 'x';
+            const taskText = taskMatch[2];
+            docChildren.push(
+                new Paragraph({
+                    children: [
+                        new TextRun({
+                            text: isChecked ? '\u2611 ' : '\u2610 ',
+                            bold: true,
+                            color: isChecked ? '16A34A' : '64748B'
+                        }),
+                        ...parseInlineToDocxRuns(taskText)
+                    ],
+                    spacing: { after: 60 }
+                })
+            );
+            i++;
+            continue;
+        }
+
+        // 8. Unordered list: - or * or +
+        const uMatch = line.trim().match(/^[-*+]\s+(.*)$/);
+        if (uMatch) {
+            docChildren.push(
+                new Paragraph({
+                    children: parseInlineToDocxRuns(uMatch[1]),
+                    bullet: { level: 0 },
+                    spacing: { after: 60 }
+                })
+            );
+            i++;
+            continue;
+        }
+
+        // 9. Ordered list: 1. item
+        const oMatch = line.trim().match(/^(\d+)\.\s+(.*)$/);
+        if (oMatch) {
+            docChildren.push(
+                new Paragraph({
+                    children: [
+                        new TextRun({ text: oMatch[1] + '. ', bold: true }),
+                        ...parseInlineToDocxRuns(oMatch[2])
+                    ],
+                    spacing: { after: 60 }
+                })
+            );
+            i++;
+            continue;
+        }
+
+        // 10. Standard Paragraphs
+        const paraLines = [];
+        while (i < rawLines.length) {
+            const cur = rawLines[i];
+            if (!cur.trim()) break;
+            if (cur.match(/^#{1,6}\s+/) ||
+                cur.trim().startsWith('```') ||
+                cur.trim().startsWith('$$') ||
+                cur.trim().startsWith('\\[') ||
+                cur.trim().startsWith('>') ||
+                cur.trim().startsWith('|') ||
+                /^[-*+]\s+/.test(cur.trim()) ||
+                /^\d+\.\s+/.test(cur.trim()) ||
+                /^(\s*[-*_]\s*){3,}$/.test(cur)) {
+                break;
+            }
+            paraLines.push(cur);
+            i++;
+        }
+
+        if (paraLines.length > 0) {
+            const text = paraLines.join(' ');
+            docChildren.push(
+                new Paragraph({
+                    children: parseInlineToDocxRuns(text),
+                    spacing: { after: 120, line: 276 }
+                })
+            );
+        }
+    }
+
+    return docChildren;
+}
+
+/**
+ * Converts a Canvas document (Markdown or code) into a formatted docx.Document instance
+ */
+function convertCanvasToDocx({ title = 'Documento Sem Título', content = '', language = 'markdown' } = {}) {
+    const { Document, Paragraph, TextRun, HeadingLevel, Table, TableRow, TableCell, WidthType, BorderStyle } = require('docx');
+    const stats = calculateDocStats(content);
+    const langLower = (language || 'markdown').toLowerCase();
+    const isMarkdown = !language || langLower === 'markdown' || langLower === 'md' || langLower === 'text' || langLower === 'txt';
+
+    const dateFormatted = new Date().toLocaleDateString('pt-BR', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+    });
+
+    const docChildren = [
+        new Paragraph({
+            text: title,
+            heading: HeadingLevel.TITLE,
+            spacing: { after: 80 }
+        }),
+        new Paragraph({
+            children: [
+                new TextRun({
+                    text: `Formato: ${(language || 'markdown').toUpperCase()}  |  Palavras: ${stats.words}  |  Linhas: ${stats.lines}  |  Data: ${dateFormatted}`,
+                    size: 18,
+                    color: '64748B',
+                    font: 'Consolas'
+                })
+            ],
+            spacing: { after: 200 }
+        }),
+        new Paragraph({
+            border: {
+                bottom: {
+                    color: 'E2E8F0',
+                    space: 1,
+                    style: BorderStyle.SINGLE,
+                    size: 12
+                }
+            },
+            spacing: { after: 240 }
+        })
+    ];
+
+    if (isMarkdown) {
+        const bodyElements = convertMarkdownToDocxChildren(content);
+        docChildren.push(...bodyElements);
+    } else {
+        const codeLines = content.split('\n');
+        docChildren.push(
+            new Table({
+                width: { size: 100, type: WidthType.PERCENTAGE },
+                rows: [
+                    new TableRow({
+                        children: [
+                            new TableCell({
+                                shading: { fill: '0F172A' },
+                                margins: { top: 140, bottom: 140, left: 180, right: 180 },
+                                borders: {
+                                    top: { style: BorderStyle.SINGLE, size: 6, color: '334155' },
+                                    bottom: { style: BorderStyle.SINGLE, size: 6, color: '334155' },
+                                    left: { style: BorderStyle.SINGLE, size: 6, color: '334155' },
+                                    right: { style: BorderStyle.SINGLE, size: 6, color: '334155' }
+                                },
+                                children: [
+                                    new Paragraph({
+                                        children: [
+                                            new TextRun({
+                                                text: '// ' + (language || 'CODE').toUpperCase(),
+                                                font: 'Consolas',
+                                                size: 17,
+                                                color: '94A3B8'
+                                            })
+                                        ],
+                                        spacing: { after: 80 }
+                                    }),
+                                    ...codeLines.map(codeLine => new Paragraph({
+                                        children: [
+                                            new TextRun({
+                                                text: codeLine || ' ',
+                                                font: 'Consolas',
+                                                size: 19,
+                                                color: 'F8FAFC'
+                                            })
+                                        ],
+                                        spacing: { line: 240, before: 0, after: 0 }
+                                    }))
+                                ]
+                            })
+                        ]
+                    })
+                ]
+            })
+        );
+    }
+
+    return new Document({
+        styles: {
+            default: {
+                document: {
+                    run: {
+                        font: 'Segoe UI',
+                        size: 22,
+                        color: '1E293B'
+                    }
+                }
+            }
+        },
+        sections: [{
+            properties: {
+                page: {
+                    margin: {
+                        top: 1440,
+                        right: 1440,
+                        bottom: 1440,
+                        left: 1440
+                    }
+                }
+            },
+            children: docChildren
+        }]
+    });
+}
+
+/**
+ * Exports a Canvas document to Microsoft Word (.docx) file
+ */
+async function exportCanvasToDocx({ title, content, language, parentWindow } = {}) {
+    const fs = require('fs');
+    const path = require('path');
+    const { dialog, app } = require('electron');
+    const { Packer } = require('docx');
+
+    const cleanTitle = (title || 'documento').replace(/[/\\?%*:|"<>]/g, '-').trim() || 'documento';
+    const defaultFilename = `${cleanTitle}.docx`;
+
+    try {
+        const doc = convertCanvasToDocx({ title, content, language });
+        const docxBuffer = await Packer.toBuffer(doc);
+
+        const downloadsPath = app ? app.getPath('downloads') : process.cwd();
+        const defaultPath = path.join(downloadsPath, defaultFilename);
+
+        const { canceled, filePath } = await dialog.showSaveDialog(parentWindow || null, {
+            title: 'Exportar Canvas para Word (.docx)',
+            defaultPath,
+            filters: [
+                { name: 'Documento Word (.docx)', extensions: ['docx'] },
+                { name: 'Todos os arquivos', extensions: ['*'] }
+            ]
+        });
+
+        if (canceled || !filePath) {
+            return { success: false, canceled: true };
+        }
+
+        fs.writeFileSync(filePath, docxBuffer);
+        return { success: true, filePath };
+    } catch (err) {
+        console.error('[Canvas] Export to DOCX error:', err);
+        return { success: false, error: err.message };
+    }
+}
+
 module.exports = {
     normalizeLineEndings,
     calculateDocStats,
@@ -933,6 +1526,8 @@ module.exports = {
     deleteActiveCanvasDocument,
     handleCanvasToolCall,
     formatCanvasToHtml,
-    exportCanvasToPdf
+    exportCanvasToPdf,
+    convertCanvasToDocx,
+    exportCanvasToDocx
 };
 

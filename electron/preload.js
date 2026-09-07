@@ -403,6 +403,7 @@ contextBridge.exposeInMainWorld('electron', {
     computeDiff: (oldText, newText) => ipcRenderer.invoke('canvas-compute-diff', { oldText, newText }),
     calculateStats: (content) => ipcRenderer.invoke('canvas-calculate-stats', { content }),
     exportPdf: (data) => ipcRenderer.invoke('canvas-export-pdf', data),
+    exportDocx: (data) => ipcRenderer.invoke('canvas-export-docx', data),
   },
 
   // --- Projects Functions ---
