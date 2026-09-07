@@ -175,7 +175,7 @@ function CanvasToolCall({ toolCall, toolResult, parsedData, allMessages, isPendi
             </span>
 
             <span className="text-xs font-medium text-foreground truncate" title={title}>
-              "{title}"
+              &ldquo;{title}&rdquo;
             </span>
 
             {isPending && (

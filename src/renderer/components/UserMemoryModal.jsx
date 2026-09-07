@@ -64,7 +64,8 @@ export function UserMemoryModal({ isOpen, onClose, isMemoryEnabled: propIsMemory
   useEffect(() => {
     if (propIsMemoryEnabled !== undefined) {
       setInternalEnabled(propIsMemoryEnabled);
-    } else if (isOpen && window.electron?.getSettings) {
+    }
+    if (isOpen && window.electron?.getSettings) {
       window.electron.getSettings().then(s => {
         setInternalEnabled(s?.userMemory?.enabled !== false);
       }).catch(() => {});

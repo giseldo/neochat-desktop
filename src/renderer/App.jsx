@@ -251,6 +251,7 @@ function App() {
 
   // --- User Persistent Long-Term Memory State ---
   const [isUserMemoryModalOpen, setIsUserMemoryModalOpen] = useState(false);
+  const [isUserMemoryEnabled, setIsUserMemoryEnabled] = useState(true);
   const [memoryToast, setMemoryToast] = useState(null);
 
   useEffect(() => {
@@ -642,6 +643,7 @@ function App() {
         setFavoriteModels(settings.favoriteModels || []);
         // Load useResponsesApi setting
         setUseResponsesApi(settings.useResponsesApi || false);
+        setIsUserMemoryEnabled(settings.userMemory?.enabled !== false);
 
         // Strict opt-in: filter available models by enabledModels
         const activeModels = filterModels(availableModels, configs, settings.enabledModels || []);
@@ -745,6 +747,7 @@ function App() {
         setDisabledModels(settings.disabledModels || []);
         setFavoriteModels(settings.favoriteModels || []);
         setUseResponsesApi(settings.useResponsesApi || false);
+        setIsUserMemoryEnabled(settings.userMemory?.enabled !== false);
 
         // Check if provider, keys, or models actually changed before re-fetching configs
         const currentFingerprint = JSON.stringify({
@@ -3027,6 +3030,11 @@ function App() {
                         type="button"
                         onClick={() => {
                           setIsToolsDropdownOpen(false);
+                          if (window.electron?.getSettings) {
+                            window.electron.getSettings().then(s => {
+                              setIsUserMemoryEnabled(s?.userMemory?.enabled !== false);
+                            }).catch(() => {});
+                          }
                           setIsUserMemoryModalOpen(true);
                         }}
                         className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-muted/80 text-foreground transition-colors text-left"
@@ -3813,7 +3821,7 @@ function App() {
         <UserMemoryModal
           isOpen={isUserMemoryModalOpen}
           onClose={() => setIsUserMemoryModalOpen(false)}
-          isMemoryEnabled={settings.userMemory?.enabled !== false}
+          isMemoryEnabled={isUserMemoryEnabled}
         />
 
         {/* AI Skills & Capabilities Central Hub */}
@@ -3850,7 +3858,14 @@ function App() {
             </div>
             <button
               type="button"
-              onClick={() => setIsUserMemoryModalOpen(true)}
+              onClick={() => {
+                if (window.electron?.getSettings) {
+                  window.electron.getSettings().then(s => {
+                    setIsUserMemoryEnabled(s?.userMemory?.enabled !== false);
+                  }).catch(() => {});
+                }
+                setIsUserMemoryModalOpen(true);
+              }}
               className="text-[11px] font-semibold text-purple-600 dark:text-purple-400 hover:underline shrink-0 self-center"
             >
               Ver

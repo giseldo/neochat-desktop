@@ -28,6 +28,7 @@ import {
   Check,
   Star,
   Archive,
+  ArchiveRestore,
   SlidersHorizontal,
   Terminal,
   FolderTree
