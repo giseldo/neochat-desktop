@@ -55,7 +55,8 @@
     "test:prompt-caching": "node test-prompt-caching-metrics.js",
     "test:plugins": "node test-plugin-manager.js",
     "test:context-indicator": "node test-context-indicator.js",
-    "test:auto-prune": "node test-auto-prune.js"
+    "test:auto-prune": "node test-auto-prune.js",
+    "test:image-generation": "node test-image-generation.js"
   },
   "keywords": [
     "electron",

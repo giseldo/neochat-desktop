@@ -314,6 +314,13 @@ function Settings() {
   const [memoryStats, setMemoryStats] = useState({ total: 0, active: 0 });
   const [isTestingWebSearch, setIsTestingWebSearch] = useState(false);
   const [webSearchTestResult, setWebSearchTestResult] = useState(null);
+  const [isTestingImage, setIsTestingImage] = useState(false);
+  const [imageTestResult, setImageTestResult] = useState(null);
+  const [testImagePrompt, setTestImagePrompt] = useState('');
+  const [fullScreenTestImage, setFullScreenTestImage] = useState(null);
+  const [isSavingTestImage, setIsSavingTestImage] = useState(false);
+  const [testImageSaved, setTestImageSaved] = useState(false);
+  const [testImageCopied, setTestImageCopied] = useState(false);
   const [pluginList, setPluginList] = useState([]);
   const [isTogglingPlugin, setIsTogglingPlugin] = useState(null);
   const [settings, setSettings] = useState({
@@ -1934,6 +1941,121 @@ function Settings() {
       });
     } finally {
       setIsTestingWebSearch(false);
+    }
+  };
+
+  const handleTestImageGeneration = async () => {
+    setIsTestingImage(true);
+    setImageTestResult(null);
+    setTestImageSaved(false);
+    setTestImageCopied(false);
+    const startTime = performance.now();
+
+    try {
+      if (typeof window.electron?.generateImage !== 'function') {
+        throw new Error('Função de geração de imagem não encontrada no Electron bridge. Por favor, reinicie a aplicação.');
+      }
+
+      const defaultPrompt = language === 'pt'
+        ? 'Um gato cibernético com óculos neon no topo de um prédio à noite, arte digital de alta definição'
+        : 'A cyberpunk cat with neon glasses on a rooftop at night, high quality digital art';
+
+      const promptToUse = (testImagePrompt && testImagePrompt.trim()) || defaultPrompt;
+
+      const currentProvider = settings.imageGeneration?.provider || 'grok';
+      const currentModel = settings.imageGeneration?.model || (currentProvider === 'openai' ? 'dall-e-3' : 'grok-imagine-image');
+      const currentAspectRatio = settings.imageGeneration?.aspectRatio || '1:1';
+      const currentQuality = settings.imageGeneration?.quality || 'standard';
+
+      // Send active key override if custom API key is toggled
+      const dedicatedKey = settings.imageGeneration?.useCustomApiKey ? (settings.imageGeneration?.apiKey || '').trim() : undefined;
+
+      const res = await window.electron.generateImage({
+        prompt: promptToUse,
+        provider: currentProvider,
+        model: currentModel,
+        aspectRatio: currentAspectRatio,
+        quality: currentQuality,
+        apiKey: dedicatedKey,
+        useCustomApiKey: settings.imageGeneration?.useCustomApiKey
+      });
+
+      const latencyMs = Math.round(performance.now() - startTime);
+
+      if (res && res.success && res.dataUrl) {
+        setImageTestResult({
+          success: true,
+          dataUrl: res.dataUrl,
+          rawUrl: res.rawUrl,
+          revisedPrompt: res.revisedPrompt,
+          model: res.model || currentModel,
+          provider: res.provider || currentProvider,
+          latencyMs,
+          prompt: promptToUse
+        });
+      } else {
+        setImageTestResult({
+          success: false,
+          error: res?.error || 'A API não retornou uma imagem válida.',
+          latencyMs
+        });
+      }
+    } catch (err) {
+      const latencyMs = Math.round(performance.now() - startTime);
+      setImageTestResult({
+        success: false,
+        error: err.message || 'Erro inesperado ao gerar imagem de teste.',
+        latencyMs
+      });
+    } finally {
+      setIsTestingImage(false);
+    }
+  };
+
+  const handleSaveTestImage = async () => {
+    if (!imageTestResult?.dataUrl || typeof window.electron?.saveImage !== 'function') return;
+    try {
+      setIsSavingTestImage(true);
+      const res = await window.electron.saveImage({
+        dataUrl: imageTestResult.dataUrl,
+        defaultName: `neochat-test-image-${Date.now()}`
+      });
+      if (res && res.success) {
+        setTestImageSaved(true);
+        setTimeout(() => setTestImageSaved(false), 3000);
+      }
+    } catch (err) {
+      console.error('Failed to save test image:', err);
+    } finally {
+      setIsSavingTestImage(false);
+    }
+  };
+
+  const handleCopyTestImage = async () => {
+    if (!imageTestResult?.dataUrl) return;
+    try {
+      if (navigator.clipboard && window.ClipboardItem && imageTestResult.dataUrl.startsWith('data:image/')) {
+        const fetchRes = await fetch(imageTestResult.dataUrl);
+        const blob = await fetchRes.blob();
+        await navigator.clipboard.write([
+          new ClipboardItem({ [blob.type || 'image/png']: blob })
+        ]);
+        setTestImageCopied(true);
+        setTimeout(() => setTestImageCopied(false), 3000);
+      } else {
+        await navigator.clipboard.writeText(imageTestResult.dataUrl);
+        setTestImageCopied(true);
+        setTimeout(() => setTestImageCopied(false), 3000);
+      }
+    } catch (err) {
+      console.error('Failed to copy test image:', err);
+      try {
+        await navigator.clipboard.writeText(imageTestResult.dataUrl);
+        setTestImageCopied(true);
+        setTimeout(() => setTestImageCopied(false), 3000);
+      } catch (fallbackErr) {
+        console.error('Fallback clipboard error:', fallbackErr);
+      }
     }
   };
 
@@ -3741,6 +3863,202 @@ function Settings() {
                   </select>
                   {settings.imageGeneration?.provider === 'grok' && (
                     <p className="text-[10px] text-muted-foreground">xAI ajusta a qualidade de forma autônoma.</p>
+                  )}
+                </div>
+              </div>
+
+              {/* Test Image Generation Section */}
+              <div className="space-y-3 p-3.5 rounded-xl border border-border/70 bg-muted/20">
+                <div className="space-y-1">
+                  <Label className="text-xs font-semibold flex items-center gap-1.5">
+                    <Sparkles className="w-3.5 h-3.5 text-primary" />
+                    <span>{t('settings.imageGenerationTestTitle') || 'Testar Geração de Imagem'}</span>
+                  </Label>
+                  <p className="text-[11px] text-muted-foreground">
+                    {t('settings.imageGenerationTestDesc') || 'Envie um prompt rápido para verificar a conexão com a API e conferir o resultado da imagem gerada.'}
+                  </p>
+                </div>
+
+                <div className="space-y-2">
+                  <div className="flex gap-2">
+                    <Input
+                      type="text"
+                      value={testImagePrompt}
+                      onChange={(e) => setTestImagePrompt(e.target.value)}
+                      placeholder={t('settings.imageGenerationTestPromptPlaceholder') || 'Digite um prompt para o teste (ou deixe em branco para prompt padrão)...'}
+                      disabled={isTestingImage}
+                      className="text-xs h-9"
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' && !isTestingImage) {
+                          e.preventDefault();
+                          handleTestImageGeneration();
+                        }
+                      }}
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={handleTestImageGeneration}
+                      disabled={isTestingImage}
+                      className="h-9 px-3 text-xs gap-1.5 shrink-0"
+                    >
+                      {isTestingImage ? (
+                        <>
+                          <RefreshCw className="w-3.5 h-3.5 animate-spin text-primary" />
+                          <span>{t('settings.imageGenerationTesting') || 'Sintetizando...'}</span>
+                        </>
+                      ) : (
+                        <>
+                          <Zap className="w-3.5 h-3.5 text-amber-500" />
+                          <span>{t('settings.imageGenerationTestBtn') || 'Testar'}</span>
+                        </>
+                      )}
+                    </Button>
+                  </div>
+
+                  {isTestingImage && (
+                    <div className="flex items-center gap-2 p-2.5 rounded-lg bg-primary/5 border border-primary/20 text-xs text-primary animate-pulse">
+                      <RefreshCw className="w-3.5 h-3.5 animate-spin shrink-0" />
+                      <span>{t('settings.imageGenerationTestingNote') || 'Sintetizando imagem via API... Aguarde alguns instantes.'}</span>
+                    </div>
+                  )}
+
+                  {/* Test Result Display */}
+                  {imageTestResult && !isTestingImage && (
+                    <div className="space-y-2.5 pt-1">
+                      {imageTestResult.success ? (
+                        <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/25 space-y-2.5">
+                          <div className="flex items-center justify-between text-xs text-emerald-700 dark:text-emerald-300">
+                            <div className="flex items-center gap-1.5 font-medium">
+                              <CheckCircle className="w-4 h-4 text-emerald-500 shrink-0" />
+                              <span>
+                                {t('settings.imageGenerationTestSuccess', {
+                                  latency: (imageTestResult.latencyMs / 1000).toFixed(1),
+                                  provider: imageTestResult.provider === 'openai' ? 'OpenAI' : 'xAI',
+                                  model: imageTestResult.model
+                                }) || `Imagem gerada com sucesso em ${(imageTestResult.latencyMs / 1000).toFixed(1)}s!`}
+                              </span>
+                            </div>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              className="h-6 w-6 text-muted-foreground hover:text-foreground"
+                              onClick={() => setImageTestResult(null)}
+                              title={t('settings.imageGenerationTestDismiss') || 'Fechar'}
+                            >
+                              <X className="w-3.5 h-3.5" />
+                            </Button>
+                          </div>
+
+                          {/* Image Preview */}
+                          <div className="relative group rounded-lg overflow-hidden border border-border/60 bg-black/40 flex items-center justify-center max-h-72">
+                            <img
+                              src={imageTestResult.dataUrl}
+                              alt={imageTestResult.prompt}
+                              className="w-auto h-auto max-h-72 object-contain cursor-pointer transition-transform duration-200 group-hover:scale-[1.01]"
+                              onClick={() => setFullScreenTestImage(imageTestResult.dataUrl)}
+                            />
+                            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center pointer-events-none">
+                              <span className="bg-background/90 text-foreground text-xs px-2.5 py-1 rounded-md shadow-md flex items-center gap-1.5 backdrop-blur-xs font-medium">
+                                <Maximize2 className="w-3.5 h-3.5" />
+                                {t('settings.imageGenerationTestExpand') || 'Ampliar'}
+                              </span>
+                            </div>
+                          </div>
+
+                          {/* Action Toolbar */}
+                          <div className="flex items-center justify-between gap-2 flex-wrap text-xs pt-1">
+                            <div className="flex items-center gap-2">
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                onClick={handleSaveTestImage}
+                                disabled={isSavingTestImage}
+                                className="h-7 px-2.5 rounded-lg text-xs gap-1.5"
+                              >
+                                {isSavingTestImage ? (
+                                  <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                                ) : testImageSaved ? (
+                                  <Check className="w-3.5 h-3.5 text-emerald-500" />
+                                ) : (
+                                  <Download className="w-3.5 h-3.5 text-primary" />
+                                )}
+                                <span>
+                                  {testImageSaved
+                                    ? (t('settings.imageGenerationTestDownloaded') || 'Salvo!')
+                                    : (t('settings.imageGenerationTestDownload') || 'Salvar Imagem')}
+                                </span>
+                              </Button>
+
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                onClick={handleCopyTestImage}
+                                className="h-7 px-2.5 rounded-lg text-xs gap-1.5"
+                              >
+                                {testImageCopied ? (
+                                  <Check className="w-3.5 h-3.5 text-emerald-500" />
+                                ) : (
+                                  <Copy className="w-3.5 h-3.5 text-muted-foreground" />
+                                )}
+                                <span>
+                                  {testImageCopied
+                                    ? (t('settings.imageGenerationTestCopied') || 'Copiado!')
+                                    : (t('settings.imageGenerationTestCopy') || 'Copiar')}
+                                </span>
+                              </Button>
+
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => setFullScreenTestImage(imageTestResult.dataUrl)}
+                                className="h-7 px-2.5 rounded-lg text-xs gap-1.5"
+                              >
+                                <Maximize2 className="w-3.5 h-3.5 text-muted-foreground" />
+                                <span>{t('settings.imageGenerationTestExpand') || 'Ampliar'}</span>
+                              </Button>
+                            </div>
+
+                            <span className="px-2 py-0.5 rounded-md bg-background/80 border border-border/50 text-[10px] font-mono text-muted-foreground">
+                              {imageTestResult.provider === 'openai' ? 'OpenAI' : 'xAI'} · {imageTestResult.model}
+                            </span>
+                          </div>
+
+                          {imageTestResult.revisedPrompt && imageTestResult.revisedPrompt !== imageTestResult.prompt && (
+                            <div className="text-[11px] text-muted-foreground bg-background/50 p-2 rounded-lg border border-border/40">
+                              <span className="font-semibold text-foreground/80">Prompt otimizado pelo modelo: </span>
+                              <span>{imageTestResult.revisedPrompt}</span>
+                            </div>
+                          )}
+                        </div>
+                      ) : (
+                        <div className="p-3 rounded-xl bg-destructive/10 border border-destructive/25 text-xs text-destructive flex items-start gap-2.5">
+                          <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+                          <div className="flex-1 min-w-0">
+                            <div className="font-semibold">
+                              {t('settings.imageGenerationTestError', { error: '' }) || 'Falha no teste de geração:'}
+                            </div>
+                            <div className="mt-1 text-xs opacity-90 break-words whitespace-pre-wrap">
+                              {imageTestResult.error}
+                            </div>
+                          </div>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            className="h-6 w-6 -mr-1 -mt-1 text-destructive/70 hover:text-destructive hover:bg-destructive/10"
+                            onClick={() => setImageTestResult(null)}
+                          >
+                            <X className="w-3.5 h-3.5" />
+                          </Button>
+                        </div>
+                      )}
+                    </div>
                   )}
                 </div>
               </div>
@@ -8645,6 +8963,31 @@ function Settings() {
         }}
         isMemoryEnabled={settings.userMemory?.enabled !== false}
       />
+
+      {/* Fullscreen Test Image Overlay */}
+      {fullScreenTestImage && typeof document !== 'undefined' && createPortal(
+        <div 
+          className="fixed inset-0 bg-black/85 flex items-center justify-center z-50 p-4 cursor-pointer backdrop-blur-xs"
+          onClick={() => setFullScreenTestImage(null)}
+        >
+          <div className="relative max-w-full max-h-full flex items-center justify-center">
+            <img 
+              src={fullScreenTestImage} 
+              alt="Fullscreen test preview" 
+              className="max-w-[90vw] max-h-[90vh] object-contain rounded-xl shadow-2xl border border-white/10"
+              onClick={(e) => e.stopPropagation()}
+            />
+            <button
+              type="button"
+              className="absolute -top-3 -right-3 p-1.5 rounded-full bg-background/90 text-foreground hover:bg-background shadow-lg border border-border cursor-pointer"
+              onClick={() => setFullScreenTestImage(null)}
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        </div>,
+        document.body
+      )}
     </div>
   );
 }
