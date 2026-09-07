@@ -47,7 +47,7 @@ export function useCompanionPanels(setIsCommandPaletteOpen) {
       } else if (event.shiftKey && event.key.toLowerCase() === 't') {
         event.preventDefault();
         setIsTasksOpen(value => !value);
-      } else if (event.shiftKey && event.key.toLowerCase() === 'e') {
+      } else if (event.shiftKey && (event.key?.toLowerCase() === 'e' || event.code === 'KeyE')) {
         event.preventDefault();
         setIsExplorerOpen(value => !value);
       }

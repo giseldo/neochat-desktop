@@ -2733,8 +2733,6 @@ function App() {
         onSelectWorkspace={handleSelectWorkspace}
         onOpenFileInCanvas={handleOpenFileInCanvas}
         onInsertPrompt={handleInsertPrompt}
-        onToggleExplorer={() => setIsExplorerOpen(prev => !prev)}
-        isExplorerOpen={isExplorerOpen}
       />
       
       {/* Main Content Area */}
@@ -2774,6 +2772,7 @@ function App() {
                 </button>
               )}
 
+              
               {/* In Code Mode: Workspace Directory Selector Button */}
               {isPowerUser && harnessMode === 'code' && (
                 <Button
@@ -2865,23 +2864,6 @@ function App() {
             </div>
 
             <div className="flex items-center space-x-1.5 sm:space-x-2">
-              {/* Workspace File Explorer Quick Shortcut Button */}
-              <Button
-                variant={isExplorerOpen ? "default" : "ghost"}
-                size="icon"
-                onClick={() => setIsExplorerOpen(prev => !prev)}
-                className={cn(
-                  "h-8 w-8 rounded-xl relative transition-all",
-                  isExplorerOpen
-                    ? "bg-amber-500 text-white shadow-xs hover:bg-amber-600"
-                    : "text-muted-foreground hover:text-foreground hover:bg-muted"
-                )}
-                title={`${t('header.workspaceExplorer') || 'Explorador de Arquivos'} (Ctrl+Shift+E)`}
-                aria-label={t('header.workspaceExplorer') || 'Explorador de Arquivos'}
-              >
-                <FolderTree className="h-4 w-4" />
-              </Button>
-
               {/* Consolidated Tools Menu Popover */}
               {isPowerUser && (
                 <div className="relative" ref={toolsDropdownRef}>
