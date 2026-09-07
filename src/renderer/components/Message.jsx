@@ -27,7 +27,8 @@ function Message({
   combinedReasoning = null,
   combinedReasoningDuration = null,
   onPreviewArtifact,
-  interfaceMode: propInterfaceMode
+  interfaceMode: propInterfaceMode,
+  isAfterToolOnly = false
 }) {
   const { t, language } = useLanguage();
   const { createNewDocument } = useCanvas();
@@ -169,10 +170,28 @@ function Message({
     return extractKnowledgeSources(message, allMessages);
   }, [message, allMessages]);
 
-  const messageClasses = `flex ${isUser ? 'justify-end' : 'justify-start'}`;
+  const hasVisibleContent = useMemo(() => {
+    if (isUser) return true;
+    const rawText = typeof message.content === 'string' 
+      ? (extracted.cleanContent !== undefined ? extracted.cleanContent : message.content)
+      : Array.isArray(message.content)
+        ? extractThinking(message.content.filter(p => p.type === 'text').map(p => p.text || '').join(' ')).cleanContent
+        : '';
+    return Boolean(rawText && rawText.trim().length > 0);
+  }, [isUser, message.content, extracted.cleanContent]);
+
+  const hasToolCalls = Boolean(tool_calls && tool_calls.length > 0);
+  const isToolOnly = !isUser && !hasVisibleContent && hasToolCalls;
+
+  const messageClasses = cn(
+    "flex",
+    isUser ? "justify-end" : "justify-start",
+    isToolOnly && "py-0 my-0",
+    isAfterToolOnly && "pt-2"
+  );
   const bubbleClasses = isUser
     ? `relative overflow-x-auto px-4 py-3 rounded-2xl max-w-xl max-h-[500px] overflow-y-auto bg-primary/10 border border-primary/20 text-foreground shadow-xs`
-    : `relative w-full text-foreground group`;
+    : cn("relative w-full text-foreground group", isToolOnly && "py-0 my-0");
   const wrapperClasses = `message-content-wrapper text-foreground break-words text-sm overflow-hidden leading-relaxed`;
 
   const toggleReasoning = () => setShowReasoning(!showReasoning);
@@ -311,7 +330,7 @@ function Message({
   return (
     <div className={messageClasses}>
       <div className={bubbleClasses}>
-        {isStreamingMessage && (
+        {isStreamingMessage && !hasToolCalls && (
           <div className="streaming-indicator mb-2">
             <span className="dot-1"></span>
             <span className="dot-2"></span>
@@ -479,9 +498,11 @@ function Message({
           </div>
         )}
 
-        <div className={wrapperClasses}>
-          {children}
-        </div>
+        {hasVisibleContent && (
+          <div className={wrapperClasses}>
+            {children}
+          </div>
+        )}
 
         {/* Web Search Sources / Citations */}
         {webSearchSources.length > 0 && (
@@ -497,7 +518,7 @@ function Message({
         {tool_calls && tool_calls.length > 0 && (() => {
           const clientSideToolCalls = tool_calls.filter(tc => !tc.server_label);
           return clientSideToolCalls.length > 0 ? (
-            <div className="mb-2 space-y-1">
+            <div className={cn("flex flex-col gap-1.5", hasVisibleContent ? "my-2" : "my-0")}>
               {clientSideToolCalls.map((toolCall, index) => (
                 <ToolCall 
                   key={toolCall.id || index} 
@@ -510,7 +531,7 @@ function Message({
         })()}
 
         {/* Action bar and Performance Metrics */}
-        {!isUser && (
+        {!isUser && hasVisibleContent && (
           <div className="flex flex-wrap items-center justify-start gap-2 mt-2 pt-1 text-xs text-muted-foreground opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity duration-200">
             {/* Speed & Performance Metrics (Power Mode only) */}
             {isPowerUser && (

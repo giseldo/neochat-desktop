@@ -286,6 +286,13 @@ function MessageList({
         const combinedReasoning = groupInfo?.combinedReasoning || null;
         const combinedReasoningDuration = groupInfo?.combinedDuration || null;
         
+        const prevMessage = index > 0 ? displayMessages[index - 1] : null;
+        const prevContent = prevMessage && typeof prevMessage.content === 'string' ? prevMessage.content : '';
+        const prevClean = prevContent ? extractThinking(prevContent).cleanContent : '';
+        const prevIsToolOnly = prevMessage && prevMessage.role === 'assistant' && 
+          (!prevClean || !prevClean.trim()) && 
+          Boolean(prevMessage.tool_calls && prevMessage.tool_calls.length > 0);
+        
         return (
           <Message 
             key={index} 
@@ -303,6 +310,7 @@ function MessageList({
             combinedReasoningDuration={combinedReasoningDuration}
             onPreviewArtifact={onPreviewArtifact}
             interfaceMode={interfaceMode}
+            isAfterToolOnly={Boolean(prevIsToolOnly)}
           >
           {message.role === 'user' ? (
             <div className="flex items-start gap-2">

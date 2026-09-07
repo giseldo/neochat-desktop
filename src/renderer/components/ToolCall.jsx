@@ -86,7 +86,7 @@ function ToolCall({ toolCall, toolResult }) {
   }
 
   return (
-    <div className="tool-call-container w-fit max-w-full my-1">
+    <div className="tool-call-container w-fit max-w-full">
       <div className="border border-border/50 bg-muted/60 hover:bg-muted transition-colors rounded-md px-2.5 py-1 text-xs">
         <div 
           className="flex justify-between items-center cursor-pointer gap-2 select-none"
