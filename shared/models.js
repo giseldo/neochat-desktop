@@ -192,7 +192,6 @@ async function getModelsFromAPIWithCache(apiKey, modelsUrl, forceRefresh = false
   // Return cached models if they're still fresh
   const cached = modelCache.get(cacheKey);
   if (!forceRefresh && cached && (now - cached.lastFetchTime) < CACHE_DURATION) {
-    console.log('Using cached models');
     return cached.models;
   }
 

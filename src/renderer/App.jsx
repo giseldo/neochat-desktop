@@ -133,6 +133,8 @@ function App() {
   const [initialLoadComplete, setInitialLoadComplete] = useState(false);
   // Track if using Responses API (needed for chat history compatibility)
   const [useResponsesApi, setUseResponsesApi] = useState(false);
+  const lastSettingsFingerprintRef = useRef('');
+  const lastSavedModelRef = useRef(null);
 
   // --- State for Chat Input Focus ---
   const [chatFocusSignal, setChatFocusSignal] = useState(0);
@@ -674,6 +676,13 @@ function App() {
         }
 
         setSelectedModel(effectiveModel); // Set the final selected model state
+        lastSavedModelRef.current = effectiveModel;
+        lastSettingsFingerprintRef.current = JSON.stringify({
+          provider: settings?.provider,
+          apiKeys: settings?.apiKeys,
+          customModels: settings?.customModels,
+          enabledModels: settings?.enabledModels
+        });
 
 
         // Initial load of MCP tools (can happen after model/settings)
@@ -737,31 +746,45 @@ function App() {
         setFavoriteModels(settings.favoriteModels || []);
         setUseResponsesApi(settings.useResponsesApi || false);
 
-        // Refresh model configs (e.g., after switching provider in Settings).
-        // The main process force-refetches models when the provider/key changed.
-        const configs = await window.electron.getModelConfigs();
-        setModelConfigs(configs);
-        const availableModels = Object.keys(configs).filter(key => key !== 'default');
-        setModels(availableModels);
+        // Check if provider, keys, or models actually changed before re-fetching configs
+        const currentFingerprint = JSON.stringify({
+          provider: settings?.provider,
+          apiKeys: settings?.apiKeys,
+          customModels: settings?.customModels,
+          enabledModels: settings?.enabledModels
+        });
 
-        const activeModels = filterModels(availableModels, configs, settings.enabledModels || []);
-        const validCandidates = activeModels.length > 0 ? activeModels : availableModels;
+        if (currentFingerprint !== lastSettingsFingerprintRef.current) {
+          lastSettingsFingerprintRef.current = currentFingerprint;
+          const configs = await window.electron.getModelConfigs();
+          setModelConfigs(configs);
+          const availableModels = Object.keys(configs).filter(key => key !== 'default');
+          setModels(prevModels => {
+            if (prevModels.length === availableModels.length && prevModels.every((m, i) => m === availableModels[i])) {
+              return prevModels;
+            }
+            return availableModels;
+          });
 
-        // If the currently selected model is no longer active, fallback to an active one
-        const isInvalidChatModel = (m) => !m || m.includes('canopylabs') || m.includes('orpheus');
-        const isSelectedActive = activeModels.includes(selectedModel) || (configs[selectedModel]?.rawModelId && activeModels.includes(configs[selectedModel].rawModelId));
+          const activeModels = filterModels(availableModels, configs, settings.enabledModels || []);
+          const validCandidates = activeModels.length > 0 ? activeModels : availableModels;
 
-        if (validCandidates.length > 0 && selectedModel && (!configs[selectedModel] || isInvalidChatModel(selectedModel) || !isSelectedActive)) {
-          const matchingKey = validCandidates.find(k =>
-            (k === selectedModel ||
-            configs[k]?.rawModelId === selectedModel ||
-            k.endsWith(`::${selectedModel}`)) && !isInvalidChatModel(k)
-          );
-          if (matchingKey) {
-            setSelectedModel(matchingKey);
-          } else {
-            const fallback = validCandidates.find(m => m.includes('llama-3.3-70b') || m.includes('llama-3.1-70b') || m.includes('gpt')) || validCandidates[0];
-            setSelectedModel(fallback);
+          // If the currently selected model is no longer active, fallback to an active one
+          const isInvalidChatModel = (m) => !m || m.includes('canopylabs') || m.includes('orpheus');
+          const isSelectedActive = activeModels.includes(selectedModel) || (configs[selectedModel]?.rawModelId && activeModels.includes(configs[selectedModel].rawModelId));
+
+          if (validCandidates.length > 0 && selectedModel && (!configs[selectedModel] || isInvalidChatModel(selectedModel) || !isSelectedActive)) {
+            const matchingKey = validCandidates.find(k =>
+              (k === selectedModel ||
+              configs[k]?.rawModelId === selectedModel ||
+              k.endsWith(`::${selectedModel}`)) && !isInvalidChatModel(k)
+            );
+            if (matchingKey) {
+              setSelectedModel(matchingKey);
+            } else {
+              const fallback = validCandidates.find(m => m.includes('llama-3.3-70b') || m.includes('llama-3.1-70b') || m.includes('gpt')) || validCandidates[0];
+              setSelectedModel(fallback);
+            }
           }
         }
       } catch (error) {
@@ -778,35 +801,31 @@ function App() {
   // Save model selection to settings when it changes, ONLY after initial load
   useEffect(() => {
     // Prevent saving during initial setup before models/settings are loaded/validated
-    if (!initialLoadComplete) {
+    if (!initialLoadComplete || !selectedModel) {
         return;
     }
 
-    // Also ensure models list isn't empty and selectedModel is valid
-    if (models.length === 0 || !selectedModel) {
-        console.warn("Skipping model save: Models not loaded or no model selected.");
+    // Skip if already saved
+    if (lastSavedModelRef.current === selectedModel) {
         return;
     }
 
     const saveModelSelection = async () => {
       try {
-        console.log(`Attempting to save selected model: ${selectedModel}`); // Debug log
         const settings = await window.electron.getSettings();
         // Check if the model actually changed before saving
         if (settings.model !== selectedModel) {
             console.log(`Saving new model selection: ${selectedModel}`);
             await window.electron.saveSettings({ ...settings, model: selectedModel });
-        } else {
-            // console.log("Model selection hasn't changed, skipping save."); // Optional: Log skips
         }
+        lastSavedModelRef.current = selectedModel;
       } catch (error) {
         console.error('Error saving model selection:', error);
       }
     };
 
     saveModelSelection();
-    // Depend on initialLoadComplete as well to trigger after load finishes
-  }, [selectedModel, initialLoadComplete, models]);
+  }, [selectedModel, initialLoadComplete]);
 
   // Callback when model parameters / context size are updated via ModelParametersModal
   const handleModelConfigUpdated = useCallback(async (modelId, newConfig) => {
