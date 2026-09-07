@@ -62,10 +62,7 @@ function ChatInput({
 	const { activeProject, openKnowledgeBaseModal } = useProjects();
 	const { canvasDoc, isOpen: isCanvasOpen, toggleCanvas, selectedText, setSelectedText, clearCanvas } = useCanvas();
 	const [message, setMessage] = useState("");
-	const [suggestion, setSuggestion] = useState("");
-	const [autocompleteEnabled, setAutocompleteEnabled] = useState(true);
 	const [webSearchActive, setWebSearchActive] = useState(false);
-	const suggestionTimeout = useRef(null);
 	const { messages, activeContext } = useContext(ChatContext);
 
 	useEffect(() => {
@@ -735,7 +732,6 @@ function ChatInput({
 				});
 				setMessage("");
 				setFiles([]);
-				setSuggestion("");
 				setImageMode(false);
 			}
 			return;
@@ -787,7 +783,6 @@ function ChatInput({
 			onSendMessage(contentToSend);
 			setMessage("");
 			setFiles([]); // Clear files after sending
-			setSuggestion(""); // Clear suggestion on send
 		}
 	};
 
@@ -819,21 +814,6 @@ function ChatInput({
 		if (e.key === "Escape" && isSlashMenuOpen) {
 			e.preventDefault();
 			setIsSlashMenuOpen(false);
-			return;
-		}
-
-		// Accept suggestion on Tab (only if autocomplete is enabled and slash menu is not active)
-		if (e.key === "Tab" && autocompleteEnabled && suggestion && !isSlashMenuOpen) {
-			e.preventDefault();
-			setMessage(message + suggestion);
-			setSuggestion("");
-			return; // Prevent other key handlers from firing
-		}
-
-		// Clear suggestion on escape
-		if (e.key === "Escape" && suggestion) {
-			e.preventDefault();
-			setSuggestion("");
 			return;
 		}
 
@@ -1473,14 +1453,6 @@ function ChatInput({
 					</div>
 
 					<div className="flex items-center gap-2 flex-shrink-0 ml-auto min-w-0">
-						{/* Autocomplete hint */}
-						{autocompleteEnabled && suggestion && !loading && !isSlashMenuOpen && (
-							<div className="text-xs text-muted-foreground flex items-center gap-1">
-								<kbd className="px-1.5 py-0.5 text-xs bg-muted border rounded">Tab</kbd>
-								{t('chat.toAccept')}
-							</div>
-						)}
-						
 						{/* Model Selector & Parameters */}
 						{(!models || models.length === 0) ? (
 							<Link

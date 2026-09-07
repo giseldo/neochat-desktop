@@ -377,9 +377,6 @@ contextBridge.exposeInMainWorld('electron', {
     ipcRenderer.on('tool-call', (event, ...args) => callback(...args));
   },
 
-  // Autocomplete
-  getAutocompleteSuggestion: (options) => ipcRenderer.invoke('autocomplete:get-suggestion', options),
-
   // --- Chat History Functions ---
   chatHistory: {
     list: () => ipcRenderer.invoke('chat-history-list'),

@@ -284,20 +284,6 @@ export default function KeyboardShortcutsModal({ isOpen, onClose }) {
         altKeys: [modKey, altKey, 'Space']
       },
       {
-        id: 'acceptAutocomplete',
-        category: 'chat',
-        title: t('shortcuts.items.acceptAutocomplete'),
-        description: t('shortcuts.items.acceptAutocompleteDesc'),
-        keys: ['Tab']
-      },
-      {
-        id: 'discardAutocomplete',
-        category: 'chat',
-        title: t('shortcuts.items.discardAutocomplete'),
-        description: t('shortcuts.items.discardAutocompleteDesc'),
-        keys: ['Esc']
-      },
-      {
         id: 'navigateMenu',
         category: 'chat',
         title: t('shortcuts.items.navigateMenu'),

@@ -19,7 +19,6 @@ const PROVIDERS = {
       'deepseek-r1-distill-llama-70b',
       'qwen-2.5-coder-32b',
       'deepseek-r1-distill-qwen-32b',
-      'llama-3.1-8b-instant',
       'gemma2-9b-it',
       'mixtral-8x7b-32768'
     ],

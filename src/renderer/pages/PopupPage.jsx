@@ -77,8 +77,6 @@ const PopupPage = () => {
   const [files, setFiles] = useState([]);
   const [fullScreenImage, setFullScreenImage] = useState(null);
   const [visionSupported, setVisionSupported] = useState(false);
-  const [suggestion, setSuggestion] = useState('');
-  const [autocompleteEnabled, setAutocompleteEnabled] = useState(true);
   const [interfaceMode, setInterfaceMode] = useState('user');
   const messagesEndRef = useRef(null);
   const messagesContainerRef = useRef(null);
@@ -299,9 +297,6 @@ const PopupPage = () => {
       
       // Load settings to get model filter
       const settings = await window.electron.getSettings();
-      if (settings.autocompleteEnabled !== undefined) {
-        setAutocompleteEnabled(settings.autocompleteEnabled);
-      }
       if (settings.interfaceMode) {
         setInterfaceMode(settings.interfaceMode === 'power' ? 'power' : 'user');
       }
@@ -394,21 +389,6 @@ const PopupPage = () => {
   };
 
   const handleKeyPress = (e) => {
-    // Accept suggestion on Tab (only if autocomplete is enabled)
-    if (e.key === 'Tab' && autocompleteEnabled && suggestion) {
-      e.preventDefault();
-      setInputValue(inputValue + suggestion);
-      setSuggestion('');
-      return; // Prevent other key handlers from firing
-    }
-
-    // Clear suggestion on escape, but only if there's a suggestion
-    if (e.key === 'Escape' && suggestion) {
-      e.preventDefault();
-      setSuggestion('');
-      return;
-    }
-
     if (e.key === 'Escape') {
       closePopup();
     } else if (e.key === 'Enter' && !e.shiftKey) {
@@ -518,7 +498,6 @@ const PopupPage = () => {
     setMessages(prev => [...prev, userMessageForUi]);
     setInputValue('');
     setFiles([]); // Clear files after sending
-    setSuggestion(''); // Clear suggestion on send
     setLoading(true);
     
     // Create message for model
