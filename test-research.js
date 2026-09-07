@@ -36,6 +36,12 @@ try {
   const screened = store.save({ ...imported.project, references: imported.project.references.map(item => ({ ...item, screening: 'exclude', screeningReason: 'Fora do período' })) });
   assert.equal(screened.history.length, 2);
   assert.equal(screened.history[0].actor, 'researcher');
+  const fieldId = require('crypto').randomUUID();
+  const assessment = { ...screened.assessment, extractionFields: [{ id: fieldId, label: 'Método' }], answers: [{ referenceId: screened.references[0].id, fieldId, value: 'Experimento', evidence: 'We conducted an experiment', page: '4' }] };
+  const extracted = store.save({ ...screened, assessment });
+  assert.equal(store.get(extracted.id).assessment.answers[0].page, '4');
+  assert.throws(() => store.save({ ...extracted, assessment: { ...assessment, extractionFields: [] } }), /Resposta inválida/);
+  assert.throws(() => store.save({ ...extracted, assessment: { ...assessment, answers: [...assessment.answers, ...assessment.answers] } }), /Resposta inválida/);
   console.log('Research: persistence, validation, traversal and revision conflict checks passed.');
 } finally {
   fs.rmSync(directory, { recursive: true, force: true });

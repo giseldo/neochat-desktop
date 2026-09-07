@@ -1,7 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 const { randomUUID } = require('crypto');
-const { librarySchema } = require('./schema');
+const { librarySchema, assessmentSchema } = require('./schema');
 const { parseRis, addReferences } = require('./library');
 
 const fields = ['title', 'objectives', 'questions', 'inclusion', 'exclusion', 'population', 'intervention', 'comparison', 'outcomes', 'context'];
@@ -49,6 +49,16 @@ class ResearchStore {
     if (previous && input.revision !== previous.revision) throw new Error('O projeto mudou. Reabra antes de salvar.');
     const now = new Date().toISOString();
     const references = librarySchema.parse(input.references ?? previous?.references ?? []);
+    const assessment = assessmentSchema.parse(input.assessment ?? previous?.assessment ?? {});
+    const fieldIds = new Set([...assessment.qualityFields, ...assessment.extractionFields].map(field => field.id));
+    if (fieldIds.size !== assessment.qualityFields.length + assessment.extractionFields.length) throw new Error('Campos repetidos.');
+    const answerIds = new Set();
+    for (const answer of assessment.answers) {
+      const key = `${answer.referenceId}/${answer.fieldId}`;
+      if (answerIds.has(key) || !fieldIds.has(answer.fieldId) || !references.some(item => item.id === answer.referenceId)) throw new Error('Resposta inválida.');
+      answerIds.add(key);
+      if (assessment.qualityFields.some(field => field.id === answer.fieldId) && !['', 'yes', 'partial', 'no', 'na'].includes(answer.value)) throw new Error('Avaliação de qualidade inválida.');
+    }
     const history = [...(previous?.history || [])];
     for (const item of references) {
       const old = previous?.references?.find(reference => reference.id === item.id);
@@ -56,7 +66,7 @@ class ResearchStore {
         if ((old?.[stage] || 'pending') !== item[stage] || (old?.[`${stage}Reason`] || '') !== item[`${stage}Reason`]) history.push({ referenceId: item.id, stage, decision: item[stage], reason: item[`${stage}Reason`], at: now, actor: 'researcher' });
       }
     }
-    const project = { ...values, references, history, id: previous?.id || randomUUID(), createdAt: previous?.createdAt || now, updatedAt: now, revision: (previous?.revision || 0) + 1, schemaVersion: 1 };
+    const project = { ...values, references, assessment, history, id: previous?.id || randomUUID(), createdAt: previous?.createdAt || now, updatedAt: now, revision: (previous?.revision || 0) + 1, schemaVersion: 1 };
     const target = this.file(project.id);
     const temporary = `${target}.tmp`;
     fs.writeFileSync(temporary, JSON.stringify(project, null, 2), 'utf8');
