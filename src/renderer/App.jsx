@@ -3294,7 +3294,7 @@ function App() {
                       />
                     </Suspense>
                   </div>
-                  <div className="flex-shrink-0 bg-background/95 backdrop-blur pt-3 max-w-4xl lg:max-w-5xl mx-auto w-full">
+                  <div className="flex-shrink-0 bg-background/95 backdrop-blur pt-3 px-4 w-full">
                     <ChatInput
                       messages={messages}
                       onSendMessage={handleSendMessage}
@@ -3324,7 +3324,10 @@ function App() {
                 </div>
               ) : (messages.length === 0 && (activeTab === 'chat' || !showTrajectoryTab || !isPowerUser)) ? (
                 /* Welcome Screen */
-                <div className="flex flex-col items-center justify-center h-full max-w-4xl lg:max-w-5xl mx-auto w-full px-4 py-6 overflow-y-auto">
+                <div className={cn(
+                  "flex flex-col items-center justify-center h-full mx-auto w-full px-4 py-6 overflow-y-auto",
+                  chatWidth === 'wide' ? "max-w-4xl lg:max-w-5xl" : "max-w-[1600px]"
+                )}>
                   <WelcomeScreen
                     showTips={showWelcomeTips}
                     showSuggestions={showWelcomeSuggestions}
@@ -3391,7 +3394,7 @@ function App() {
                     </Suspense>
                   </div>
 
-                  <div className="flex-shrink-0 bg-background/95 backdrop-blur pt-3">
+                  <div className="flex-shrink-0 bg-background/95 backdrop-blur pt-3 px-4">
                     <ChatInput
                       messages={messages}
                       onSendMessage={handleSendMessage}
@@ -3474,7 +3477,7 @@ function App() {
                     </button>
                   )}
                   
-                  <div className="flex-shrink-0 bg-background/95 backdrop-blur pt-6">
+                  <div className="flex-shrink-0 bg-background/95 backdrop-blur pt-6 px-4">
                     <ChatInput
                       messages={messages}
                       onSendMessage={handleSendMessage}

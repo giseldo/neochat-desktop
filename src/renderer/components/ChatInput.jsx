@@ -858,7 +858,7 @@ function ChatInput({
 	return (
     <div 
 			className={cn(
-				"flex flex-col gap-2 border rounded-2xl w-full max-w-[880px] mx-auto p-3 bg-background relative transition-colors focus-within:border-primary/40",
+				"flex flex-col gap-2 border rounded-2xl w-full mx-auto p-3 bg-background relative transition-colors focus-within:border-primary/40",
 				harnessMode === 'code' ? "border-amber-500/40 ring-1 ring-amber-500/20" : "border-border/80",
 				isDragOver 
 					? "border-primary border-2 bg-primary/5 transition-all duration-200" 

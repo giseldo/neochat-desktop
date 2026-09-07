@@ -729,14 +729,14 @@ select#model-select {
 
 /* Standard cross-browser scrollbar properties */
 * {
-  scrollbar-width: thin;
-  scrollbar-color: hsl(var(--muted-foreground) / 0.28) transparent;
+  scrollbar-width: auto;
+  scrollbar-color: hsl(var(--muted-foreground) / 0.35) transparent;
 }
 
 /* WebKit / Chromium (Electron) Global Scrollbar */
 ::-webkit-scrollbar {
-  width: 7px;
-  height: 7px;
+  width: 11px;
+  height: 11px;
 }
 
 ::-webkit-scrollbar-track {
@@ -744,19 +744,19 @@ select#model-select {
 }
 
 ::-webkit-scrollbar-thumb {
-  background-color: hsl(var(--muted-foreground) / 0.28);
+  background-color: hsl(var(--muted-foreground) / 0.35);
   border-radius: 9999px;
-  border: 1.5px solid transparent;
+  border: 2px solid transparent;
   background-clip: padding-box;
   transition: background-color 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background-color: hsl(var(--muted-foreground) / 0.55);
+  background-color: hsl(var(--muted-foreground) / 0.65);
 }
 
 ::-webkit-scrollbar-thumb:active {
-  background-color: hsl(var(--primary) / 0.8);
+  background-color: hsl(var(--primary) / 0.85);
 }
 
 ::-webkit-scrollbar-corner {
@@ -771,13 +771,13 @@ select#model-select {
 
 /* Custom Scrollbar Utility */
 .custom-scrollbar {
-  scrollbar-width: thin;
-  scrollbar-color: hsl(var(--muted-foreground) / 0.3) transparent;
+  scrollbar-width: auto;
+  scrollbar-color: hsl(var(--muted-foreground) / 0.38) transparent;
 }
 
 .custom-scrollbar::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 11px;
+  height: 11px;
 }
 
 .custom-scrollbar::-webkit-scrollbar-track {
@@ -785,19 +785,19 @@ select#model-select {
 }
 
 .custom-scrollbar::-webkit-scrollbar-thumb {
-  background-color: hsl(var(--muted-foreground) / 0.28);
+  background-color: hsl(var(--muted-foreground) / 0.38);
   border-radius: 9999px;
-  border: 1px solid transparent;
+  border: 2px solid transparent;
   background-clip: padding-box;
   transition: background-color 0.15s ease;
 }
 
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-  background-color: hsl(var(--muted-foreground) / 0.6);
+  background-color: hsl(var(--muted-foreground) / 0.7);
 }
 
 .custom-scrollbar::-webkit-scrollbar-thumb:active {
-  background-color: hsl(var(--primary) / 0.8);
+  background-color: hsl(var(--primary) / 0.85);
 }
 
 /* Slim / Thin Scrollbar */
@@ -847,11 +847,11 @@ select#model-select {
 /* Sidebar scrollbar refinements */
 .chat-sidebar .overflow-y-auto {
   scrollbar-width: thin;
-  scrollbar-color: hsl(var(--muted-foreground) / 0.25) transparent;
+  scrollbar-color: hsl(var(--muted-foreground) / 0.3) transparent;
 }
 
 .chat-sidebar .overflow-y-auto::-webkit-scrollbar {
-  width: 5px;
+  width: 6px;
 }
 
 .chat-sidebar .overflow-y-auto::-webkit-scrollbar-track {
@@ -859,11 +859,11 @@ select#model-select {
 }
 
 .chat-sidebar .overflow-y-auto::-webkit-scrollbar-thumb {
-  background-color: hsl(var(--muted-foreground) / 0.25);
+  background-color: hsl(var(--muted-foreground) / 0.3);
   border-radius: 9999px;
   transition: background-color 0.15s ease;
 }
 
 .chat-sidebar .overflow-y-auto::-webkit-scrollbar-thumb:hover {
-  background-color: hsl(var(--muted-foreground) / 0.5);
+  background-color: hsl(var(--muted-foreground) / 0.6);
 } 
