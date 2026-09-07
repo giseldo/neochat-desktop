@@ -61,7 +61,7 @@ export const translations = {
       toolsMenu: 'Menu de Ferramentas',
       agentEngine: 'Engine do Agente',
       workspaceExplorer: 'Explorador de Arquivos',
-      workspaceExplorerSubtitle: 'Estrutura de pastas e arquivos',
+      workspaceExplorerSubtitle: 'Estrutura de pastas e arquivos (Ctrl+Shift+E)',
     },
     sidebar: {
       chatsSection: 'Chats',
@@ -1706,7 +1706,7 @@ export const translations = {
       toolsMenu: 'Tools Menu',
       agentEngine: 'Agent Engine',
       workspaceExplorer: 'File Explorer',
-      workspaceExplorerSubtitle: 'Workspace folders and files',
+      workspaceExplorerSubtitle: 'Workspace folders and files (Ctrl+Shift+E)',
     },
     sidebar: {
       chatsSection: 'Chats',
