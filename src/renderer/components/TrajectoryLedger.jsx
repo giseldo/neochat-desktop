@@ -15,7 +15,8 @@ import {
   Zap,
   MessageSquare,
   Cpu,
-  Layers
+  Layers,
+  Sparkles
 } from 'lucide-react';
 import { extractThinking } from '../lib/messageUtils';
 
@@ -1019,7 +1020,7 @@ export default function TrajectoryLedger({
                             const breakdown = getTurnBreakdown(event, turn, mcpTools);
                             const toolsTokens = breakdown?.tools?.estimated_tokens || 0;
                             const toolsCount = breakdown?.tools?.count || (mcpTools ? mcpTools.length : 0);
-                            const toolsList = breakdown?.tools?.tools || [];
+                            const _toolsList = breakdown?.tools?.tools || [];
                             const systemTokens = breakdown?.system?.estimated_tokens || 0;
                             const userTokens = breakdown?.user_input?.estimated_tokens || 0;
 
