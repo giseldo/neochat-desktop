@@ -234,7 +234,9 @@ function ChatHistorySidebar({
   workspaceInfo = null,
   onSelectWorkspace,
   onOpenFileInCanvas,
-  onInsertPrompt
+  onInsertPrompt,
+  onToggleExplorer,
+  isExplorerOpen = false
 }) {
   const { 
     chatList, 
@@ -1324,6 +1326,25 @@ function ChatHistorySidebar({
         <h2 className="font-semibold text-sm text-foreground tracking-tight pl-1">NeoChat</h2>
         
         <div className="flex items-center gap-0.5">
+          {/* Workspace File Explorer Quick Shortcut */}
+          {onToggleExplorer && (
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={onToggleExplorer}
+              className={cn(
+                "h-7 w-7 rounded-lg transition-colors",
+                isExplorerOpen 
+                  ? "text-amber-500 bg-amber-500/15 hover:bg-amber-500/25" 
+                  : "text-muted-foreground hover:text-foreground hover:bg-muted/80"
+              )}
+              title={`${t('sidebar.workspaceExplorer') || 'Explorador de Arquivos'} (Ctrl+Shift+E)`}
+              aria-label={t('sidebar.workspaceExplorer') || 'Explorador de Arquivos'}
+            >
+              <FolderTree className="h-4 w-4 text-amber-500" />
+            </Button>
+          )}
+
           {/* New Chat button */}
           <Button
             variant="ghost"

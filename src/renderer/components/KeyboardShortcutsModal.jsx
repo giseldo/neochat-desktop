@@ -176,6 +176,13 @@ export default function KeyboardShortcutsModal({ isOpen, onClose }) {
         keys: [modKey, '`']
       },
       {
+        id: 'toggleExplorer',
+        category: 'navigation',
+        title: t('shortcuts.items.toggleExplorer') || 'Alternar Explorador de Arquivos',
+        description: t('shortcuts.items.toggleExplorerDesc') || 'Abre ou fecha o painel do explorador de arquivos e estrutura de pastas do workspace.',
+        keys: [modKey, shiftKey, 'E']
+      },
+      {
         id: 'toggleBrowser',
         category: 'navigation',
         title: 'Alternar Navegador Embutido',

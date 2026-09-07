@@ -32,6 +32,8 @@ async function runTests() {
   assert.ok(translationsContent.includes("popupShortcutLabel: 'Atalho Global do Sistema'"), 'Tradução pt.settings.popupShortcutLabel deve existir');
   assert.ok(translationsContent.includes("popupShortcutLabel: 'Global System Hotkey'"), 'Tradução en.settings.popupShortcutLabel deve existir');
   assert.ok(translationsContent.includes("popupToggle: 'Abrir / Alternar Janela Flutuante'"), 'Tradução pt.shortcuts.items.popupToggle deve existir');
+  assert.ok(translationsContent.includes("toggleExplorer: 'Alternar Explorador de Arquivos'"), 'Tradução pt.shortcuts.items.toggleExplorer deve existir');
+  assert.ok(translationsContent.includes("toggleExplorer: 'Toggle File Explorer'"), 'Tradução en.shortcuts.items.toggleExplorer deve existir');
   console.log('   ✅ Todas as traduções de atalhos e janela flutuante estão completas');
 
   // 3. Test settingsManager defaults

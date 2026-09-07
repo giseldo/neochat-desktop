@@ -35,7 +35,9 @@ import {
   Store,
   Compass,
   LayoutGrid,
-  MessageSquare
+  MessageSquare,
+  FolderTree,
+  ExternalLink
 } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
 import { useChat } from '../context/ChatContext';
@@ -68,6 +70,8 @@ export function CommandPaletteModal({
   onOpenMcpCatalog,
   onToggleCompareMode,
   onToggleTerminal,
+  onToggleExplorer,
+  onOpenInOsExplorer,
   onToggleBackgroundTasks,
   onToggleBrowser,
   onOpenSwarmModal,
@@ -225,6 +229,25 @@ export function CommandPaletteModal({
         icon: Terminal,
         shortcut: `${modKey}+\``,
         action: () => { onClose(); onToggleTerminal?.(); }
+      },
+      {
+        id: 'nav_explorer',
+        category: 'nav',
+        categoryLabel: 'Navegação',
+        title: 'Explorador de Arquivos (Workspace Tree)',
+        subtitle: 'Visualizar pastas, arquivos e navegar pelo código do projeto',
+        icon: FolderTree,
+        shortcut: `${modKey}+Shift+E`,
+        action: () => { onClose(); onToggleExplorer?.(); }
+      },
+      {
+        id: 'nav_os_explorer',
+        category: 'nav',
+        categoryLabel: 'Navegação',
+        title: 'Abrir no Explorador de Arquivos do Sistema',
+        subtitle: 'Abre a pasta do workspace atual no Windows Explorer / Finder',
+        icon: ExternalLink,
+        action: () => { onClose(); onOpenInOsExplorer?.(); }
       },
       {
         id: 'nav_swarm',
