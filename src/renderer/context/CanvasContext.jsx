@@ -251,6 +251,93 @@ export function CanvasProvider({ children }) {
     setActiveRevisionIndex(null);
   }, []);
 
+  // Restore or open a specific version of a document from chat history
+  const restoreOrOpenVersion = useCallback(({
+    version = 1,
+    title = 'Documento Canvas',
+    content = '',
+    language = 'markdown',
+    summary = '',
+    docId = null,
+    history = null
+  }) => {
+    const now = new Date().toISOString();
+    const stats = computeStats(content || '');
+    const cleanLang = (language || 'markdown').toLowerCase();
+    const cleanTitle = (title || 'Documento Canvas').trim();
+
+    setCanvasDoc((prev) => {
+      // 1. If there's currently no canvas doc (e.g. user deleted or cleared canvas)
+      if (!prev) {
+        const initialRevision = {
+          version: version || 1,
+          content: content || '',
+          timestamp: now,
+          source: 'ai',
+          summary: summary || (version > 1 ? `Versão ${version} restaurada` : 'Documento criado no Canvas'),
+          stats
+        };
+
+        const newDoc = {
+          id: docId || `canvas_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+          title: cleanTitle,
+          language: cleanLang,
+          content: content || '',
+          version: version || 1,
+          createdAt: now,
+          updatedAt: now,
+          stats,
+          history: Array.isArray(history) && history.length > 0 ? history : [initialRevision]
+        };
+
+        persistCanvas(newDoc);
+        return newDoc;
+      }
+
+      // 2. If canvas doc already matches this version and content
+      if (prev.version === version && prev.content === content) {
+        return prev;
+      }
+
+      // 3. Document exists: restore this version as a new revision so no history is lost
+      const newVersion = (prev.version || 1) + 1;
+      const restoreRev = {
+        version: newVersion,
+        content: content || '',
+        timestamp: now,
+        source: 'user',
+        summary: summary || `Restaurado a partir da Versão ${version || 1}`,
+        stats
+      };
+
+      const updatedHistory = Array.isArray(prev.history)
+        ? [...prev.history, restoreRev]
+        : [restoreRev];
+
+      const updated = {
+        ...prev,
+        title: cleanTitle || prev.title,
+        language: cleanLang || prev.language,
+        content: content || '',
+        version: newVersion,
+        updatedAt: now,
+        stats,
+        history: updatedHistory
+      };
+
+      persistCanvas(updated);
+      return updated;
+    });
+
+    setActiveRevisionIndex(null);
+    if (['javascript', 'python', 'typescript', 'js', 'py', 'ts'].includes(cleanLang)) {
+      setMode('edit');
+    } else {
+      setMode('preview');
+    }
+    setIsOpen(true);
+  }, [persistCanvas]);
+
   const openCanvas = useCallback((docOverride) => {
     if (docOverride) {
       setCanvasDoc(docOverride);
@@ -373,6 +460,7 @@ export function CanvasProvider({ children }) {
         updateDocument,
         applyPatch,
         restoreRevision,
+        restoreOrOpenVersion,
         loadChatCanvas,
         openCanvas,
         closeCanvas,

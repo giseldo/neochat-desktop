@@ -79,7 +79,7 @@ async function handleExecuteToolCall(event, toolCall, discoveredTools, mcpClient
       const chatId = settings?.currentChatId || args?.chatId || 'default';
       const canvasResponse = handleCanvasToolCall(toolName, args, chatId);
       return {
-        result: limitContentLength(JSON.stringify(canvasResponse, null, 2), settings?.toolOutputLimit || 16000),
+        result: JSON.stringify(canvasResponse),
         tool_call_id: toolCallId,
         canvasData: canvasResponse
       };

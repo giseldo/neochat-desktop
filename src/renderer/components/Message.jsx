@@ -524,6 +524,7 @@ function Message({
                   key={toolCall.id || index} 
                   toolCall={toolCall} 
                   toolResult={findToolResult(toolCall.id)}
+                  allMessages={allMessages}
                 />
               ))}
             </div>

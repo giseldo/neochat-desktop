@@ -1071,6 +1071,7 @@ function App() {
         role: 'tool',
         content: response.error ? JSON.stringify({ error: response.error }) : (response.result || ''),
         tool_call_id: toolCall.id,
+        canvasData: response.canvasData,
         durationMs,
         status: response.error ? 'error' : 'completed',
         error: response.error || null,

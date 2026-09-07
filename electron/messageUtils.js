@@ -93,6 +93,18 @@ function compressHistoricalToolContent(rawContent) {
         status: 'completed_in_previous_turn'
       });
     }
+
+    // Canvas Document tool result compression for historical turns
+    if (parsed && (parsed.action === 'created' || parsed.action === 'updated' || parsed.action === 'edited_selection')) {
+      return JSON.stringify({
+        success: true,
+        action: parsed.action,
+        version: parsed.version,
+        title: parsed.title,
+        summary: parsed.summary,
+        status: 'completed_in_previous_turn'
+      });
+    }
   } catch (e) {
     // If not JSON but a large text payload from a previous turn, truncate safely
     if (rawContent.length > 500) {
