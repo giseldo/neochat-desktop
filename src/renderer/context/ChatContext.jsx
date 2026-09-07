@@ -224,6 +224,11 @@ export const ChatProvider = ({ children }) => {
     setIsSidebarCollapsed(prev => !prev);
   }, []);
 
+  // Collapse sidebar explicitly
+  const collapseSidebar = useCallback(() => {
+    setIsSidebarCollapsed(true);
+  }, []);
+
   // Wrapper for setMessages that also handles saving and title generation
   const setMessagesWithSave = useCallback((updater) => {
     setMessages(prev => {
@@ -344,6 +349,8 @@ export const ChatProvider = ({ children }) => {
     chatList,
     isLoadingChats,
     isSidebarCollapsed,
+    setIsSidebarCollapsed,
+    collapseSidebar,
     loadChatList,
     createNewChat,
     loadChat,

@@ -981,7 +981,7 @@ function ChatInput({
 			)}
 
 			{/* Active Canvas Document Chip */}
-			{powerUserMode && canvasDoc && (
+			{canvasDoc && (
 				<div className="flex items-center gap-1.5 px-4 pt-1 select-none animate-in fade-in duration-200">
 					<div 
 						className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 text-xs font-medium shadow-2xs group"
@@ -1319,25 +1319,23 @@ function ChatInput({
 									)}
 
 									{/* Canvas Workspace */}
-									{powerUserMode && (
-										<button
-											type="button"
-											onClick={() => {
-												setIsPlusMenuOpen(false);
-												toggleCanvas();
-											}}
-											className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-muted/80 text-foreground transition-colors text-left"
-										>
-											<Layout className="w-4 h-4 text-emerald-500 shrink-0" />
-											<div className="flex-1 min-w-0">
-												<div className="font-semibold text-foreground flex items-center gap-1.5">
-													<span>{t('canvas.label') || 'Espaço Canvas'}</span>
-													{isCanvasOpen && <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />}
-												</div>
-												<div className="text-[10px] text-muted-foreground truncate">{isCanvasOpen ? 'Painel aberto' : 'Editor de texto e código lado a lado'}</div>
+									<button
+										type="button"
+										onClick={() => {
+											setIsPlusMenuOpen(false);
+											toggleCanvas();
+										}}
+										className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-muted/80 text-foreground transition-colors text-left"
+									>
+										<Layout className="w-4 h-4 text-emerald-500 shrink-0" />
+										<div className="flex-1 min-w-0">
+											<div className="font-semibold text-foreground flex items-center gap-1.5">
+												<span>{t('canvas.label') || 'Espaço Canvas'}</span>
+												{isCanvasOpen && <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />}
 											</div>
-										</button>
-									)}
+											<div className="text-[10px] text-muted-foreground truncate">{isCanvasOpen ? 'Painel aberto' : 'Editor de texto e código lado a lado'}</div>
+										</div>
+									</button>
 
 									{/* Knowledge Base */}
 									{powerUserMode && activeProject && openKnowledgeBaseModal && (
@@ -1362,30 +1360,28 @@ function ChatInput({
 									)}
 
 									{/* Slash Commands & Prompts */}
-									{powerUserMode && (
-										<button
-											type="button"
-											onClick={() => {
-												setIsPlusMenuOpen(false);
-												if (!message) {
-													setMessage("/");
-													setIsSlashMenuOpen(true);
-													setSlashFilterQuery("");
-													setSelectedSlashIndex(0);
-													textareaRef.current?.focus();
-												} else {
-													setIsPromptTemplatesModalOpen(true);
-												}
-											}}
-											className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-muted/80 text-foreground transition-colors text-left"
-										>
-											<Terminal className="w-4 h-4 text-primary shrink-0" />
-											<div className="flex-1 min-w-0">
-												<div className="font-semibold text-foreground">Comandos Rápidos (/)</div>
-												<div className="text-[10px] text-muted-foreground truncate">Prompts e ações rápidas</div>
-											</div>
-										</button>
-									)}
+									<button
+										type="button"
+										onClick={() => {
+											setIsPlusMenuOpen(false);
+											if (!message) {
+												setMessage("/");
+												setIsSlashMenuOpen(true);
+												setSlashFilterQuery("");
+												setSelectedSlashIndex(0);
+												textareaRef.current?.focus();
+											} else {
+												setIsPromptTemplatesModalOpen(true);
+											}
+										}}
+										className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-muted/80 text-foreground transition-colors text-left"
+									>
+										<Terminal className="w-4 h-4 text-primary shrink-0" />
+										<div className="flex-1 min-w-0">
+											<div className="font-semibold text-foreground">Comandos Rápidos (/)</div>
+											<div className="text-[10px] text-muted-foreground truncate">Prompts e ações rápidas</div>
+										</div>
+									</button>
 								</div>
 							)}
 						</div>

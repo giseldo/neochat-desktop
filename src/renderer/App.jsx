@@ -70,6 +70,7 @@ function App() {
     clearCurrentChat,
     isSidebarCollapsed,
     toggleSidebar,
+    collapseSidebar,
     needsTitleGeneration
   } = useChat(); // Use context state
   const {
@@ -397,10 +398,9 @@ function App() {
       setIsTasksOpen(false);
       setIsBrowserOpen(false);
       setIsExplorerOpen(false);
-      closeCanvas();
       setActiveArtifact(null);
     }
-  }, [isPowerUser, closeCanvas]);
+  }, [isPowerUser]);
 
   const currentChatTitle = useMemo(() => {
     if (!currentChatId || !chatList) return '';
@@ -2647,6 +2647,7 @@ function App() {
         e.preventDefault();
         const nextMode = interfaceMode === 'power' ? 'user' : 'power';
         handleInterfaceModeChange(nextMode);
+        collapseSidebar();
         return;
       }
 
@@ -2662,7 +2663,7 @@ function App() {
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
     };
-  }, [handleNewChat, toggleSidebar, handleToggleCanvas, handleToggleCodeInterpreter, navigate, interfaceMode, handleInterfaceModeChange]);
+  }, [handleNewChat, toggleSidebar, collapseSidebar, handleToggleCanvas, handleToggleCodeInterpreter, navigate, interfaceMode, handleInterfaceModeChange]);
 
   // Handle when a chat is loaded from history - switch API mode and sync active project if needed
   const handleChatLoaded = useCallback(async (chat) => {
@@ -3285,6 +3286,7 @@ function App() {
                       selectedModel={selectedModel}
                       onModelChange={setSelectedModel}
                       onOpenMcpTools={() => setIsToolsPanelOpen(true)}
+                      onOpenSkillsModal={() => handleOpenSkillsModal('installed')}
                       toolsCount={mcpTools.length}
                       modelConfigs={modelConfigs}
                       focusSignal={chatFocusSignal}
@@ -3328,6 +3330,7 @@ function App() {
                       selectedModel={selectedModel}
                       onModelChange={setSelectedModel}
                       onOpenMcpTools={() => setIsToolsPanelOpen(true)}
+                      onOpenSkillsModal={() => handleOpenSkillsModal('installed')}
                       toolsCount={mcpTools.length}
                       modelConfigs={modelConfigs}
                       focusSignal={chatFocusSignal}
@@ -3380,6 +3383,7 @@ function App() {
                       selectedModel={selectedModel}
                       onModelChange={setSelectedModel}
                       onOpenMcpTools={() => setIsToolsPanelOpen(true)}
+                      onOpenSkillsModal={() => handleOpenSkillsModal('installed')}
                       toolsCount={mcpTools.length}
                       modelConfigs={modelConfigs}
                       focusSignal={chatFocusSignal}
