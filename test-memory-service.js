@@ -56,11 +56,18 @@ assert.strictEqual(stats.byCategory.fact, 1, 'Fact category count should be 1');
 assert.strictEqual(stats.byCategory.rule, 1, 'Rule category count should be 1');
 
 console.log('7. Testing formatted system prompt generation...');
+// When enabled with memories
 const formattedPrompt = memoryService.getFormattedMemoryPrompt({ userMemory: { enabled: true } });
-assert(formattedPrompt.includes('USER MEMORY & PROFILE'), 'Prompt should contain header');
+assert(formattedPrompt.includes('USER GENERAL MEMORY & PROFILE'), 'Prompt should contain header');
 assert(formattedPrompt.includes('Meu nome é Alex'), 'Prompt should contain active fact');
 assert(formattedPrompt.includes('Nunca use bibliotecas legadas'), 'Prompt should contain active rule');
 assert(!formattedPrompt.includes('TypeScript com Tailwind'), 'Prompt should NOT contain disabled preference');
+assert(formattedPrompt.includes('save_user_memory'), 'Prompt should inject save_user_memory command');
+assert(formattedPrompt.includes('forget_user_memory'), 'Prompt should inject forget_user_memory command');
+
+// When disabled in settings
+const disabledPrompt = memoryService.getFormattedMemoryPrompt({ userMemory: { enabled: false } });
+assert.strictEqual(disabledPrompt, '', 'Disabled userMemory must inject NOTHING (empty string)');
 
 console.log('8. Testing tool definitions...');
 const toolDefs = memoryService.getMemoryToolDefinitions();
@@ -73,12 +80,66 @@ const forgetRes = memoryService.forgetMemoryByQuery('desenvolvedor');
 assert(forgetRes.success, 'Should forget memory matching query');
 assert.strictEqual(memoryService.getMemories().length, 2, 'Should now have 2 memories left');
 
-console.log('10. Testing clearMemories...');
+console.log('10. Testing clearMemories and empty prompt injection...');
 const clearRes = memoryService.clearMemories();
 assert(clearRes.success, 'Should clear all memories');
 assert.strictEqual(memoryService.getMemories().length, 0, 'Memories should be completely empty');
 
-// Clean up
-fs.rmSync(tempDir, { recursive: true, force: true });
+// When enabled with 0 memories, commands MUST STILL BE INJECTED
+const emptyMemoriesPrompt = memoryService.getFormattedMemoryPrompt({ userMemory: { enabled: true } });
+assert(emptyMemoriesPrompt.includes('save_user_memory'), 'Empty memories prompt must still inject save_user_memory command');
+assert(emptyMemoriesPrompt.includes('forget_user_memory'), 'Empty memories prompt must still inject forget_user_memory command');
+assert(emptyMemoriesPrompt.includes('No persistent user memories are stored yet'), 'Should indicate memory is empty');
 
-console.log('✅ ALL MEMORY SERVICE TESTS PASSED SUCCESSFULLY!');
+console.log('11. Testing toolHandler execution with enabled vs disabled settings...');
+const toolHandler = require('./electron/toolHandler');
+
+// When disabled: save_user_memory must be blocked
+const disabledToolCall = {
+  id: 'call_save_disabled',
+  function: {
+    name: 'save_user_memory',
+    arguments: JSON.stringify({ memory: 'Teste memória desabilitada', category: 'fact' })
+  }
+};
+const disabledResult = Promise.resolve(toolHandler.handleExecuteToolCall(
+  { sender: { isDestroyed: () => false, send: () => {} } },
+  disabledToolCall,
+  [],
+  {},
+  { userMemory: { enabled: false } }
+));
+
+disabledResult.then(async (res) => {
+  assert(res.error, 'Tool call when memory is disabled MUST return an error');
+  assert(res.error.includes('desativado'), 'Error message should inform that memory is disabled');
+  assert.strictEqual(memoryService.getMemories().length, 0, 'No memory should be saved when disabled');
+
+  // When enabled: save_user_memory must succeed
+  const enabledToolCall = {
+    id: 'call_save_enabled',
+    function: {
+      name: 'save_user_memory',
+      arguments: JSON.stringify({ memory: 'Gosta de café sem açúcar', category: 'preference' })
+    }
+  };
+  const enabledResult = await toolHandler.handleExecuteToolCall(
+    { sender: { isDestroyed: () => false, send: () => {} } },
+    enabledToolCall,
+    [],
+    {},
+    { userMemory: { enabled: true } }
+  );
+
+  assert(enabledResult.result, 'Tool call when memory is enabled MUST return result');
+  assert.strictEqual(memoryService.getMemories().length, 1, 'Memory should be successfully saved');
+  assert.strictEqual(memoryService.getMemories()[0].content, 'Gosta de café sem açúcar');
+
+  // Clean up
+  fs.rmSync(tempDir, { recursive: true, force: true });
+
+  console.log('✅ ALL MEMORY SERVICE & PERMISSION TESTS PASSED SUCCESSFULLY!');
+}).catch(err => {
+  console.error('Test failed:', err);
+  process.exit(1);
+});

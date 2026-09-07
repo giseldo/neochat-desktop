@@ -229,22 +229,32 @@ function getFormattedMemoryPrompt(settings = {}) {
   }
 
   const activeMemories = getActiveMemories();
-  if (activeMemories.length === 0) {
-    return '';
-  }
-
-  const lines = activeMemories.map(m => `• [${m.category}] ${m.content}`);
+  const memoryLines = activeMemories.length > 0
+    ? [
+        'Verified preferences, facts, and rules learned about the user across past sessions:',
+        ...activeMemories.map(m => `• [${m.category}] ${m.content}`),
+        ''
+      ]
+    : [
+        'No persistent user memories are stored yet.',
+        ''
+      ];
 
   return [
-    '=== USER MEMORY & PROFILE (Persistent Long-Term Memory) ===',
-    'The following are verified preferences, facts, and rules learned about the user across past sessions:',
-    ...lines,
+    '=== USER GENERAL MEMORY & PROFILE (Persistent Long-Term Memory) ===',
+    'General memory is ENABLED. You can save, update, and recall user facts and preferences.',
+    '',
+    ...memoryLines,
+    'Available Memory Commands / Tools:',
+    '- `save_user_memory`: Use this command when the user tells you to remember something ("lembre-se de...", "remember that..."), declares coding/communication preferences, or shares persistent context. Arguments: `memory` (string description of the fact/rule), `category` ("preference", "fact", "rule", or "context").',
+    '- `forget_user_memory`: Use this command when the user asks to forget or remove a remembered fact or preference. Argument: `query` (search phrase of what to forget).',
+    '',
     'Instructions:',
-    '1. Apply these preferences naturally to tailor your answers, code style, and explanations.',
-    '2. Do not explicitly list or repeat this raw memory block unless the user asks about what you remember.',
-    '3. When the user tells you to remember a new preference or fact, use the `save_user_memory` tool.',
-    '4. When the user asks you to forget a preference or fact, use the `forget_user_memory` tool.',
-    '==========================================================='
+    '1. Apply verified preferences naturally to tailor your answers, code style, and explanations.',
+    '2. Do not explicitly recite this raw memory block unless the user asks what you remember.',
+    '3. Whenever a new persistent preference or fact is shared by the user, proactively call `save_user_memory`.',
+    '4. When the user asks you to forget a preference or fact, use `forget_user_memory`.',
+    '==================================================================='
   ].join('\n');
 }
 

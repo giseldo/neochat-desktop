@@ -4187,11 +4187,19 @@ function Settings() {
               <CardTitle className="flex items-center space-x-2">
                 <Brain className="h-5 w-5 text-purple-600 dark:text-purple-400" />
                 <span>{t('memory.title')}</span>
-                {memoryStats.total > 0 && (
-                  <Badge variant="outline" className="text-xs font-normal ml-2">
-                    {t('memory.activeCount', { active: memoryStats.active, total: memoryStats.total })}
-                  </Badge>
-                )}
+                <Badge 
+                  variant="outline" 
+                  className={cn(
+                    "text-xs font-normal ml-2",
+                    settings.userMemory?.enabled !== false 
+                      ? "bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/30" 
+                      : "bg-muted text-muted-foreground"
+                  )}
+                >
+                  {settings.userMemory?.enabled !== false 
+                    ? (memoryStats.total > 0 ? t('memory.activeCount', { active: memoryStats.active, total: memoryStats.total }) : (t('common.enabled') || 'Ativado'))
+                    : (t('common.disabled') || 'Desativado')}
+                </Badge>
               </CardTitle>
               <CardDescription>
                 {t('memory.description')}
@@ -4214,6 +4222,25 @@ function Settings() {
                   onChange={(e) => handleUserMemoryChange('enabled', e.target.checked)}
                 />
               </div>
+
+              {settings.userMemory?.enabled === false && (
+                <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-700 dark:text-amber-300 text-xs flex items-center justify-between gap-3">
+                  <span>{t('memory.disabledAlert')}</span>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setIsMemoryModalOpen(true);
+                      loadMemoryStats();
+                    }}
+                    className="text-xs shrink-0 border-amber-500/40 text-amber-800 dark:text-amber-200 hover:bg-amber-500/20"
+                  >
+                    <Brain className="w-3.5 h-3.5 mr-1" />
+                    <span>{t('memory.manageMemories')}</span>
+                  </Button>
+                </div>
+              )}
 
               {settings.userMemory?.enabled !== false && (
                 <div className="space-y-4 pt-3 border-t border-border/60">
@@ -8616,6 +8643,7 @@ function Settings() {
           setIsMemoryModalOpen(false);
           loadMemoryStats();
         }}
+        isMemoryEnabled={settings.userMemory?.enabled !== false}
       />
     </div>
   );

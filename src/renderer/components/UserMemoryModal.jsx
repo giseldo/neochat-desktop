@@ -53,12 +53,25 @@ const CATEGORY_CONFIG = {
   }
 };
 
-export function UserMemoryModal({ isOpen, onClose }) {
+export function UserMemoryModal({ isOpen, onClose, isMemoryEnabled: propIsMemoryEnabled }) {
   const { t, language } = useLanguage();
+  const [internalEnabled, setInternalEnabled] = useState(propIsMemoryEnabled !== false);
   const [memories, setMemories] = useState([]);
   const [loading, setLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
+
+  useEffect(() => {
+    if (propIsMemoryEnabled !== undefined) {
+      setInternalEnabled(propIsMemoryEnabled);
+    } else if (isOpen && window.electron?.getSettings) {
+      window.electron.getSettings().then(s => {
+        setInternalEnabled(s?.userMemory?.enabled !== false);
+      }).catch(() => {});
+    }
+  }, [isOpen, propIsMemoryEnabled]);
+
+  const isMemoryEnabled = propIsMemoryEnabled !== undefined ? propIsMemoryEnabled : internalEnabled;
   
   // Add memory form state
   const [newContent, setNewContent] = useState('');
@@ -287,15 +300,24 @@ export function UserMemoryModal({ isOpen, onClose }) {
 
   const handleAddMemory = async (e) => {
     e.preventDefault();
+    if (!isMemoryEnabled) {
+      showToast(t('memory.disabledAlert') || 'A memória geral está desativada nas configurações.', 'error');
+      return;
+    }
     if (!newContent.trim() || !window.electron?.memory?.add) return;
 
     setIsAdding(true);
     try {
-      await window.electron.memory.add(newContent.trim(), newCategory, 'manual');
+      const res = await window.electron.memory.add(newContent.trim(), newCategory, 'manual');
+      if (res && res.error) {
+        showToast(res.error, 'error');
+        return;
+      }
       setNewContent('');
       await loadMemories();
     } catch (err) {
       console.error('Failed to add memory:', err);
+      showToast(err.message || 'Falha ao adicionar memória', 'error');
     } finally {
       setIsAdding(false);
     }
@@ -372,8 +394,16 @@ export function UserMemoryModal({ isOpen, onClose }) {
             <div>
               <h3 className="font-semibold text-sm text-foreground flex items-center gap-2">
                 <span>{t('memory.title')}</span>
-                <Badge variant="outline" className="text-[10.5px] font-normal py-0">
-                  {t('memory.activeCount', { active: activeCount, total: memories.length })}
+                <Badge 
+                  variant="outline" 
+                  className={cn(
+                    "text-[10.5px] font-normal py-0",
+                    !isMemoryEnabled && "bg-muted text-muted-foreground border-border"
+                  )}
+                >
+                  {!isMemoryEnabled 
+                    ? (t('common.disabled') || 'Desativado') 
+                    : t('memory.activeCount', { active: activeCount, total: memories.length })}
                 </Badge>
               </h3>
               <p className="text-xs text-muted-foreground mt-0.5">
@@ -417,6 +447,16 @@ export function UserMemoryModal({ isOpen, onClose }) {
           </div>
         )}
 
+        {/* Memory Disabled Alert Banner */}
+        {!isMemoryEnabled && (
+          <div className="px-5 py-3 bg-amber-500/10 border-b border-amber-500/30 text-amber-700 dark:text-amber-300 text-xs flex items-center gap-2.5">
+            <ShieldAlert className="w-4 h-4 shrink-0 text-amber-600 dark:text-amber-400" />
+            <div className="flex-1">
+              <span className="font-medium">{t('memory.disabledAlert')}</span>
+            </div>
+          </div>
+        )}
+
         {/* Add Memory Form */}
         <div className="p-4 border-b border-border bg-muted/10">
           <form onSubmit={handleAddMemory} className="space-y-3">
@@ -424,15 +464,16 @@ export function UserMemoryModal({ isOpen, onClose }) {
               <Input
                 value={newContent}
                 onChange={(e) => setNewContent(e.target.value)}
-                placeholder={t('memory.addMemoryPlaceholder')}
-                className="flex-1 text-xs bg-background"
-                disabled={isAdding}
+                placeholder={!isMemoryEnabled ? (t('memory.disabledAlert') || 'Memória desativada nas configurações') : t('memory.addMemoryPlaceholder')}
+                className="flex-1 text-xs bg-background disabled:opacity-60"
+                disabled={isAdding || !isMemoryEnabled}
               />
               
               <select
                 value={newCategory}
                 onChange={(e) => setNewCategory(e.target.value)}
-                className="text-xs bg-background border border-border rounded-lg px-2.5 py-1.5 text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+                disabled={isAdding || !isMemoryEnabled}
+                className="text-xs bg-background border border-border rounded-lg px-2.5 py-1.5 text-foreground focus:outline-none focus:ring-1 focus:ring-primary disabled:opacity-50"
               >
                 <option value="preference">{isEn ? 'Preference' : 'Preferência'}</option>
                 <option value="fact">{isEn ? 'Fact' : 'Fato'}</option>
@@ -443,8 +484,8 @@ export function UserMemoryModal({ isOpen, onClose }) {
               <Button
                 type="submit"
                 size="sm"
-                disabled={!newContent.trim() || isAdding}
-                className="text-xs bg-purple-600 hover:bg-purple-700 text-white shrink-0 flex items-center gap-1.5"
+                disabled={!newContent.trim() || isAdding || !isMemoryEnabled}
+                className="text-xs bg-purple-600 hover:bg-purple-700 text-white shrink-0 flex items-center gap-1.5 disabled:opacity-50"
               >
                 <Plus className="w-3.5 h-3.5" />
                 <span>{t('memory.addMemoryBtn')}</span>

@@ -178,6 +178,13 @@ async function handleExecuteToolCall(event, toolCall, discoveredTools, mcpClient
 
   // Handle Native Built-in User Memory Tools (save_user_memory, forget_user_memory)
   if (toolName === 'save_user_memory') {
+    if (settings?.userMemory?.enabled === false) {
+      return {
+        error: 'O uso da memória geral está desativado nas configurações. Não é permitido salvar novas memórias.',
+        tool_call_id: toolCallId
+      };
+    }
+
     const memoryContent = args.memory || args.content || args.fact || args.preference;
     if (!memoryContent) {
       return {
@@ -217,6 +224,13 @@ async function handleExecuteToolCall(event, toolCall, discoveredTools, mcpClient
   }
 
   if (toolName === 'forget_user_memory') {
+    if (settings?.userMemory?.enabled === false) {
+      return {
+        error: 'O uso da memória geral está desativado nas configurações.',
+        tool_call_id: toolCallId
+      };
+    }
+
     const query = args.query || args.memory || args.memory_id || args.id;
     if (!query) {
       return {

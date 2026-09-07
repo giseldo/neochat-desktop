@@ -3813,6 +3813,7 @@ function App() {
         <UserMemoryModal
           isOpen={isUserMemoryModalOpen}
           onClose={() => setIsUserMemoryModalOpen(false)}
+          isMemoryEnabled={settings.userMemory?.enabled !== false}
         />
 
         {/* AI Skills & Capabilities Central Hub */}

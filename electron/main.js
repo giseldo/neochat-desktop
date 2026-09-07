@@ -649,6 +649,10 @@ app.whenReady().then(async () => {
     return memoryService.getMemoryStats();
   });
   ipcMain.handle('memory-add', async (event, content, category, source) => {
+    const currentSettings = settingsManager.getSettings();
+    if (currentSettings.userMemory?.enabled === false) {
+      return { success: false, error: 'O uso da memória geral está desativado nas configurações.' };
+    }
     return memoryService.addMemory(content, category, source);
   });
   ipcMain.handle('memory-update', async (event, id, updates) => {
