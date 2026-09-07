@@ -238,7 +238,7 @@ export function CanvasProvider({ children }) {
       setIsOpen(true);
       // Determine default mode based on language
       const lang = (chatCanvasDoc.language || '').toLowerCase();
-      if (['javascript', 'python', 'typescript', 'js', 'py', 'ts'].includes(lang)) {
+      if (['javascript', 'python', 'typescript', 'js', 'py', 'ts', 'latex', 'tex'].includes(lang)) {
         setMode('edit');
       } else {
         setMode('preview');
@@ -323,7 +323,9 @@ export function CanvasProvider({ children }) {
       typescript: 'ts',
       python: 'py',
       json: 'json',
-      css: 'css'
+      css: 'css',
+      latex: 'tex',
+      tex: 'tex'
     };
     const ext = extMap[format] || extMap[canvasDoc.language] || 'md';
     const filename = `${(canvasDoc.title || 'documento').replace(/[/\\?%*:|"<>]/g, '-').trim()}.${ext}`;
