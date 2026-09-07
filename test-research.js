@@ -53,6 +53,19 @@ try {
   const csv = exportCsv({ ...restored, references: restored.references.map(item => ({ ...item, title: '=danger,"quoted"' })) });
   assert.ok(csv.includes("'=danger,"));
   assert.ok(csv.includes('""quoted""'));
+  const { parseBibtex } = require('./electron/research/bibtex');
+  const bib = '@string{venue = "Science"}\n@comment{Ignore {nested} content}\n@article{key, title={A {nested} title}, author="Silva and Souza", journal=venue # " Journal", year=2025, doi={10.1/example}, abstract={Evidence}}';
+  const parsed = parseBibtex(bib);
+  assert.equal(parsed[0].source, 'Science Journal');
+  assert.equal(parsed[0].title, 'A {nested} title');
+  assert.equal(parsed[0].year, '2025');
+  assert.throws(() => parseBibtex('@article{key, title={Unclosed}'), /fechamento/);
+  assert.throws(() => parseBibtex('@article{key, title=unknown}'), /macro não definida/);
+  const bibProject = store.importReferences({ id: restored.id, revision: restored.revision, text: bib, format: 'bib' }).project;
+  assert.equal(bibProject.references.length, 3);
+  const { exportMarkdown } = require('./electron/research/export');
+  assert.ok(exportMarkdown(bibProject).includes('Experimento'));
+  assert.ok(exportMarkdown(bibProject).includes('## Perguntas'));
   console.log('Research: persistence, validation, traversal and revision conflict checks passed.');
 } finally {
   fs.rmSync(directory, { recursive: true, force: true });

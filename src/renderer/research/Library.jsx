@@ -15,8 +15,8 @@ export default function Library({ project, onChange, onImport, onFile, busy }) {
     setDraft(blank); setEditing(null);
   };
   return <section>
-    <div className="research-card"><h2>Biblioteca de estudos</h2><p>Importe um arquivo RIS exportado de uma base bibliográfica ou cadastre um estudo. Possíveis duplicatas importadas são marcadas e preservadas para conferência.</p>
-      <label>Importar referências (.ris)<input type="file" accept=".ris" disabled={busy || !project.id} onChange={event => { const file = event.target.files[0]; if (file) onImport(file); event.target.value = ''; }} /></label>
+    <div className="research-card"><h2>Biblioteca de estudos</h2><p>Importe um arquivo RIS ou BibTeX exportado de uma base bibliográfica ou cadastre um estudo. Possíveis duplicatas importadas são marcadas e preservadas para conferência.</p>
+      <label>Importar referências (.ris, .bib)<input type="file" accept=".ris,.bib" disabled={busy || !project.id} onChange={event => { const file = event.target.files[0]; if (file) onImport(file); event.target.value = ''; }} /></label>
       {!project.id && <p>Salve o projeto antes de importar.</p>}
       <label>Buscar na biblioteca<input value={query} onChange={event => setQuery(event.target.value)} placeholder="Título, autores ou DOI" /></label>
       <p>{references.length} registros · {references.filter(item => item.duplicateOf).length} possíveis duplicatas</p>

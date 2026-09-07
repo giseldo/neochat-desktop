@@ -1,6 +1,6 @@
 const { app, BrowserWindow, ipcMain, dialog, shell } = require('electron');
 const fs = require('fs');
-const { exportCsv } = require('./export');
+const { exportCsv, exportMarkdown } = require('./export');
 const path = require('path');
 const { ResearchStore } = require('./store');
 
@@ -45,14 +45,15 @@ else {
         if (error) throw new Error(error);
         return null;
       }
-      if (!['backup', 'csv'].includes(action)) throw new Error('Ação inválida.');
-      const contents = action === 'backup' ? store.backup(id) : exportCsv(store.get(id));
-      const result = await dialog.showSaveDialog(window, { defaultPath: `revisao.${action === 'backup' ? 'json' : 'csv'}`, filters: [{ name: action === 'backup' ? 'Backup Research' : 'Matriz CSV', extensions: [action === 'backup' ? 'json' : 'csv'] }] });
+      if (!['backup', 'csv', 'markdown'].includes(action)) throw new Error('Ação inválida.');
+      const contents = action === 'backup' ? store.backup(id) : action === 'markdown' ? exportMarkdown(store.get(id)) : exportCsv(store.get(id));
+      const extension = { backup: 'json', markdown: 'md', csv: 'csv' }[action];
+      const result = await dialog.showSaveDialog(window, { defaultPath: `revisao.${extension}`, filters: [{ name: 'Exportação Research', extensions: [extension] }] });
       if (result.canceled) return null;
       fs.writeFileSync(result.filePath, contents, 'utf8');
       return { exported: true };
     });
-    for (const method of ['list', 'get', 'save', 'importRis']) {
+    for (const method of ['list', 'get', 'save', 'importRis', 'importReferences']) {
       ipcMain.handle(`research:${method}`, (event, payload) => {
         if (!window || event.sender !== window.webContents || event.senderFrame !== window.webContents.mainFrame) throw new Error('Origem inválida.');
         return store[method](payload);

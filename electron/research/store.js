@@ -3,6 +3,7 @@ const path = require('path');
 const { randomUUID } = require('crypto');
 const { librarySchema, assessmentSchema, historySchema } = require('./schema');
 const { parseRis, addReferences } = require('./library');
+const { parseBibtex } = require('./bibtex');
 
 const fields = ['title', 'objectives', 'questions', 'inclusion', 'exclusion', 'population', 'intervention', 'comparison', 'outcomes', 'context'];
 
@@ -89,11 +90,16 @@ class ResearchStore {
     }
   }
 
-  importRis({ id, revision, text }) {
-    if (typeof text !== 'string' || text.length > 20000000) throw new Error('Arquivo RIS inválido ou maior que 20 MB.');
+  importRis(payload) {
+    return this.importReferences({ ...payload, format: 'ris' });
+  }
+
+  importReferences({ id, revision, text, format }) {
+    if (!['ris', 'bib'].includes(format)) throw new Error('Formato não suportado.');
+    if (typeof text !== 'string' || text.length > 20000000) throw new Error('Arquivo inválido ou maior que 20 MB.');
     const project = this.get(id);
     if (project.revision !== revision) throw new Error('O projeto mudou. Reabra antes de importar.');
-    const { references, duplicates } = addReferences(project.references || [], parseRis(text));
+    const { references, duplicates } = addReferences(project.references || [], format === 'bib' ? parseBibtex(text) : parseRis(text));
     return { project: this.save({ ...project, references }), duplicates };
   }
 
