@@ -2742,7 +2742,7 @@ function App() {
       {/* Main Content Area */}
       <div className="flex flex-col flex-1 min-w-0">
         {/* Modern Sticky Header */}
-        <header className="sticky top-0 z-50 border-b border-border/40 bg-background/95 backdrop-blur-sm">
+        <header className="sticky top-0 z-50 bg-background/95 backdrop-blur-sm">
           <div className="flex h-14 items-center justify-between px-4 max-w-full">
             <div className="flex items-center space-x-3">
               {/* Sidebar toggle for mobile/collapsed state */}
