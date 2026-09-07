@@ -2881,7 +2881,7 @@ function App() {
                     aria-label={t('header.toolsMenu') || 'Ferramentas e Recursos'}
                   >
                     <LayoutGrid className="h-4 w-4" />
-                    {(runningTasksCount > 0 || isTerminalOpen || isCanvasOpen || isExplorerOpen) && (
+                    {(runningTasksCount > 0 || isTerminalOpen || isCanvasOpen || isExplorerOpen || isBrowserOpen || isTasksOpen || Boolean(activeArtifact) || isCompareMode) && (
                       <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-primary animate-pulse" />
                     )}
                   </Button>
@@ -2957,7 +2957,10 @@ function App() {
                       >
                         <Bot className="w-4 h-4 text-indigo-500 shrink-0" />
                         <div className="flex-1 min-w-0">
-                          <div className="font-semibold text-foreground">Equipe Swarm</div>
+                          <div className="font-semibold text-foreground flex items-center justify-between">
+                            <span>Equipe Swarm</span>
+                            {isSwarmModalOpen && <span className="px-1.5 py-0.2 rounded bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 text-[10px] font-mono">Aberto</span>}
+                          </div>
                           <div className="text-[10px] text-muted-foreground truncate">Multi-agentes autônomos</div>
                         </div>
                       </button>
@@ -2973,7 +2976,10 @@ function App() {
                       >
                         <Store className="w-4 h-4 text-amber-500 shrink-0" />
                         <div className="flex-1 min-w-0">
-                          <div className="font-semibold text-foreground">{t('mcpCatalog.title') || 'Loja MCP'}</div>
+                          <div className="font-semibold text-foreground flex items-center justify-between">
+                            <span>{t('mcpCatalog.title') || 'Loja MCP'}</span>
+                            {isMcpCatalogOpen && <span className="px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-600 dark:text-amber-400 text-[10px] font-mono">Aberto</span>}
+                          </div>
                           <div className="text-[10px] text-muted-foreground truncate">Servidores de ferramentas e integrações</div>
                         </div>
                       </button>
@@ -2989,7 +2995,10 @@ function App() {
                       >
                         <Workflow className="w-4 h-4 text-teal-500 shrink-0" />
                         <div className="flex-1 min-w-0">
-                          <div className="font-semibold text-foreground">{t('workflows.title') || 'Workflows'}</div>
+                          <div className="font-semibold text-foreground flex items-center justify-between">
+                            <span>{t('workflows.title') || 'Workflows'}</span>
+                            {isWorkflowsOpen && <span className="px-1.5 py-0.2 rounded bg-teal-500/20 text-teal-600 dark:text-teal-400 text-[10px] font-mono">Aberto</span>}
+                          </div>
                           <div className="text-[10px] text-muted-foreground truncate">Fluxos de trabalho automatizados</div>
                         </div>
                       </button>
@@ -3007,7 +3016,7 @@ function App() {
                         <div className="flex-1 min-w-0">
                           <div className="font-semibold text-foreground flex items-center justify-between">
                             <span>{t('header.compareModels') || 'Comparar Modelos'}</span>
-                            {isCompareMode && <span className="w-2 h-2 rounded-full bg-purple-500" />}
+                            {isCompareMode && <span className="px-1.5 py-0.2 rounded bg-purple-500/20 text-purple-600 dark:text-purple-400 text-[10px] font-mono">Aberto</span>}
                           </div>
                           <div className="text-[10px] text-muted-foreground truncate">Visualização lado a lado</div>
                         </div>
@@ -3024,7 +3033,10 @@ function App() {
                       >
                         <Brain className="w-4 h-4 text-purple-600 dark:text-purple-400 shrink-0" />
                         <div className="flex-1 min-w-0">
-                          <div className="font-semibold text-foreground">{t('memory.title') || 'Memória Persistente'}</div>
+                          <div className="font-semibold text-foreground flex items-center justify-between">
+                            <span>{t('memory.title') || 'Memória Persistente'}</span>
+                            {isUserMemoryModalOpen && <span className="px-1.5 py-0.2 rounded bg-purple-500/20 text-purple-600 dark:text-purple-400 text-[10px] font-mono">Aberto</span>}
+                          </div>
                           <div className="text-[10px] text-muted-foreground truncate">Preferências e fatos lembrados pela IA</div>
                         </div>
                       </button>
@@ -3042,7 +3054,7 @@ function App() {
                         <div className="flex-1 min-w-0">
                           <div className="font-semibold text-foreground flex items-center justify-between">
                             <span>Navegador Web</span>
-                            {isBrowserOpen && <span className="w-2 h-2 rounded-full bg-blue-500" />}
+                            {isBrowserOpen && <span className="px-1.5 py-0.2 rounded bg-blue-500/20 text-blue-600 dark:text-blue-400 text-[10px] font-mono">Aberto</span>}
                           </div>
                           <div className="text-[10px] text-muted-foreground truncate">Painel embutido (Ctrl+Shift+B)</div>
                         </div>
@@ -3061,13 +3073,16 @@ function App() {
                         <div className="flex-1 min-w-0">
                           <div className="font-semibold text-foreground flex items-center justify-between">
                             <span>Tarefas em Segundo Plano</span>
-                            {runningTasksCount > 0 ? (
-                              <span className="px-1.5 py-0.2 rounded-full bg-blue-500 text-white text-[9px] font-bold">
-                                {runningTasksCount}
-                              </span>
-                            ) : isTasksOpen ? (
-                              <span className="w-2 h-2 rounded-full bg-cyan-500" />
-                            ) : null}
+                            <div className="flex items-center gap-1.5">
+                              {runningTasksCount > 0 && (
+                                <span className="px-1.5 py-0.2 rounded-full bg-blue-500 text-white text-[9px] font-bold">
+                                  {runningTasksCount}
+                                </span>
+                              )}
+                              {isTasksOpen && (
+                                <span className="px-1.5 py-0.2 rounded bg-cyan-500/20 text-cyan-600 dark:text-cyan-400 text-[10px] font-mono">Aberto</span>
+                              )}
+                            </div>
                           </div>
                           <div className="text-[10px] text-muted-foreground truncate">Processos e tarefas ativas</div>
                         </div>
@@ -3086,7 +3101,7 @@ function App() {
                         <div className="flex-1 min-w-0">
                           <div className="font-semibold text-foreground flex items-center justify-between">
                             <span>{t('header.codeInterpreter') || 'Interpretador de Código'}</span>
-                            {activeArtifact && <span className="w-2 h-2 rounded-full bg-violet-500" />}
+                            {activeArtifact && <span className="px-1.5 py-0.2 rounded bg-violet-500/20 text-violet-600 dark:text-violet-400 text-[10px] font-mono">Aberto</span>}
                           </div>
                           <div className="text-[10px] text-muted-foreground truncate">Python & JavaScript interativo</div>
                         </div>
@@ -3107,7 +3122,10 @@ function App() {
                         <div className="flex-1 min-w-0">
                           <div className="font-semibold text-foreground flex items-center justify-between">
                             <span>Módulos & Extensões</span>
-                            <span className="px-1.5 py-0.2 rounded bg-indigo-500/20 text-indigo-400 text-[9px] font-semibold">Hub</span>
+                            <div className="flex items-center gap-1.5">
+                              <span className="px-1.5 py-0.2 rounded bg-indigo-500/20 text-indigo-400 text-[9px] font-semibold">Hub</span>
+                              {isPluginsManagerOpen && <span className="px-1.5 py-0.2 rounded bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 text-[10px] font-mono">Aberto</span>}
+                            </div>
                           </div>
                           <div className="text-[10px] text-muted-foreground truncate">Ativar/desativar módulos (0MB idle)</div>
                         </div>
@@ -3124,7 +3142,10 @@ function App() {
                       >
                         <Bot className="w-4 h-4 text-orange-400 shrink-0" />
                         <div className="flex-1 min-w-0">
-                          <div className="font-semibold text-foreground">AI Arena & Debate</div>
+                          <div className="font-semibold text-foreground flex items-center justify-between">
+                            <span>AI Arena & Debate</span>
+                            {isArenaModalOpen && <span className="px-1.5 py-0.2 rounded bg-orange-500/20 text-orange-600 dark:text-orange-400 text-[10px] font-mono">Aberto</span>}
+                          </div>
                           <div className="text-[10px] text-muted-foreground truncate">Debate em rodadas & consenso</div>
                         </div>
                       </button>
@@ -3140,7 +3161,10 @@ function App() {
                       >
                         <LayoutGrid className="w-4 h-4 text-emerald-400 shrink-0" />
                         <div className="flex-1 min-w-0">
-                          <div className="font-semibold text-foreground">Live Dev Sandbox</div>
+                          <div className="font-semibold text-foreground flex items-center justify-between">
+                            <span>Live Dev Sandbox</span>
+                            {isLiveSandboxOpen && <span className="px-1.5 py-0.2 rounded bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-[10px] font-mono">Aberto</span>}
+                          </div>
                           <div className="text-[10px] text-muted-foreground truncate">Preview HTML/Tailwind/React</div>
                         </div>
                       </button>
@@ -3156,7 +3180,10 @@ function App() {
                       >
                         <Radio className="w-4 h-4 text-purple-400 shrink-0" />
                         <div className="flex-1 min-w-0">
-                          <div className="font-semibold text-foreground">Podcast & Audio Studio</div>
+                          <div className="font-semibold text-foreground flex items-center justify-between">
+                            <span>Podcast & Audio Studio</span>
+                            {isPodcastStudioOpen && <span className="px-1.5 py-0.2 rounded bg-purple-500/20 text-purple-600 dark:text-purple-400 text-[10px] font-mono">Aberto</span>}
+                          </div>
                           <div className="text-[10px] text-muted-foreground truncate">NotebookLM style 2-hosts TTS</div>
                         </div>
                       </button>
@@ -3172,7 +3199,10 @@ function App() {
                       >
                         <BookOpen className="w-4 h-4 text-blue-400 shrink-0" />
                         <div className="flex-1 min-w-0">
-                          <div className="font-semibold text-foreground">Grafo & Data Studio</div>
+                          <div className="font-semibold text-foreground flex items-center justify-between">
+                            <span>Grafo & Data Studio</span>
+                            {isKnowledgeGraphOpen && <span className="px-1.5 py-0.2 rounded bg-blue-500/20 text-blue-600 dark:text-blue-400 text-[10px] font-mono">Aberto</span>}
+                          </div>
                           <div className="text-[10px] text-muted-foreground truncate">Grafo 2D do RAG & gráficos</div>
                         </div>
                       </button>
@@ -3188,7 +3218,10 @@ function App() {
                       >
                         <Clock className="w-4 h-4 text-amber-400 shrink-0" />
                         <div className="flex-1 min-w-0">
-                          <div className="font-semibold text-foreground">Proactive Daily Briefing</div>
+                          <div className="font-semibold text-foreground flex items-center justify-between">
+                            <span>Proactive Daily Briefing</span>
+                            {isDailyBriefingOpen && <span className="px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-600 dark:text-amber-400 text-[10px] font-mono">Aberto</span>}
+                          </div>
                           <div className="text-[10px] text-muted-foreground truncate">Resumo matinal inteligente</div>
                         </div>
                       </button>
