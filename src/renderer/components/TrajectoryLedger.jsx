@@ -1100,7 +1100,7 @@ export default function TrajectoryLedger({
                                         </div>
 
                                         {expandedItems[`${eventId}-card-tools`] && (
-                                          <div className="p-3 pt-2.5 space-y-2.5 border-t border-amber-500/20 bg-background/50">
+                                          <div className="p-3 space-y-2.5 border-t border-amber-500/20 bg-background/50">
                                             {/* Tool Items Detailed List */}
                                             <div className="space-y-2">
                                               {(breakdown?.tools?.items || []).map((toolItem, tIdx) => {
@@ -1197,7 +1197,7 @@ export default function TrajectoryLedger({
                                         </div>
 
                                         {expandedItems[`${eventId}-card-system`] && (
-                                          <div className="p-3 pt-0 space-y-2 border-t border-blue-500/20 bg-background/50">
+                                          <div className="p-3 space-y-2 border-t border-blue-500/20 bg-background/50">
                                             <div className="flex items-center justify-between text-[11px]">
                                               <span className="font-semibold text-foreground">
                                                 {t('trajectory.fullSystemPrompt')}
@@ -1246,7 +1246,7 @@ export default function TrajectoryLedger({
                                         </div>
 
                                         {expandedItems[`${eventId}-card-user`] && (
-                                          <div className="p-3 pt-0 space-y-2 border-t border-emerald-500/20 bg-background/50">
+                                          <div className="p-3 space-y-2 border-t border-emerald-500/20 bg-background/50">
                                             <div className="flex items-center justify-between text-[11px]">
                                               <span className="font-semibold text-foreground">
                                                 {t('trajectory.userMessagePayload')}
@@ -1297,7 +1297,7 @@ export default function TrajectoryLedger({
                                         </div>
 
                                         {expandedItems[`${eventId}-card-comp`] && (
-                                          <div className="p-3 pt-0 space-y-2 border-t border-purple-500/20 bg-background/50">
+                                          <div className="p-3 space-y-2 border-t border-purple-500/20 bg-background/50">
                                             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-center text-[11px] font-mono">
                                               <div className="p-2 rounded-md bg-purple-500/10 border border-purple-500/20">
                                                 <span className="text-[10px] text-muted-foreground block">{t('trajectory.contentTokensLabel')}</span>
