@@ -199,6 +199,9 @@ function sanitizeMessageHistory(messages) {
       if (typeof cleanMsg.content === 'string') {
         cleanMsg.content = extractThinking(cleanMsg.content).cleanContent;
       }
+      if (cleanMsg.role === 'assistant' && (cleanMsg.isGeneratedImage || cleanMsg.image) && (!cleanMsg.content || !cleanMsg.content.trim())) {
+        cleanMsg.content = cleanMsg.image?.prompt ? `[Generated image for: "${cleanMsg.image.prompt}"]` : '[Generated image]';
+      }
 
       // Normalize tool_calls
       if (Array.isArray(cleanMsg.tool_calls) && cleanMsg.tool_calls.length > 0) {

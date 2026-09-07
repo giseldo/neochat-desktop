@@ -23,6 +23,19 @@ async function runTests() {
   assert.ok(noKeyRes.error.includes('Chave de API não configurada'));
   console.log('✓ missing API key validation passed');
 
+  // Test message sanitization fallback for generated image messages
+  const { sanitizeMessageHistory } = require('./electron/messageUtils');
+  const testMessages = [
+    { role: 'user', content: 'Draw a cat', isImagePrompt: true },
+    { role: 'assistant', content: '', isGeneratedImage: true, image: { prompt: 'Draw a cat', dataUrl: 'data:image/png;base64,123' } }
+  ];
+  const sanitized = sanitizeMessageHistory(testMessages);
+  assert.strictEqual(sanitized.length, 2);
+  assert.strictEqual(sanitized[0].role, 'user');
+  assert.strictEqual(sanitized[1].role, 'assistant');
+  assert.ok(sanitized[1].content.includes('Generated image'));
+  console.log('✓ message sanitization fallback for generated image passed');
+
   console.log('🎉 All imageGenerationManager unit tests passed!');
 }
 

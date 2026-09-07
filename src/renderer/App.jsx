@@ -440,6 +440,22 @@ function App() {
       return;
     }
 
+    const targetUserMessage = messages[lastUserMessageIndex];
+    if (targetUserMessage?.isImagePrompt) {
+      const messagesToKeep = messages.slice(0, lastUserMessageIndex);
+      setMessages(messagesToKeep);
+      try {
+        const settings = await window.electron?.getSettings?.();
+        await handleSendMessage(targetUserMessage.content, {
+          isImageGeneration: true,
+          imageSettings: settings?.imageGeneration
+        });
+      } catch (err) {
+        console.error('Error reloading image generation:', err);
+      }
+      return;
+    }
+
     // Get messages up to and including the last user message
     const messagesToKeep = messages.slice(0, lastUserMessageIndex + 1);
     
@@ -1880,6 +1896,7 @@ function App() {
         isGeneratingImage: true,
         imagePrompt: promptText,
         imageModel: options.imageSettings?.model,
+        imageProvider: options.imageSettings?.provider,
         createdAt: new Date().toISOString(),
         timestamp: Date.now() + 1
       };

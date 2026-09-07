@@ -1649,6 +1649,9 @@ async function handleResponsesApiStream(event, messages, model, settings, modelC
             } else if (Array.isArray(msg.content)) {
                 contentText = msg.content.map(p => p.text || "").join("");
             }
+            if (msg.role === 'assistant' && (msg.isGeneratedImage || msg.image) && !contentText.trim()) {
+                contentText = msg.image?.prompt ? `[Generated image for: "${msg.image.prompt}"]` : '[Generated image]';
+            }
             
             input.push({
                 role: msg.role,

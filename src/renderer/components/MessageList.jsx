@@ -2,23 +2,79 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import Message from './Message';
 import MarkdownRenderer from './MarkdownRenderer';
-import { Bot, Download, Maximize2, Copy, Check, Sparkles, Loader2 } from 'lucide-react';
+import { Bot, Download, Maximize2, Copy, Check, Sparkles, Loader2, RotateCw } from 'lucide-react';
 import { Button } from './ui/button';
 import { NeoSymbol } from './NeoSymbol';
 import { useLanguage } from '../context/LanguageContext';
 import { extractThinking, extractWebSearchSources } from '../lib/messageUtils';
+import { cn } from '../lib/utils';
 
-function GeneratedImageCard({ image, onExpand }) {
+function ImageGeneratingCard({ prompt, model, provider, timestamp }) {
+  const { t } = useLanguage();
+  const [elapsed, setElapsed] = useState(0);
+
+  useEffect(() => {
+    const start = timestamp || Date.now();
+    const updateElapsed = () => {
+      setElapsed(Math.max(0, Math.floor((Date.now() - start) / 1000)));
+    };
+    updateElapsed();
+    const interval = setInterval(updateElapsed, 500);
+    return () => clearInterval(interval);
+  }, [timestamp]);
+
+  return (
+    <div className="space-y-3 mt-1 max-w-lg">
+      <div className="relative overflow-hidden rounded-2xl border border-purple-500/30 bg-purple-500/5 p-6 flex flex-col items-center justify-center text-center shadow-xs">
+        <div className="relative z-10 flex flex-col items-center gap-3">
+          <div className="relative flex items-center justify-center">
+            <div className="w-12 h-12 rounded-2xl bg-purple-500/20 border border-purple-500/40 flex items-center justify-center shadow-sm">
+              <Sparkles className="w-6 h-6 text-purple-500 animate-spin" />
+            </div>
+          </div>
+
+          <div className="space-y-1">
+            <div className="font-semibold text-sm text-foreground flex items-center justify-center gap-2">
+              <span>{t('chat.generatingImage', { model: model || '' }) || 'Gerando imagem com IA...'}</span>
+              <span className="text-xs font-mono text-purple-600 dark:text-purple-400 bg-purple-500/15 px-2 py-0.5 rounded-full font-bold">
+                {elapsed}s
+              </span>
+            </div>
+            <p className="text-xs text-muted-foreground max-w-xs">
+              {t('settings.imageGenerationTestingNote') || 'Aguarde alguns instantes enquanto a IA sintetiza e renderiza a imagem.'}
+            </p>
+          </div>
+
+          {prompt && (
+            <div className="mt-1 text-[11px] text-muted-foreground/80 bg-background/60 backdrop-blur border border-border/60 rounded-xl px-3 py-1.5 max-w-sm line-clamp-2 italic">
+              &quot;{prompt}&quot;
+            </div>
+          )}
+
+          {model && (
+            <span className="text-[10px] font-mono px-2 py-0.5 rounded-md bg-purple-500/10 text-purple-700 dark:text-purple-300 border border-purple-500/20">
+              {provider === 'openai' ? 'OpenAI · ' : 'xAI · '}{model}
+            </span>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function GeneratedImageCard({ image, onExpand, onRegenerate, isRegenerating }) {
   const { t } = useLanguage();
   const [copied, setCopied] = useState(false);
   const [saving, setSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
+  const [imgError, setImgError] = useState(false);
 
   const imgSrc = image?.dataUrl || image?.url;
 
+  if (!imgSrc) return null;
+
   const handleCopy = async () => {
     try {
-      if (!imgSrc) return;
       if (imgSrc.startsWith('data:image/')) {
         const res = await fetch(imgSrc);
         const blob = await res.blob();
@@ -62,30 +118,39 @@ function GeneratedImageCard({ image, onExpand }) {
   return (
     <div className="space-y-3 mt-1 max-w-lg">
       <div className="relative group overflow-hidden rounded-2xl border border-border bg-card/60 shadow-md">
-        <img
-          src={imgSrc}
-          alt={image?.prompt || "Generated image"}
-          className="w-full max-h-[500px] object-contain rounded-2xl cursor-pointer transition-transform duration-200 group-hover:scale-[1.01]"
-          onClick={() => onExpand(imgSrc)}
-        />
-        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2 pointer-events-none">
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              onExpand(imgSrc);
-            }}
-            className="pointer-events-auto p-2 rounded-xl bg-background/90 hover:bg-background text-foreground shadow-lg backdrop-blur transition-transform hover:scale-105 cursor-pointer"
-            title={t('message.expandImage') || 'Visualizar em tela cheia'}
-          >
-            <Maximize2 className="w-4 h-4" />
-          </button>
-        </div>
+        {imgError ? (
+          <div className="p-8 text-center text-xs text-muted-foreground">
+            {t('chat.imageGenerationFailed', { error: 'Não foi possível carregar a imagem' }) || 'Não foi possível carregar a imagem'}
+          </div>
+        ) : (
+          <img
+            src={imgSrc}
+            alt={image?.prompt || "Generated image"}
+            className="w-full max-h-[500px] object-contain rounded-2xl cursor-pointer transition-transform duration-200 group-hover:scale-[1.01]"
+            onClick={() => onExpand(imgSrc)}
+            onError={() => setImgError(true)}
+          />
+        )}
+        {!imgError && (
+          <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2 pointer-events-none">
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                onExpand(imgSrc);
+              }}
+              className="pointer-events-auto p-2 rounded-xl bg-background/90 hover:bg-background text-foreground shadow-lg backdrop-blur transition-transform hover:scale-105 cursor-pointer"
+              title={t('message.expandImage') || 'Visualizar em tela cheia'}
+            >
+              <Maximize2 className="w-4 h-4" />
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Action buttons & details */}
       <div className="flex items-center justify-between gap-2 flex-wrap text-xs">
-        <div className="flex items-center gap-1.5">
+        <div className="flex items-center gap-1.5 flex-wrap">
           <Button
             type="button"
             variant="outline"
@@ -125,6 +190,21 @@ function GeneratedImageCard({ image, onExpand }) {
             <Maximize2 className="w-3.5 h-3.5 text-muted-foreground" />
             <span>{t('message.expandImage') || 'Ampliar'}</span>
           </Button>
+
+          {onRegenerate && (
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={onRegenerate}
+              disabled={isRegenerating}
+              className="h-7 px-2.5 rounded-lg text-xs gap-1.5"
+              title={t('message.regenerate') || 'Regenerar imagem'}
+            >
+              <RotateCw className={cn("w-3.5 h-3.5 text-muted-foreground", isRegenerating && "animate-spin")} />
+              <span>{t('message.regenerate') || 'Regenerar'}</span>
+            </Button>
+          )}
         </div>
 
         {image?.model && (
@@ -347,23 +427,18 @@ function MessageList({
             </div>
           ) : message.role === 'assistant' ? (
             message.isGeneratingImage ? (
-              <div className="flex items-center gap-3 p-4 rounded-2xl border border-purple-500/30 bg-purple-500/5 text-purple-700 dark:text-purple-300 animate-pulse max-w-md">
-                <Sparkles className="w-5 h-5 text-purple-500 shrink-0 animate-spin" />
-                <div className="space-y-0.5">
-                  <div className="font-semibold text-xs">
-                    {t('chat.generatingImage', { model: message.imageModel || '' }) || 'Gerando imagem com IA...'}
-                  </div>
-                  {message.imagePrompt && (
-                    <div className="text-[11px] opacity-80 line-clamp-2">
-                      &quot;{message.imagePrompt}&quot;
-                    </div>
-                  )}
-                </div>
-              </div>
-            ) : message.isGeneratedImage && message.image ? (
+              <ImageGeneratingCard
+                prompt={message.imagePrompt}
+                model={message.imageModel}
+                provider={message.imageProvider}
+                timestamp={message.timestamp}
+              />
+            ) : (message.isGeneratedImage || message.image) && (message.image?.dataUrl || message.image?.url) ? (
               <GeneratedImageCard
                 image={message.image}
                 onExpand={(src) => setFullScreenImage(src)}
+                onRegenerate={onReloadFromMessage && originalIndex !== undefined ? () => onReloadFromMessage(originalIndex) : undefined}
+                isRegenerating={loading}
               />
             ) : (
               <MarkdownRenderer 
