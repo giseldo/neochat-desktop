@@ -335,6 +335,10 @@ export const translations = {
       noModelsBannerTitle: 'Nenhum modelo disponível',
       noModelsBannerDesc: 'É necessário cadastrar uma chave de API nas configurações para começar a usar os modelos de inteligência artificial.',
       noModelsSelect: 'Nenhum modelo disponível',
+      currentConversationTokens: 'Tokens da conversa atual: {tokens}',
+      totalLoadedContext: 'Contexto total carregado: {context}',
+      contextUsageSummary: '{used}% usado ({left}% restante)',
+      contextUsageTooltip: 'Uso do Contexto do Modelo',
     },
     sources: {
       title: 'Fontes Consultadas',
@@ -1977,6 +1981,10 @@ export const translations = {
       noModelsBannerTitle: 'No models available',
       noModelsBannerDesc: 'You need to configure an API key in settings to start using AI models.',
       noModelsSelect: 'No models available',
+      currentConversationTokens: 'Current conversation tokens: {tokens}',
+      totalLoadedContext: 'Total loaded context: {context}',
+      contextUsageSummary: '{used}% used ({left}% left)',
+      contextUsageTooltip: 'Model Context Usage',
     },
     sources: {
       title: 'Sources Consulted',

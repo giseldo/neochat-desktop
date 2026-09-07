@@ -11,6 +11,7 @@ import { useCanvas } from "../context/CanvasContext";
 import { useLanguage } from "../context/LanguageContext";
 import { useProjects } from "../context/ProjectContext";
 import SlashCommandsPopover from "./SlashCommandsPopover";
+import ContextUsageIndicator from "./ContextUsageIndicator";
 const PromptTemplatesModal = React.lazy(() => import("./PromptTemplatesModal"));
 const ModelParametersModal = React.lazy(() => import("./ModelParametersModal"));
 const SnipModal = React.lazy(() => import("./SnipModal"));
@@ -30,6 +31,7 @@ function isVoiceFeatureAvailable(settings) {
 }
 
 function ChatInput({
+	messages: propMessages = null,
 	onSendMessage,
 	onStopGeneration,
 	loading = false,
@@ -63,7 +65,8 @@ function ChatInput({
 	const { canvasDoc, isOpen: isCanvasOpen, toggleCanvas, selectedText, setSelectedText, clearCanvas } = useCanvas();
 	const [message, setMessage] = useState("");
 	const [webSearchActive, setWebSearchActive] = useState(false);
-	const { messages, activeContext } = useContext(ChatContext);
+	const { messages: contextMessages, activeContext } = useContext(ChatContext);
+	const messages = propMessages || contextMessages || [];
 
 	useEffect(() => {
 		if (presetMessage) {
@@ -1491,6 +1494,17 @@ function ChatInput({
 								>
 									<SlidersHorizontal className="w-3.5 h-3.5" />
 								</Button>
+
+								<div className="h-4 w-px bg-border/60 mx-0.5 flex-shrink-0" />
+
+								<ContextUsageIndicator
+									messages={messages}
+									selectedModel={selectedModel}
+									modelConfigs={modelConfigs}
+									draftMessage={message}
+									draftFiles={files}
+									onClick={() => setIsModelParamsModalOpen(true)}
+								/>
 							</div>
 						)}
 					</div>

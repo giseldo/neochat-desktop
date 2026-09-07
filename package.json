@@ -53,7 +53,8 @@
     "test:swarm": "node test-swarm-manager.js",
     "test:workflow-triggers": "node test-workflow-triggers.js",
     "test:prompt-caching": "node test-prompt-caching-metrics.js",
-    "test:plugins": "node test-plugin-manager.js"
+    "test:plugins": "node test-plugin-manager.js",
+    "test:context-indicator": "node test-context-indicator.js"
   },
   "keywords": [
     "electron",

@@ -3276,6 +3276,7 @@ function App() {
                   </div>
                   <div className="flex-shrink-0 bg-background/95 backdrop-blur pt-3 max-w-4xl lg:max-w-5xl mx-auto w-full">
                     <ChatInput
+                      messages={messages}
                       onSendMessage={handleSendMessage}
                       onStopGeneration={handleStopGeneration}
                       loading={streamStateA.isLoading || streamStateB.isLoading}
@@ -3315,6 +3316,7 @@ function App() {
                   {/* Chat Input */}
                   <div className="w-full">
                     <ChatInput
+                      messages={messages}
                       onSendMessage={(msg, opts) => {
                         setPresetInputMessage('');
                         handleSendMessage(msg, opts);
@@ -3369,6 +3371,7 @@ function App() {
 
                   <div className="flex-shrink-0 bg-background/95 backdrop-blur pt-3">
                     <ChatInput
+                      messages={messages}
                       onSendMessage={handleSendMessage}
                       onStopGeneration={handleStopGeneration}
                       loading={loading}
@@ -3450,6 +3453,7 @@ function App() {
                   
                   <div className="flex-shrink-0 bg-background/95 backdrop-blur pt-6">
                     <ChatInput
+                      messages={messages}
                       onSendMessage={handleSendMessage}
                       onStopGeneration={handleStopGeneration}
                       loading={loading}
