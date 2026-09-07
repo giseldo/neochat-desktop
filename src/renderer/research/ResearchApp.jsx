@@ -1,4 +1,5 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
+import Library from './Library';
 import './research.css';
 
 const empty = { title: '', objectives: '', questions: '', inclusion: '', exclusion: '', population: '', intervention: '', comparison: '', outcomes: '', context: '' };
@@ -16,6 +17,7 @@ export default function ResearchApp() {
   const [error, setError] = useState('');
   const [status, setStatus] = useState('');
   const [filter, setFilter] = useState('');
+  const [tab, setTab] = useState('protocol');
 
   useEffect(() => {
     document.title = 'NeoChat Research';
@@ -50,6 +52,18 @@ export default function ResearchApp() {
     finally { setBusy(false); }
   };
   const change = (field, value) => { setProject(current => ({ ...current, [field]: value })); setDirty(true); setStatus(''); };
+  const importFile = async file => {
+    setBusy(true); setError('');
+    try {
+      if (file.size > 20000000) throw new Error('O arquivo excede 20 MB.');
+      const saved = dirty ? await window.research.save(project) : project;
+      setProject(saved); setDirty(false);
+      const result = await window.research.importRis({ id: saved.id, revision: saved.revision, text: await file.text() });
+      setProject(result.project); setProjects(await window.research.list());
+      setStatus(`Importação salva. ${result.duplicates} possíveis duplicatas marcadas.`);
+    } catch (error) { setError(error.message); }
+    finally { setBusy(false); }
+  };
 
   return <div className="research-app">
     <aside className="research-sidebar">
@@ -74,15 +88,16 @@ export default function ResearchApp() {
         <p>Organize os objetivos, as perguntas e os critérios da sua revisão de literatura em um projeto local.</p>
         <button className="research-primary" onClick={start} disabled={busy}>Criar projeto de revisão</button>
         <div className="research-intro"><article><b>01 · Defina</b><p>Registre o que você pretende investigar.</p></article><article><b>02 · Delimite</b><p>Estabeleça os critérios de elegibilidade.</p></article><article><b>03 · Preserve</b><p>Salve e retome seu protocolo neste computador.</p></article></div>
-      </section> : <form onSubmit={save} className="research-form">
-        <div className="research-heading"><div><span className="research-tag">PLANEJAMENTO DA REVISÃO</span><h1>{project.id ? 'Protocolo de pesquisa' : 'Nova revisão'}</h1><p>Você pode salvar um rascunho e completar os campos depois.</p></div><button className="research-primary" disabled={busy}>{busy ? 'Aguarde…' : 'Salvar protocolo'}</button></div>
+      </section> : <div className="research-form">
+        <div className="research-tabs"><button aria-pressed={tab === 'protocol'} onClick={() => setTab('protocol')}>Protocolo</button><button aria-pressed={tab === 'library'} onClick={() => setTab('library')}>Biblioteca</button></div>
+        <div className="research-heading"><div><span className="research-tag">PROJETO DE REVISÃO</span><h1>{project.id ? project.title : 'Nova revisão'}</h1><p>Você pode salvar um rascunho e completar os campos depois.</p></div><button onClick={save} className="research-primary" disabled={busy}>{busy ? 'Aguarde…' : 'Salvar projeto'}</button></div>
         <div role="status" className="research-status">{dirty ? 'Alterações não salvas' : status || (project.id ? `Salvo · versão ${project.revision}` : 'Novo projeto')}</div>
-        <fieldset disabled={busy}>
+        {tab === 'library' ? <Library key={project.id || 'new'} project={project} onChange={change} onImport={importFile} busy={busy} /> : <form onSubmit={save}><fieldset disabled={busy}>
           <section className="research-card"><label>Título da revisão <span aria-hidden="true">*</span><input required maxLength={200} value={project.title} onChange={event => change('title', event.target.value)} placeholder="Ex.: IA no ensino de programação" /></label></section>
           {sections.map(([title, fields]) => <section className="research-card" key={title}><h2>{title}</h2>{fields.map(([field, label]) => <label key={field}>{label}<textarea rows={field === 'objectives' ? 4 : 3} maxLength={100000} value={project[field]} onChange={event => change(field, event.target.value)} /></label>)}</section>)}
         </fieldset>
-        <button className="research-primary" disabled={busy}>Salvar protocolo</button>
-      </form>}
+        <button className="research-primary" disabled={busy}>Salvar protocolo</button></form>}
+      </div>}
     </main>
   </div>;
 }

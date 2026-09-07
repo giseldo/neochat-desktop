@@ -23,6 +23,14 @@ try {
   assert.throws(() => store.get('../../settings'), /inválido/);
   assert.throws(() => store.save({ ...updated, questions: {} }), /Campo inválido/);
   assert.deepEqual(store.get(updated.id), updated);
+  const ris = 'TY  - JOUR\nTI  - Learning with AI\nAU  - Silva, Ana\nPY  - 2025\nDO  - 10.123/test\nAB  - Evidence\n  continued\nER  - \n';
+  const imported = store.importRis({ id: updated.id, revision: updated.revision, text: ris + ris });
+  assert.equal(imported.duplicates, 1);
+  assert.equal(imported.project.references.length, 2);
+  assert.equal(imported.project.references[0].abstract, 'Evidence continued');
+  assert.equal(imported.project.references[1].duplicateOf, imported.project.references[0].id);
+  assert.throws(() => store.importRis({ id: updated.id, revision: imported.project.revision, text: 'TY  - JOUR\nTI  - Broken' }), /incompleto/);
+  assert.equal(store.get(updated.id).revision, imported.project.revision);
   console.log('Research: persistence, validation, traversal and revision conflict checks passed.');
 } finally {
   fs.rmSync(directory, { recursive: true, force: true });

@@ -1,6 +1,8 @@
 const fs = require('fs');
 const path = require('path');
 const { randomUUID } = require('crypto');
+const { librarySchema } = require('./schema');
+const { parseRis, addReferences } = require('./library');
 
 const fields = ['title', 'objectives', 'questions', 'inclusion', 'exclusion', 'population', 'intervention', 'comparison', 'outcomes', 'context'];
 
@@ -26,6 +28,14 @@ class ResearchStore {
     return JSON.parse(fs.readFileSync(this.file(id), 'utf8'));
   }
 
+  importRis({ id, revision, text }) {
+    if (typeof text !== 'string' || text.length > 20000000) throw new Error('Arquivo RIS inválido ou maior que 20 MB.');
+    const project = this.get(id);
+    if (project.revision !== revision) throw new Error('O projeto mudou. Reabra antes de importar.');
+    const { references, duplicates } = addReferences(project.references || [], parseRis(text));
+    return { project: this.save({ ...project, references }), duplicates };
+  }
+
   save(input) {
     if (!input || typeof input !== 'object') throw new Error('Projeto inválido.');
     const values = {};
@@ -38,7 +48,8 @@ class ResearchStore {
     const previous = input.id ? this.get(input.id) : null;
     if (previous && input.revision !== previous.revision) throw new Error('O projeto mudou. Reabra antes de salvar.');
     const now = new Date().toISOString();
-    const project = { ...values, id: previous?.id || randomUUID(), createdAt: previous?.createdAt || now, updatedAt: now, revision: (previous?.revision || 0) + 1, schemaVersion: 1 };
+    const references = librarySchema.parse(input.references ?? previous?.references ?? []);
+    const project = { ...values, references, id: previous?.id || randomUUID(), createdAt: previous?.createdAt || now, updatedAt: now, revision: (previous?.revision || 0) + 1, schemaVersion: 1 };
     const target = this.file(project.id);
     const temporary = `${target}.tmp`;
     fs.writeFileSync(temporary, JSON.stringify(project, null, 2), 'utf8');

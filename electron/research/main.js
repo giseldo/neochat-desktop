@@ -23,7 +23,7 @@ else {
   app.on('second-instance', () => { if (window) { window.restore(); window.focus(); } });
   app.whenReady().then(() => {
     const store = new ResearchStore(path.join(app.getPath('userData'), 'reviews'));
-    for (const method of ['list', 'get', 'save']) {
+    for (const method of ['list', 'get', 'save', 'importRis']) {
       ipcMain.handle(`research:${method}`, (event, payload) => {
         if (!window || event.sender !== window.webContents || event.senderFrame !== window.webContents.mainFrame) throw new Error('Origem inválida.');
         return store[method](payload);
