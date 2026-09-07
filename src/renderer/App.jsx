@@ -11,7 +11,7 @@ import { useCanvas } from './context/CanvasContext';
 import { useProjects } from './context/ProjectContext';
 import { useLanguage } from './context/LanguageContext';
 import { useTheme } from './context/ThemeContext';
-import { Settings, PanelLeftClose, PanelLeft, Radio, MessagesSquare, Sparkles, Store, Columns2, X, FolderKanban, BookOpen, Scale, Bot, Workflow, ChevronDown, Keyboard, Key, AlertCircle, PenSquare, Terminal, Folder, Briefcase, MessageSquare, Globe, Clock, Activity, LayoutGrid, MoreHorizontal, Brain, FolderTree } from 'lucide-react';
+import { Settings, PanelLeftClose, PanelLeft, Radio, MessagesSquare, Sparkles, Store, Columns2, X, FolderKanban, BookOpen, Scale, Bot, Workflow, ChevronDown, Keyboard, Key, AlertCircle, PenSquare, Terminal, Briefcase, MessageSquare, Globe, Clock, Activity, LayoutGrid, MoreHorizontal, Brain, FolderTree } from 'lucide-react';
 import { Button } from './components/ui/button';
 import { cn } from './lib/utils';
 import { groupModels } from './lib/modelGrouping';
@@ -2773,30 +2773,6 @@ function App() {
               )}
 
               
-              {/* In Code Mode: Workspace Directory Selector Button */}
-              {isPowerUser && harnessMode === 'code' && (
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={handleSelectWorkspace}
-                  className="h-7 px-2.5 text-xs flex items-center gap-1.5 rounded-lg border-amber-500/40 bg-amber-500/10 hover:bg-amber-500/20 text-amber-600 dark:text-amber-400 font-medium shadow-2xs transition-all cursor-pointer"
-                  title={t('chat.selectWorkspaceTooltip')}
-                >
-                  <Folder className="w-3.5 h-3.5 text-amber-500 shrink-0" />
-                  <span className="max-w-[140px] sm:max-w-[200px] truncate font-semibold">
-                    {workspaceInfo?.name || (workspacePath ? workspacePath.split(/[/\\]/).pop() : t('chat.selectWorkspace'))}
-                  </span>
-                  {workspaceInfo?.git?.branch && (
-                    <span className="hidden sm:inline px-1.5 py-0.5 rounded bg-amber-500/20 text-[10px] font-mono shrink-0">
-                      🌿 {workspaceInfo.git.branch}
-                    </span>
-                  )}
-                  {workspaceInfo?.agentsDoc && (
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" title={t('chat.agentsDocDetected')} />
-                  )}
-                </Button>
-              )}
               
               {/* Persona Selector */}
               {isPowerUser && (
