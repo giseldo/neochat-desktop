@@ -30,7 +30,6 @@ win:
     - nsis
     - portable
   icon: public/icon.png
-  publisherName: Neo
   requestedExecutionLevel: asInvoker
 
 nsis:

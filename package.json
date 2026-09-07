@@ -64,7 +64,7 @@
     "desktop",
     "chat"
   ],
-  "author": "",
+  "author": "Neo",
   "license": "ISC",
   "dependencies": {
     "@earendil-works/pi-agent-core": "0.84.4",
