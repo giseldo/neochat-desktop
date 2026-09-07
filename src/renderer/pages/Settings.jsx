@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { Link, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Search, Eye, EyeOff, Plus, Trash2, Edit3, Save, X, RefreshCw, Key, Settings as SettingsIcon, Zap, Cpu, Server, AlertCircle, CheckCircle, Sun, Moon, Laptop, Languages, Check, Terminal, Globe, Palette, Type, Sparkles, Sliders, ExternalLink, Route, User, Wrench, Download, UploadCloud, BarChart3, GitBranch, Mic, Volume2, Info, Keyboard, Folder, FolderOpen, RotateCcw, Lightbulb, Star, ChevronDown, ChevronUp, HardDrive, Brain, Flame, AlignJustify, Maximize2, Blocks, Bot, HelpCircle, Copy, Github, ImagePlus } from 'lucide-react';
+import { ArrowLeft, Search, Eye, EyeOff, Plus, Trash2, Edit3, Save, X, RefreshCw, Key, Settings as SettingsIcon, Zap, Cpu, Server, AlertCircle, CheckCircle, Sun, Moon, Laptop, Languages, Check, Terminal, Globe, Palette, Type, Sparkles, Sliders, ExternalLink, Route, User, Wrench, Download, UploadCloud, BarChart3, GitBranch, Mic, Volume2, Info, Keyboard, Folder, FolderOpen, RotateCcw, Lightbulb, Star, ChevronDown, ChevronUp, HardDrive, Brain, Flame, AlignJustify, Maximize2, Blocks, Bot, HelpCircle, Copy, Github, ImagePlus, Scissors } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, SettingsRow, SettingsChoices, SettingsSelect } from '../components/settings/SettingsSection';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
@@ -328,6 +328,7 @@ function Settings() {
     temperature: 0.7,
     top_p: 0.95,
     reasoning_effort: 'medium',
+    autoPrune: false,
     mcpServers: {},
     disabledMcpServers: [],
     customSystemPrompt: DEFAULT_SYSTEM_PROMPT,
@@ -813,8 +814,8 @@ function Settings() {
       id: 'generationParams',
       category: 'models',
       title: t('settings.generationParamsTitle') || 'Parâmetros de Geração',
-      desc: t('settings.generationParamsDesc') || 'Temperature, Top-P e Reasoning Effort',
-      keywords: 'parametros geracao temperature temperatura top p reasoning effort amostragem criatividade esforco',
+      desc: t('settings.generationParamsDesc') || 'Temperature, Top-P, Reasoning Effort e Poda Automática',
+      keywords: 'parametros geracao temperature temperatura top p reasoning effort amostragem criatividade esforco poda automatica prune context janela',
       isPowerOnly: true
     },
     {
@@ -5152,6 +5153,25 @@ function Settings() {
                     <p className="text-xs text-muted-foreground">
                       {t('settings.reasoningEffortHelp')}
                     </p>
+                  </div>
+                </div>
+
+                <div className="pt-4 border-t border-border">
+                  <div className="flex items-center justify-between p-4 rounded-xl border border-border bg-muted/20">
+                    <div className="space-y-1 pr-4">
+                      <Label htmlFor="autoPrune" className="text-sm font-medium cursor-pointer flex items-center gap-2 text-foreground">
+                        <Scissors className="h-4 w-4 text-primary" />
+                        <span>{t('settings.autoPruneLabel') || 'Poda Automática de Contexto (Padrão para novos modelos)'}</span>
+                      </Label>
+                      <p className="text-xs text-muted-foreground leading-relaxed">
+                        {t('settings.autoPruneHelp') || 'Define o padrão para novos modelos. Quando ativada, o histórico de mensagens é podado para até 50% da janela do modelo ao exceder esse limite para economizar tokens. Desabilitado por padrão.'}
+                      </p>
+                    </div>
+                    <Switch
+                      id="autoPrune"
+                      checked={Boolean(settings.autoPrune)}
+                      onChange={(e) => handleToggleChange('autoPrune', e.target.checked)}
+                    />
                   </div>
                 </div>
               </CardContent>

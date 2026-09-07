@@ -1,12 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { SlidersHorizontal, X, Check, RotateCcw, Cpu, Sparkles, Zap, Info } from 'lucide-react';
+import { SlidersHorizontal, X, Check, RotateCcw, Cpu, Sparkles, Zap, Info, Scissors } from 'lucide-react';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
 import { Badge } from './ui/badge';
+import Switch from './ui/Switch';
 import { useLanguage } from '../context/LanguageContext';
 import { getModelDisplayName } from '../lib/modelGrouping';
+import { cn } from '../lib/utils';
 
 const CONTEXT_PRESETS = [
   { label: '8k', value: 8192 },
@@ -31,6 +33,7 @@ export function ModelParametersModal({
   const [temperature, setTemperature] = useState(0.7);
   const [topP, setTopP] = useState(0.95);
   const [reasoningEffort, setReasoningEffort] = useState('medium');
+  const [autoPrune, setAutoPrune] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [currentSettings, setCurrentSettings] = useState(null);
@@ -50,8 +53,14 @@ export function ModelParametersModal({
         const customConfig = settings.customModels?.[selectedModel];
         const apiConfig = modelConfigs[selectedModel];
         const effectiveContext = customConfig?.context || apiConfig?.context || 1000000;
+        const effectiveAutoPrune = customConfig?.autoPrune !== undefined
+          ? customConfig.autoPrune
+          : (apiConfig?.autoPrune !== undefined
+              ? apiConfig.autoPrune
+              : (settings.autoPrune ?? false));
 
         setContextSize(effectiveContext);
+        setAutoPrune(Boolean(effectiveAutoPrune));
         setTemperature(settings.temperature ?? 0.7);
         setTopP(settings.top_p ?? 0.95);
         setReasoningEffort(settings.reasoning_effort || 'medium');
@@ -78,6 +87,7 @@ export function ModelParametersModal({
         [selectedModel]: {
           ...existingCustom,
           context: Number(contextSize) || 1000000,
+          autoPrune: Boolean(autoPrune),
           displayName: existingCustom.displayName || apiConfig.displayName || selectedModel,
           vision_supported: existingCustom.vision_supported ?? apiConfig.vision_supported ?? false,
           builtin_tools_supported: existingCustom.builtin_tools_supported ?? apiConfig.builtin_tools_supported ?? false,
@@ -116,6 +126,7 @@ export function ModelParametersModal({
     const apiConfig = modelConfigs[selectedModel];
     const defaultContext = apiConfig?.context || (selectedModel?.toLowerCase().includes('deepseek') ? 64000 : 1000000);
     setContextSize(defaultContext);
+    setAutoPrune(Boolean(currentSettings?.autoPrune ?? false));
     setTemperature(0.7);
     setTopP(0.95);
     setReasoningEffort('medium');
@@ -221,13 +232,40 @@ export function ModelParametersModal({
               </div>
             </div>
 
-            {/* Pruning info alert */}
-            <div className="flex items-start gap-2 p-2.5 rounded-md bg-blue-50/50 dark:bg-blue-950/20 border border-blue-200/60 dark:border-blue-900/40 text-[11px] text-blue-700 dark:text-blue-300">
-              <Info className="h-3.5 w-3.5 flex-shrink-0 mt-0.5" />
-              <span>
-                {t('chat.contextWindowHelp', { count: pruningThreshold.toLocaleString() }) ||
-                  `Poda automática configurada para 50%: ativada quando o histórico atingir ~${pruningThreshold.toLocaleString()} tokens.`}
-              </span>
+            {/* Auto Pruning Toggle & Dynamic Alert */}
+            <div className="space-y-2 pt-1">
+              <div className="flex items-center justify-between p-3 rounded-lg bg-muted/40 border border-border/70">
+                <div className="space-y-0.5 pr-3">
+                  <Label htmlFor="model-auto-prune" className="text-xs font-medium cursor-pointer flex items-center gap-1.5 text-foreground">
+                    <Scissors className="h-3.5 w-3.5 text-primary" />
+                    {t('chat.autoPrune') || 'Poda Automática de Contexto'}
+                  </Label>
+                  <p className="text-[11px] text-muted-foreground leading-snug">
+                    {t('chat.autoPruneDesc') || 'Reduz o histórico quando atingir 50% da janela para economizar tokens.'}
+                  </p>
+                </div>
+                <Switch
+                  id="model-auto-prune"
+                  checked={autoPrune}
+                  onCheckedChange={(checked) => setAutoPrune(checked)}
+                />
+              </div>
+
+              <div className={cn(
+                "flex items-start gap-2 p-2.5 rounded-md border text-[11px] transition-colors",
+                autoPrune
+                  ? "bg-blue-50/50 dark:bg-blue-950/20 border-blue-200/60 dark:border-blue-900/40 text-blue-700 dark:text-blue-300"
+                  : "bg-muted/30 border-border/50 text-muted-foreground"
+              )}>
+                <Info className="h-3.5 w-3.5 flex-shrink-0 mt-0.5" />
+                <span>
+                  {autoPrune
+                    ? (t('chat.autoPruneEnabledHelp', { count: pruningThreshold.toLocaleString() }) ||
+                        `Poda automática ativa (50%): ativada quando o histórico atingir ~${pruningThreshold.toLocaleString()} tokens.`)
+                    : (t('chat.autoPruneDisabledHelp', { count: (Number(contextSize) || 1000000).toLocaleString() }) ||
+                        `Poda automática desativada: todo o histórico será preservado até o limite da janela (~${(Number(contextSize) || 1000000).toLocaleString()} tokens).`)}
+                </span>
+              </div>
             </div>
           </div>
 

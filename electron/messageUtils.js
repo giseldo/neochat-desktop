@@ -373,9 +373,10 @@ function sanitizeMessageHistory(messages) {
  * @param {Array} messages - Complete message history
  * @param {String} model - Selected model name
  * @param {object} modelContextSizes - Object containing context window sizes for models.
+ * @param {object|boolean} [options={}] - Options object or boolean for autoPrune. If autoPrune is false, returns sanitizedMessages without pruning.
  * @returns {Array} - Pruned message history array
  */
-function pruneMessageHistory(messages, model, modelContextSizes) {
+function pruneMessageHistory(messages, model, modelContextSizes, options = {}) {
   // Handle edge cases
   if (!messages || !Array.isArray(messages) || messages.length <= 2) {
     return sanitizeMessageHistory(messages);
@@ -391,6 +392,22 @@ function pruneMessageHistory(messages, model, modelContextSizes) {
 
   // First sanitize to ensure structural validity before pruning
   let sanitizedMessages = sanitizeMessageHistory(messages);
+
+  // Check if automatic pruning is enabled:
+  // Explicit boolean in options > options.autoPrune > modelInfo.autoPrune > options.settings.autoPrune > fallback true (for standalone test calls)
+  const autoPruneEnabled = typeof options === 'boolean'
+    ? options
+    : (options?.autoPrune !== undefined
+        ? Boolean(options.autoPrune)
+        : (modelInfo?.autoPrune !== undefined
+            ? Boolean(modelInfo.autoPrune)
+            : (options?.settings?.autoPrune !== undefined
+                ? Boolean(options.settings.autoPrune)
+                : true)));
+
+  if (!autoPruneEnabled) {
+    return sanitizedMessages;
+  }
 
   // --- Image Pruning Logic ---
   let totalImageCount = 0;

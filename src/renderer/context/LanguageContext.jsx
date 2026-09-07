@@ -67,6 +67,13 @@ export const LanguageProvider = ({ children }) => {
   const t = useCallback((path, params = {}, fallback = '') => {
     if (!path) return fallback || '';
 
+    let actualParams = params;
+    let actualFallback = fallback;
+    if (typeof params === 'string') {
+      actualFallback = params;
+      actualParams = {};
+    }
+
     const keys = path.split('.');
     let current = translations[language];
 
@@ -91,17 +98,21 @@ export const LanguageProvider = ({ children }) => {
           break;
         }
       }
-      current = fbCurrent !== null ? fbCurrent : (fallback || path);
+      if (fbCurrent !== null && fbCurrent !== undefined) {
+        current = fbCurrent;
+      } else {
+        current = actualFallback || '';
+      }
     }
 
     if (typeof current !== 'string') {
-      return fallback || path;
+      return actualFallback || '';
     }
 
     // Interpolate params (e.g. {count}, {name}, etc.)
     let result = current;
-    if (params && typeof params === 'object') {
-      Object.entries(params).forEach(([paramKey, paramVal]) => {
+    if (actualParams && typeof actualParams === 'object') {
+      Object.entries(actualParams).forEach(([paramKey, paramVal]) => {
         const regex = new RegExp(`\\{${paramKey}\\}`, 'g');
         result = result.replace(regex, paramVal !== undefined && paramVal !== null ? String(paramVal) : '');
       });

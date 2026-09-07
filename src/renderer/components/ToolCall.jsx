@@ -238,7 +238,7 @@ function CanvasToolCall({ toolCall, toolResult, parsedData, allMessages, isPendi
             {/* Version details & meta */}
             <div className="flex flex-wrap items-center justify-between gap-2 pt-1">
               <div className="flex items-center gap-2 text-[11px] text-muted-foreground flex-wrap">
-                <span className="font-semibold text-foreground">Versão {version}</span>
+                <span className="font-semibold text-foreground">{t('canvas.versionLabel', { version }) || `Versão ${version}`}</span>
                 <span>•</span>
                 <span>{stats.words} {t('canvas.words') || 'palavras'}</span>
                 <span>•</span>
@@ -287,14 +287,14 @@ function CanvasToolCall({ toolCall, toolResult, parsedData, allMessages, isPendi
             {content ? (
               <div className="space-y-1">
                 <div className="flex items-center justify-between text-[10px] text-muted-foreground font-medium">
-                  <span>Prévia do Documento (v{version})</span>
+                  <span>{t('canvas.documentPreview', { version }) || `Prévia do Documento (v${version})`}</span>
                   <span>{stats.lines} {t('canvas.lines') || 'linhas'}</span>
                 </div>
                 <div className="rounded-lg border border-border/60 bg-muted/30 p-3 max-h-64 overflow-y-auto font-mono text-xs text-foreground/90 whitespace-pre-wrap select-text leading-relaxed">
                   {previewSnippet}
                   {content.length > 1200 && (
                     <div className="mt-2 text-[10px] text-muted-foreground italic border-t border-border/40 pt-1">
-                      ... (mais {content.length - 1200} caracteres. Clique em "Abrir no Canvas" para visualizar e editar o documento completo)
+                      ... ({t('canvas.moreCharsNotice', { count: content.length - 1200 }) || `mais ${content.length - 1200} caracteres. Clique em "Abrir no Canvas" para visualizar e editar o documento completo`})
                     </div>
                   )}
                 </div>
@@ -302,14 +302,14 @@ function CanvasToolCall({ toolCall, toolResult, parsedData, allMessages, isPendi
             ) : isPending ? (
               <div className="flex items-center gap-2 text-xs text-muted-foreground p-3 bg-muted/20 rounded-lg">
                 <Loader2 className="w-4 h-4 animate-spin text-primary" />
-                <span>Gerando documento no Canvas...</span>
+                <span>{t('canvas.generatingDoc') || 'Gerando documento no Canvas...'}</span>
               </div>
             ) : null}
 
             {/* Error display if any */}
             {error && (
               <div className="text-red-500 text-xs p-2 bg-red-500/10 border border-red-500/20 rounded-md">
-                <div className="font-medium mb-0.5">Erro na ferramenta Canvas:</div>
+                <div className="font-medium mb-0.5">{t('canvas.canvasError') || 'Erro na ferramenta Canvas:'}</div>
                 <pre className="whitespace-pre-wrap break-words font-mono text-[11px]">{error}</pre>
               </div>
             )}
@@ -321,7 +321,7 @@ function CanvasToolCall({ toolCall, toolResult, parsedData, allMessages, isPendi
                 onClick={() => setShowRawJson(!showRawJson)}
                 className="text-[10px] text-muted-foreground hover:text-foreground transition-colors underline cursor-pointer"
               >
-                {showRawJson ? 'Ocultar JSON técnico' : 'Ver argumentos JSON técnicos'}
+                {showRawJson ? (t('canvas.hideJson') || 'Ocultar JSON técnico') : (t('canvas.showJson') || 'Ver argumentos JSON técnicos')}
               </button>
 
               {showRawJson && (

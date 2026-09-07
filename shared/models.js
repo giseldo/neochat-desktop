@@ -256,16 +256,19 @@ function getModelContextSizes(customModels = {}, apiModels = null) {
   Object.entries(customModels).forEach(([modelId, config]) => {
     // Use explicit configuration only - no name-based heuristic
     const key = modelId.includes('::') ? modelId : `custom::${modelId}`;
+    const baseConfig = mergedModels[key] || mergedModels[modelId] || {};
     mergedModels[key] = {
-      context: config.context || 1000000,
-      vision_supported: config.vision_supported || false,
-      builtin_tools_supported: config.builtin_tools_supported || false,
-      displayName: config.displayName || modelId,
-      group: config.group || 'Personalizados',
-      provider: config.provider || 'custom',
-      rawModelId: config.rawModelId || modelId,
+      ...baseConfig,
+      context: config.context || baseConfig.context || 1000000,
+      vision_supported: config.vision_supported ?? baseConfig.vision_supported ?? false,
+      builtin_tools_supported: config.builtin_tools_supported ?? baseConfig.builtin_tools_supported ?? false,
+      displayName: config.displayName || baseConfig.displayName || modelId,
+      group: config.group || baseConfig.group || 'Personalizados',
+      provider: config.provider || baseConfig.provider || 'custom',
+      rawModelId: config.rawModelId || baseConfig.rawModelId || modelId,
       modelKey: key,
-      isCustom: true
+      isCustom: true,
+      ...(config.autoPrune !== undefined ? { autoPrune: Boolean(config.autoPrune) } : (baseConfig.autoPrune !== undefined ? { autoPrune: Boolean(baseConfig.autoPrune) } : {}))
     };
     if (key !== modelId && !mergedModels[modelId]) {
       mergedModels[modelId] = mergedModels[key];

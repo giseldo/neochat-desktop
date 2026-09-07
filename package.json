@@ -54,7 +54,8 @@
     "test:workflow-triggers": "node test-workflow-triggers.js",
     "test:prompt-caching": "node test-prompt-caching-metrics.js",
     "test:plugins": "node test-plugin-manager.js",
-    "test:context-indicator": "node test-context-indicator.js"
+    "test:context-indicator": "node test-context-indicator.js",
+    "test:auto-prune": "node test-auto-prune.js"
   },
   "keywords": [
     "electron",
