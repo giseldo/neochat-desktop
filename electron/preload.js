@@ -462,6 +462,8 @@ contextBridge.exposeInMainWorld('electron', {
     update: (id, updates) => ipcRenderer.invoke('memory-update', id, updates),
     delete: (id) => ipcRenderer.invoke('memory-delete', id),
     clear: () => ipcRenderer.invoke('memory-clear'),
+    export: (options) => ipcRenderer.invoke('memory-export', options),
+    import: (options) => ipcRenderer.invoke('memory-import', options),
     onMemoryUpdated: (callback) => {
       const listener = (_, data) => callback(data);
       ipcRenderer.on('memory-updated', listener);

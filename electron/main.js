@@ -660,6 +660,73 @@ app.whenReady().then(async () => {
   ipcMain.handle('memory-clear', async () => {
     return memoryService.clearMemories();
   });
+  ipcMain.handle('memory-export', async (event, { format = 'json' } = {}) => {
+    const { dialog } = require('electron');
+    const exported = memoryService.exportMemories(format);
+    const win = mainWindow || (event.sender?.getOwnerBrowserWindow ? event.sender.getOwnerBrowserWindow() : null);
+    
+    const { canceled, filePath } = await dialog.showSaveDialog(win, {
+      title: 'Salvar e Exportar Memórias',
+      defaultPath: path.join(app.getPath('downloads'), exported.filename),
+      filters: [
+        format === 'md' || format === 'markdown'
+          ? { name: 'Markdown (*.md)', extensions: ['md'] }
+          : { name: 'JSON (*.json)', extensions: ['json'] },
+        { name: 'Todos os arquivos (*.*)', extensions: ['*'] }
+      ]
+    });
+
+    if (canceled || !filePath) {
+      return { success: false, canceled: true };
+    }
+
+    try {
+      fs.writeFileSync(filePath, exported.content, 'utf8');
+      return { 
+        success: true, 
+        filePath, 
+        filename: path.basename(filePath),
+        format: exported.format,
+        total: exported.total,
+        active: exported.active
+      };
+    } catch (err) {
+      console.error('[Memory] Error saving exported memories:', err);
+      return { success: false, error: err.message };
+    }
+  });
+  ipcMain.handle('memory-import', async (event, options = {}) => {
+    const { dialog } = require('electron');
+    const win = mainWindow || (event.sender?.getOwnerBrowserWindow ? event.sender.getOwnerBrowserWindow() : null);
+
+    const { canceled, filePaths } = await dialog.showOpenDialog(win, {
+      title: 'Importar Memórias',
+      properties: ['openFile'],
+      filters: [
+        { name: 'Arquivos JSON (*.json)', extensions: ['json'] },
+        { name: 'Todos os arquivos (*.*)', extensions: ['*'] }
+      ]
+    });
+
+    if (canceled || !filePaths || !filePaths[0]) {
+      return { success: false, canceled: true };
+    }
+
+    const filePath = filePaths[0];
+    try {
+      const raw = fs.readFileSync(filePath, 'utf8');
+      const result = memoryService.importMemories(raw, { merge: options.merge !== false });
+      if (result.success) {
+        if (win && win.webContents) {
+          win.webContents.send('memory-updated', { type: 'imported', count: result.imported });
+        }
+      }
+      return { ...result, filePath, filename: path.basename(filePath) };
+    } catch (err) {
+      console.error('[Memory] Error importing memories:', err);
+      return { success: false, error: err.message };
+    }
+  });
 
   // --- Neo Agent Runtime IPC Handlers ---
   console.log("[Main Init] Registering Neo Agent Runtime handlers...");

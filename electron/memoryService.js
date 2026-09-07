@@ -295,6 +295,161 @@ function getMemoryToolDefinitions() {
   ];
 }
 
+/**
+ * Export memories in JSON or Markdown format
+ * @param {'json'|'md'|'markdown'} format
+ */
+function exportMemories(format = 'json') {
+  const memories = loadMemories();
+  const activeCount = memories.filter(m => m.enabled !== false).length;
+  const now = new Date();
+  const dateStr = now.toISOString().slice(0, 10);
+
+  if (format === 'md' || format === 'markdown') {
+    const categoryLabels = {
+      preference: 'Preferências (Preferences)',
+      fact: 'Fatos (Facts)',
+      rule: 'Regras (Rules)',
+      context: 'Contexto (Context)'
+    };
+
+    const sections = ['preference', 'fact', 'rule', 'context'].map(cat => {
+      const items = memories.filter(m => (m.category || 'preference') === cat);
+      const title = categoryLabels[cat] || cat;
+      if (items.length === 0) {
+        return `### ${title}\n*(Nenhuma memória cadastrada)*\n`;
+      }
+      const list = items.map(m => {
+        const status = m.enabled !== false ? '✅ Ativa' : '⏸️ Desativada';
+        const source = m.source === 'ai_extracted' ? 'Aprendido pela IA' : 'Manual';
+        const date = m.createdAt ? new Date(m.createdAt).toLocaleDateString() : dateStr;
+        return `- **${m.content}**\n  - *Status:* ${status} | *Origem:* ${source} | *Data:* ${date}`;
+      }).join('\n');
+      return `### ${title} (${items.length})\n${list}\n`;
+    });
+
+    const content = [
+      '# Memória Persistente do Usuário - NeoChat',
+      '',
+      `> **Data de exportação:** ${now.toLocaleString()}  `,
+      `> **Total de memórias:** ${memories.length} (${activeCount} ativas)`,
+      '',
+      '---',
+      '',
+      ...sections
+    ].join('\n');
+
+    return {
+      success: true,
+      format: 'md',
+      filename: `neochat-memorias-${dateStr}.md`,
+      content,
+      total: memories.length,
+      active: activeCount
+    };
+  }
+
+  // Default to JSON
+  const payload = {
+    version: 1,
+    appName: 'NeoChat',
+    exportedAt: now.toISOString(),
+    total: memories.length,
+    active: activeCount,
+    memories
+  };
+
+  return {
+    success: true,
+    format: 'json',
+    filename: `neochat-memorias-${dateStr}.json`,
+    content: JSON.stringify(payload, null, 2),
+    total: memories.length,
+    active: activeCount
+  };
+}
+
+/**
+ * Import memories from JSON object or string
+ * @param {string|object|Array} data
+ * @param {{ merge?: boolean }} options
+ */
+function importMemories(data, options = { merge: true }) {
+  let parsed = data;
+  if (typeof data === 'string') {
+    try {
+      parsed = JSON.parse(data);
+    } catch (err) {
+      return { success: false, error: 'JSON inválido para importação de memória.' };
+    }
+  }
+
+  let incomingList = [];
+  if (Array.isArray(parsed)) {
+    incomingList = parsed;
+  } else if (parsed && Array.isArray(parsed.memories)) {
+    incomingList = parsed.memories;
+  } else {
+    return { success: false, error: 'Estrutura de dados não reconhecida. Esperado array de memórias ou objeto com chave "memories".' };
+  }
+
+  if (incomingList.length === 0) {
+    return { success: false, error: 'O arquivo não contém memórias para importar.' };
+  }
+
+  const validCategories = ['preference', 'fact', 'rule', 'context'];
+  const currentMemories = options.merge !== false ? loadMemories() : [];
+  let added = 0;
+  let updated = 0;
+
+  for (const item of incomingList) {
+    if (!item || typeof item.content !== 'string' || !item.content.trim()) {
+      continue;
+    }
+
+    const cleanContent = item.content.trim();
+    const category = validCategories.includes(item.category) ? item.category : 'preference';
+    const enabled = item.enabled !== false;
+    const source = item.source || 'imported';
+    const createdAt = item.createdAt || new Date().toISOString();
+    const updatedAt = new Date().toISOString();
+
+    const existingIndex = currentMemories.findIndex(
+      m => m.id === item.id || m.content.toLowerCase() === cleanContent.toLowerCase()
+    );
+
+    if (existingIndex !== -1) {
+      // Update existing
+      currentMemories[existingIndex].category = category;
+      currentMemories[existingIndex].enabled = enabled;
+      currentMemories[existingIndex].updatedAt = updatedAt;
+      updated++;
+    } else {
+      // Add new
+      currentMemories.unshift({
+        id: item.id || `mem_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+        content: cleanContent,
+        category,
+        enabled,
+        source,
+        createdAt,
+        updatedAt
+      });
+      added++;
+    }
+  }
+
+  saveMemories(currentMemories);
+
+  return {
+    success: true,
+    total: currentMemories.length,
+    imported: added + updated,
+    added,
+    updated
+  };
+}
+
 module.exports = {
   initialize,
   getMemories,
@@ -306,5 +461,7 @@ module.exports = {
   clearMemories,
   getMemoryStats,
   getFormattedMemoryPrompt,
-  getMemoryToolDefinitions
+  getMemoryToolDefinitions,
+  exportMemories,
+  importMemories
 };
