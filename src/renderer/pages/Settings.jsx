@@ -811,19 +811,19 @@ function Settings() {
       isPowerOnly: true
     },
     {
-      id: 'generationParams',
-      category: 'models',
-      title: t('settings.generationParamsTitle') || 'Parâmetros de Geração',
-      desc: t('settings.generationParamsDesc') || 'Temperature, Top-P, Reasoning Effort e Poda Automática',
-      keywords: 'parametros geracao temperature temperatura top p reasoning effort amostragem criatividade esforco poda automatica prune context janela',
-      isPowerOnly: true
-    },
-    {
       id: 'modelsByProvider',
       category: 'models',
       title: t('settings.modelsByProviderTitle') || 'Modelos Ativos por Provedor',
       desc: t('settings.modelsByProviderDesc') || 'Ativar e desativar modelos e grupos disponíveis',
       keywords: 'modelos ativos provider models ativar desativar habilitar grupos groq llama gpt claude deepseek lista',
+      isPowerOnly: true
+    },
+    {
+      id: 'generationParams',
+      category: 'models',
+      title: t('settings.generationParamsTitle') || 'Parâmetros de Geração',
+      desc: t('settings.generationParamsDesc') || 'Temperature, Top-P, Reasoning Effort e Poda Automática',
+      keywords: 'parametros geracao temperature temperatura top p reasoning effort amostragem criatividade esforco poda automatica prune context janela',
       isPowerOnly: true
     },
     /* Oculto temporariamente por solicitação do usuário
@@ -4405,8 +4405,8 @@ function Settings() {
   const renderModelsSection = () => {
     const hasVisible =
       visibleCardIds.has('api') ||
-      visibleCardIds.has('generationParams') ||
-      visibleCardIds.has('modelsByProvider');
+      visibleCardIds.has('modelsByProvider') ||
+      visibleCardIds.has('generationParams');
 
     if (!hasVisible && activeCategory !== 'models') return null;
 
@@ -5078,106 +5078,6 @@ function Settings() {
           );
         })()}
 
-        {visibleCardIds.has('generationParams') && (
-          <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center space-x-2">
-                  <Cpu className="h-5 w-5 text-primary" />
-                  <span>{t('settings.generationParamsTitle')}</span>
-                </CardTitle>
-                <CardDescription>
-                  {t('settings.generationParamsDesc')}
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="space-y-3">
-                    <Label htmlFor="temperature">
-                      {t('settings.temperatureLabel')} <Badge variant="outline">{settings.temperature}</Badge>
-                    </Label>
-                    <input
-                      type="range"
-                      id="temperature"
-                      name="temperature"
-                      min="0"
-                      max="2"
-                      step="0.01"
-                      value={settings.temperature}
-                      onChange={handleNumberChange}
-                      className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
-                    />
-                    <p className="text-xs text-muted-foreground">
-                      {t('settings.temperatureHelp')}
-                    </p>
-                  </div>
-                  
-                  <div className="space-y-3">
-                    <Label htmlFor="top_p">
-                      {t('settings.topPLabel')} <Badge variant="outline">{settings.top_p}</Badge>
-                    </Label>
-                    <input
-                      type="range"
-                      id="top_p"
-                      name="top_p"
-                      min="0"
-                      max="1"
-                      step="0.01"
-                      value={settings.top_p}
-                      onChange={handleNumberChange}
-                      className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
-                    />
-                    <p className="text-xs text-muted-foreground">
-                      {t('settings.topPHelp')}
-                    </p>
-                  </div>
-                </div>
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="space-y-3">
-                    <Label htmlFor="reasoning_effort">
-                      {t('settings.reasoningEffortLabel')} <Badge variant="outline">{settings.reasoning_effort}</Badge>
-                    </Label>
-                    <Select
-                      value={settings.reasoning_effort}
-                      onValueChange={(value) => handleSelectChange('reasoning_effort', value)}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder={t('settings.reasoningEffortPlaceholder')} />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="low">{t('settings.reasoningLow')}</SelectItem>
-                        <SelectItem value="medium">{t('settings.reasoningMedium')}</SelectItem>
-                        <SelectItem value="high">{t('settings.reasoningHigh')}</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <p className="text-xs text-muted-foreground">
-                      {t('settings.reasoningEffortHelp')}
-                    </p>
-                  </div>
-                </div>
-
-                <div className="pt-4 border-t border-border">
-                  <div className="flex items-center justify-between p-4 rounded-xl border border-border bg-muted/20">
-                    <div className="space-y-1 pr-4">
-                      <Label htmlFor="autoPrune" className="text-sm font-medium cursor-pointer flex items-center gap-2 text-foreground">
-                        <Scissors className="h-4 w-4 text-primary" />
-                        <span>{t('settings.autoPruneLabel') || 'Poda Automática de Contexto (Padrão para novos modelos)'}</span>
-                      </Label>
-                      <p className="text-xs text-muted-foreground leading-relaxed">
-                        {t('settings.autoPruneHelp') || 'Define o padrão para novos modelos. Quando ativada, o histórico de mensagens é podado para até 50% da janela do modelo ao exceder esse limite para economizar tokens. Desabilitado por padrão.'}
-                      </p>
-                    </div>
-                    <Switch
-                      id="autoPrune"
-                      checked={Boolean(settings.autoPrune)}
-                      onChange={(e) => handleToggleChange('autoPrune', e.target.checked)}
-                    />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-        )}
-
         {visibleCardIds.has('modelsByProvider') && (
           <Card>
               <CardHeader>
@@ -5557,6 +5457,106 @@ function Settings() {
                     </Button>
                   </div>
                 )}
+              </CardContent>
+            </Card>
+        )}
+
+        {visibleCardIds.has('generationParams') && (
+          <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center space-x-2">
+                  <Cpu className="h-5 w-5 text-primary" />
+                  <span>{t('settings.generationParamsTitle')}</span>
+                </CardTitle>
+                <CardDescription>
+                  {t('settings.generationParamsDesc')}
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-3">
+                    <Label htmlFor="temperature">
+                      {t('settings.temperatureLabel')} <Badge variant="outline">{settings.temperature}</Badge>
+                    </Label>
+                    <input
+                      type="range"
+                      id="temperature"
+                      name="temperature"
+                      min="0"
+                      max="2"
+                      step="0.01"
+                      value={settings.temperature}
+                      onChange={handleNumberChange}
+                      className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      {t('settings.temperatureHelp')}
+                    </p>
+                  </div>
+                  
+                  <div className="space-y-3">
+                    <Label htmlFor="top_p">
+                      {t('settings.topPLabel')} <Badge variant="outline">{settings.top_p}</Badge>
+                    </Label>
+                    <input
+                      type="range"
+                      id="top_p"
+                      name="top_p"
+                      min="0"
+                      max="1"
+                      step="0.01"
+                      value={settings.top_p}
+                      onChange={handleNumberChange}
+                      className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      {t('settings.topPHelp')}
+                    </p>
+                  </div>
+                </div>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-3">
+                    <Label htmlFor="reasoning_effort">
+                      {t('settings.reasoningEffortLabel')} <Badge variant="outline">{settings.reasoning_effort}</Badge>
+                    </Label>
+                    <Select
+                      value={settings.reasoning_effort}
+                      onValueChange={(value) => handleSelectChange('reasoning_effort', value)}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder={t('settings.reasoningEffortPlaceholder')} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="low">{t('settings.reasoningLow')}</SelectItem>
+                        <SelectItem value="medium">{t('settings.reasoningMedium')}</SelectItem>
+                        <SelectItem value="high">{t('settings.reasoningHigh')}</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <p className="text-xs text-muted-foreground">
+                      {t('settings.reasoningEffortHelp')}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="pt-4 border-t border-border">
+                  <div className="flex items-center justify-between p-4 rounded-xl border border-border bg-muted/20">
+                    <div className="space-y-1 pr-4">
+                      <Label htmlFor="autoPrune" className="text-sm font-medium cursor-pointer flex items-center gap-2 text-foreground">
+                        <Scissors className="h-4 w-4 text-primary" />
+                        <span>{t('settings.autoPruneLabel') || 'Poda Automática de Contexto (Padrão para novos modelos)'}</span>
+                      </Label>
+                      <p className="text-xs text-muted-foreground leading-relaxed">
+                        {t('settings.autoPruneHelp') || 'Define o padrão para novos modelos. Quando ativada, o histórico de mensagens é podado para até 50% da janela do modelo ao exceder esse limite para economizar tokens. Desabilitado por padrão.'}
+                      </p>
+                    </div>
+                    <Switch
+                      id="autoPrune"
+                      checked={Boolean(settings.autoPrune)}
+                      onChange={(e) => handleToggleChange('autoPrune', e.target.checked)}
+                    />
+                  </div>
+                </div>
               </CardContent>
             </Card>
         )}
