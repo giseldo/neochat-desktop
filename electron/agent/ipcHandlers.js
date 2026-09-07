@@ -68,6 +68,30 @@ function registerAgentIpcHandlers({ ipcMain, runtime, loadSettings, getMcpState,
     return runtime.rollback(sessionId);
   });
   ipcMain.handle('agent:get-workspace-info', async (_event, workspaceRoot) => runtime.getWorkspaceInfo(workspaceRoot));
+  ipcMain.handle('agent:get-workspace-tree', async (_event, workspaceRoot, options = {}) => {
+    return runtime.getWorkspaceTree(workspaceRoot, options);
+  });
+  ipcMain.handle('agent:read-workspace-file', async (_event, workspaceRoot, filePath) => {
+    return runtime.readWorkspaceFile(workspaceRoot, filePath);
+  });
+  ipcMain.handle('agent:reveal-in-explorer', async (_event, targetPath) => {
+    if (!targetPath || typeof targetPath !== 'string') return { success: false, error: 'Invalid path' };
+    const { shell } = require('electron');
+    if (shell?.showItemInFolder) {
+      shell.showItemInFolder(targetPath);
+      return { success: true };
+    }
+    return { success: false, error: 'Shell not available' };
+  });
+  ipcMain.handle('agent:open-path', async (_event, folderPath) => {
+    if (!folderPath || typeof folderPath !== 'string') return { success: false, error: 'Invalid path' };
+    const { shell } = require('electron');
+    if (shell?.openPath) {
+      const err = await shell.openPath(folderPath);
+      return { success: !err, error: err };
+    }
+    return { success: false, error: 'Shell not available' };
+  });
   ipcMain.handle('agent:list-harnesses', async () => runtime.listHarnesses());
   ipcMain.handle('agent:get-session', async (event, sessionId) => {
     assertSessionId(sessionId);

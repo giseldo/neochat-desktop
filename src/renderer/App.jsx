@@ -11,7 +11,7 @@ import { useCanvas } from './context/CanvasContext';
 import { useProjects } from './context/ProjectContext';
 import { useLanguage } from './context/LanguageContext';
 import { useTheme } from './context/ThemeContext';
-import { Settings, PanelLeftClose, PanelLeft, Radio, MessagesSquare, Sparkles, Store, Columns2, X, FolderKanban, BookOpen, Scale, Bot, Workflow, ChevronDown, Keyboard, Key, AlertCircle, PenSquare, Terminal, Folder, Briefcase, MessageSquare, Globe, Clock, Activity, LayoutGrid, MoreHorizontal, Brain } from 'lucide-react';
+import { Settings, PanelLeftClose, PanelLeft, Radio, MessagesSquare, Sparkles, Store, Columns2, X, FolderKanban, BookOpen, Scale, Bot, Workflow, ChevronDown, Keyboard, Key, AlertCircle, PenSquare, Terminal, Folder, Briefcase, MessageSquare, Globe, Clock, Activity, LayoutGrid, MoreHorizontal, Brain, FolderTree } from 'lucide-react';
 import { Button } from './components/ui/button';
 import { cn } from './lib/utils';
 import { groupModels } from './lib/modelGrouping';
@@ -29,6 +29,7 @@ const ToolsPanel = lazy(() => import('./components/ToolsPanel'));
 const ToolApprovalModal = lazy(() => import('./components/ToolApprovalModal'));
 const ArtifactsPanel = lazy(() => import('./components/ArtifactsPanel'));
 const CanvasPanel = lazy(() => import('./components/CanvasPanel'));
+const WorkspaceExplorerPanel = lazy(() => import('./components/WorkspaceExplorerPanel'));
 const McpCatalogModal = lazy(() => import('./components/McpCatalogModal'));
 const ConversationStats = lazy(() => import('./components/ConversationStats'));
 const TrajectoryView = lazy(() => import('./components/TrajectoryView'));
@@ -343,9 +344,44 @@ function App() {
     isTerminalOpen, setIsTerminalOpen, isTerminalMaximized, setIsTerminalMaximized,
     isTasksOpen, setIsTasksOpen, isTasksMaximized, setIsTasksMaximized,
     isBrowserOpen, setIsBrowserOpen, isBrowserMaximized, setIsBrowserMaximized,
+    isExplorerOpen, setIsExplorerOpen, isExplorerMaximized, setIsExplorerMaximized,
     runningTasksCount
   } = useCompanionPanels(setIsCommandPaletteOpen);
   // --- End Terminal, Tasks & Browser State ---
+
+  // Open workspace file in Canvas side-by-side
+  const handleOpenFileInCanvas = useCallback(async (filePath) => {
+    try {
+      if (!window.electron?.agent?.readWorkspaceFile) return;
+      const res = await window.electron.agent.readWorkspaceFile(workspacePath, filePath);
+      if (res?.success) {
+        const ext = (res.extension || '').replace('.', '').toLowerCase();
+        const langMap = {
+          js: 'javascript', jsx: 'jsx', ts: 'typescript', tsx: 'tsx',
+          py: 'python', json: 'json', md: 'markdown', css: 'css', html: 'html',
+          yml: 'yaml', yaml: 'yaml', toml: 'toml', sh: 'bash', ps1: 'powershell',
+          sql: 'sql', c: 'c', cpp: 'cpp', rs: 'rust', go: 'go', php: 'php'
+        };
+        createNewDocument({
+          title: res.name || filePath,
+          language: langMap[ext] || ext || 'text',
+          content: res.content,
+          summary: `Arquivo aberto do workspace: ${res.relativePath || filePath}`
+        });
+      }
+    } catch (err) {
+      console.error('Error opening file in Canvas:', err);
+    }
+  }, [workspacePath, createNewDocument]);
+
+  // Insert file reference into chat prompt
+  const handleInsertPrompt = useCallback((filePath) => {
+    if (!filePath) return;
+    setPresetInputMessage(prev => {
+      const ref = `@${filePath}`;
+      return prev ? `${prev} ${ref} ` : `${ref} `;
+    });
+  }, []);
 
   // --- Preset Input Message State for Welcome suggestions ---
   const [presetInputMessage, setPresetInputMessage] = useState('');
@@ -360,6 +396,7 @@ function App() {
       setIsTerminalOpen(false);
       setIsTasksOpen(false);
       setIsBrowserOpen(false);
+      setIsExplorerOpen(false);
       closeCanvas();
       setActiveArtifact(null);
     }
@@ -2691,6 +2728,11 @@ function App() {
         loading={loading}
         harnessMode={harnessMode}
         onModeChange={handleModeChange}
+        workspacePath={workspacePath}
+        workspaceInfo={workspaceInfo}
+        onSelectWorkspace={handleSelectWorkspace}
+        onOpenFileInCanvas={handleOpenFileInCanvas}
+        onInsertPrompt={handleInsertPrompt}
       />
       
       {/* Main Content Area */}
@@ -2838,7 +2880,7 @@ function App() {
                     aria-label={t('header.toolsMenu') || 'Ferramentas e Recursos'}
                   >
                     <LayoutGrid className="h-4 w-4" />
-                    {(runningTasksCount > 0 || isTerminalOpen || isCanvasOpen) && (
+                    {(runningTasksCount > 0 || isTerminalOpen || isCanvasOpen || isExplorerOpen) && (
                       <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-primary animate-pulse" />
                     )}
                   </Button>
@@ -2862,6 +2904,25 @@ function App() {
                             {isTerminalOpen && <span className="px-1.5 py-0.2 rounded bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-[10px] font-mono">Aberto</span>}
                           </div>
                           <div className="text-[10px] text-muted-foreground truncate">PowerShell & comandos (Ctrl+`)</div>
+                        </div>
+                      </button>
+
+                      {/* Workspace File Explorer */}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsToolsDropdownOpen(false);
+                          setIsExplorerOpen(!isExplorerOpen);
+                        }}
+                        className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-muted/80 text-foreground transition-colors text-left cursor-pointer"
+                      >
+                        <FolderTree className="w-4 h-4 text-amber-500 shrink-0" />
+                        <div className="flex-1 min-w-0">
+                          <div className="font-semibold text-foreground flex items-center justify-between">
+                            <span>{t('header.workspaceExplorer') || 'Explorador de Arquivos'}</span>
+                            {isExplorerOpen && <span className="px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-600 dark:text-amber-400 text-[10px] font-mono">Aberto</span>}
+                          </div>
+                          <div className="text-[10px] text-muted-foreground truncate">{t('header.workspaceExplorerSubtitle') || 'Estrutura de pastas e arquivos (Ctrl+Shift+E)'}</div>
                         </div>
                       </button>
 
@@ -3488,6 +3549,22 @@ function App() {
               onClose={() => setIsBrowserOpen(false)}
               isMaximized={isBrowserMaximized}
               onToggleMaximize={() => setIsBrowserMaximized(!isBrowserMaximized)}
+            />
+          </Suspense>
+        )}
+
+        {/* Side-by-side Workspace File Explorer Panel */}
+        {isExplorerOpen && (
+          <Suspense fallback={null}>
+            <WorkspaceExplorerPanel
+              onClose={() => setIsExplorerOpen(false)}
+              isMaximized={isExplorerMaximized}
+              onToggleMaximize={() => setIsExplorerMaximized(!isExplorerMaximized)}
+              workspacePath={workspacePath}
+              workspaceInfo={workspaceInfo}
+              onSelectWorkspace={handleSelectWorkspace}
+              onOpenFileInCanvas={handleOpenFileInCanvas}
+              onInsertPrompt={handleInsertPrompt}
             />
           </Suspense>
         )}

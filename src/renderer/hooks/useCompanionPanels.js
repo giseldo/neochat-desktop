@@ -7,6 +7,8 @@ export function useCompanionPanels(setIsCommandPaletteOpen) {
   const [isTasksMaximized, setIsTasksMaximized] = useState(false);
   const [isBrowserOpen, setIsBrowserOpen] = useState(false);
   const [isBrowserMaximized, setIsBrowserMaximized] = useState(false);
+  const [isExplorerOpen, setIsExplorerOpen] = useState(false);
+  const [isExplorerMaximized, setIsExplorerMaximized] = useState(false);
   const [runningTasksCount, setRunningTasksCount] = useState(0);
 
   useEffect(() => {
@@ -45,6 +47,9 @@ export function useCompanionPanels(setIsCommandPaletteOpen) {
       } else if (event.shiftKey && event.key.toLowerCase() === 't') {
         event.preventDefault();
         setIsTasksOpen(value => !value);
+      } else if (event.shiftKey && event.key.toLowerCase() === 'e') {
+        event.preventDefault();
+        setIsExplorerOpen(value => !value);
       }
     };
     window.addEventListener('keydown', handleGlobalShortcuts);
@@ -55,6 +60,7 @@ export function useCompanionPanels(setIsCommandPaletteOpen) {
     isTerminalOpen, setIsTerminalOpen, isTerminalMaximized, setIsTerminalMaximized,
     isTasksOpen, setIsTasksOpen, isTasksMaximized, setIsTasksMaximized,
     isBrowserOpen, setIsBrowserOpen, isBrowserMaximized, setIsBrowserMaximized,
+    isExplorerOpen, setIsExplorerOpen, isExplorerMaximized, setIsExplorerMaximized,
     runningTasksCount
   };
 }

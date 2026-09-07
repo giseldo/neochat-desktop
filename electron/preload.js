@@ -158,6 +158,10 @@ contextBridge.exposeInMainWorld('electron', {
     getSession: (sessionId) => ipcRenderer.invoke('agent:get-session', sessionId),
     getTrajectory: (sessionId, options) => ipcRenderer.invoke('agent:get-trajectory', sessionId, options),
     getWorkspaceInfo: (workspaceRoot) => ipcRenderer.invoke('agent:get-workspace-info', workspaceRoot),
+    getWorkspaceTree: (workspaceRoot, options) => ipcRenderer.invoke('agent:get-workspace-tree', workspaceRoot, options),
+    readWorkspaceFile: (workspaceRoot, filePath) => ipcRenderer.invoke('agent:read-workspace-file', workspaceRoot, filePath),
+    revealInExplorer: (targetPath) => ipcRenderer.invoke('agent:reveal-in-explorer', targetPath),
+    openPath: (folderPath) => ipcRenderer.invoke('agent:open-path', folderPath),
     listHarnesses: () => ipcRenderer.invoke('agent:list-harnesses'),
     selectWorkspace: () => ipcRenderer.invoke('agent:select-workspace'),
     onEvent: (callback) => {

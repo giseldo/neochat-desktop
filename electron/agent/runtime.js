@@ -321,6 +321,24 @@ class NeoAgentRuntime {
     return await this.workspaceManager.inspectWorkspace(workspaceRoot);
   }
 
+  /**
+   * Get recursive directory and file tree for workspace.
+   * @param {string} workspaceRoot
+   * @param {object} options
+   */
+  getWorkspaceTree(workspaceRoot, options = {}) {
+    return this.workspaceManager.getDirectoryTree(workspaceRoot, options);
+  }
+
+  /**
+   * Read content of a workspace file.
+   * @param {string} workspaceRoot
+   * @param {string} filePath
+   */
+  readWorkspaceFile(workspaceRoot, filePath) {
+    return this.workspaceManager.readFileContent(workspaceRoot, filePath);
+  }
+
   getSessionSnapshot(sessionId) {
     const session = this.getSession(sessionId);
     return session ? this._snapshotSession(session) : this.sessionStore.loadSnapshot(sessionId);
