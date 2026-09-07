@@ -3,7 +3,7 @@ import { useState } from 'react';
 const blank = { title: '', authors: '', year: '', doi: '', abstract: '', source: '', url: '' };
 const labels = { title: 'Título', authors: 'Autores', year: 'Ano', doi: 'DOI', abstract: 'Resumo', source: 'Periódico / fonte', url: 'URL' };
 
-export default function Library({ project, onChange, onImport, busy }) {
+export default function Library({ project, onChange, onImport, onFile, busy }) {
   const [draft, setDraft] = useState(blank);
   const [query, setQuery] = useState('');
   const [editing, setEditing] = useState(null);
@@ -30,6 +30,8 @@ export default function Library({ project, onChange, onImport, busy }) {
       <h2>{item.title}</h2><p>{item.authors} · {item.year}</p><p>{item.doi}</p>
       {item.duplicateOf && <p className="research-status">Possível duplicata de: {references.find(other => other.id === item.duplicateOf)?.title}</p>}
       <button disabled={busy} onClick={() => { setEditing(item.id); setDraft(Object.fromEntries(Object.keys(blank).map(key => [key, item[key] || '']))); }}>Editar referência</button>
+      <button disabled={busy || !project.id} onClick={() => onFile('attach', item.id)}>{item.hasPdf ? 'Substituir PDF' : 'Anexar PDF'}</button>
+      {item.hasPdf && <button disabled={busy} onClick={() => onFile('openPdf', item.id)}>Abrir PDF</button>}
       {item.duplicateOf && <button disabled={busy} onClick={() => onChange('references', references.map(other => other.id === item.id ? { ...other, duplicateOf: '' } : other))}>Marcar como estudo distinto</button>}
     </article>)}
   </section>;

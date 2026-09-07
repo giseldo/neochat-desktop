@@ -9,6 +9,7 @@
     "dev:research": "concurrently -k \"pnpm exec vite --port 5174 --strictPort\" \"pnpm dev:research:electron\"",
     "dev:research:electron": "wait-on http://localhost:5174 && cross-env NODE_ENV=development electron electron/research/main.js",
     "test:research": "node test-research.js",
+    "test:research:ui": "node scripts/run-research-ui-test.js",
     "dev": "concurrently \"pnpm dev:vite\" \"pnpm dev:electron\"",
     "dev:vite": "vite",
     "dev:electron": "cross-env NODE_ENV=development electron .",

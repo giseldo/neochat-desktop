@@ -22,4 +22,5 @@ const assessmentSchema = z.object({
   answers: z.array(z.object({ referenceId: z.string().uuid(), fieldId: z.string().uuid(), value: text, evidence: text, page: z.string().max(100).default('') })).max(100000).default([]),
   searches: z.array(z.object({ id: z.string().uuid(), database: z.string().trim().min(1).max(1000), query: text, date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/), count: z.number().int().min(0), notes: text })).max(10000).default([]),
 });
-module.exports = { librarySchema, assessmentSchema };
+const historySchema = z.array(z.object({ referenceId: z.string().uuid(), stage: z.enum(['screening', 'fullText']), decision, reason: text, at: z.string().datetime(), actor: z.literal('researcher') })).max(100000);
+module.exports = { librarySchema, assessmentSchema, historySchema };

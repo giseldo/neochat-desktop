@@ -6,20 +6,31 @@ Edição single user no mesmo repositório, com entrada Electron própria e comp
 
 - Desktop: `pnpm dev` (Vite na porta 5173).
 - Research: `pnpm dev:research` (Vite na porta 5174, aguardado antes de abrir o Electron).
-- Validar: `pnpm test:research` e `pnpm build`.
+- Validar: `pnpm test:research`, `pnpm build` e `pnpm test:research:ui` (Electron com dados temporários).
 
 É possível executar as duas edições simultaneamente. O Research usa exclusivamente a ponte `window.research`, não inicializa provedores de chat e não registra atalhos globais, protocolo groq ou atualizador do Desktop.
 
 ## Dados
 
-Projetos em `app.getPath('appData')/neochat-research/reviews`, um JSON por revisão. No Windows, normalmente `%APPDATA%/neochat-research/reviews`. A edição não herda o caminho personalizado nem as configurações do Desktop. Os arquivos incluem versão do esquema, revisão, datas e protocolo. A gravação usa arquivo temporário e renomeação; conflitos de revisão são recusados.
+Projetos em `app.getPath('appData')/neochat-research/reviews`, um JSON por revisão. No Windows, normalmente `%APPDATA%/neochat-research/reviews`. A edição não herda o caminho personalizado nem as configurações do Desktop. `NEOCHAT_RESEARCH_USER_DATA_PATH` permite definir um diretório exclusivo, inclusive para testes. Os arquivos incluem versão do esquema, revisão, datas e protocolo. A gravação usa arquivo temporário e renomeação; conflitos de revisão são recusados.
 
 ## Entregue
 
 Criar, listar, buscar, abrir e editar projetos; título obrigatório; objetivos; perguntas; critérios de inclusão/exclusão e PICOC opcional. Salvamento explícito, indicação de alterações pendentes e confirmação antes de descartá-las.
 
+- Buscas: base, string, data, quantidade de resultados e observações.
+- Biblioteca: cadastro e edição manual, importação RIS (até 20 MB), marcação de possíveis duplicatas por DOI ou título/ano. Nenhum registro é removido automaticamente.
+- PDFs: cópia local de anexos de até 50 MB por estudo e abertura no leitor do sistema.
+- Seleção: título/resumo e texto completo. Exclusões exigem motivo; mudanças de decisão são registradas com data e autoria humana. Reverter a inclusão inicial devolve a avaliação do texto completo para pendente.
+- Qualidade: checklist configurável, respostas sim/parcial/não/não se aplica, evidência e página.
+- Extração: campos configuráveis com resposta, evidência e página, aplicados aos estudos incluídos no texto completo.
+- Resultados: matriz CSV com referências, decisões e respostas. Campos potencialmente interpretados como fórmulas são neutralizados.
+- Backup: JSON com protocolo, biblioteca, buscas, formulários, respostas, histórico e PDFs (limite de 150 MB de PDFs). Restaurar cria uma cópia com novo ID, preservando a revisão original no computador.
+
+Importar RIS, anexar PDF e exportar salvam primeiro as alterações do projeto. Não feche o aplicativo enquanto uma operação estiver em andamento.
+
 ## Próximas etapas
 
-Biblioteca e importação de referências, triagem, avaliação de qualidade, extração com evidências e exportação. Não há geração por IA nesta etapa. Instaladores e canal de atualização Research ainda não estão configurados; os comandos de distribuição existentes continuam gerando o Desktop.
+Assistência por IA com verificação de evidências, suporte BibTeX, leitura integrada de PDFs e síntese escrita. A versão atual é um fluxo manual completo de organização de revisões; não há busca automática em bases, extração automática de PDFs, pontuação automática de qualidade ou alegação de conformidade metodológica. Instaladores e canal de atualização Research ainda não estão configurados; os comandos de distribuição existentes continuam gerando o Desktop.
 
 O Parsifal é referência funcional de planejamento de revisões. Nenhum código do Parsifal foi incorporado nesta etapa.

@@ -36,12 +36,12 @@ export default function ResearchApp() {
   const mayLeave = () => !dirty || window.confirm('Descartar as alterações não salvas?');
   const start = () => {
     if (!mayLeave()) return;
-    setProject({ ...empty }); setDirty(false); setError(''); setStatus('');
+    setProject({ ...empty }); setTab('protocol'); setDirty(false); setError(''); setStatus('');
   };
   const open = async id => {
     if (!mayLeave()) return;
     setBusy(true); setError('');
-    try { setProject(await window.research.get(id)); setDirty(false); setStatus(''); }
+    try { setProject(await window.research.get(id)); setTab('protocol'); setDirty(false); setStatus(''); }
     catch (error) { setError(error.message); }
     finally { setBusy(false); }
   };
@@ -67,12 +67,25 @@ export default function ResearchApp() {
     } catch (error) { setError(error.message); }
     finally { setBusy(false); }
   };
+  const fileAction = async (action, referenceId) => {
+    if (action === 'restore' && !mayLeave()) return;
+    setBusy(true); setError(''); setStatus('');
+    try {
+      const saved = action !== 'restore' && dirty ? await window.research.save(project) : project;
+      if (action !== 'restore') { setProject(saved); setDirty(false); }
+      const result = await window.research.files({ action, id: saved?.id, referenceId });
+      if (result?.id) { setProject(result); setDirty(false); setProjects(await window.research.list()); }
+      if (result?.exported) setStatus('Arquivo exportado.');
+    } catch (error) { setError(error.message); }
+    finally { setBusy(false); }
+  };
 
   return <div className="research-app">
     <aside className="research-sidebar">
       <div className="research-brand">N<span>NeoChat <strong>Research</strong></span></div>
       <p className="research-caption">SEU ESPAÇO DE PESQUISA</p>
       <button className="research-primary" onClick={start} disabled={busy}>+ Nova revisão</button>
+      <button disabled={busy} onClick={() => fileAction('restore')}>Restaurar backup</button>
       <label className="research-search">Buscar revisões<input value={filter} onChange={event => setFilter(event.target.value)} placeholder="Título do projeto" /></label>
       <nav aria-label="Projetos de revisão">
         {projects.filter(item => item.title.toLocaleLowerCase().includes(filter.toLocaleLowerCase())).map(item => <button key={item.id} disabled={busy} aria-current={project?.id === item.id ? 'page' : undefined} onClick={() => open(item.id)}>
@@ -83,7 +96,7 @@ export default function ResearchApp() {
       <footer>Uso individual · Armazenamento local</footer>
     </aside>
     <main className="research-main">
-      <header className="research-top"><span>Revisões de literatura / {project ? 'Protocolo' : 'Início'}</span><span>NeoChat Research</span></header>
+      <header className="research-top"><span>Revisões de literatura / {project ? ({ protocol: 'Protocolo', search: 'Buscas', library: 'Biblioteca', screening: 'Seleção', quality: 'Qualidade', extraction: 'Extração', results: 'Resultados' })[tab] : 'Início'}</span><span>NeoChat Research</span></header>
       {error && <div className="research-error" role="alert">{error}</div>}
       {!project ? <section className="research-welcome">
         <span className="research-tag">DO PLANEJAMENTO À EVIDÊNCIA</span>
@@ -92,10 +105,10 @@ export default function ResearchApp() {
         <button className="research-primary" onClick={start} disabled={busy}>Criar projeto de revisão</button>
         <div className="research-intro"><article><b>01 · Defina</b><p>Registre o que você pretende investigar.</p></article><article><b>02 · Delimite</b><p>Estabeleça os critérios de elegibilidade.</p></article><article><b>03 · Preserve</b><p>Salve e retome seu protocolo neste computador.</p></article></div>
       </section> : <div className="research-form">
-        <div className="research-tabs">{[['protocol', 'Protocolo'], ['search', 'Buscas'], ['library', 'Biblioteca'], ['screening', 'Seleção'], ['quality', 'Qualidade'], ['extraction', 'Extração']].map(([key, label]) => <button key={key} aria-pressed={tab === key} onClick={() => setTab(key)}>{label}</button>)}</div>
+        <div className="research-tabs">{[['protocol', 'Protocolo'], ['search', 'Buscas'], ['library', 'Biblioteca'], ['screening', 'Seleção'], ['quality', 'Qualidade'], ['extraction', 'Extração'], ['results', 'Resultados']].map(([key, label]) => <button key={key} aria-pressed={tab === key} onClick={() => setTab(key)}>{label}</button>)}</div>
         <div className="research-heading"><div><span className="research-tag">PROJETO DE REVISÃO</span><h1>{project.id ? project.title : 'Nova revisão'}</h1><p>Você pode salvar um rascunho e completar os campos depois.</p></div><button onClick={save} className="research-primary" disabled={busy}>{busy ? 'Aguarde…' : 'Salvar projeto'}</button></div>
         <div role="status" className="research-status">{dirty ? 'Alterações não salvas' : status || (project.id ? `Salvo · versão ${project.revision}` : 'Novo projeto')}</div>
-        {['quality', 'extraction'].includes(tab) ? <Assessment key={`${project.id}-${tab}`} project={project} kind={tab} onChange={change} busy={busy} /> : tab === 'search' ? <SearchLog key={project.id || 'new'} project={project} onChange={change} busy={busy} /> : tab === 'screening' ? <Screening project={project} onChange={change} busy={busy} /> : tab === 'library' ? <Library key={project.id || 'new'} project={project} onChange={change} onImport={importFile} busy={busy} /> : <form onSubmit={save}><fieldset disabled={busy}>
+        {tab === 'results' ? <section className="research-card"><h2>Resultados e preservação</h2><p>{(project.references || []).length} referências · {(project.references || []).filter(item => item.fullText === 'include').length} incluídas após leitura completa.</p><p>A matriz CSV contém referências, decisões, qualidade e extração com evidências e páginas. O backup JSON inclui o projeto e os PDFs anexados (até 150 MB de PDFs).</p><button disabled={busy || !project.id} onClick={() => fileAction('csv')}>Exportar matriz CSV</button><button disabled={busy || !project.id} onClick={() => fileAction('backup')}>Salvar backup completo</button><h2>Histórico de decisões salvas</h2>{(project.history || []).slice().reverse().map((item, index) => <p key={index}>{new Date(item.at).toLocaleString('pt-BR')} · {project.references.find(reference => reference.id === item.referenceId)?.title} · {item.stage === 'screening' ? 'Título/resumo' : 'Texto completo'} · {item.decision} · {item.reason}</p>)}</section> : ['quality', 'extraction'].includes(tab) ? <Assessment key={`${project.id}-${tab}`} project={project} kind={tab} onChange={change} busy={busy} /> : tab === 'search' ? <SearchLog key={project.id || 'new'} project={project} onChange={change} busy={busy} /> : tab === 'screening' ? <Screening project={project} onChange={change} busy={busy} /> : tab === 'library' ? <Library key={project.id || 'new'} project={project} onChange={change} onImport={importFile} onFile={fileAction} busy={busy} /> : <form onSubmit={save}><fieldset disabled={busy}>
           <section className="research-card"><label>Título da revisão <span aria-hidden="true">*</span><input required maxLength={200} value={project.title} onChange={event => change('title', event.target.value)} placeholder="Ex.: IA no ensino de programação" /></label></section>
           {sections.map(([title, fields]) => <section className="research-card" key={title}><h2>{title}</h2>{fields.map(([field, label]) => <label key={field}>{label}<textarea rows={field === 'objectives' ? 4 : 3} maxLength={100000} value={project[field]} onChange={event => change(field, event.target.value)} /></label>)}</section>)}
         </fieldset>

@@ -1,0 +1,14 @@
+const { spawnSync } = require('child_process');
+const path = require('path');
+const fs = require('fs');
+const os = require('os');
+const env = { ...process.env };
+delete env.ELECTRON_RUN_AS_NODE;
+const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'neochat-research-ui-'));
+env.NEOCHAT_RESEARCH_USER_DATA_PATH = directory;
+const result = spawnSync(require('electron'), [path.join(__dirname, 'test-research-electron.cjs')], { env, encoding: 'utf8', timeout: 55000, windowsHide: true });
+process.stdout.write(result.stdout || '');
+process.stderr.write(result.stderr || '');
+if (result.error) console.error(result.error.message);
+process.exitCode = result.status === 0 ? 0 : 1;
+fs.rmSync(directory, { recursive: true, force: true, maxRetries: 5, retryDelay: 200 });

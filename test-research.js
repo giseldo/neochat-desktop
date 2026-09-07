@@ -42,6 +42,17 @@ try {
   assert.equal(store.get(extracted.id).assessment.answers[0].page, '4');
   assert.throws(() => store.save({ ...extracted, assessment: { ...assessment, extractionFields: [] } }), /Resposta inválida/);
   assert.throws(() => store.save({ ...extracted, assessment: { ...assessment, answers: [...assessment.answers, ...assessment.answers] } }), /Resposta inválida/);
+  assert.throws(() => store.attachPdf(extracted.id, extracted.references[0].id, Buffer.from('not a PDF')), /PDF válido/);
+  store.attachPdf(extracted.id, extracted.references[0].id, Buffer.from('%PDF-1.4\n%%EOF'));
+  const restored = store.restore(store.backup(extracted.id));
+  assert.notEqual(restored.id, extracted.id);
+  assert.equal(restored.references[0].hasPdf, true);
+  assert.deepEqual(restored.history, extracted.history);
+  assert.deepEqual(restored.assessment, extracted.assessment);
+  const { exportCsv } = require('./electron/research/export');
+  const csv = exportCsv({ ...restored, references: restored.references.map(item => ({ ...item, title: '=danger,"quoted"' })) });
+  assert.ok(csv.includes("'=danger,"));
+  assert.ok(csv.includes('""quoted""'));
   console.log('Research: persistence, validation, traversal and revision conflict checks passed.');
 } finally {
   fs.rmSync(directory, { recursive: true, force: true });

@@ -1,0 +1,88 @@
+// Run with Electron after pnpm build. Uses an isolated temporary userData directory.
+const { app, dialog } = require('electron');
+const fs = require('fs');
+const os = require('os');
+const path = require('path');
+const assert = require('assert/strict');
+const directory = process.env.NEOCHAT_RESEARCH_USER_DATA_PATH || fs.mkdtempSync(path.join(os.tmpdir(), 'neochat-research-ui-'));
+process.env.NEOCHAT_RESEARCH_USER_DATA_PATH = directory;
+delete process.env.NODE_ENV;
+let exportPath = path.join(directory, 'backup.json');
+dialog.showSaveDialog = async () => ({ canceled: false, filePath: exportPath });
+dialog.showOpenDialog = async () => ({ canceled: false, filePaths: [exportPath] });
+let finished = false;
+const finish = code => {
+  if (finished) return;
+  finished = true;
+  app.exit(code);
+};
+setTimeout(() => { console.error('Research UI timed out'); finish(1); }, 45000);
+app.on('browser-window-created', (_event, window) => {
+  window.hide();
+  window.webContents.once('did-finish-load', async () => {
+    try {
+      const result = await window.webContents.executeJavaScript(`(async () => {
+        const wait = () => new Promise(resolve => setTimeout(resolve, 80));
+        const until = async fn => { for (let i=0;i<100;i++) { if(fn()) return; await wait(); } throw new Error('UI condition timed out: '+document.body.innerText.slice(-500)); };
+        const click = async text => { const button=[...document.querySelectorAll('button')].find(el=>el.textContent.trim()===text); if(!button) throw new Error('Missing button '+text); button.click(); await wait(); };
+        const fill = async (label, value) => { const parent=[...document.querySelectorAll('label')].find(el=>el.textContent.trim().startsWith(label)); const input=parent?.querySelector('input,textarea,select'); if(!input) throw new Error('Missing input '+label); const proto=input.tagName==='TEXTAREA'?HTMLTextAreaElement.prototype:input.tagName==='SELECT'?HTMLSelectElement.prototype:HTMLInputElement.prototype; Object.getOwnPropertyDescriptor(proto,'value').set.call(input,value); input.dispatchEvent(new Event(input.tagName==='SELECT'?'change':'input',{bubbles:true})); await wait(); };
+        await until(()=>document.body.innerText.includes('Nova revisão'));
+        if(window.electron) throw new Error('Desktop bridge leaked into Research');
+        await click('+ Nova revisão');
+        await fill('Título da revisão','Revisão de integração');
+        await fill('Objetivos da revisão','Verificar persistência');
+        await click('Salvar projeto');
+        await until(()=>document.body.innerText.includes('salvo no computador'));
+        await click('Biblioteca');
+        await fill('Título','Estudo de integração');
+        await fill('Autores','Ana Silva');
+        await click('Adicionar ao projeto');
+        await click('Salvar projeto');
+        await until(()=>!document.body.innerText.includes('Alterações não salvas'));
+        await click('Seleção');
+        await fill('Decisão','include');
+        await fill('Etapa','fullText');
+        await fill('Decisão','include');
+        await click('Salvar projeto');
+        await until(()=>!document.body.innerText.includes('Alterações não salvas'));
+        await click('Qualidade');
+        await fill('Novo item do checklist','Método reproduzível?');
+        await click('Adicionar campo');
+        await fill('Resposta','yes');
+        await fill('Trecho de evidência','Procedimento detalhado');
+        await fill('Página','3');
+        await click('Salvar projeto');
+        await until(()=>!document.body.innerText.includes('Alterações não salvas'));
+        await click('Extração');
+        await fill('Novo campo de extração','Método');
+        await click('Adicionar campo');
+        await fill('Resposta','Experimento');
+        await fill('Trecho de evidência','Trecho conferido pelo pesquisador');
+        await fill('Página','4');
+        await click('Salvar projeto');
+        await until(()=>!document.body.innerText.includes('Alterações não salvas'));
+        await click('Resultados');
+        await click('Salvar backup completo');
+        await until(()=>document.body.innerText.includes('Arquivo exportado'));
+        const list=await window.research.list();
+        return await window.research.get(list[0].id);
+      })()`);
+      assert.equal(result.title, 'Revisão de integração');
+      assert.equal(result.references[0].fullText, 'include');
+      assert.equal(result.assessment.answers[0].page, '3');
+      assert.equal(result.assessment.answers[1].page, '4');
+      assert.equal(result.history.length, 2);
+      assert.ok(fs.existsSync(exportPath));
+      await window.webContents.executeJavaScript("window.research.files({action:'restore'})");
+      const count = await window.webContents.executeJavaScript('window.research.list().then(items=>items.length)');
+      assert.equal(count, 2);
+      exportPath = path.join(directory, 'matrix.csv');
+      await window.webContents.executeJavaScript(`window.research.files({action:'csv',id:${JSON.stringify(result.id)}})`);
+      assert.ok(fs.readFileSync(exportPath, 'utf8').includes('Experimento'));
+      if (process.env.RESEARCH_SCREENSHOT_PATH) fs.writeFileSync(process.env.RESEARCH_SCREENSHOT_PATH, (await window.webContents.capturePage()).toPNG());
+      console.log('Research Electron UI: create, persist, library, screening, extraction, backup, restore and CSV passed.');
+      finish(0);
+    } catch (error) { console.error(error); finish(1); }
+  });
+});
+require('../electron/research/main');
