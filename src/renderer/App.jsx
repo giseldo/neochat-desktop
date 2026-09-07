@@ -854,6 +854,9 @@ function App() {
   const handleInterfaceModeChange = useCallback(async (newMode) => {
     const validMode = newMode === 'power' ? 'power' : 'user';
     setInterfaceMode(validMode);
+    if (validMode === 'user') {
+      setActiveTab('chat');
+    }
     try {
       const currentSettings = await window.electron.getSettings();
       await window.electron.saveSettings({
@@ -2639,8 +2642,8 @@ function App() {
         return;
       }
 
-      // Ctrl/Cmd + Shift + U: Toggle Interface Mode (User / Power)
-      if (isModifier && e.shiftKey && e.key.toLowerCase() === 'u') {
+      // Ctrl/Cmd + Shift + U or Ctrl/Cmd + Alt + U: Toggle Interface Mode (User / Power)
+      if (isModifier && (e.shiftKey || e.altKey) && e.key.toLowerCase() === 'u') {
         e.preventDefault();
         const nextMode = interfaceMode === 'power' ? 'user' : 'power';
         handleInterfaceModeChange(nextMode);
@@ -2756,7 +2759,7 @@ function App() {
               )}
 
               {/* Trajectory (Trajetória) View Toggle Switch */}
-              {showTrajectoryTab && (
+              {isPowerUser && showTrajectoryTab && (
                 <button
                   type="button"
                   onClick={() => setActiveTab(prev => prev === 'trajectory' ? 'chat' : 'trajectory')}
@@ -3297,7 +3300,7 @@ function App() {
                     />
                   </div>
                 </div>
-              ) : (messages.length === 0 && (activeTab === 'chat' || !showTrajectoryTab)) ? (
+              ) : (messages.length === 0 && (activeTab === 'chat' || !showTrajectoryTab || !isPowerUser)) ? (
                 /* Welcome Screen */
                 <div className="flex flex-col items-center justify-center h-full max-w-4xl lg:max-w-5xl mx-auto w-full px-4 py-6 overflow-y-auto">
                   <WelcomeScreen
@@ -3340,7 +3343,7 @@ function App() {
                     />
                   </div>
                 </div>
-              ) : (activeTab === 'trajectory' && showTrajectoryTab) ? (
+              ) : (activeTab === 'trajectory' && showTrajectoryTab && isPowerUser) ? (
                 /* Trajectory View */
                 <div className="flex flex-col h-full min-h-0">
                   <div className="flex-1 overflow-hidden min-h-0 mb-4">
