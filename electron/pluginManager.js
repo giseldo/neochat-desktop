@@ -352,6 +352,11 @@ class PluginManager {
             const win = ctx.getMainWindow ? ctx.getMainWindow() : null;
             return canvasManager.exportCanvasToPdf({ title, content, language, htmlContent, parentWindow: win });
           });
+
+          ctx.registerIpcHandler('canvas-export-docx', async (_event, { title, content, language } = {}) => {
+            const win = ctx.getMainWindow ? ctx.getMainWindow() : null;
+            return canvasManager.exportCanvasToDocx({ title, content, language, parentWindow: win });
+          });
         }
       });
     }

@@ -139,7 +139,7 @@ function ActiveModelPickerPopover({
           <div className="max-h-56 overflow-y-auto space-y-1 pr-1 custom-scrollbar">
             {filteredOptions.length === 0 ? (
               <div className="p-3 text-center text-xs text-muted-foreground">
-                Nenhum modelo ativo corresponde à busca "{search}".
+                Nenhum modelo ativo corresponde à busca &ldquo;{search}&rdquo;.
               </div>
             ) : (
               filteredOptions.map((item) => {

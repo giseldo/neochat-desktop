@@ -40,8 +40,11 @@ async function generateImage({
   provider,
   model,
   aspectRatio,
-  quality
-}, settings = {}) {
+  quality,
+  apiKey: overrideApiKey,
+  useCustomApiKey: overrideUseCustomApiKey,
+  baseUrl: overrideBaseUrl
+} = {}, settings = {}) {
   if (!prompt || typeof prompt !== 'string' || !prompt.trim()) {
     return { success: false, error: 'O prompt para a imagem não pode estar vazio.' };
   }
@@ -50,9 +53,15 @@ async function generateImage({
   const effectiveProvider = provider || imageSettings.provider || 'grok';
   const providerKey = effectiveProvider === 'xai' ? 'grok' : effectiveProvider;
 
+  const useCustomKey = overrideUseCustomApiKey !== undefined
+    ? Boolean(overrideUseCustomApiKey)
+    : Boolean(imageSettings.useCustomApiKey);
+
   // Resolve API Key: custom key takes precedence, otherwise reuse provider's configured key
   let apiKey = '';
-  if (imageSettings.useCustomApiKey && imageSettings.apiKey && imageSettings.apiKey.trim()) {
+  if (overrideApiKey && typeof overrideApiKey === 'string' && overrideApiKey.trim()) {
+    apiKey = overrideApiKey.trim();
+  } else if (useCustomKey && imageSettings.apiKey && imageSettings.apiKey.trim()) {
     apiKey = imageSettings.apiKey.trim();
   } else {
     apiKey = getApiKeyForProvider(settings, providerKey);
@@ -68,7 +77,7 @@ async function generateImage({
 
   // Resolve endpoint URL
   let endpoint = '';
-  const configuredBaseUrl = getBaseUrlForProvider(settings, providerKey);
+  const configuredBaseUrl = overrideBaseUrl || getBaseUrlForProvider(settings, providerKey);
   if (configuredBaseUrl) {
     endpoint = `${configuredBaseUrl.replace(/\/+$/, '')}/images/generations`;
   } else if (providerKey === 'grok') {

@@ -215,7 +215,8 @@ export default function KeyboardShortcutsModal({ isOpen, onClose }) {
         category: 'navigation',
         title: t('shortcuts.items.toggleInterfaceMode'),
         description: t('shortcuts.items.toggleInterfaceModeDesc'),
-        keys: [modKey, shiftKey, 'U']
+        keys: [modKey, shiftKey, 'U'],
+        altKeys: [modKey, altKey, 'U']
       },
       {
         id: 'closeModals',

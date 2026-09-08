@@ -70,6 +70,7 @@ function App() {
     clearCurrentChat,
     isSidebarCollapsed,
     toggleSidebar,
+    collapseSidebar,
     needsTitleGeneration
   } = useChat(); // Use context state
   const {
@@ -132,6 +133,8 @@ function App() {
   const [initialLoadComplete, setInitialLoadComplete] = useState(false);
   // Track if using Responses API (needed for chat history compatibility)
   const [useResponsesApi, setUseResponsesApi] = useState(false);
+  const lastSettingsFingerprintRef = useRef('');
+  const lastSavedModelRef = useRef(null);
 
   // --- State for Chat Input Focus ---
   const [chatFocusSignal, setChatFocusSignal] = useState(0);
@@ -248,6 +251,7 @@ function App() {
 
   // --- User Persistent Long-Term Memory State ---
   const [isUserMemoryModalOpen, setIsUserMemoryModalOpen] = useState(false);
+  const [isUserMemoryEnabled, setIsUserMemoryEnabled] = useState(true);
   const [memoryToast, setMemoryToast] = useState(null);
 
   useEffect(() => {
@@ -397,10 +401,9 @@ function App() {
       setIsTasksOpen(false);
       setIsBrowserOpen(false);
       setIsExplorerOpen(false);
-      closeCanvas();
       setActiveArtifact(null);
     }
-  }, [isPowerUser, closeCanvas]);
+  }, [isPowerUser]);
 
   const currentChatTitle = useMemo(() => {
     if (!currentChatId || !chatList) return '';
@@ -434,6 +437,22 @@ function App() {
 
     if (lastUserMessageIndex === -1) {
       console.warn('No user message found to reload from');
+      return;
+    }
+
+    const targetUserMessage = messages[lastUserMessageIndex];
+    if (targetUserMessage?.isImagePrompt) {
+      const messagesToKeep = messages.slice(0, lastUserMessageIndex);
+      setMessages(messagesToKeep);
+      try {
+        const settings = await window.electron?.getSettings?.();
+        await handleSendMessage(targetUserMessage.content, {
+          isImageGeneration: true,
+          imageSettings: settings?.imageGeneration
+        });
+      } catch (err) {
+        console.error('Error reloading image generation:', err);
+      }
       return;
     }
 
@@ -640,6 +659,7 @@ function App() {
         setFavoriteModels(settings.favoriteModels || []);
         // Load useResponsesApi setting
         setUseResponsesApi(settings.useResponsesApi || false);
+        setIsUserMemoryEnabled(settings.userMemory?.enabled !== false);
 
         // Strict opt-in: filter available models by enabledModels
         const activeModels = filterModels(availableModels, configs, settings.enabledModels || []);
@@ -674,6 +694,13 @@ function App() {
         }
 
         setSelectedModel(effectiveModel); // Set the final selected model state
+        lastSavedModelRef.current = effectiveModel;
+        lastSettingsFingerprintRef.current = JSON.stringify({
+          provider: settings?.provider,
+          apiKeys: settings?.apiKeys,
+          customModels: settings?.customModels,
+          enabledModels: settings?.enabledModels
+        });
 
 
         // Initial load of MCP tools (can happen after model/settings)
@@ -736,32 +763,47 @@ function App() {
         setDisabledModels(settings.disabledModels || []);
         setFavoriteModels(settings.favoriteModels || []);
         setUseResponsesApi(settings.useResponsesApi || false);
+        setIsUserMemoryEnabled(settings.userMemory?.enabled !== false);
 
-        // Refresh model configs (e.g., after switching provider in Settings).
-        // The main process force-refetches models when the provider/key changed.
-        const configs = await window.electron.getModelConfigs();
-        setModelConfigs(configs);
-        const availableModels = Object.keys(configs).filter(key => key !== 'default');
-        setModels(availableModels);
+        // Check if provider, keys, or models actually changed before re-fetching configs
+        const currentFingerprint = JSON.stringify({
+          provider: settings?.provider,
+          apiKeys: settings?.apiKeys,
+          customModels: settings?.customModels,
+          enabledModels: settings?.enabledModels
+        });
 
-        const activeModels = filterModels(availableModels, configs, settings.enabledModels || []);
-        const validCandidates = activeModels.length > 0 ? activeModels : availableModels;
+        if (currentFingerprint !== lastSettingsFingerprintRef.current) {
+          lastSettingsFingerprintRef.current = currentFingerprint;
+          const configs = await window.electron.getModelConfigs();
+          setModelConfigs(configs);
+          const availableModels = Object.keys(configs).filter(key => key !== 'default');
+          setModels(prevModels => {
+            if (prevModels.length === availableModels.length && prevModels.every((m, i) => m === availableModels[i])) {
+              return prevModels;
+            }
+            return availableModels;
+          });
 
-        // If the currently selected model is no longer active, fallback to an active one
-        const isInvalidChatModel = (m) => !m || m.includes('canopylabs') || m.includes('orpheus');
-        const isSelectedActive = activeModels.includes(selectedModel) || (configs[selectedModel]?.rawModelId && activeModels.includes(configs[selectedModel].rawModelId));
+          const activeModels = filterModels(availableModels, configs, settings.enabledModels || []);
+          const validCandidates = activeModels.length > 0 ? activeModels : availableModels;
 
-        if (validCandidates.length > 0 && selectedModel && (!configs[selectedModel] || isInvalidChatModel(selectedModel) || !isSelectedActive)) {
-          const matchingKey = validCandidates.find(k =>
-            (k === selectedModel ||
-            configs[k]?.rawModelId === selectedModel ||
-            k.endsWith(`::${selectedModel}`)) && !isInvalidChatModel(k)
-          );
-          if (matchingKey) {
-            setSelectedModel(matchingKey);
-          } else {
-            const fallback = validCandidates.find(m => m.includes('llama-3.3-70b') || m.includes('llama-3.1-70b') || m.includes('gpt')) || validCandidates[0];
-            setSelectedModel(fallback);
+          // If the currently selected model is no longer active, fallback to an active one
+          const isInvalidChatModel = (m) => !m || m.includes('canopylabs') || m.includes('orpheus');
+          const isSelectedActive = activeModels.includes(selectedModel) || (configs[selectedModel]?.rawModelId && activeModels.includes(configs[selectedModel].rawModelId));
+
+          if (validCandidates.length > 0 && selectedModel && (!configs[selectedModel] || isInvalidChatModel(selectedModel) || !isSelectedActive)) {
+            const matchingKey = validCandidates.find(k =>
+              (k === selectedModel ||
+              configs[k]?.rawModelId === selectedModel ||
+              k.endsWith(`::${selectedModel}`)) && !isInvalidChatModel(k)
+            );
+            if (matchingKey) {
+              setSelectedModel(matchingKey);
+            } else {
+              const fallback = validCandidates.find(m => m.includes('llama-3.3-70b') || m.includes('llama-3.1-70b') || m.includes('gpt')) || validCandidates[0];
+              setSelectedModel(fallback);
+            }
           }
         }
       } catch (error) {
@@ -778,35 +820,31 @@ function App() {
   // Save model selection to settings when it changes, ONLY after initial load
   useEffect(() => {
     // Prevent saving during initial setup before models/settings are loaded/validated
-    if (!initialLoadComplete) {
+    if (!initialLoadComplete || !selectedModel) {
         return;
     }
 
-    // Also ensure models list isn't empty and selectedModel is valid
-    if (models.length === 0 || !selectedModel) {
-        console.warn("Skipping model save: Models not loaded or no model selected.");
+    // Skip if already saved
+    if (lastSavedModelRef.current === selectedModel) {
         return;
     }
 
     const saveModelSelection = async () => {
       try {
-        console.log(`Attempting to save selected model: ${selectedModel}`); // Debug log
         const settings = await window.electron.getSettings();
         // Check if the model actually changed before saving
         if (settings.model !== selectedModel) {
             console.log(`Saving new model selection: ${selectedModel}`);
             await window.electron.saveSettings({ ...settings, model: selectedModel });
-        } else {
-            // console.log("Model selection hasn't changed, skipping save."); // Optional: Log skips
         }
+        lastSavedModelRef.current = selectedModel;
       } catch (error) {
         console.error('Error saving model selection:', error);
       }
     };
 
     saveModelSelection();
-    // Depend on initialLoadComplete as well to trigger after load finishes
-  }, [selectedModel, initialLoadComplete, models]);
+  }, [selectedModel, initialLoadComplete]);
 
   // Callback when model parameters / context size are updated via ModelParametersModal
   const handleModelConfigUpdated = useCallback(async (modelId, newConfig) => {
@@ -854,6 +892,9 @@ function App() {
   const handleInterfaceModeChange = useCallback(async (newMode) => {
     const validMode = newMode === 'power' ? 'power' : 'user';
     setInterfaceMode(validMode);
+    if (validMode === 'user') {
+      setActiveTab('chat');
+    }
     try {
       const currentSettings = await window.electron.getSettings();
       await window.electron.saveSettings({
@@ -1071,6 +1112,7 @@ function App() {
         role: 'tool',
         content: response.error ? JSON.stringify({ error: response.error }) : (response.result || ''),
         tool_call_id: toolCall.id,
+        canvasData: response.canvasData,
         durationMs,
         status: response.error ? 'error' : 'completed',
         error: response.error || null,
@@ -1854,6 +1896,7 @@ function App() {
         isGeneratingImage: true,
         imagePrompt: promptText,
         imageModel: options.imageSettings?.model,
+        imageProvider: options.imageSettings?.provider,
         createdAt: new Date().toISOString(),
         timestamp: Date.now() + 1
       };
@@ -2638,11 +2681,12 @@ function App() {
         return;
       }
 
-      // Ctrl/Cmd + Shift + U: Toggle Interface Mode (User / Power)
-      if (isModifier && e.shiftKey && e.key.toLowerCase() === 'u') {
+      // Ctrl/Cmd + Shift + U or Ctrl/Cmd + Alt + U: Toggle Interface Mode (User / Power)
+      if (isModifier && (e.shiftKey || e.altKey) && e.key.toLowerCase() === 'u') {
         e.preventDefault();
         const nextMode = interfaceMode === 'power' ? 'user' : 'power';
         handleInterfaceModeChange(nextMode);
+        collapseSidebar();
         return;
       }
 
@@ -2658,7 +2702,7 @@ function App() {
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
     };
-  }, [handleNewChat, toggleSidebar, handleToggleCanvas, handleToggleCodeInterpreter, navigate, interfaceMode, handleInterfaceModeChange]);
+  }, [handleNewChat, toggleSidebar, collapseSidebar, handleToggleCanvas, handleToggleCodeInterpreter, navigate, interfaceMode, handleInterfaceModeChange]);
 
   // Handle when a chat is loaded from history - switch API mode and sync active project if needed
   const handleChatLoaded = useCallback(async (chat) => {
@@ -2738,7 +2782,7 @@ function App() {
       {/* Main Content Area */}
       <div className="flex flex-col flex-1 min-w-0">
         {/* Modern Sticky Header */}
-        <header className="sticky top-0 z-50 border-b border-border/40 bg-background/95 backdrop-blur-sm">
+        <header className="sticky top-0 z-50 bg-background/95 backdrop-blur-sm">
           <div className="flex h-14 items-center justify-between px-4 max-w-full">
             <div className="flex items-center space-x-3">
               {/* Sidebar toggle for mobile/collapsed state */}
@@ -2755,7 +2799,7 @@ function App() {
               )}
 
               {/* Trajectory (Trajetória) View Toggle Switch */}
-              {showTrajectoryTab && (
+              {isPowerUser && showTrajectoryTab && (
                 <button
                   type="button"
                   onClick={() => setActiveTab(prev => prev === 'trajectory' ? 'chat' : 'trajectory')}
@@ -2857,7 +2901,7 @@ function App() {
                     aria-label={t('header.toolsMenu') || 'Ferramentas e Recursos'}
                   >
                     <LayoutGrid className="h-4 w-4" />
-                    {(runningTasksCount > 0 || isTerminalOpen || isCanvasOpen || isExplorerOpen) && (
+                    {(runningTasksCount > 0 || isTerminalOpen || isCanvasOpen || isExplorerOpen || isBrowserOpen || isTasksOpen || Boolean(activeArtifact) || isCompareMode) && (
                       <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-primary animate-pulse" />
                     )}
                   </Button>
@@ -2933,7 +2977,10 @@ function App() {
                       >
                         <Bot className="w-4 h-4 text-indigo-500 shrink-0" />
                         <div className="flex-1 min-w-0">
-                          <div className="font-semibold text-foreground">Equipe Swarm</div>
+                          <div className="font-semibold text-foreground flex items-center justify-between">
+                            <span>Equipe Swarm</span>
+                            {isSwarmModalOpen && <span className="px-1.5 py-0.2 rounded bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 text-[10px] font-mono">Aberto</span>}
+                          </div>
                           <div className="text-[10px] text-muted-foreground truncate">Multi-agentes autônomos</div>
                         </div>
                       </button>
@@ -2949,7 +2996,10 @@ function App() {
                       >
                         <Store className="w-4 h-4 text-amber-500 shrink-0" />
                         <div className="flex-1 min-w-0">
-                          <div className="font-semibold text-foreground">{t('mcpCatalog.title') || 'Loja MCP'}</div>
+                          <div className="font-semibold text-foreground flex items-center justify-between">
+                            <span>{t('mcpCatalog.title') || 'Loja MCP'}</span>
+                            {isMcpCatalogOpen && <span className="px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-600 dark:text-amber-400 text-[10px] font-mono">Aberto</span>}
+                          </div>
                           <div className="text-[10px] text-muted-foreground truncate">Servidores de ferramentas e integrações</div>
                         </div>
                       </button>
@@ -2965,7 +3015,10 @@ function App() {
                       >
                         <Workflow className="w-4 h-4 text-teal-500 shrink-0" />
                         <div className="flex-1 min-w-0">
-                          <div className="font-semibold text-foreground">{t('workflows.title') || 'Workflows'}</div>
+                          <div className="font-semibold text-foreground flex items-center justify-between">
+                            <span>{t('workflows.title') || 'Workflows'}</span>
+                            {isWorkflowsOpen && <span className="px-1.5 py-0.2 rounded bg-teal-500/20 text-teal-600 dark:text-teal-400 text-[10px] font-mono">Aberto</span>}
+                          </div>
                           <div className="text-[10px] text-muted-foreground truncate">Fluxos de trabalho automatizados</div>
                         </div>
                       </button>
@@ -2983,7 +3036,7 @@ function App() {
                         <div className="flex-1 min-w-0">
                           <div className="font-semibold text-foreground flex items-center justify-between">
                             <span>{t('header.compareModels') || 'Comparar Modelos'}</span>
-                            {isCompareMode && <span className="w-2 h-2 rounded-full bg-purple-500" />}
+                            {isCompareMode && <span className="px-1.5 py-0.2 rounded bg-purple-500/20 text-purple-600 dark:text-purple-400 text-[10px] font-mono">Aberto</span>}
                           </div>
                           <div className="text-[10px] text-muted-foreground truncate">Visualização lado a lado</div>
                         </div>
@@ -2994,13 +3047,21 @@ function App() {
                         type="button"
                         onClick={() => {
                           setIsToolsDropdownOpen(false);
+                          if (window.electron?.getSettings) {
+                            window.electron.getSettings().then(s => {
+                              setIsUserMemoryEnabled(s?.userMemory?.enabled !== false);
+                            }).catch(() => {});
+                          }
                           setIsUserMemoryModalOpen(true);
                         }}
                         className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-muted/80 text-foreground transition-colors text-left"
                       >
                         <Brain className="w-4 h-4 text-purple-600 dark:text-purple-400 shrink-0" />
                         <div className="flex-1 min-w-0">
-                          <div className="font-semibold text-foreground">{t('memory.title') || 'Memória Persistente'}</div>
+                          <div className="font-semibold text-foreground flex items-center justify-between">
+                            <span>{t('memory.title') || 'Memória Persistente'}</span>
+                            {isUserMemoryModalOpen && <span className="px-1.5 py-0.2 rounded bg-purple-500/20 text-purple-600 dark:text-purple-400 text-[10px] font-mono">Aberto</span>}
+                          </div>
                           <div className="text-[10px] text-muted-foreground truncate">Preferências e fatos lembrados pela IA</div>
                         </div>
                       </button>
@@ -3018,7 +3079,7 @@ function App() {
                         <div className="flex-1 min-w-0">
                           <div className="font-semibold text-foreground flex items-center justify-between">
                             <span>Navegador Web</span>
-                            {isBrowserOpen && <span className="w-2 h-2 rounded-full bg-blue-500" />}
+                            {isBrowserOpen && <span className="px-1.5 py-0.2 rounded bg-blue-500/20 text-blue-600 dark:text-blue-400 text-[10px] font-mono">Aberto</span>}
                           </div>
                           <div className="text-[10px] text-muted-foreground truncate">Painel embutido (Ctrl+Shift+B)</div>
                         </div>
@@ -3037,13 +3098,16 @@ function App() {
                         <div className="flex-1 min-w-0">
                           <div className="font-semibold text-foreground flex items-center justify-between">
                             <span>Tarefas em Segundo Plano</span>
-                            {runningTasksCount > 0 ? (
-                              <span className="px-1.5 py-0.2 rounded-full bg-blue-500 text-white text-[9px] font-bold">
-                                {runningTasksCount}
-                              </span>
-                            ) : isTasksOpen ? (
-                              <span className="w-2 h-2 rounded-full bg-cyan-500" />
-                            ) : null}
+                            <div className="flex items-center gap-1.5">
+                              {runningTasksCount > 0 && (
+                                <span className="px-1.5 py-0.2 rounded-full bg-blue-500 text-white text-[9px] font-bold">
+                                  {runningTasksCount}
+                                </span>
+                              )}
+                              {isTasksOpen && (
+                                <span className="px-1.5 py-0.2 rounded bg-cyan-500/20 text-cyan-600 dark:text-cyan-400 text-[10px] font-mono">Aberto</span>
+                              )}
+                            </div>
                           </div>
                           <div className="text-[10px] text-muted-foreground truncate">Processos e tarefas ativas</div>
                         </div>
@@ -3062,7 +3126,7 @@ function App() {
                         <div className="flex-1 min-w-0">
                           <div className="font-semibold text-foreground flex items-center justify-between">
                             <span>{t('header.codeInterpreter') || 'Interpretador de Código'}</span>
-                            {activeArtifact && <span className="w-2 h-2 rounded-full bg-violet-500" />}
+                            {activeArtifact && <span className="px-1.5 py-0.2 rounded bg-violet-500/20 text-violet-600 dark:text-violet-400 text-[10px] font-mono">Aberto</span>}
                           </div>
                           <div className="text-[10px] text-muted-foreground truncate">Python & JavaScript interativo</div>
                         </div>
@@ -3083,7 +3147,10 @@ function App() {
                         <div className="flex-1 min-w-0">
                           <div className="font-semibold text-foreground flex items-center justify-between">
                             <span>Módulos & Extensões</span>
-                            <span className="px-1.5 py-0.2 rounded bg-indigo-500/20 text-indigo-400 text-[9px] font-semibold">Hub</span>
+                            <div className="flex items-center gap-1.5">
+                              <span className="px-1.5 py-0.2 rounded bg-indigo-500/20 text-indigo-400 text-[9px] font-semibold">Hub</span>
+                              {isPluginsManagerOpen && <span className="px-1.5 py-0.2 rounded bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 text-[10px] font-mono">Aberto</span>}
+                            </div>
                           </div>
                           <div className="text-[10px] text-muted-foreground truncate">Ativar/desativar módulos (0MB idle)</div>
                         </div>
@@ -3100,7 +3167,10 @@ function App() {
                       >
                         <Bot className="w-4 h-4 text-orange-400 shrink-0" />
                         <div className="flex-1 min-w-0">
-                          <div className="font-semibold text-foreground">AI Arena & Debate</div>
+                          <div className="font-semibold text-foreground flex items-center justify-between">
+                            <span>AI Arena & Debate</span>
+                            {isArenaModalOpen && <span className="px-1.5 py-0.2 rounded bg-orange-500/20 text-orange-600 dark:text-orange-400 text-[10px] font-mono">Aberto</span>}
+                          </div>
                           <div className="text-[10px] text-muted-foreground truncate">Debate em rodadas & consenso</div>
                         </div>
                       </button>
@@ -3116,7 +3186,10 @@ function App() {
                       >
                         <LayoutGrid className="w-4 h-4 text-emerald-400 shrink-0" />
                         <div className="flex-1 min-w-0">
-                          <div className="font-semibold text-foreground">Live Dev Sandbox</div>
+                          <div className="font-semibold text-foreground flex items-center justify-between">
+                            <span>Live Dev Sandbox</span>
+                            {isLiveSandboxOpen && <span className="px-1.5 py-0.2 rounded bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-[10px] font-mono">Aberto</span>}
+                          </div>
                           <div className="text-[10px] text-muted-foreground truncate">Preview HTML/Tailwind/React</div>
                         </div>
                       </button>
@@ -3132,7 +3205,10 @@ function App() {
                       >
                         <Radio className="w-4 h-4 text-purple-400 shrink-0" />
                         <div className="flex-1 min-w-0">
-                          <div className="font-semibold text-foreground">Podcast & Audio Studio</div>
+                          <div className="font-semibold text-foreground flex items-center justify-between">
+                            <span>Podcast & Audio Studio</span>
+                            {isPodcastStudioOpen && <span className="px-1.5 py-0.2 rounded bg-purple-500/20 text-purple-600 dark:text-purple-400 text-[10px] font-mono">Aberto</span>}
+                          </div>
                           <div className="text-[10px] text-muted-foreground truncate">NotebookLM style 2-hosts TTS</div>
                         </div>
                       </button>
@@ -3148,7 +3224,10 @@ function App() {
                       >
                         <BookOpen className="w-4 h-4 text-blue-400 shrink-0" />
                         <div className="flex-1 min-w-0">
-                          <div className="font-semibold text-foreground">Grafo & Data Studio</div>
+                          <div className="font-semibold text-foreground flex items-center justify-between">
+                            <span>Grafo & Data Studio</span>
+                            {isKnowledgeGraphOpen && <span className="px-1.5 py-0.2 rounded bg-blue-500/20 text-blue-600 dark:text-blue-400 text-[10px] font-mono">Aberto</span>}
+                          </div>
                           <div className="text-[10px] text-muted-foreground truncate">Grafo 2D do RAG & gráficos</div>
                         </div>
                       </button>
@@ -3164,7 +3243,10 @@ function App() {
                       >
                         <Clock className="w-4 h-4 text-amber-400 shrink-0" />
                         <div className="flex-1 min-w-0">
-                          <div className="font-semibold text-foreground">Proactive Daily Briefing</div>
+                          <div className="font-semibold text-foreground flex items-center justify-between">
+                            <span>Proactive Daily Briefing</span>
+                            {isDailyBriefingOpen && <span className="px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-600 dark:text-amber-400 text-[10px] font-mono">Aberto</span>}
+                          </div>
                           <div className="text-[10px] text-muted-foreground truncate">Resumo matinal inteligente</div>
                         </div>
                       </button>
@@ -3270,8 +3352,9 @@ function App() {
                       />
                     </Suspense>
                   </div>
-                  <div className="flex-shrink-0 bg-background/95 backdrop-blur pt-3 max-w-4xl lg:max-w-5xl mx-auto w-full">
+                  <div className="flex-shrink-0 bg-background/95 backdrop-blur pt-3 px-4 w-full">
                     <ChatInput
+                      messages={messages}
                       onSendMessage={handleSendMessage}
                       onStopGeneration={handleStopGeneration}
                       loading={streamStateA.isLoading || streamStateB.isLoading}
@@ -3280,6 +3363,7 @@ function App() {
                       selectedModel={selectedModel}
                       onModelChange={setSelectedModel}
                       onOpenMcpTools={() => setIsToolsPanelOpen(true)}
+                      onOpenSkillsModal={() => handleOpenSkillsModal('installed')}
                       toolsCount={mcpTools.length}
                       modelConfigs={modelConfigs}
                       focusSignal={chatFocusSignal}
@@ -3296,9 +3380,12 @@ function App() {
                     />
                   </div>
                 </div>
-              ) : (messages.length === 0 && (activeTab === 'chat' || !showTrajectoryTab)) ? (
+              ) : (messages.length === 0 && (activeTab === 'chat' || !showTrajectoryTab || !isPowerUser)) ? (
                 /* Welcome Screen */
-                <div className="flex flex-col items-center justify-center h-full max-w-4xl lg:max-w-5xl mx-auto w-full px-4 py-6 overflow-y-auto">
+                <div className={cn(
+                  "flex flex-col items-center justify-center h-full mx-auto w-full px-4 py-6 overflow-y-auto",
+                  chatWidth === 'wide' ? "max-w-4xl lg:max-w-5xl" : "max-w-[1600px]"
+                )}>
                   <WelcomeScreen
                     showTips={showWelcomeTips}
                     showSuggestions={showWelcomeSuggestions}
@@ -3311,6 +3398,7 @@ function App() {
                   {/* Chat Input */}
                   <div className="w-full">
                     <ChatInput
+                      messages={messages}
                       onSendMessage={(msg, opts) => {
                         setPresetInputMessage('');
                         handleSendMessage(msg, opts);
@@ -3322,6 +3410,7 @@ function App() {
                       selectedModel={selectedModel}
                       onModelChange={setSelectedModel}
                       onOpenMcpTools={() => setIsToolsPanelOpen(true)}
+                      onOpenSkillsModal={() => handleOpenSkillsModal('installed')}
                       toolsCount={mcpTools.length}
                       modelConfigs={modelConfigs}
                       focusSignal={chatFocusSignal}
@@ -3339,7 +3428,7 @@ function App() {
                     />
                   </div>
                 </div>
-              ) : (activeTab === 'trajectory' && showTrajectoryTab) ? (
+              ) : (activeTab === 'trajectory' && showTrajectoryTab && isPowerUser) ? (
                 /* Trajectory View */
                 <div className="flex flex-col h-full min-h-0">
                   <div className="flex-1 overflow-hidden min-h-0 mb-4">
@@ -3363,8 +3452,9 @@ function App() {
                     </Suspense>
                   </div>
 
-                  <div className="flex-shrink-0 bg-background/95 backdrop-blur pt-3">
+                  <div className="flex-shrink-0 bg-background/95 backdrop-blur pt-3 px-4">
                     <ChatInput
+                      messages={messages}
                       onSendMessage={handleSendMessage}
                       onStopGeneration={handleStopGeneration}
                       loading={loading}
@@ -3373,6 +3463,7 @@ function App() {
                       selectedModel={selectedModel}
                       onModelChange={setSelectedModel}
                       onOpenMcpTools={() => setIsToolsPanelOpen(true)}
+                      onOpenSkillsModal={() => handleOpenSkillsModal('installed')}
                       toolsCount={mcpTools.length}
                       modelConfigs={modelConfigs}
                       focusSignal={chatFocusSignal}
@@ -3444,8 +3535,9 @@ function App() {
                     </button>
                   )}
                   
-                  <div className="flex-shrink-0 bg-background/95 backdrop-blur pt-6">
+                  <div className="flex-shrink-0 bg-background/95 backdrop-blur pt-6 px-4">
                     <ChatInput
+                      messages={messages}
                       onSendMessage={handleSendMessage}
                       onStopGeneration={handleStopGeneration}
                       loading={loading}
@@ -3746,6 +3838,7 @@ function App() {
         <UserMemoryModal
           isOpen={isUserMemoryModalOpen}
           onClose={() => setIsUserMemoryModalOpen(false)}
+          isMemoryEnabled={isUserMemoryEnabled}
         />
 
         {/* AI Skills & Capabilities Central Hub */}
@@ -3782,7 +3875,14 @@ function App() {
             </div>
             <button
               type="button"
-              onClick={() => setIsUserMemoryModalOpen(true)}
+              onClick={() => {
+                if (window.electron?.getSettings) {
+                  window.electron.getSettings().then(s => {
+                    setIsUserMemoryEnabled(s?.userMemory?.enabled !== false);
+                  }).catch(() => {});
+                }
+                setIsUserMemoryModalOpen(true);
+              }}
               className="text-[11px] font-semibold text-purple-600 dark:text-purple-400 hover:underline shrink-0 self-center"
             >
               Ver

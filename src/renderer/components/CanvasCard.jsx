@@ -18,7 +18,7 @@ import { playSpeech, stopSpeech } from '../lib/ttsUtils';
 import { cn } from '../lib/utils';
 
 export function CanvasCard({ canvasData, document: propDoc, className }) {
-  const { openCanvas } = useCanvas();
+  const { openCanvas, restoreOrOpenVersion } = useCanvas();
   const { t, language: appLanguage } = useLanguage();
   const [copied, setCopied] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
@@ -69,8 +69,18 @@ export function CanvasCard({ canvasData, document: propDoc, className }) {
     }
   };
 
-  const handleOpen = () => {
-    if (doc) {
+  const handleOpen = (e) => {
+    if (e && e.stopPropagation) e.stopPropagation();
+    if (restoreOrOpenVersion) {
+      restoreOrOpenVersion({
+        version,
+        title,
+        content: doc?.content || canvasData?.content || '',
+        language,
+        summary,
+        docId: doc?.id || canvasData?.docId
+      });
+    } else if (doc) {
       openCanvas(doc);
     } else {
       openCanvas();

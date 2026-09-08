@@ -172,13 +172,14 @@ function Message({
 
   const hasVisibleContent = useMemo(() => {
     if (isUser) return true;
+    if (message.isGeneratingImage || message.isGeneratedImage || message.image) return true;
     const rawText = typeof message.content === 'string' 
       ? (extracted.cleanContent !== undefined ? extracted.cleanContent : message.content)
       : Array.isArray(message.content)
         ? extractThinking(message.content.filter(p => p.type === 'text').map(p => p.text || '').join(' ')).cleanContent
         : '';
     return Boolean(rawText && rawText.trim().length > 0);
-  }, [isUser, message.content, extracted.cleanContent]);
+  }, [isUser, message.content, extracted.cleanContent, message.isGeneratingImage, message.isGeneratedImage, message.image]);
 
   const hasToolCalls = Boolean(tool_calls && tool_calls.length > 0);
   const isToolOnly = !isUser && !hasVisibleContent && hasToolCalls;
@@ -524,6 +525,7 @@ function Message({
                   key={toolCall.id || index} 
                   toolCall={toolCall} 
                   toolResult={findToolResult(toolCall.id)}
+                  allMessages={allMessages}
                 />
               ))}
             </div>
@@ -531,7 +533,7 @@ function Message({
         })()}
 
         {/* Action bar and Performance Metrics */}
-        {!isUser && hasVisibleContent && (
+        {!isUser && hasVisibleContent && !message.isGeneratingImage && !message.isGeneratedImage && !message.image && (
           <div className="flex flex-wrap items-center justify-start gap-2 mt-2 pt-1 text-xs text-muted-foreground opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity duration-200">
             {/* Speed & Performance Metrics (Power Mode only) */}
             {isPowerUser && (

@@ -29,7 +29,9 @@ async function runTests() {
   // 2. Check default bootstrapped skills
   const initialSkills = manager.listSkills();
   assert(initialSkills.length >= 4, 'Default skills should be bootstrapped on first launch');
-  console.log(`✅ Default skills bootstrapped: ${initialSkills.map(s => s.id).join(', ')}`);
+  assert(initialSkills.every(s => s.enabled === false), 'Default skills must be disabled on first launch');
+  assert.strictEqual(manager.getActiveSkills().length, 0, 'No skills should be active on first launch');
+  console.log(`✅ Default skills bootstrapped as disabled: ${initialSkills.map(s => s.id).join(', ')}`);
 
   // 3. Install from catalog
   const installRes = manager.installFromCatalog('sys-architect');

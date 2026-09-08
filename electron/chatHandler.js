@@ -1649,6 +1649,9 @@ async function handleResponsesApiStream(event, messages, model, settings, modelC
             } else if (Array.isArray(msg.content)) {
                 contentText = msg.content.map(p => p.text || "").join("");
             }
+            if (msg.role === 'assistant' && (msg.isGeneratedImage || msg.image) && !contentText.trim()) {
+                contentText = msg.image?.prompt ? `[Generated image for: "${msg.image.prompt}"]` : '[Generated image]';
+            }
             
             input.push({
                 role: msg.role,
@@ -2216,7 +2219,13 @@ async function handleChatStream(event, messages, model, settings, modelContextSi
                 lastError = error.message;
                 continue;
             }
-            const prunedMessages = pruneMessageHistory(cleanedMessages, candidateModel, modelContextSizes);
+            const candidateModelInfo = determineModel(candidateModel, candidate, modelContextSizes)?.modelInfo;
+            const candidateAutoPrune = candidate?.autoPrune !== undefined
+                ? candidate.autoPrune
+                : (candidateModelInfo?.autoPrune !== undefined
+                    ? candidateModelInfo.autoPrune
+                    : Boolean(settings?.autoPrune));
+            const prunedMessages = pruneMessageHistory(cleanedMessages, candidateModel, modelContextSizes, { autoPrune: candidateAutoPrune });
             const chatCompletionParams = buildApiParams(prunedMessages, candidateModel, candidate, tools, modelContextSizes);
             const result = await executeStreamWithRetry(createGroqClient(candidate), chatCompletionParams, event, streamId, { ...candidate, deferProviderErrors: true });
             if (result?.success) return;
@@ -2286,7 +2295,12 @@ async function runSingleStreamForCompare(event, messages, model, settings, model
         const groq = createGroqClient(modelSettings);
 
         const cleanedMessages = cleanMessages(messages);
-        const prunedMessages = pruneMessageHistory(cleanedMessages, modelToUse, modelContextSizes);
+        const effectiveAutoPrune = modelSettings?.autoPrune !== undefined
+            ? modelSettings.autoPrune
+            : (modelInfo?.autoPrune !== undefined
+                ? modelInfo.autoPrune
+                : Boolean(settings?.autoPrune));
+        const prunedMessages = pruneMessageHistory(cleanedMessages, modelToUse, modelContextSizes, { autoPrune: effectiveAutoPrune });
 
         const isGemini = String(modelSettings.provider || '').toLowerCase() === 'gemini' ||
             String(modelSettings.provider || '').toLowerCase() === 'google' ||

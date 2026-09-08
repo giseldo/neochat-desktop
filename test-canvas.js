@@ -11,7 +11,9 @@ const {
   calculateDocStats,
   handleCanvasToolCall,
   formatCanvasToHtml,
-  exportCanvasToPdf
+  exportCanvasToPdf,
+  convertCanvasToDocx,
+  exportCanvasToDocx
 } = require('./electron/canvasManager');
 
 async function runTests() {
@@ -161,6 +163,47 @@ function calcularMedia(a, b) {
   assert.ok(codeHtmlDoc.includes('JAVASCRIPT'), 'Code HTML should display language header');
   assert.ok(codeHtmlDoc.includes('const server = http.createServer()'), 'Code HTML should display escaped code');
   console.log('✓ Code document to HTML for PDF passed');
+
+  // Test 9: Canvas DOCX Document Generation
+  console.log('\n[Test 9] Testing Canvas DOCX Generation & Parsing...');
+  const { Packer } = require('docx');
+  const { parseOffice } = require('officeparser');
+
+  const docxInstance = convertCanvasToDocx({
+    title: 'Relatório Mensal',
+    content: mdContent,
+    language: 'markdown'
+  });
+
+  assert.ok(docxInstance, 'convertCanvasToDocx should return a Document instance');
+  const docxBuffer = await Packer.toBuffer(docxInstance);
+  assert.ok(Buffer.isBuffer(docxBuffer), 'Packer.toBuffer should return a Buffer');
+  assert.ok(docxBuffer.length > 5000, `Buffer size should be significant (>5KB), got ${docxBuffer.length}`);
+
+  const parsedDocx = await parseOffice(docxBuffer);
+  assert.strictEqual(parsedDocx.type, 'docx', 'officeparser should identify file type as docx');
+  const fullText = parsedDocx.toText ? parsedDocx.toText() : JSON.stringify(parsedDocx);
+  assert.ok(fullText.includes('Relatório Mensal'), 'DOCX should contain title text');
+  assert.ok(fullText.includes('negrito'), 'DOCX should contain bold markdown text');
+  assert.ok(fullText.includes('Tabela de Dados') || fullText.includes('Métrica'), 'DOCX should contain table data');
+  assert.strictEqual(typeof exportCanvasToDocx, 'function', 'exportCanvasToDocx should be a function');
+  console.log('✓ Markdown to DOCX generation passed: valid buffer & parsed structure (' + docxBuffer.length + ' bytes)');
+
+  // Test 10: Code document DOCX generation
+  console.log('\n[Test 10] Testing Code Document DOCX Generation...');
+  const codeDocxInstance = convertCanvasToDocx({
+    title: 'Server Script',
+    content: codeContent,
+    language: 'javascript'
+  });
+
+  const codeDocxBuffer = await Packer.toBuffer(codeDocxInstance);
+  assert.ok(codeDocxBuffer.length > 3000, 'Code DOCX buffer should be >3KB');
+  const parsedCodeDocx = await parseOffice(codeDocxBuffer);
+  const codeText = parsedCodeDocx.toText ? parsedCodeDocx.toText() : JSON.stringify(parsedCodeDocx);
+  assert.ok(codeText.includes('Server Script'), 'Code DOCX should contain title');
+  assert.ok(codeText.includes('createServer'), 'Code DOCX should contain code body');
+  console.log('✓ Code document to DOCX passed (' + codeDocxBuffer.length + ' bytes)');
 
   console.log('\n========================================');
   console.log('🎉 ALL CANVAS SYSTEM TESTS PASSED! 🎉');

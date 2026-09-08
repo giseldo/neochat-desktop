@@ -368,17 +368,17 @@ class SkillManager {
   }
 
   /**
-   * If user has no skills installed, install top recommended skills automatically.
+   * If user has no skills installed, install top recommended skills automatically (disabled by default).
    */
   _bootstrapDefaultSkills() {
     if (this.installedSkills.size === 0) {
-      console.log('[SkillManager] Bootstrapping default curated skills...');
-      // Install first 4 core skills by default
+      console.log('[SkillManager] Bootstrapping default curated skills (disabled initially)...');
+      // Install first 4 core skills by default, all disabled on first use
       const defaultSkillIds = ['code-reviewer', 'deep-research', 'git-workflow', 'ui-designer'];
       for (const id of defaultSkillIds) {
         const catalogItem = CURATED_CATALOG.find(s => s.id === id);
         if (catalogItem) {
-          this.installSkill({ ...catalogItem, enabled: true });
+          this.installSkill({ ...catalogItem, enabled: false });
         }
       }
     }

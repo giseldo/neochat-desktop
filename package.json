@@ -1,6 +1,6 @@
 {
   "name": "neochat-desktop",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "description": "NeoChat Desktop AI Workspace & Chat",
   "main": "electron/main.js",
   "type": "commonjs",
@@ -57,7 +57,10 @@
     "test:swarm": "node test-swarm-manager.js",
     "test:workflow-triggers": "node test-workflow-triggers.js",
     "test:prompt-caching": "node test-prompt-caching-metrics.js",
-    "test:plugins": "node test-plugin-manager.js"
+    "test:plugins": "node test-plugin-manager.js",
+    "test:context-indicator": "node test-context-indicator.js",
+    "test:auto-prune": "node test-auto-prune.js",
+    "test:image-generation": "node test-image-generation.js"
   },
   "keywords": [
     "electron",
@@ -65,7 +68,7 @@
     "desktop",
     "chat"
   ],
-  "author": "",
+  "author": "Neo",
   "license": "ISC",
   "dependencies": {
     "@earendil-works/pi-agent-core": "0.84.4",
@@ -77,6 +80,7 @@
     "ansi-to-html": "^0.7.2",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "docx": "^9.7.1",
     "dotenv": "^16.6.1",
     "electron-json-storage": "^4.6.0",
     "electron-updater": "^6.8.9",

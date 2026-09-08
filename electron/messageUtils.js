@@ -93,6 +93,18 @@ function compressHistoricalToolContent(rawContent) {
         status: 'completed_in_previous_turn'
       });
     }
+
+    // Canvas Document tool result compression for historical turns
+    if (parsed && (parsed.action === 'created' || parsed.action === 'updated' || parsed.action === 'edited_selection')) {
+      return JSON.stringify({
+        success: true,
+        action: parsed.action,
+        version: parsed.version,
+        title: parsed.title,
+        summary: parsed.summary,
+        status: 'completed_in_previous_turn'
+      });
+    }
   } catch (e) {
     // If not JSON but a large text payload from a previous turn, truncate safely
     if (rawContent.length > 500) {
@@ -186,6 +198,9 @@ function sanitizeMessageHistory(messages) {
       }
       if (typeof cleanMsg.content === 'string') {
         cleanMsg.content = extractThinking(cleanMsg.content).cleanContent;
+      }
+      if (cleanMsg.role === 'assistant' && (cleanMsg.isGeneratedImage || cleanMsg.image) && (!cleanMsg.content || !cleanMsg.content.trim())) {
+        cleanMsg.content = cleanMsg.image?.prompt ? `[Generated image for: "${cleanMsg.image.prompt}"]` : '[Generated image]';
       }
 
       // Normalize tool_calls
@@ -361,9 +376,10 @@ function sanitizeMessageHistory(messages) {
  * @param {Array} messages - Complete message history
  * @param {String} model - Selected model name
  * @param {object} modelContextSizes - Object containing context window sizes for models.
+ * @param {object|boolean} [options={}] - Options object or boolean for autoPrune. If autoPrune is false, returns sanitizedMessages without pruning.
  * @returns {Array} - Pruned message history array
  */
-function pruneMessageHistory(messages, model, modelContextSizes) {
+function pruneMessageHistory(messages, model, modelContextSizes, options = {}) {
   // Handle edge cases
   if (!messages || !Array.isArray(messages) || messages.length <= 2) {
     return sanitizeMessageHistory(messages);
@@ -379,6 +395,22 @@ function pruneMessageHistory(messages, model, modelContextSizes) {
 
   // First sanitize to ensure structural validity before pruning
   let sanitizedMessages = sanitizeMessageHistory(messages);
+
+  // Check if automatic pruning is enabled:
+  // Explicit boolean in options > options.autoPrune > modelInfo.autoPrune > options.settings.autoPrune > fallback true (for standalone test calls)
+  const autoPruneEnabled = typeof options === 'boolean'
+    ? options
+    : (options?.autoPrune !== undefined
+        ? Boolean(options.autoPrune)
+        : (modelInfo?.autoPrune !== undefined
+            ? Boolean(modelInfo.autoPrune)
+            : (options?.settings?.autoPrune !== undefined
+                ? Boolean(options.settings.autoPrune)
+                : true)));
+
+  if (!autoPruneEnabled) {
+    return sanitizedMessages;
+  }
 
   // --- Image Pruning Logic ---
   let totalImageCount = 0;

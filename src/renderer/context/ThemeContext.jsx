@@ -42,9 +42,9 @@ export const FONT_SIZES = [
 export const ThemeContext = createContext({
   theme: 'system',
   setTheme: () => {},
-  colorTheme: 'orange',
+  colorTheme: 'blue',
   setColorTheme: () => {},
-  bgTheme: 'warm',
+  bgTheme: 'white',
   setBgTheme: () => {},
   fontTheme: 'montserrat',
   setFontTheme: () => {},
@@ -67,9 +67,9 @@ export const ThemeProvider = ({ children }) => {
 
   const [colorTheme, setColorThemeState] = useState(() => {
     try {
-      return localStorage.getItem('neochat_color_theme') || 'orange';
+      return localStorage.getItem('neochat_color_theme') || 'blue';
     } catch {
-      return 'orange';
+      return 'blue';
     }
   });
 
@@ -79,9 +79,9 @@ export const ThemeProvider = ({ children }) => {
       if (savedLight) return savedLight;
       const legacyBg = localStorage.getItem('neochat_bg_theme');
       if (legacyBg && ['warm', 'white', 'slate', 'tinted'].includes(legacyBg)) return legacyBg;
-      return 'warm';
+      return 'white';
     } catch {
-      return 'warm';
+      return 'white';
     }
   });
 
