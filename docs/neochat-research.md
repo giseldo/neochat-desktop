@@ -6,7 +6,10 @@ Edição single user no mesmo repositório, com entrada Electron própria e comp
 
 - Desktop: `pnpm dev` (Vite na porta 5173).
 - Research: `pnpm dev:research` (Vite na porta 5174, aguardado antes de abrir o Electron).
+- Pacote local Research: `pnpm pack:research`.
+- Instalador e portátil Windows Research: `pnpm dist:research` (saída em `release/research`).
 - Validar: `pnpm test:research`, `pnpm build` e `pnpm test:research:ui` (Electron com dados temporários).
+- Validar o pacote Windows após `pnpm pack:research`: `pnpm test:research:package` (abre o executável gerado e usa dados temporários).
 
 É possível executar as duas edições simultaneamente. O Research usa exclusivamente a ponte `window.research`, não inicializa provedores de chat e não registra atalhos globais, protocolo groq ou atualizador do Desktop.
 
@@ -31,6 +34,6 @@ Importar RIS, anexar PDF e exportar salvam primeiro as alterações do projeto. 
 
 ## Próximas etapas
 
-Assistência por IA com verificação de evidências, leitura integrada de PDFs e síntese escrita. A versão atual é um fluxo manual de organização de revisões; não há busca automática em bases, extração automática de PDFs, pontuação automática de qualidade ou alegação de conformidade metodológica. Instaladores e canal de atualização Research ainda não estão configurados; os comandos de distribuição existentes continuam gerando o Desktop.
+Assistência por IA com verificação de evidências, leitura integrada de PDFs e síntese escrita. A versão atual é um fluxo manual de organização de revisões; não há busca automática em bases, extração automática de PDFs, pontuação automática de qualidade ou alegação de conformidade metodológica. O empacotamento Research herda a configuração principal e define identidade, executável, atalho, entrada e saída próprios. Não publica releases nem utiliza o canal de atualização Desktop. Os comandos de distribuição existentes continuam gerando o Desktop.
 
 O Parsifal é referência funcional de planejamento de revisões. Nenhum código do Parsifal foi incorporado nesta etapa.

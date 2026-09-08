@@ -1,6 +1,7 @@
 const { spawnSync } = require('child_process');
 
 const tests = [
+  'test-research.js',
   'test-agent-security.js',
   'test-agent-runtime.js',
   'test-agent-runtime-flow.js',

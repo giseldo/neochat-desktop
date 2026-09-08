@@ -1,0 +1,20 @@
+# Inherit platform settings and dependencies from the primary configuration.
+extends: ./electron-builder.yml
+appId: com.neochat.research
+productName: NeoChat Research
+executableName: neochat-research
+directories:
+  output: release/research
+extraMetadata:
+  name: neochat-research
+  description: Local workspace for systematic literature reviews
+  main: electron/research/main.js
+nsis:
+  shortcutName: NeoChat Research
+linux:
+  executableName: neochat-research
+  category: Education
+  synopsis: Local systematic literature review workspace
+  description: Plan reviews, screen studies and extract evidence with local storage
+# Research must never receive or publish Desktop updates.
+publish: null

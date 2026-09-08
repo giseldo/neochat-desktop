@@ -28,6 +28,7 @@ if (!app.requestSingleInstanceLock()) app.quit();
 else {
   app.on('second-instance', () => { if (window) { window.restore(); window.focus(); } });
   app.whenReady().then(() => {
+    if (process.platform === 'win32') app.setAppUserModelId('com.neochat.research');
     const store = new ResearchStore(path.join(app.getPath('userData'), 'reviews'));
     ipcMain.handle('research:files', async (event, { action, id, referenceId }) => {
       if (!window || event.sender !== window.webContents || event.senderFrame !== window.webContents.mainFrame) throw new Error('Origem inválida.');
