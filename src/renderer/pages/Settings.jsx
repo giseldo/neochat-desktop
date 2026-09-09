@@ -669,8 +669,8 @@ function Settings() {
       id: 'pluginsHub',
       category: 'plugins',
       title: 'Módulos & Extensões (Plugins Hub)',
-      desc: 'Ative ou desative módulos individuais para economizar recursos e memória',
-      keywords: 'plugins modulos extensoes arena debate sandbox live preview podcast studio grafo conhecimento briefing vision',
+      desc: 'Ative ou desative módulos individuais para economizar recursos do sistema e RAM',
+      keywords: 'plugins modulos extensoes arena debate sandbox live preview podcast studio grafo conhecimento briefing vision extensões módulos',
       isPowerOnly: false
     },
     {
@@ -782,7 +782,7 @@ function Settings() {
       category: 'features',
       title: t('memory.title') || 'Memória Persistente (User Memory)',
       desc: t('memory.description') || 'A IA aprende e lembra automaticamente suas preferências de código, estilo e contexto entre conversas.',
-      keywords: 'memoria user memory preferences persistente fatos regras perfil usuario aprendizado automatico contexto lembrar',
+      keywords: 'memoria memória user memory preferences persistente fatos regras perfil usuario aprendizado automatico contexto lembrar gerenciar memorias gerenciar memórias',
       isPowerOnly: false
     },
     {
@@ -960,20 +960,26 @@ function Settings() {
       category: 'help',
       title: t('settings.systemDiagnosticsTitle') || 'Diagnóstico & Ambiente',
       desc: t('settings.systemDiagnosticsDesc') || 'Detalhes da plataforma, Electron, Chrome e Node.js para suporte técnico',
-      keywords: 'diagnostico sistema ambiente electron chrome node v8 plataforma os memoria copiar specs',
+      keywords: 'diagnostico sistema ambiente electron chrome node v8 plataforma os ram copiar specs',
       isPowerOnly: false
     }
   ], [t, updateStatus.currentVersion, usageSummary?.month]);
 
+  const normalizeSearch = (str) => (str || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .trim();
+
   const categoryMatchCounts = useMemo(() => {
-    const q = searchQuery.trim().toLowerCase();
+    const q = normalizeSearch(searchQuery);
     if (!q) return null;
     const isPower = settings.interfaceMode === 'power';
     const counts = { all: 0, interface: 0, plugins: 0, features: 0, models: 0, integrations: 0, system: 0, help: 0 };
     
     CARDS_METADATA.forEach(card => {
       if (card.isPowerOnly && !isPower) return;
-      const searchTarget = `${card.category} ${card.title} ${card.desc} ${card.keywords}`.toLowerCase();
+      const searchTarget = normalizeSearch(`${card.category} ${card.title} ${card.desc} ${card.keywords}`);
       const queryWords = q.split(/\s+/).filter(Boolean);
       if (queryWords.every(word => searchTarget.includes(word))) {
         counts[card.category] = (counts[card.category] || 0) + 1;
@@ -984,7 +990,7 @@ function Settings() {
   }, [searchQuery, settings.interfaceMode, CARDS_METADATA]);
 
   const visibleCardIds = useMemo(() => {
-    const q = searchQuery.trim().toLowerCase();
+    const q = normalizeSearch(searchQuery);
     const isPower = settings.interfaceMode === 'power';
     
     return new Set(
@@ -992,10 +998,11 @@ function Settings() {
         if (card.isPowerOnly && !isPower) return false;
         
         if (q) {
-          const searchTarget = `${card.category} ${card.title} ${card.desc} ${card.keywords}`.toLowerCase();
+          const searchTarget = normalizeSearch(`${card.category} ${card.title} ${card.desc} ${card.keywords}`);
           const queryWords = q.split(/\s+/).filter(Boolean);
           const matches = queryWords.every(word => searchTarget.includes(word));
           if (!matches) return false;
+          if (activeCategory !== 'all' && card.category !== activeCategory) return false;
           return true;
         }
         
@@ -3243,7 +3250,7 @@ function Settings() {
   // --- Section Render Helpers ---
   const renderPluginsSection = () => {
     const hasVisible = visibleCardIds.has('pluginsHub');
-    if (!hasVisible && activeCategory !== 'plugins' && activeCategory !== 'all') return null;
+    if (!hasVisible) return null;
 
     return (
       <div className="space-y-6">
@@ -4753,7 +4760,7 @@ function Settings() {
       visibleCardIds.has('modelsByProvider') ||
       visibleCardIds.has('generationParams');
 
-    if (!hasVisible && activeCategory !== 'models') return null;
+    if (!hasVisible) return null;
 
     return (
       <div className="space-y-6">
@@ -6429,7 +6436,7 @@ function Settings() {
       visibleCardIds.has('observability') ||
       visibleCardIds.has('git');
 
-    if (!hasVisible && activeCategory !== 'integrations') return null;
+    if (!hasVisible) return null;
 
     return (
       <div className="space-y-6">
@@ -7668,7 +7675,7 @@ function Settings() {
       visibleCardIds.has('helpDocs') ||
       visibleCardIds.has('systemDiagnostics');
 
-    if (!hasVisible && activeCategory !== 'help' && activeCategory !== 'all') return null;
+    if (!hasVisible) return null;
 
     const versionStr = appInfo?.version || updateStatus?.currentVersion || '0.0.1';
     const copyrightStr = appInfo?.copyright || t('settings.copyrightNotice') || 'Copyright © 2025-2026 NeoChat Desktop / Groq, Inc. Todos os direitos reservados.';
@@ -8040,7 +8047,13 @@ function Settings() {
               ref={searchInputRef}
               type="text"
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              onChange={(e) => {
+                const val = e.target.value;
+                setSearchQuery(val);
+                if (val && activeCategory !== 'all') {
+                  setActiveCategory('all');
+                }
+              }}
               placeholder={t('settings.searchSettingsPlaceholder')}
               className="pl-9 pr-14 h-9 text-xs sm:text-sm bg-muted/40 border-border/80 focus:bg-background rounded-xl transition-all"
             />
@@ -8256,13 +8269,13 @@ function Settings() {
             )}
 
             {/* Render sections according to active filter / category */}
-            {(activeCategory === 'all' || activeCategory === 'interface' || searchQuery) && renderInterfaceSection()}
-            {(activeCategory === 'all' || activeCategory === 'plugins' || searchQuery) && renderPluginsSection()}
-            {(activeCategory === 'all' || activeCategory === 'features' || searchQuery) && renderFeaturesSection()}
-            {(activeCategory === 'all' || activeCategory === 'models' || searchQuery) && renderModelsSection()}
-            {(activeCategory === 'all' || activeCategory === 'integrations' || searchQuery) && renderIntegrationsSection()}
-            {(activeCategory === 'all' || activeCategory === 'system' || searchQuery) && renderSystemSection()}
-            {(activeCategory === 'all' || activeCategory === 'help' || searchQuery) && renderHelpSection()}
+            {(activeCategory === 'all' || activeCategory === 'interface') && renderInterfaceSection()}
+            {(activeCategory === 'all' || activeCategory === 'plugins') && renderPluginsSection()}
+            {(activeCategory === 'all' || activeCategory === 'features') && renderFeaturesSection()}
+            {(activeCategory === 'all' || activeCategory === 'models') && renderModelsSection()}
+            {(activeCategory === 'all' || activeCategory === 'integrations') && renderIntegrationsSection()}
+            {(activeCategory === 'all' || activeCategory === 'system') && renderSystemSection()}
+            {(activeCategory === 'all' || activeCategory === 'help') && renderHelpSection()}
           </div>
         </div>
       </main>
