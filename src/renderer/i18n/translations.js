@@ -617,6 +617,10 @@ export const translations = {
       fontSizeTitle: 'Tamanho da Fonte',
       chatWidthTitle: 'Largura do Chat',
       chatWidthDesc: 'Escolha entre layout centralizado com margens ou expandido em tela cheia',
+      textAlignTitle: 'Alinhamento do Texto',
+      textAlignDesc: 'Escolha se as respostas do chat devem ser alinhadas à esquerda ou justificadas',
+      textAlignLeft: 'À Esquerda',
+      textAlignJustify: 'Justificado',
       quickMenuTitle: 'Aparência Rápida',
       tabs: {
         colors: 'Cores',
@@ -2330,6 +2334,10 @@ export const translations = {
       fontSizeTitle: 'Font Size',
       chatWidthTitle: 'Chat Width',
       chatWidthDesc: 'Choose between centered layout with margins or full width layout',
+      textAlignTitle: 'Text Alignment',
+      textAlignDesc: 'Choose whether chat responses should be left-aligned or justified',
+      textAlignLeft: 'Left',
+      textAlignJustify: 'Justified',
       quickMenuTitle: 'Quick Appearance',
       tabs: {
         colors: 'Colors',

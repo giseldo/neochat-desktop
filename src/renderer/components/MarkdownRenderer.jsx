@@ -6,6 +6,8 @@ import rehypeKatex from 'rehype-katex';
 import "katex/dist/katex.min.css";
 import CodeBlock from './CodeBlock';
 import { extractThinking, preprocessCitations } from '../lib/messageUtils';
+import { useTheme } from '../context/ThemeContext';
+import { cn } from '../lib/utils';
 
 const imageFileExtensionsRegex = /\.(jpg|jpeg|png|gif|bmp|webp|svg)$/i;
 
@@ -49,6 +51,7 @@ function preprocessMarkdownMath(content) {
 }
 
 function MarkdownRenderer({ content = '', sources = [], disableMath = false, onPreviewArtifact }) {
+  const { textAlign } = useTheme();
   let processedContent = String(content || '');
   
   // If rendering regular message content (disableMath is false), strip any think tags
@@ -184,7 +187,13 @@ function MarkdownRenderer({ content = '', sources = [], disableMath = false, onP
     li: ({ node: _, ...props }) => <li className="pl-1" {...props} />,
     p({ children, ...props }) {
       return (
-        <p className="text-left mb-3 text-sm text-foreground leading-relaxed" {...props}>
+        <p
+          className={cn(
+            "mb-3 text-sm text-foreground leading-relaxed",
+            textAlign === 'justify' ? "text-justify [text-justify:inter-word]" : "text-left"
+          )}
+          {...props}
+        >
           {children}
         </p>
       );

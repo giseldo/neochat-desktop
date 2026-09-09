@@ -448,6 +448,16 @@
   .markdown-content p:not(:last-child) {
     @apply mb-2;
   }
+
+  /* Text alignment preference */
+  [data-text-align="justify"] .markdown-content p {
+    text-align: justify;
+    text-justify: inter-word;
+  }
+
+  [data-text-align="left"] .markdown-content p {
+    text-align: left;
+  }
   
   /* Override for reasoning content - no paragraph margins */
   .reasoning-content .markdown-content p:not(:last-child) {

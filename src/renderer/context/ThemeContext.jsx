@@ -52,6 +52,8 @@ export const ThemeContext = createContext({
   setFontSize: () => {},
   chatWidth: 'wide',
   setChatWidth: () => {},
+  textAlign: 'left',
+  setTextAlign: () => {},
   resolvedTheme: 'light',
   isDark: false,
 });
@@ -121,6 +123,14 @@ export const ThemeProvider = ({ children }) => {
     }
   });
 
+  const [textAlign, setTextAlignState] = useState(() => {
+    try {
+      return localStorage.getItem('neochat_text_align') || 'left';
+    } catch {
+      return 'left';
+    }
+  });
+
   const [systemIsDark, setSystemIsDark] = useState(() => {
     if (typeof window !== 'undefined' && window.matchMedia) {
       return window.matchMedia('(prefers-color-scheme: dark)').matches;
@@ -155,13 +165,14 @@ export const ThemeProvider = ({ children }) => {
       root.classList.remove('dark');
     }
 
-    // Data attributes for colors, background, font, font-size and chat-width
+    // Data attributes for colors, background, font, font-size, chat-width and text-align
     root.setAttribute('data-color-theme', colorTheme);
     root.setAttribute('data-bg-theme', effectiveBgTheme);
     root.setAttribute('data-font', fontTheme);
     root.setAttribute('data-font-size', fontSize);
     root.setAttribute('data-chat-width', chatWidth);
-  }, [isDark, colorTheme, effectiveBgTheme, fontTheme, fontSize, chatWidth]);
+    root.setAttribute('data-text-align', textAlign);
+  }, [isDark, colorTheme, effectiveBgTheme, fontTheme, fontSize, chatWidth, textAlign]);
 
   const setTheme = (newTheme) => {
     setThemeState(newTheme);
@@ -234,6 +245,21 @@ export const ThemeProvider = ({ children }) => {
     }
   };
 
+  const setTextAlign = (newTextAlign) => {
+    const validAlign = newTextAlign === 'justify' ? 'justify' : 'left';
+    setTextAlignState(validAlign);
+    try {
+      localStorage.setItem('neochat_text_align', validAlign);
+    } catch (e) {
+      console.error('Failed to save text alignment to localStorage:', e);
+    }
+    if (window.electron?.saveSettings) {
+      window.electron.getSettings().then(current => {
+        window.electron.saveSettings({ ...current, textAlign: validAlign }).catch(() => {});
+      }).catch(() => {});
+    }
+  };
+
   return (
     <ThemeContext.Provider value={{
       theme,
@@ -248,6 +274,8 @@ export const ThemeProvider = ({ children }) => {
       setFontSize,
       chatWidth,
       setChatWidth,
+      textAlign,
+      setTextAlign,
       resolvedTheme,
       isDark,
     }}>

@@ -302,6 +302,8 @@ function Settings() {
     setFontSize,
     chatWidth,
     setChatWidth,
+    textAlign,
+    setTextAlign,
     resolvedTheme,
     isDark
   } = useTheme();
@@ -694,7 +696,7 @@ function Settings() {
       category: 'interface',
       title: t('settings.appearanceTitle') || 'Aparência e Tema',
       desc: t('settings.appearanceDesc') || 'Cores, modo claro/escuro, fontes e tamanhos',
-      keywords: 'tema aparencia cores modo escuro dark mode light fundo background tipografia font tamanho size preview oled slate warm zinc tinted',
+      keywords: 'tema aparencia cores modo escuro dark mode light fundo background tipografia font tamanho size preview oled slate warm zinc tinted alinhamento justify justificado texto alignment',
       isPowerOnly: false
     },
     {
@@ -3390,7 +3392,8 @@ function Settings() {
               <SettingsRow label={t('theme.fontThemeTitle')}><SettingsSelect label={t('theme.fontThemeTitle')} value={fontTheme} onChange={setFontTheme} options={FONT_THEMES} /></SettingsRow>
               <SettingsRow label={t('theme.fontSizeTitle')}><SettingsChoices value={fontSize} onChange={setFontSize} options={FONT_SIZES.map((f, i) => ({ id: f.id, name: (language === 'pt' ? ['Pequeno', 'Padrão', 'Grande', 'Extra'] : ['Small', 'Default', 'Large', 'Extra'])[i] }))} /></SettingsRow>
               <SettingsRow label={t('theme.chatWidthTitle')}><SettingsChoices value={chatWidth} onChange={setChatWidth} options={[{ id: 'wide', name: language === 'pt' ? 'Centralizado' : 'Centered' }, { id: 'full', name: language === 'pt' ? 'Amplo' : 'Full width' }]} /></SettingsRow>
-              <p className="pt-4 text-muted-foreground" style={{ fontSize: FONT_SIZES.find(f => f.id === fontSize)?.scale }}>{language === 'pt' ? 'Um espaço para conversar e criar.' : 'A space to talk and create.'}</p>
+              <SettingsRow label={t('theme.textAlignTitle')}><SettingsChoices value={textAlign} onChange={setTextAlign} options={[{ id: 'left', name: t('theme.textAlignLeft') }, { id: 'justify', name: t('theme.textAlignJustify') }]} /></SettingsRow>
+              <p className={cn("pt-4 text-muted-foreground", textAlign === 'justify' ? "text-justify [text-justify:inter-word]" : "text-left")} style={{ fontSize: FONT_SIZES.find(f => f.id === fontSize)?.scale }}>{language === 'pt' ? 'Um espaço para conversar, criar e raciocinar com clareza através de inteligência artificial.' : 'A space to talk, create and reason with clarity through artificial intelligence.'}</p>
             </CardContent>
           </Card>
         )}
