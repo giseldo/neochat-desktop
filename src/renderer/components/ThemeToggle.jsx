@@ -20,7 +20,9 @@ export function ThemeToggle({ className, interfaceMode: propInterfaceMode, onInt
     fontSize,
     setFontSize,
     chatWidth,
-    setChatWidth
+    setChatWidth,
+    textAlign,
+    setTextAlign
   } = useTheme();
   
   const { t, language } = useLanguage();
@@ -154,7 +156,7 @@ export function ThemeToggle({ className, interfaceMode: propInterfaceMode, onInt
               </fieldset>
               <div className="border-t border-border/50 pt-3">
                 <p className="text-xs text-muted-foreground mb-2">{pt ? 'Prévia' : 'Preview'}</p>
-                <p style={{ fontFamily: fontFamily(selectedFont), fontSize: selectedSize.scale }} className="leading-relaxed break-words">{pt ? 'Um espaço para conversar e criar.' : 'A space to talk and create.'}</p>
+                <p style={{ fontFamily: fontFamily(selectedFont), fontSize: selectedSize.scale }} className={cn("leading-relaxed break-words", textAlign === 'justify' ? "text-justify [text-justify:inter-word]" : "text-left")}>{pt ? 'Um espaço para conversar e criar.' : 'A space to talk and create.'}</p>
               </div>
             </div>
           )}
@@ -165,6 +167,16 @@ export function ThemeToggle({ className, interfaceMode: propInterfaceMode, onInt
                 <legend className="text-xs text-muted-foreground mb-2">{pt ? 'Largura do chat' : 'Chat width'}</legend>
                 <div className="grid grid-cols-2 gap-1 bg-muted/60 rounded-lg p-1">
                   {[['wide', pt ? 'Centralizado' : 'Centered'], ['full', pt ? 'Amplo' : 'Full width']].map(([id, label]) => <button key={id} type="button" aria-pressed={chatWidth === id} onClick={() => setChatWidth(id)} className={optionStyle(chatWidth === id)}>{label}</button>)}
+                </div>
+              </fieldset>
+              <fieldset>
+                <legend className="text-xs text-muted-foreground mb-2">{t('theme.textAlignTitle') || (pt ? 'Alinhamento do texto' : 'Text alignment')}</legend>
+                <div className="grid grid-cols-2 gap-1 bg-muted/60 rounded-lg p-1">
+                  {[['left', t('theme.textAlignLeft') || (pt ? 'À Esquerda' : 'Left')], ['justify', t('theme.textAlignJustify') || (pt ? 'Justificado' : 'Justified')]].map(([id, label]) => (
+                    <button key={id} type="button" aria-pressed={textAlign === id} onClick={() => setTextAlign(id)} className={optionStyle(textAlign === id)}>
+                      {label}
+                    </button>
+                  ))}
                 </div>
               </fieldset>
               <fieldset>
