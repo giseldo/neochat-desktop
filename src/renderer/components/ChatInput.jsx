@@ -1,4 +1,4 @@
-import { ArrowRight, Loader2, ImagePlus, Hammer, Upload, Zap, ZapOff, Square, Mic, MicOff, Terminal, Globe, BookOpen, SlidersHorizontal, Camera, Bot, Key, Layout, X, Code2, Briefcase, MessageSquare, RotateCcw, Plus, Check, Cpu, Blocks, Sparkles } from "lucide-react";
+import { ArrowRight, Loader2, ImagePlus, Hammer, Upload, Zap, ZapOff, Square, Mic, MicOff, Terminal, Globe, BookOpen, Camera, Bot, Key, Layout, X, Code2, Briefcase, MessageSquare, RotateCcw, Plus, Check, Cpu, Blocks, Sparkles } from "lucide-react";
 import React, { useContext, useEffect, useRef, useState, useMemo } from "react";
 import { createPortal } from "react-dom";
 import { Link } from "react-router-dom";
@@ -1479,20 +1479,6 @@ function ChatInput({
 									favoriteItems={favoriteModels}
 									onToggleFavorite={onToggleFavoriteModel}
 								/>
-								<Button
-									type="button"
-									variant="ghost"
-									size="icon"
-									onClick={() => setIsModelParamsModalOpen(true)}
-									title={t('chat.modelParameters') || 'Parâmetros do Modelo'}
-									className="h-8 w-8 text-muted-foreground hover:text-foreground hover:bg-muted/80 rounded-md transition-colors flex-shrink-0"
-									disabled={loading || !selectedModel}
-								>
-									<SlidersHorizontal className="w-3.5 h-3.5" />
-								</Button>
-
-								<div className="h-4 w-px bg-border/60 mx-0.5 flex-shrink-0" />
-
 								<ContextUsageIndicator
 									messages={messages}
 									selectedModel={selectedModel}

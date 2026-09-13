@@ -367,7 +367,8 @@ export const translations = {
       currentConversationTokens: 'Tokens da conversa atual: {tokens}',
       totalLoadedContext: 'Contexto total carregado: {context}',
       contextUsageSummary: '{used}% usado ({left}% restante)',
-      contextUsageTooltip: 'Uso do Contexto do Modelo',
+      contextUsageTooltip: 'Uso do Contexto do Modelo (clique para configurar)',
+      clickToConfigureModel: 'Clique para configurar parâmetros do modelo',
     },
     sources: {
       title: 'Fontes Consultadas',
@@ -858,8 +859,11 @@ export const translations = {
       appearanceDesc: 'Personalize o esquema de cores do aplicativo entre modo claro, escuro ou automático do sistema.',
       
       // API Configuration Card
-      apiTitle: 'Configuração da API & Provedores',
-      apiDesc: 'Gerencie provedores de IA, chaves de API, endpoints locais/remotos e ative múltiplos provedores simultaneamente.',
+      apiTitle: 'Provedores de IA & Modelos',
+      apiDesc: 'Gerencie provedores, chaves de API, status de conexão e ative modelos para uso no chat.',
+      providerModelsTitle: 'Modelos Disponíveis deste Provedor',
+      enterKeyToLoadModels: 'Insira a chave de API acima e clique em "Testar Conexão" para carregar os modelos deste provedor automaticamente.',
+      noModelsForProvider: 'Nenhum modelo disponível para este provedor no momento. Verifique a chave e conectividade.',
       addProvider: 'Incluir Provedor',
       addProviderModalTitle: 'Incluir Provedor & Modelos',
       editProviderModalTitle: 'Editar Provedor',
@@ -2084,7 +2088,8 @@ export const translations = {
       currentConversationTokens: 'Current conversation tokens: {tokens}',
       totalLoadedContext: 'Total loaded context: {context}',
       contextUsageSummary: '{used}% used ({left}% left)',
-      contextUsageTooltip: 'Model Context Usage',
+      contextUsageTooltip: 'Model Context Usage (click to configure)',
+      clickToConfigureModel: 'Click to configure model parameters',
     },
     sources: {
       title: 'Sources Consulted',
@@ -2575,8 +2580,11 @@ export const translations = {
       appearanceDesc: 'Customize the application color scheme between light, dark, or system default.',
       
       // API Configuration Card
-      apiTitle: 'API & Provider Configuration',
-      apiDesc: 'Manage AI providers, API keys, local/remote endpoints, and activate multiple providers simultaneously.',
+      apiTitle: 'AI Providers & Models',
+      apiDesc: 'Manage providers, API keys, connection status, and enable models for chat use.',
+      providerModelsTitle: 'Available Provider Models',
+      enterKeyToLoadModels: 'Enter the API key above and click "Test Connection" to automatically load models for this provider.',
+      noModelsForProvider: 'No models available for this provider right now. Verify key and connectivity.',
       addProvider: 'Add Provider',
       addProviderModalTitle: 'Add Provider & Models',
       editProviderModalTitle: 'Edit Provider',

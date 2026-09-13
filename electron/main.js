@@ -269,10 +269,12 @@ app.whenReady().then(async () => {
 
   // Helper to fetch and merge all models across active providers with unique keys
   async function getMergedModelConfigs(currentSettings, forceRefresh = false) {
-    const activeProviders = getActiveProviders(currentSettings);
+    const allAvailProviders = getAllProviders(currentSettings);
+    const activeProviders = allAvailProviders.filter(p => isProviderEnabled(currentSettings, p.id) || isProviderConfigured(currentSettings, p.id));
+    const providersToProcess = activeProviders.length > 0 ? activeProviders : [getActiveProvider(currentSettings)];
     let allApiModels = {};
 
-    for (const provider of activeProviders) {
+    for (const provider of providersToProcess) {
       const apiKey = getApiKeyForProvider(currentSettings, provider.id);
       const modelsUrl = getModelsUrlForProvider(currentSettings, provider.id);
       
@@ -372,10 +374,20 @@ app.whenReady().then(async () => {
 
     const startTime = Date.now();
     try {
-      const { fetchModelsFromAPI } = require('../shared/models.js');
+      const { fetchModelsFromAPI, getModelsFromAPIWithCache } = require('../shared/models.js');
       const response = await fetchModelsFromAPI(apiKey, modelsUrl, { timeout: 8000 });
       const latencyMs = Date.now() - startTime;
       if (response && Array.isArray(response.data)) {
+        try {
+          await getModelsFromAPIWithCache(
+            apiKey,
+            modelsUrl,
+            true,
+            { providerId: provider ? provider.id : providerId, providerName: provider ? provider.name : providerId }
+          );
+        } catch (cacheErr) {
+          console.warn('[test-provider] Cache update warning:', cacheErr.message);
+        }
         return { success: true, count: response.data.length, latencyMs };
       }
       return { success: true, count: 0, latencyMs };

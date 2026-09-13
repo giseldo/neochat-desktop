@@ -143,6 +143,9 @@ export function ContextUsageIndicator({
                 `${usedPctStr}% used (${leftPctStr}% left)`
               )}
             </div>
+            <div className="text-[10.5px] text-primary font-medium mt-1.5 pt-1.5 border-t border-border/50 flex items-center gap-1">
+              <span>{t('chat.clickToConfigureModel', null, 'Clique para configurar parâmetros do modelo')}</span>
+            </div>
           </div>
         </div>
       )}

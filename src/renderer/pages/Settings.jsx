@@ -461,9 +461,6 @@ function Settings() {
   const [customModelSearchQuery, setCustomModelSearchQuery] = useState('');
   const [modelConfigs, setModelConfigs] = useState({});
   const [allLoadedModels, setAllLoadedModels] = useState([]);
-  const [providerModelSearchQuery, setProviderModelSearchQuery] = useState('');
-  const [filterOnlyFavorites, setFilterOnlyFavorites] = useState(false);
-  const [expandedProviderGroups, setExpandedProviderGroups] = useState(new Set());
   const [expandedProviderCards, setExpandedProviderCards] = useState(new Set());
   const [isRefreshingModels, setIsRefreshingModels] = useState(false);
   
@@ -814,17 +811,9 @@ function Settings() {
     {
       id: 'api',
       category: 'models',
-      title: t('settings.apiTitle') || 'Configuração da API & Provedores',
-      desc: t('settings.apiDesc') || 'Provedores de IA, detecção de Ollama/LM Studio e chaves de API',
-      keywords: 'api provedores providers groq openai anthropic claude deepseek ollama lmstudio local ai chaves tokens endpoint base url',
-      isPowerOnly: true
-    },
-    {
-      id: 'modelsByProvider',
-      category: 'models',
-      title: t('settings.modelsByProviderTitle') || 'Modelos Ativos por Provedor',
-      desc: t('settings.modelsByProviderDesc') || 'Ativar e desativar modelos e grupos disponíveis',
-      keywords: 'modelos ativos provider models ativar desativar habilitar grupos groq llama gpt claude deepseek lista',
+      title: t('settings.apiTitle') || 'Provedores de IA & Modelos',
+      desc: t('settings.apiDesc') || 'Chaves de API, status de conexão e ativação de modelos disponíveis',
+      keywords: 'api provedores providers groq openai anthropic claude deepseek ollama lmstudio local ai chaves tokens endpoint base url modelos ativos ativar desativar',
       isPowerOnly: true
     },
     {
@@ -1559,6 +1548,43 @@ function Settings() {
           error: result.error || null
         }
       }));
+
+      if (result.success) {
+        // Automatically refresh model configs and providers list immediately
+        await fetchAndSetModelConfigs(true);
+        await refreshProvidersAndModels(true);
+
+        // Auto-activate default/first model if provider has no active models yet
+        const currentEnabled = Array.isArray(settings.enabledModels) ? settings.enabledModels : [];
+        const freshConfigs = await window.electron.getModelConfigs(false);
+        const provModelIds = Object.keys(freshConfigs || {}).filter(id => {
+          if (id === 'default') return false;
+          const cfg = freshConfigs[id] || {};
+          return cfg.provider === providerId || id.startsWith(`${providerId}::`);
+        });
+
+        const hasAnyActive = provModelIds.some(id => {
+          const rawId = freshConfigs[id]?.rawModelId;
+          return currentEnabled.includes(id) || (rawId && currentEnabled.includes(rawId));
+        });
+
+        if (!hasAnyActive && provModelIds.length > 0) {
+          const providerConfig = providers.find(p => p.id === providerId);
+          const defaultModelName = providerConfig?.defaultModel;
+          const matchDefault = provModelIds.filter(id => {
+            const rawId = freshConfigs[id]?.rawModelId || id;
+            return defaultModelName && (rawId === defaultModelName || id.endsWith(`::${defaultModelName}`));
+          });
+          const toAdd = matchDefault.length > 0 ? matchDefault : [provModelIds[0]];
+          const updatedSettings = {
+            ...settings,
+            enabledModels: Array.from(new Set([...currentEnabled, ...toAdd]))
+          };
+          setSettings(updatedSettings);
+          await saveSettingsImmediate(updatedSettings);
+          await fetchAndSetModelConfigs(false);
+        }
+      }
     } catch (err) {
       setProviderTestResults(prev => ({
         ...prev,
@@ -2663,24 +2689,31 @@ function Settings() {
     return favorites.includes(modelId) || (rawId && favorites.includes(rawId));
   };
 
-  const toggleProviderGroup = (group) => {
-    setExpandedProviderGroups(prev => {
-      const next = new Set(prev);
-      if (next.has(group)) {
-        next.delete(group);
-      } else {
-        next.add(group);
+  const isModelActive = (modelId) => {
+    const enabled = Array.isArray(settings.enabledModels) ? settings.enabledModels : [];
+    const cfg = modelConfigs[modelId];
+    const rawId = cfg?.rawModelId;
+    return enabled.includes(modelId) || (rawId && enabled.includes(rawId));
+  };
+
+  const getModelsForProvider = (providerId) => {
+    if (!providerId) return [];
+    const targetId = providerId.toLowerCase();
+    const providerObj = providers.find(p => p.id === providerId);
+    const targetName = (providerObj?.name || providerId).toLowerCase();
+
+    return allLoadedModels.filter(id => {
+      if (!id || id === 'default') return false;
+      const cfg = modelConfigs[id] || {};
+      if (cfg.provider && cfg.provider.toLowerCase() === targetId) return true;
+      if (id.startsWith(`${providerId}::`)) return true;
+      const grp = (cfg.group || getModelGroup(id, cfg) || '').toLowerCase();
+      if (grp === targetId || grp === targetName) return true;
+      if (!id.includes('::') && !cfg.provider) {
+        if (providerId === 'groq' || providerId === (settings.provider || 'groq')) return true;
       }
-      return next;
+      return false;
     });
-  };
-
-  const handleExpandAllProviderGroups = (allGroups) => {
-    setExpandedProviderGroups(new Set(allGroups));
-  };
-
-  const handleCollapseAllProviderGroups = () => {
-    setExpandedProviderGroups(new Set());
   };
 
   const toggleProviderCard = (providerId) => {
@@ -4760,7 +4793,6 @@ function Settings() {
   const renderModelsSection = () => {
     const hasVisible =
       visibleCardIds.has('api') ||
-      visibleCardIds.has('modelsByProvider') ||
       visibleCardIds.has('generationParams');
 
     if (!hasVisible) return null;
@@ -5098,6 +5130,8 @@ function Settings() {
                       const IconComp = getProviderIconComponent(provider);
                       const isSearchActive = Boolean(providerSearchTerm.trim());
                       const isExpanded = isSearchActive ? true : expandedProviderCards.has(provider.id);
+                      const providerModels = getModelsForProvider(provider.id);
+                      const activeProviderModelCount = providerModels.filter(isModelActive).length;
 
                       return (
                         <div
@@ -5173,7 +5207,7 @@ function Settings() {
                                 <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
                                   {isConfigured ? (
                                     <span className="inline-flex items-center gap-1 text-emerald-600 dark:text-emerald-400 font-medium">
-                                      <CheckCircle className="w-3 h-3" />
+                                      <CheckCircle className="w-3.5 h-3.5" />
                                       {t('settings.statusConfigured')}
                                     </span>
                                   ) : (
@@ -5185,6 +5219,14 @@ function Settings() {
                                   <span className={isEnabled ? "text-green-600 dark:text-green-400 font-medium" : "text-muted-foreground"}>
                                     {isEnabled ? t('settings.statusActive') : t('settings.statusInactive')}
                                   </span>
+                                  {providerModels.length > 0 && (
+                                    <>
+                                      <span>•</span>
+                                      <span className="font-mono text-[11px] text-primary/80">
+                                        {activeProviderModelCount} de {providerModels.length} modelos
+                                      </span>
+                                    </>
+                                  )}
                                   {!isExpanded && provider.description && (
                                     <span className="hidden xl:inline-block text-[11px] text-muted-foreground/80 truncate max-w-[320px]">
                                       — {provider.description}
@@ -5420,303 +5462,58 @@ function Settings() {
                                     )}
                                   </div>
                                 )}
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          );
-        })()}
 
-        {visibleCardIds.has('modelsByProvider') && (
-          <Card>
-              <CardHeader>
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                  <div>
-                    <CardTitle className="flex items-center space-x-2">
-                      <Cpu className="h-5 w-5 text-primary" />
-                      <span>{t('settings.modelsByProviderTitle')}</span>
-                    </CardTitle>
-                    <CardDescription className="mt-1">
-                      {t('settings.modelsByProviderDesc')}
-                    </CardDescription>
-                  </div>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => fetchAndSetModelConfigs(true)}
-                    disabled={isRefreshingModels}
-                    className="text-xs h-8 self-start sm:self-auto shrink-0"
-                  >
-                    <RefreshCw className={cn("h-3.5 w-3.5 mr-1.5", isRefreshingModels && "animate-spin")} />
-                    <span>{isRefreshingModels ? t('settings.detectingLocalAi') : t('common.refresh')}</span>
-                  </Button>
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {/* Search Bar & Global Expand/Collapse for provider models */}
-                {allLoadedModels.length > 0 && (
-                  <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5">
-                    <div className="relative flex-1">
-                      <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
-                      <Input
-                        type="text"
-                        value={providerModelSearchQuery}
-                        onChange={(e) => setProviderModelSearchQuery(e.target.value)}
-                        placeholder={t('settings.searchModelsPlaceholder')}
-                        className="text-xs sm:text-sm h-9 pl-8 pr-8"
-                      />
-                      {providerModelSearchQuery && (
-                        <button
-                          type="button"
-                          onClick={() => setProviderModelSearchQuery('')}
-                          className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground text-xs"
-                          title={t('common.clear')}
-                        >
-                          ✕
-                        </button>
-                      )}
-                    </div>
-                    {(() => {
-                      const allGroupNames = Array.from(new Set(allLoadedModels.map(id => {
-                        const cfg = modelConfigs[id] || {};
-                        return cfg.group || cfg.provider || getModelGroup(id, cfg);
-                      })));
-
-                      return (
-                        <div className="flex items-center gap-1.5 self-end sm:self-auto shrink-0 flex-wrap">
-                          <Button
-                            type="button"
-                            variant={filterOnlyFavorites ? "default" : "outline"}
-                            size="sm"
-                            onClick={() => setFilterOnlyFavorites(prev => !prev)}
-                            className={cn(
-                              "text-xs h-9 px-2.5 transition-colors",
-                              filterOnlyFavorites 
-                                ? "bg-amber-500 hover:bg-amber-600 text-white border-amber-500" 
-                                : "text-muted-foreground hover:text-amber-500 hover:border-amber-500/30"
-                            )}
-                            title={t('settings.onlyFavorites') || 'Apenas Favoritos'}
-                          >
-                            <Star className={cn("h-3.5 w-3.5 mr-1", (filterOnlyFavorites || (Array.isArray(settings.favoriteModels) && settings.favoriteModels.length > 0)) && "fill-current")} />
-                            <span>{t('common.favorites') || 'Favoritos'}</span>
-                            {Array.isArray(settings.favoriteModels) && settings.favoriteModels.length > 0 && (
-                              <span className={cn(
-                                "ml-1.5 px-1.5 py-0.5 rounded-full text-[10px] font-mono leading-none",
-                                filterOnlyFavorites ? "bg-white/20 text-white" : "bg-amber-500/15 text-amber-600 dark:text-amber-400"
-                              )}>
-                                {settings.favoriteModels.length}
-                              </span>
-                            )}
-                          </Button>
-                          <Button
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleExpandAllProviderGroups(allGroupNames)}
-                            className="text-xs h-9 px-2.5"
-                            title={t('settings.expandAllModels')}
-                          >
-                            <ChevronDown className="h-3.5 w-3.5 mr-1" />
-                            <span>{t('settings.expandAllModels')}</span>
-                          </Button>
-                          <Button
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            onClick={handleCollapseAllProviderGroups}
-                            className="text-xs h-9 px-2.5"
-                            title={t('settings.collapseAllModels')}
-                          >
-                            <ChevronUp className="h-3.5 w-3.5 mr-1" />
-                            <span>{t('settings.collapseAllModels')}</span>
-                          </Button>
-                        </div>
-                      );
-                    })()}
-                  </div>
-                )}
-
-                {allLoadedModels.length > 0 ? (
-                  <div className="space-y-3">
-                    {(() => {
-                      const query = providerModelSearchQuery.trim().toLowerCase();
-                      const isSearchActive = query.length > 0;
-                      const baseModels = filterOnlyFavorites
-                        ? allLoadedModels.filter(id => isModelFavorite(id))
-                        : allLoadedModels;
-                      const filteredModelIds = isSearchActive
-                        ? baseModels.filter(id => {
-                            const cfg = modelConfigs[id] || {};
-                            const rawId = (cfg.rawModelId || (id.includes('::') ? id.split('::')[1] : id)).toLowerCase();
-                            const name = (cfg.displayName || rawId).toLowerCase();
-                            const grp = (cfg.group || cfg.provider || getModelGroup(id, cfg)).toLowerCase();
-                            const contextStr = cfg.context ? String(cfg.context) : '';
-                            const hasVision = cfg.vision_supported ? 'vision' : '';
-                            const hasTools = cfg.builtin_tools_supported ? 'tools tool' : '';
-                            return id.toLowerCase().includes(query) ||
-                                   rawId.includes(query) ||
-                                   name.includes(query) ||
-                                   grp.includes(query) ||
-                                   contextStr.includes(query) ||
-                                   hasVision.includes(query) ||
-                                   hasTools.includes(query);
-                          })
-                        : baseModels;
-
-                      if (filteredModelIds.length === 0) {
-                        return (
-                          <div className="text-center py-8 text-xs text-muted-foreground border border-dashed rounded-xl bg-muted/10 space-y-2">
-                            <p className="font-medium text-sm text-foreground/80">{t('common.noModelsFound')}</p>
-                            {isSearchActive && (
-                              <Button
-                                type="button"
-                                variant="outline"
-                                size="sm"
-                                onClick={() => setProviderModelSearchQuery('')}
-                                className="text-xs h-7"
-                              >
-                                {t('common.clear')}
-                              </Button>
-                            )}
-                          </div>
-                        );
-                      }
-
-                      const groups = groupModels(filteredModelIds, modelConfigs);
-                      const enabledList = Array.isArray(settings.enabledModels) ? settings.enabledModels : [];
-
-                      return (
-                        <>
-                          {isSearchActive && (
-                            <div className="text-xs text-muted-foreground flex items-center justify-between px-1 pb-1">
-                              <span>
-                                {t('settings.showingMatchingModels', { count: filteredModelIds.length, providers: groups.length })}
-                              </span>
-                              <button
-                                type="button"
-                                onClick={() => setProviderModelSearchQuery('')}
-                                className="text-primary hover:underline text-xs"
-                              >
-                                {t('common.clear')}
-                              </button>
-                            </div>
-                          )}
-
-                          {groups.map(({ group, models: groupModelIds }) => {
-                            const isModelActive = (id) => {
-                              const cfg = modelConfigs[id];
-                              const rawId = cfg?.rawModelId;
-                              return enabledList.includes(id) || (rawId && enabledList.includes(rawId));
-                            };
-                            const activeCount = groupModelIds.filter(isModelActive).length;
-                            const totalCount = groupModelIds.length;
-                            const isExpanded = isSearchActive ? true : expandedProviderGroups.has(group);
-
-                            return (
-                              <div
-                                key={group}
-                                className={cn(
-                                  "border rounded-xl bg-card/60 shadow-xs transition-all duration-200 overflow-hidden",
-                                  isExpanded ? "border-border/80" : "border-border/50 hover:border-border"
-                                )}
-                              >
-                                {/* Group Header (Accordion Panel Trigger) */}
-                                <div
-                                  onClick={() => toggleProviderGroup(group)}
-                                  role="button"
-                                  tabIndex={0}
-                                  onKeyDown={(e) => {
-                                    if (e.key === 'Enter' || e.key === ' ') {
-                                      e.preventDefault();
-                                      toggleProviderGroup(group);
-                                    }
-                                  }}
-                                  className={cn(
-                                    "w-full flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 p-3 sm:p-3.5 cursor-pointer select-none transition-colors",
-                                    isExpanded ? "bg-muted/30 border-b border-border/50" : "hover:bg-muted/20"
-                                  )}
-                                >
-                                  {/* Left: Chevron & Provider Info */}
-                                  <div className="flex items-center gap-2.5 min-w-0">
-                                    <div className="p-1 rounded-md bg-muted/60 text-muted-foreground flex items-center justify-center shrink-0">
-                                      <ChevronDown
-                                        className={cn(
-                                          "h-4 w-4 transition-transform duration-200",
-                                          isExpanded ? "rotate-0 text-foreground" : "-rotate-90 text-muted-foreground"
-                                        )}
-                                      />
-                                    </div>
-                                    <div className="flex items-center gap-2 flex-wrap min-w-0">
-                                      <span className="font-semibold text-sm text-foreground tracking-wide truncate">
-                                        {group}
+                                {/* Integrated Provider Models Section */}
+                                <div className="pt-3 border-t border-border/40 space-y-3">
+                                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                                    <div className="flex items-center gap-2 flex-wrap">
+                                      <Cpu className="w-4 h-4 text-primary" />
+                                      <span className="text-xs font-semibold text-foreground">
+                                        {t('settings.providerModelsTitle') || 'Modelos Disponíveis'}
                                       </span>
                                       <Badge
-                                        variant={activeCount > 0 ? "secondary" : "outline"}
+                                        variant={activeProviderModelCount > 0 ? "secondary" : "outline"}
                                         className={cn(
-                                          "text-[11px] px-2 font-normal",
-                                          activeCount > 0 && "bg-primary/10 text-primary border-primary/20"
+                                          "text-[10.5px] px-2 font-normal",
+                                          activeProviderModelCount > 0 && "bg-primary/10 text-primary border-primary/20"
                                         )}
                                       >
-                                        {t('settings.activeModelsCount', { active: activeCount, total: totalCount })}
+                                        {activeProviderModelCount} de {providerModels.length} modelos ativos
                                       </Badge>
-                                      {!isExpanded && activeCount > 0 && (
-                                        <span className="hidden md:inline-block text-[11px] text-muted-foreground truncate max-w-[280px]">
-                                          ({groupModelIds
-                                            .filter(isModelActive)
-                                            .slice(0, 3)
-                                            .map(id => modelConfigs[id]?.displayName || (id.includes('::') ? id.split('::')[1] : id))
-                                            .join(', ')}
-                                          {activeCount > 3 ? ` +${activeCount - 3}` : ''})
-                                        </span>
-                                      )}
                                     </div>
+
+                                    {providerModels.length > 0 && (
+                                      <div className="flex items-center gap-2 self-end sm:self-auto shrink-0">
+                                        <Button
+                                          type="button"
+                                          variant="ghost"
+                                          size="sm"
+                                          onClick={() => handleEnableAllInGroup(providerModels)}
+                                          className="text-xs h-7 px-2 text-primary hover:text-primary hover:bg-primary/10 cursor-pointer"
+                                        >
+                                          {t('common.enableAll') || 'Ativar Todos'}
+                                        </Button>
+                                        <span className="text-muted-foreground/40">•</span>
+                                        <Button
+                                          type="button"
+                                          variant="ghost"
+                                          size="sm"
+                                          onClick={() => handleDisableAllInGroup(providerModels)}
+                                          className="text-xs h-7 px-2 text-muted-foreground hover:text-foreground cursor-pointer"
+                                        >
+                                          {t('common.disableAll') || 'Desativar Todos'}
+                                        </Button>
+                                      </div>
+                                    )}
                                   </div>
 
-                                  {/* Right: Enable/Disable All Buttons */}
-                                  <div
-                                    className="flex items-center gap-2 self-end sm:self-auto shrink-0"
-                                    onClick={(e) => e.stopPropagation()}
-                                  >
-                                    <Button
-                                      type="button"
-                                      variant="ghost"
-                                      size="sm"
-                                      onClick={() => handleEnableAllInGroup(groupModelIds)}
-                                      disabled={activeCount === totalCount}
-                                      className="text-xs h-7 px-2 text-primary hover:text-primary hover:bg-primary/10"
-                                    >
-                                      {t('settings.enableAllModels')}
-                                    </Button>
-                                    <span className="text-muted-foreground text-xs">•</span>
-                                    <Button
-                                      type="button"
-                                      variant="ghost"
-                                      size="sm"
-                                      onClick={() => handleDisableAllInGroup(groupModelIds)}
-                                      disabled={activeCount === 0}
-                                      className="text-xs h-7 px-2 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
-                                    >
-                                      {t('settings.disableAllModels')}
-                                    </Button>
-                                  </div>
-                                </div>
-
-                                {/* Model Grid (Visible when Expanded) */}
-                                {isExpanded && (
-                                  <div className="p-3 sm:p-4 pt-3 bg-card/30 animate-in fade-in-0 duration-150">
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
-                                      {groupModelIds.map(modelId => {
+                                  {providerModels.length > 0 ? (
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5 pt-1">
+                                      {providerModels.map(modelId => {
                                         const config = modelConfigs[modelId] || {};
                                         const rawId = config.rawModelId || (modelId.includes('::') ? modelId.split('::')[1] : modelId);
                                         const displayName = config.displayName || rawId;
-                                        const isEnabled = isModelActive(modelId);
+                                        const isModelEnabled = isModelActive(modelId);
                                         const isFav = isModelFavorite(modelId);
 
                                         return (
@@ -5724,7 +5521,7 @@ function Settings() {
                                             key={modelId}
                                             className={cn(
                                               "flex items-center justify-between p-2.5 rounded-lg border transition-colors",
-                                              isEnabled
+                                              isModelEnabled
                                                 ? "bg-background border-border/80 hover:border-border shadow-2xs"
                                                 : "bg-muted/20 border-dashed border-border/40 opacity-70"
                                             )}
@@ -5732,7 +5529,7 @@ function Settings() {
                                             <div className="flex items-center gap-2.5 min-w-0 mr-2">
                                               <Switch
                                                 id={`toggle-${modelId}`}
-                                                checked={isEnabled}
+                                                checked={isModelEnabled}
                                                 onChange={() => handleToggleModelEnabled(modelId)}
                                                 aria-label={`Toggle ${displayName}`}
                                               />
@@ -5774,47 +5571,46 @@ function Settings() {
                                                 <Star className={cn("h-3.5 w-3.5 transition-transform active:scale-125", isFav && "fill-amber-400 text-amber-400")} />
                                               </button>
                                               <Badge
-                                                variant={isEnabled ? "secondary" : "outline"}
+                                                variant={isModelEnabled ? "secondary" : "outline"}
                                                 className={cn(
                                                   "text-[10px] shrink-0 font-normal",
-                                                  isEnabled ? "bg-green-500/10 text-green-700 dark:text-green-300 border-green-500/20" : "text-muted-foreground"
+                                                  isModelEnabled ? "bg-green-500/10 text-green-700 dark:text-green-300 border-green-500/20" : "text-muted-foreground"
                                                 )}
                                               >
-                                                {isEnabled ? t('settings.statusActive') : t('settings.statusInactive')}
+                                                {isModelEnabled ? t('settings.statusActive') : t('settings.statusInactive')}
                                               </Badge>
                                             </div>
                                           </div>
                                         );
                                       })}
                                     </div>
-                                  </div>
-                                )}
+                                  ) : (
+                                    <div className="p-3.5 rounded-lg border border-dashed border-border/60 bg-muted/20 text-center text-xs text-muted-foreground space-y-1">
+                                      <p className="font-medium text-foreground/80">
+                                        {provider.requiresApiKey !== false && !isConfigured
+                                          ? (t('settings.enterKeyToLoadModels') || 'Insira a chave de API acima e clique em "Testar Conexão" para carregar os modelos automaticamente.')
+                                          : (t('settings.noModelsForProvider') || 'Nenhum modelo detectado para este endpoint no momento.')}
+                                      </p>
+                                      {isConfigured && (
+                                        <p className="text-[11px] text-muted-foreground">
+                                          Clique no botão <span className="font-semibold text-foreground">"{t('settings.testConnection') || 'Testar Conexão'}"</span> acima para verificar e sincronizar os modelos disponíveis.
+                                        </p>
+                                      )}
+                                    </div>
+                                  )}
+                                </div>
                               </div>
-                            );
-                          })}
-                        </>
+                            </div>
+                          )}
+                        </div>
                       );
-                    })()}
-                  </div>
-                ) : (
-                  <div className="text-center py-6 text-muted-foreground border border-dashed rounded-xl bg-muted/10">
-                    <Cpu className="h-10 w-10 mx-auto mb-2 opacity-40 text-primary" />
-                    <p className="text-sm font-medium">{t('settings.noModelsAvailable')}</p>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => fetchAndSetModelConfigs(true)}
-                      className="mt-3 text-xs"
-                    >
-                      <RefreshCw className="h-3.5 w-3.5 mr-1.5" />
-                      {t('common.refresh')}
-                    </Button>
+                    })}
                   </div>
                 )}
               </CardContent>
             </Card>
-        )}
+          );
+        })()}
 
         {visibleCardIds.has('generationParams') && (
           <Card>
