@@ -46,6 +46,14 @@ function getChatFilePath(chatId) {
     return path.join(getChatHistoryDir(), `${chatId}.json`);
 }
 
+function resolveEffectiveModel(model) {
+    if (model && typeof model === 'string' && model.trim()) {
+        return model.trim();
+    }
+    const settings = typeof settingsLoader === 'function' ? settingsLoader() : null;
+    return settings?.model || getDefaultModel(settings);
+}
+
 /**
  * Create a new chat with an optional initial message and project association
  * @param {string} model - The model used for this chat
@@ -53,14 +61,15 @@ function getChatFilePath(chatId) {
  * @param {string|null} projectId - Optional project ID to associate with this chat
  * @returns {Object} The new chat object
  */
-function createChat(model = 'llama-3.3-70b-versatile', useResponsesApi = false, projectId = null) {
+function createChat(model = null, useResponsesApi = false, projectId = null) {
+    const effectiveModel = resolveEffectiveModel(model);
     const now = new Date().toISOString();
     const chat = {
         id: crypto.randomUUID(),
         title: 'New Chat',
         createdAt: now,
         updatedAt: now,
-        model: model,
+        model: effectiveModel,
         useResponsesApi: useResponsesApi,
         projectId: projectId || null,
         pinned: false,
@@ -425,7 +434,7 @@ async function generateChatTitle(userMessage) {
         if (typeof rawModel === 'string' && rawModel.includes('::')) {
             rawModel = rawModel.split('::')[1];
         }
-        const titleModel = rawModel || 'llama-3.3-70b-versatile';
+        const titleModel = rawModel || getDefaultModel(settings);
 
         const response = await groq.chat.completions.create({
             messages: [

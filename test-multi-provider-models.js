@@ -1,5 +1,6 @@
 const assert = require('assert');
 const { getModelContextSizes, supportsBuiltInTools, convertAPIModelsToContextSizes } = require('./shared/models');
+const { getDefaultModel } = require('./shared/providers');
 const { pruneMessageHistory } = require('./electron/messageUtils');
 
 console.log('--- Testing Multi-Provider Model Collision & Routing ---');
@@ -97,7 +98,7 @@ console.log('  ✓ Both providers preserve all models without collision (Groq: 7
 console.log('Test 3: determineModel provider & model routing resolution...');
 
 function determineModel(model, settings, modelContextSizes) {
-    const rawInput = model || settings?.model || "llama-3.3-70b-versatile";
+    const rawInput = model || settings?.model || getDefaultModel(settings);
     let modelInfo = modelContextSizes ? modelContextSizes[rawInput] : null;
 
     if (!modelInfo && modelContextSizes && typeof rawInput === 'string') {

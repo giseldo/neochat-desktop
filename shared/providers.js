@@ -605,7 +605,13 @@ function getProviderBaseUrl(settings) {
 
 function getDefaultModel(settings) {
   const provider = getActiveProvider(settings);
-  return provider.defaultModel || 'llama-3.3-70b-versatile';
+  if (provider?.defaultModel) {
+    return provider.defaultModel;
+  }
+  if (Array.isArray(provider?.popularModels) && provider.popularModels.length > 0) {
+    return provider.popularModels[0];
+  }
+  return PROVIDERS.groq?.defaultModel || 'llama-3.3-70b-versatile';
 }
 
 /**

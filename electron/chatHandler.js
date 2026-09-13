@@ -48,7 +48,7 @@ function validateApiKey(settings) {
 }
 
 function determineModel(model, settings, modelContextSizes) {
-    const rawInput = model || settings?.model || "llama-3.3-70b-versatile";
+    const rawInput = model || settings?.model || getDefaultModel(settings);
     
     // 1. Direct match in modelContextSizes
     let modelInfo = modelContextSizes ? modelContextSizes[rawInput] : null;
@@ -740,7 +740,7 @@ function processStreamChunk(chunk, event, accumulatedData, groq, streamId, setti
                     const last300Words = getLastNWords(accumulatedData.reasoning, 300);
                     
                     // Trigger summarization asynchronously (non-blocking)
-                    summarizeReasoningChunk(groq, last300Words, event, streamId, accumulatedData.summaryCount, accumulatedData.model)
+                    summarizeReasoningChunk(groq, last300Words, event, streamId, accumulatedData.summaryCount, accumulatedData.model, settings)
                         .catch(err => console.error('[Backend] Error in background summarization:', err));
                 }
             }, 2000);
@@ -1078,7 +1078,7 @@ function getLastNWords(text, n) {
 }
 
 // Summarize reasoning chunk using fallback model (non-blocking)
-async function summarizeReasoningChunk(groq, reasoningText, event, streamId, summaryIndex, model) {
+async function summarizeReasoningChunk(groq, reasoningText, event, streamId, summaryIndex, model, settings = {}) {
     try {
         const response = await groq.chat.completions.create({
             messages: [
@@ -1091,7 +1091,7 @@ async function summarizeReasoningChunk(groq, reasoningText, event, streamId, sum
                     content: `What activity is happening here in 3-5 words:\n\n${reasoningText}\n\nRespond with ONLY 3-5 plain words:`
                 }
             ],
-            model: model || 'llama-3.3-70b-versatile',
+            model: model || getDefaultModel(settings),
             temperature: 0.3,
             max_tokens: 10,
             stream: false

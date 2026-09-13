@@ -7,7 +7,7 @@
  * - Audio overview exports from RAG knowledge or chat history
  */
 
-const { getActiveApiKey, getBaseUrlForProvider } = require('../settingsManager');
+const { getActiveApiKey, getBaseUrlForProvider, getDefaultModel } = require('../../shared/providers');
 
 class PodcastEngine {
   constructor() {
@@ -27,7 +27,7 @@ class PodcastEngine {
     }
 
     const endpoint = `${baseUrl.replace(/\/+$/, '')}/chat/completions`;
-    const model = settings.model || 'llama-3.3-70b-versatile';
+    const model = settings?.model || getDefaultModel(settings);
 
     const systemPrompt = `Você é um produtor de podcasts executivo de inteligência artificial de elite.
 Sua tarefa é transformar o texto ou tema fornecido em um ROTEIRO DE PODCAST DINÂMICO E FASCINANTE (estilo NotebookLM Audio Overview) entre 2 apresentadores:

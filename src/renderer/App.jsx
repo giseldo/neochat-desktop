@@ -107,7 +107,7 @@ function App() {
   const isPowerUser = interfaceMode === 'power';
   const [loading, setLoading] = useState(false);
   const [isShortcutsModalOpen, setIsShortcutsModalOpen] = useState(false);
-  const [selectedModel, setSelectedModel] = useState('llama-3.3-70b-versatile');
+  const [selectedModel, setSelectedModel] = useState('');
   const [mcpTools, setMcpTools] = useState([]);
   const [isToolsPanelOpen, setIsToolsPanelOpen] = useState(false);
   const [mcpServersStatus, setMcpServersStatus] = useState({ loading: false, message: "" });
@@ -683,14 +683,12 @@ function App() {
                 if (matchingKey) {
                   effectiveModel = matchingKey;
                 } else if (validCandidates.length > 0) {
-                  const fallback = validCandidates.find(m => m.includes('llama-3.3-70b') || m.includes('llama-3.1-70b') || m.includes('gpt')) || validCandidates[0];
-                  effectiveModel = fallback;
+                  effectiveModel = validCandidates[0];
                   console.warn(`Saved model "${settings.model}" inactive or not found. Falling back to ${effectiveModel}.`);
                 }
             }
         } else if (validCandidates.length > 0) {
-            const fallback = validCandidates.find(m => m.includes('llama-3.3-70b') || m.includes('llama-3.1-70b') || m.includes('gpt')) || validCandidates[0];
-            effectiveModel = fallback;
+            effectiveModel = validCandidates[0];
         }
 
         setSelectedModel(effectiveModel); // Set the final selected model state
@@ -801,7 +799,7 @@ function App() {
             if (matchingKey) {
               setSelectedModel(matchingKey);
             } else {
-              const fallback = validCandidates.find(m => m.includes('llama-3.3-70b') || m.includes('llama-3.1-70b') || m.includes('gpt')) || validCandidates[0];
+              const fallback = validCandidates[0];
               setSelectedModel(fallback);
             }
           }

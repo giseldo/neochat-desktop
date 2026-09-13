@@ -68,7 +68,7 @@ const PopupPage = () => {
   const [messages, setMessages] = useState([]);
   const [inputValue, setInputValue] = useState('');
   const [loading, setLoading] = useState(false);
-  const [selectedModel, setSelectedModel] = useState('llama-3.3-70b-versatile');
+  const [selectedModel, setSelectedModel] = useState('');
   const [models, setModels] = useState([]);
   const [modelConfigs, setModelConfigs] = useState({});
   const [favoriteModels, setFavoriteModels] = useState([]); // State for favorite models list
@@ -325,9 +325,10 @@ const PopupPage = () => {
       setModels(sortedModels);
       
       if (sortedModels.length > 0) {
-        setSelectedModel(sortedModels[0]);
+        const preferred = sortedModels.find(m => m === settings?.model || configs[m]?.rawModelId === settings?.model) || sortedModels[0];
+        setSelectedModel(preferred);
         // Check if the selected model supports vision
-        const modelInfo = configs[sortedModels[0]];
+        const modelInfo = configs[preferred];
         setVisionSupported(modelInfo?.vision_supported || false);
       }
 

@@ -2,7 +2,7 @@ const fs = require('fs');
 const path = require('path');
 const { createSecretStore } = require('./secretStore');
 const { invalidateModelsCache } = require('../shared/models.js');
-const { getDefaultEnabledModels } = require('../shared/providers.js');
+const { getDefaultEnabledModels, getDefaultModel } = require('../shared/providers.js');
 
 // Load environment variables from .env file
 require('dotenv').config();
@@ -70,7 +70,7 @@ function loadSettings() {
             showButtonLabels: false,
             textAlign: 'left',
             GROQ_API_KEY: process.env.GROQ_API_KEY || "<replace me>",
-            model: process.env.GROQ_DEFAULT_MODEL || "llama-3.3-70b-versatile",
+            model: process.env.GROQ_DEFAULT_MODEL || getDefaultModel({ provider: 'groq' }),
             temperature: 0.7,
             top_p: 0.95,
             autoPrune: false,
@@ -154,7 +154,7 @@ function loadSettings() {
         observability: { monthlyBudgetUsd: 0, defaultRate: { input: 0, output: 0 }, modelRates: {} },
         gitIntegration: { repositoryPath: '' },
         GROQ_API_KEY: process.env.GROQ_API_KEY || "<replace me>",
-        model: process.env.GROQ_DEFAULT_MODEL || "llama-3.3-70b-versatile",
+        model: process.env.GROQ_DEFAULT_MODEL || getDefaultModel({ provider: 'groq' }),
         temperature: 0.7,
         top_p: 0.95,
         reasoning_effort: 'medium',
