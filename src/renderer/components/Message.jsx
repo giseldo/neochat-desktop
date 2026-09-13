@@ -4,8 +4,7 @@ import SourcesList from './SourcesList';
 import KnowledgeSourcesList from './KnowledgeSourcesList';
 import MarkdownRenderer from './MarkdownRenderer';
 import { TextShimmer } from './ui/text-shimmer';
-import { Badge } from './ui/badge';
-import { Zap, Volume2, VolumeX, Copy, Check, RotateCw, Clock, Gauge, Layers, Info, GitBranch, ArrowUp, ArrowDown, Activity, PenSquare } from 'lucide-react';
+import { Zap, Volume2, VolumeX, Copy, Check, RotateCw, Clock, Gauge, Layers, Info, GitBranch, ArrowUp, ArrowDown, Activity, PenSquare, Terminal } from 'lucide-react';
 import { useCanvas } from '../context/CanvasContext';
 import { useLanguage } from '../context/LanguageContext';
 import { extractThinking, extractWebSearchSources, extractKnowledgeSources } from '../lib/messageUtils';
@@ -191,7 +190,7 @@ function Message({
     isAfterToolOnly && "pt-2"
   );
   const bubbleClasses = isUser
-    ? `relative overflow-x-auto px-4 py-3 rounded-2xl max-w-xl max-h-[500px] overflow-y-auto bg-primary/10 border border-primary/20 text-foreground shadow-xs`
+    ? `relative overflow-x-auto px-4 py-3 rounded-2xl max-w-xl max-h-[500px] overflow-y-auto bg-muted/90 dark:bg-muted/70 border border-border/60 text-foreground shadow-xs`
     : cn("relative w-full text-foreground group", isToolOnly && "py-0 my-0");
   const wrapperClasses = `message-content-wrapper text-foreground break-words text-sm overflow-hidden leading-relaxed`;
 
@@ -339,8 +338,8 @@ function Message({
           </div>
         )}
 
-        {/* Reasoning and Tools Dropdowns (Power Mode only) */}
-        {!isUser && isPowerUser && (hasReasoning || hasExecutedTools || hasReasoningSummaries) && (
+        {/* Hermes Style Thought > Dropdown (Reasoning and Tool Calls) */}
+        {!isUser && (hasReasoning || hasExecutedTools || hasReasoningSummaries) && (
           <div className="pb-1.5 space-y-1">
             <div className="flex flex-wrap items-center gap-2">
               {!hideReasoningUI && hasReasoningSummaries && isStreamingMessage && !effectiveReasoningDuration && !message.content && (
@@ -358,16 +357,15 @@ function Message({
                 </div>
               )}
               
-              {!hideReasoningUI && hasReasoningSummaries && isReasoningComplete && effectiveReasoningDuration != null && (
+              {!hideReasoningUI && (hasReasoning || hasExecutedTools) && (
                 <button 
                   onClick={toggleReasoning}
-                  className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors px-2 py-1 rounded-md bg-muted/60 hover:bg-muted border border-border/50 cursor-pointer"
+                  className="flex items-center gap-1 text-xs text-muted-foreground/80 hover:text-foreground transition-colors py-0.5 px-1.5 rounded hover:bg-muted/60 cursor-pointer select-none font-medium"
                 >
-                  <Clock className="w-3 h-3 text-primary" />
-                  <span>{t('message.thoughtFor', { duration: effectiveReasoningDuration })}</span>
+                  <span className="font-semibold">{t('sidebar.thoughtTitle') || 'Thought'}</span>
                   <svg 
                     xmlns="http://www.w3.org/2000/svg" 
-                    className={`h-3 w-3 ml-0.5 transition-transform duration-200 ${showReasoning ? 'rotate-90' : ''}`} 
+                    className={`h-3 w-3 transition-transform duration-200 ${showReasoning ? 'rotate-90' : ''}`} 
                     fill="none" 
                     viewBox="0 0 24 24" 
                     stroke="currentColor"
@@ -375,59 +373,47 @@ function Message({
                   >
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                   </svg>
-                </button>
-              )}
-              
-              {!hideReasoningUI && hasReasoning && !hasReasoningSummaries && (
-                <button 
-                  onClick={toggleReasoning}
-                  className="flex items-center text-xs px-2.5 py-1 rounded-md bg-primary/10 hover:bg-primary/20 text-primary border border-primary/30 transition-colors font-medium cursor-pointer"
-                >
-                  <svg 
-                    xmlns="http://www.w3.org/2000/svg" 
-                    className={`h-3 w-3 mr-1 transition-transform duration-200 ${showReasoning ? 'rotate-90' : ''}`} 
-                    fill="none" 
-                    viewBox="0 0 24 24" 
-                    stroke="currentColor"
-                    strokeWidth={2}
-                  >
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                  </svg>
-                  {isStreamingMessage && (liveReasoning || extracted.isStreamingThink)
-                    ? t('message.thinking')
-                    : (effectiveReasoningDuration 
-                        ? t('message.thoughtFor', { duration: effectiveReasoningDuration }) 
-                        : t('message.viewReasoning'))}
                   {isStreamingMessage && (liveReasoning || extracted.isStreamingThink) && (
-                    <span className="w-2.5 h-2.5 ml-1.5 border-2 border-primary/30 border-t-primary rounded-full animate-spin"></span>
+                    <span className="w-2 h-2 ml-1 border-2 border-primary/30 border-t-primary rounded-full animate-spin"></span>
+                  )}
+                  {effectiveReasoningDuration && !isStreamingMessage && (
+                    <span className="text-[10px] text-muted-foreground/60 font-sans">
+                      ({effectiveReasoningDuration}s)
+                    </span>
                   )}
                 </button>
               )}
               
-              {hasExecutedTools && (
+              {isPowerUser && hasExecutedTools && (
                 <button 
                   onClick={toggleExecutedTools}
-                  className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors px-2 py-1 rounded-md bg-muted/60 hover:bg-muted border border-border/50 cursor-pointer"
+                  className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors px-2 py-0.5 rounded-md bg-muted/60 hover:bg-muted border border-border/50 cursor-pointer"
                 >
                   <Zap className="w-3 h-3 text-amber-500" />
                   <span>{t('message.executedTools', { count: currentTools?.length || 0 })}</span>
-                  <svg 
-                    xmlns="http://www.w3.org/2000/svg" 
-                    className={`h-3 w-3 ml-0.5 transition-transform duration-200 ${showExecutedTools ? 'rotate-90' : ''}`} 
-                    fill="none" 
-                    viewBox="0 0 24 24" 
-                    stroke="currentColor"
-                    strokeWidth={2}
-                  >
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                  </svg>
                 </button>
               )}
             </div>
             
-            {/* Reasoning content */}
-            {!hideReasoningUI && showReasoning && currentReasoning && (
-              <div className="mt-2 p-3 rounded-lg bg-muted/40 border border-border/60 text-xs text-muted-foreground transition-all duration-200 max-h-[500px] overflow-y-auto font-mono">
+            {/* Reasoning and Command content (Hermes style) */}
+            {!hideReasoningUI && showReasoning && (
+              <div className="mt-2 p-3 rounded-lg bg-muted/40 border border-border/60 text-xs text-muted-foreground transition-all duration-200 max-h-[500px] overflow-y-auto space-y-2 font-mono">
+                {/* Embedded command executions if any */}
+                {currentTools?.length > 0 && !showExecutedTools && (
+                  <div className="space-y-1 pb-1.5 border-b border-border/40">
+                    {currentTools.map((tool, index) => (
+                      <div key={`tool-summary-${index}`} className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+                        <Terminal className="w-3 h-3 text-primary shrink-0" />
+                        <span className="font-semibold text-foreground/90">Ran {tool.name || tool.type || 'tool'}</span>
+                        {tool.arguments && (
+                          <span className="truncate opacity-75 max-w-[300px]">
+                            {typeof tool.arguments === 'string' ? tool.arguments : JSON.stringify(tool.arguments)}
+                          </span>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
                 <MarkdownRenderer
                   content={currentReasoning
                     .replace(/<tool[^>]*>([\s\S]*?)<\/tool>/gi, '**Tool call:**\n```$1```')

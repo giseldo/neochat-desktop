@@ -56,6 +56,7 @@ function ChatInput({
 	onSelectWorkspace,
 	favoriteModels = [],
 	onToggleFavoriteModel,
+	activePersona = null,
 }) {
 	const effectiveToolsCount = typeof toolsCount === 'number' && toolsCount > 0
 		? toolsCount
@@ -1086,9 +1087,11 @@ function ChatInput({
 									? (t('chat.imageGenerationPromptPlaceholder') || 'Descreva em detalhes a imagem que deseja gerar...')
 									: isDragOver 
 										? t('chat.dropFilesHere') 
-										: (!models || models.length === 0 
-											? t('chat.noModelsInputPlaceholder') 
-											: t('chat.askAnything'))
+										: activePersona && activePersona.name && activePersona.id !== 'none' && activePersona.id !== 'disabled'
+											? (t('chat.messageToBot', { name: activePersona.name }) || `Message ${activePersona.name}...`)
+											: (!models || models.length === 0 
+												? t('chat.noModelsInputPlaceholder') 
+												: t('chat.askAnything'))
 							}
 							className={cn(
 								"w-full px-4 py-3 bg-transparent resize-none border-0 rounded-2xl text-foreground placeholder:text-muted-foreground focus:outline-none",

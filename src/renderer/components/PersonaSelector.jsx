@@ -1,6 +1,10 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
-import { Bot, BotOff, Check, Plus, Edit2, Trash2, Sparkles, Code2, ShieldAlert, Languages, Database, Feather, X, Sliders } from 'lucide-react';
+import { 
+  Bot, BotOff, Check, Plus, Edit2, Trash2, Sparkles, Code2, ShieldAlert, 
+  Languages, Database, Feather, X, Sliders, CheckCircle2, Droplets, 
+  Compass, Inbox, Terminal, Cpu, Zap, Copy
+} from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
 import { cn } from '../lib/utils';
 
@@ -9,100 +13,164 @@ export const DEFAULT_PERSONAS = [
     id: 'default',
     name: 'Assistente Geral',
     icon: 'Bot',
+    color: '#64748b',
+    colorClass: 'bg-slate-500 text-white',
     description: 'Assistente versátil para todas as tarefas',
     systemPrompt: '',
     temperature: 0.7,
   },
   {
     id: 'developer',
-    name: 'Dev & Arquiteto',
+    name: 'Developer',
     icon: 'Code2',
+    color: '#8b5cf6',
+    colorClass: 'bg-purple-600 text-white',
     description: 'Especialista em código limpo, TypeScript, React, Python e arquitetura',
     systemPrompt: 'Você é um Engenheiro de Software Principal e Arquiteto de Sistemas experiente. Forneça respostas técnicas precisas, código limpo, boas práticas de segurança, performance e arquitetura modular. Explique brevemente o raciocínio das decisões tomadas.',
     temperature: 0.2,
   },
   {
+    id: 'mr_tester',
+    name: 'Mr Tester',
+    icon: 'Droplets',
+    color: '#0ea5e9',
+    colorClass: 'bg-sky-500 text-white',
+    description: 'Especialista em testes automatizados, TDD, edge cases e depuração sistemática',
+    systemPrompt: 'Você é o Mr Tester, especialista dedicado a testes automatizados, TDD, debugging sistemático, cobertura de edge cases e validação rigorosa de código. Analise cenários críticos, forneça suites de teste completas e aponte bugs potenciais.',
+    temperature: 0.1,
+  },
+  {
+    id: 'chief',
+    name: 'Chief',
+    icon: 'Compass',
+    color: '#10b981',
+    colorClass: 'bg-teal-500 text-white',
+    description: 'Coordenação estratégica, planejamento de metas e decisões de produto',
+    systemPrompt: 'Você é o Chief, copiloto estratégico e coordenador geral. Ajude a estruturar prioridades, definir planos de ação executáveis, balancear trade-offs de negócio e arquitetura, e direcionar o trabalho com clareza.',
+    temperature: 0.5,
+  },
+  {
+    id: 'inbox_manager',
+    name: 'Inbox Manager',
+    icon: 'Inbox',
+    color: '#6366f1',
+    colorClass: 'bg-indigo-600 text-white',
+    description: 'Triagem de mensagens, redação de e-mails, outbound e fluxos operacionais',
+    systemPrompt: 'Você é o Inbox & Ops Manager. Sua especialidade é triagem de comunicações, redação de e-mails profissionais com tom persuasivo e direto, organização de contatos e síntese rápida de pendências.',
+    temperature: 0.5,
+  },
+  {
     id: 'reviewer',
     name: 'Revisor de Código',
     icon: 'ShieldAlert',
+    color: '#f43f5e',
+    colorClass: 'bg-rose-500 text-white',
     description: 'Auditoria de bugs, vulnerabilidades de segurança e otimizações',
     systemPrompt: 'Você é um Auditor de Código e Segurança sênior. Analise cuidadosamente o código fornecido em busca de: 1. Bugs e edge-cases; 2. Vulnerabilidades de segurança; 3. Problemas de performance; 4. Legibilidade. Destaque os pontos críticos e forneça as correções diretamente com código.',
     temperature: 0.1,
   },
   {
-    id: 'translator',
-    name: 'Tradutor Técnico',
-    icon: 'Languages',
-    description: 'Tradução precisa preservando terminologia técnica',
-    systemPrompt: 'Você é um Tradutor Técnico especializado em tecnologia e ciência. Traduza com naturalidade mantendo termos técnicos consagrados da indústria, blocos de código e formatação markdown intactos.',
-    temperature: 0.3,
+    id: 'writer',
+    name: 'Redator & Copy',
+    icon: 'Feather',
+    color: '#f59e0b',
+    colorClass: 'bg-amber-500 text-white',
+    description: 'Redação persuasiva, documentação clara e e-mails de impacto',
+    systemPrompt: 'Você é um Redator e Copywriter profissional de alto nível. Crie textos claros, persuasivos, bem pontuados e cativantes, adaptados ao público-alvo com fluidez e elegância.',
+    temperature: 0.7,
   },
   {
     id: 'database',
     name: 'Especialista SQL & DB',
     icon: 'Database',
+    color: '#059669',
+    colorClass: 'bg-emerald-600 text-white',
     description: 'Modelagem de dados, queries SQL complexas e tuning de performance',
     systemPrompt: 'Você é um Administrador de Banco de Dados (DBA) e Especialista em SQL. Escreva consultas SQL otimizadas, índices adequados, schemas relacionais elegantes e forneça planos de execução e dicas de escalabilidade.',
     temperature: 0.2,
-  },
-  {
-    id: 'writer',
-    name: 'Redator & Copywriter',
-    icon: 'Feather',
-    description: 'Redação clara, artigos técnicos, resumos e e-mails profissionais',
-    systemPrompt: 'Você é um Redator e Copywriter profissional de alto nível. Crie textos claros, persuasivos, bem pontuados e cativantes, adaptados ao público-alvo com fluidez e elegância.',
-    temperature: 0.7,
   },
 ];
 
 export const getDefaultPersonas = (t) => [
   {
     id: 'default',
-    name: t('personas.pDefaultName'),
+    name: t ? (t('personas.pDefaultName') || 'Assistente Geral') : 'Assistente Geral',
     icon: 'Bot',
-    description: t('personas.pDefaultDesc'),
+    color: '#64748b',
+    colorClass: 'bg-slate-500 text-white',
+    description: t ? (t('personas.pDefaultDesc') || 'Assistente versátil para todas as tarefas') : 'Assistente versátil para todas as tarefas',
     systemPrompt: '',
     temperature: 0.7,
   },
   {
     id: 'developer',
-    name: t('personas.pDevName'),
+    name: t ? (t('personas.pDevName') || 'Developer') : 'Developer',
     icon: 'Code2',
-    description: t('personas.pDevDesc'),
-    systemPrompt: t('personas.pDevPrompt'),
+    color: '#8b5cf6',
+    colorClass: 'bg-purple-600 text-white',
+    description: t ? (t('personas.pDevDesc') || 'Especialista em código limpo, TypeScript, React, Python e arquitetura') : 'Especialista em código limpo, TypeScript, React, Python e arquitetura',
+    systemPrompt: t ? (t('personas.pDevPrompt') || 'Você é um Engenheiro de Software Principal...') : 'Você é um Engenheiro de Software Principal...',
     temperature: 0.2,
   },
   {
-    id: 'reviewer',
-    name: t('personas.pReviewerName'),
-    icon: 'ShieldAlert',
-    description: t('personas.pReviewerDesc'),
-    systemPrompt: t('personas.pReviewerPrompt'),
+    id: 'mr_tester',
+    name: 'Mr Tester',
+    icon: 'Droplets',
+    color: '#0ea5e9',
+    colorClass: 'bg-sky-500 text-white',
+    description: 'Especialista em testes automatizados, TDD, edge cases e depuração',
+    systemPrompt: 'Você é o Mr Tester, especialista dedicado a testes automatizados, TDD, debugging sistemático, cobertura de edge cases e validação rigorosa de código.',
     temperature: 0.1,
   },
   {
-    id: 'translator',
-    name: t('personas.pTranslatorName'),
-    icon: 'Languages',
-    description: t('personas.pTranslatorDesc'),
-    systemPrompt: t('personas.pTranslatorPrompt'),
-    temperature: 0.3,
+    id: 'chief',
+    name: 'Chief',
+    icon: 'Compass',
+    color: '#10b981',
+    colorClass: 'bg-teal-500 text-white',
+    description: 'Coordenação estratégica, planejamento de metas e decisões de produto',
+    systemPrompt: 'Você é o Chief, copiloto estratégico e coordenador geral. Ajude a estruturar prioridades, definir planos de ação executáveis e direcionar o trabalho.',
+    temperature: 0.5,
   },
   {
-    id: 'database',
-    name: t('personas.pDatabaseName'),
-    icon: 'Database',
-    description: t('personas.pDatabaseDesc'),
-    systemPrompt: t('personas.pDatabasePrompt'),
-    temperature: 0.2,
+    id: 'inbox_manager',
+    name: 'Inbox Manager',
+    icon: 'Inbox',
+    color: '#6366f1',
+    colorClass: 'bg-indigo-600 text-white',
+    description: 'Triagem de mensagens, redação de e-mails, outbound e operações',
+    systemPrompt: 'Você é o Inbox & Ops Manager. Sua especialidade é triagem de comunicações, redação de e-mails profissionais e organização de pipelines.',
+    temperature: 0.5,
+  },
+  {
+    id: 'reviewer',
+    name: t ? (t('personas.pReviewerName') || 'Revisor de Código') : 'Revisor de Código',
+    icon: 'ShieldAlert',
+    color: '#f43f5e',
+    colorClass: 'bg-rose-500 text-white',
+    description: t ? (t('personas.pReviewerDesc') || 'Auditoria de bugs, vulnerabilidades de segurança e otimizações') : 'Auditoria de bugs, vulnerabilidades de segurança e otimizações',
+    systemPrompt: t ? (t('personas.pReviewerPrompt') || 'Você é um Auditor de Código e Segurança sênior...') : 'Você é um Auditor de Código e Segurança sênior...',
+    temperature: 0.1,
   },
   {
     id: 'writer',
-    name: t('personas.pWriterName'),
+    name: t ? (t('personas.pWriterName') || 'Redator & Copy') : 'Redator & Copy',
     icon: 'Feather',
-    description: t('personas.pWriterDesc'),
-    systemPrompt: t('personas.pWriterPrompt'),
+    color: '#f59e0b',
+    colorClass: 'bg-amber-500 text-white',
+    description: t ? (t('personas.pWriterDesc') || 'Redação clara, artigos técnicos, resumos e e-mails profissionais') : 'Redação clara, artigos técnicos, resumos e e-mails profissionais',
+    systemPrompt: t ? (t('personas.pWriterPrompt') || 'Você é um Redator e Copywriter profissional...') : 'Você é um Redator e Copywriter profissional...',
     temperature: 0.7,
+  },
+  {
+    id: 'database',
+    name: t ? (t('personas.pDatabaseName') || 'Especialista SQL & DB') : 'Especialista SQL & DB',
+    icon: 'Database',
+    color: '#059669',
+    colorClass: 'bg-emerald-600 text-white',
+    description: t ? (t('personas.pDatabaseDesc') || 'Modelagem de dados, queries SQL complexas e tuning') : 'Modelagem de dados, queries SQL complexas e tuning',
+    systemPrompt: t ? (t('personas.pDatabasePrompt') || 'Você é um Administrador de Banco de Dados...') : 'Você é um Administrador de Banco de Dados...',
+    temperature: 0.2,
   },
 ];
 
@@ -167,6 +235,94 @@ export function getStoredActivePersona(t) {
     console.error('Error getting stored active persona:', e);
     return DEFAULT_PERSONAS[0];
   }
+}
+
+export const getPersonaIcon = (iconName) => {
+  switch (iconName) {
+    case 'Code2': return Code2;
+    case 'ShieldAlert': return ShieldAlert;
+    case 'Languages': return Languages;
+    case 'Database': return Database;
+    case 'Feather': return Feather;
+    case 'Droplets': return Droplets;
+    case 'Compass': return Compass;
+    case 'Inbox': return Inbox;
+    case 'Terminal': return Terminal;
+    case 'Cpu': return Cpu;
+    case 'CheckCircle2': return CheckCircle2;
+    case 'Zap': return Zap;
+    case 'Sparkles': return Sparkles;
+    default: return Bot;
+  }
+};
+
+export function BotAvatar({ persona, className = "w-8 h-8", iconClassName = "w-4 h-4" }) {
+  if (!persona || persona.id === 'none' || persona.id === 'disabled') {
+    return (
+      <div className={cn("rounded-xl flex items-center justify-center bg-muted text-muted-foreground shrink-0 border border-border/60", className)}>
+        <BotOff className={iconClassName} />
+      </div>
+    );
+  }
+
+  const IconComp = getPersonaIcon(persona.icon);
+  const color = persona.color || (
+    persona.id === 'developer' ? '#8b5cf6' :
+    persona.id === 'mr_tester' ? '#0ea5e9' :
+    persona.id === 'chief' ? '#10b981' :
+    persona.id === 'inbox_manager' ? '#6366f1' :
+    persona.id === 'reviewer' ? '#f43f5e' :
+    persona.id === 'writer' ? '#f59e0b' :
+    persona.id === 'database' ? '#059669' :
+    persona.id === 'default' ? '#64748b' : '#f97316'
+  );
+
+  return (
+    <div 
+      className={cn("rounded-xl flex items-center justify-center shrink-0 shadow-2xs text-white transition-transform select-none", className)}
+      style={{ backgroundColor: color }}
+      title={persona.name}
+    >
+      <IconComp className={iconClassName} />
+    </div>
+  );
+}
+
+export function saveCustomPersona(personaData) {
+  const currentCustom = getStoredCustomPersonas();
+  let updated;
+  if (personaData.id && currentCustom.some(p => p.id === personaData.id)) {
+    updated = currentCustom.map(p => p.id === personaData.id ? { ...p, ...personaData } : p);
+  } else {
+    const created = {
+      id: personaData.id || `custom_${Date.now()}`,
+      name: personaData.name?.trim() || 'New agent',
+      description: personaData.description?.trim() || 'Custom bot',
+      systemPrompt: personaData.systemPrompt?.trim() || '',
+      temperature: Number(personaData.temperature) || 0.7,
+      icon: personaData.icon || 'Bot',
+      color: personaData.color || '#f97316',
+      isCustom: true,
+    };
+    updated = [...currentCustom, created];
+  }
+  try {
+    localStorage.setItem(PERSONAS_STORAGE_KEY, JSON.stringify(updated));
+  } catch (err) {
+    console.error('Failed to persist custom persona:', err);
+  }
+  return updated;
+}
+
+export function deleteCustomPersona(id) {
+  const currentCustom = getStoredCustomPersonas();
+  const updated = currentCustom.filter(p => p.id !== id);
+  try {
+    localStorage.setItem(PERSONAS_STORAGE_KEY, JSON.stringify(updated));
+  } catch (err) {
+    console.error('Failed to delete custom persona:', err);
+  }
+  return updated;
 }
 
 export function PersonaSelector({ activePersona, onSelectPersona, className }) {
@@ -389,17 +545,6 @@ export function PersonaSelector({ activePersona, onSelectPersona, className }) {
     } catch (err) {}
     if (activePersona?.id === id) {
       handleDeactivate();
-    }
-  };
-
-  const getPersonaIcon = (iconName) => {
-    switch (iconName) {
-      case 'Code2': return Code2;
-      case 'ShieldAlert': return ShieldAlert;
-      case 'Languages': return Languages;
-      case 'Database': return Database;
-      case 'Feather': return Feather;
-      default: return Bot;
     }
   };
 

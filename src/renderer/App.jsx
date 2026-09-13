@@ -4,7 +4,7 @@ import MessageList from './components/MessageList';
 import ChatInput from './components/ChatInput';
 import ChatHistorySidebar from './components/ChatHistorySidebar';
 import ThemeToggle from './components/ThemeToggle';
-import PersonaSelector, { DEFAULT_PERSONAS, getStoredActivePersona, getStoredPersonas, ACTIVE_PERSONA_STORAGE_KEY } from './components/PersonaSelector';
+import PersonaSelector, { DEFAULT_PERSONAS, getStoredActivePersona, getStoredPersonas, ACTIVE_PERSONA_STORAGE_KEY, BotAvatar } from './components/PersonaSelector';
 import WelcomeScreen from './components/WelcomeScreen';
 import { useChat } from './context/ChatContext';
 import { useCanvas } from './context/CanvasContext';
@@ -2775,6 +2775,8 @@ function App() {
         onSelectWorkspace={handleSelectWorkspace}
         onOpenFileInCanvas={handleOpenFileInCanvas}
         onInsertPrompt={handleInsertPrompt}
+        activePersona={activePersona}
+        onSelectPersona={setActivePersona}
       />
       
       {/* Main Content Area */}
@@ -2835,13 +2837,11 @@ function App() {
                 <div className="h-4 w-px bg-border/60 mx-0.5 hidden sm:block" />
               )}
 
-              {/* Persona Selector */}
-              {isPowerUser && (
-                <PersonaSelector
-                  activePersona={activePersona}
-                  onSelectPersona={setActivePersona}
-                />
-              )}
+              {/* Persona / Bot Selector */}
+              <PersonaSelector
+                activePersona={activePersona}
+                onSelectPersona={setActivePersona}
+              />
 
               {/* Active Project Badge */}
               {isPowerUser && activeProject && (
@@ -3442,6 +3442,7 @@ function App() {
                       onSelectWorkspace={handleSelectWorkspace}
                       favoriteModels={favoriteModels}
                       onToggleFavoriteModel={handleToggleFavoriteModel}
+                      activePersona={activePersona}
                     />
                   </div>
                 </div>
@@ -3494,6 +3495,7 @@ function App() {
                       onSelectWorkspace={handleSelectWorkspace}
                       favoriteModels={favoriteModels}
                       onToggleFavoriteModel={handleToggleFavoriteModel}
+                      activePersona={activePersona}
                     />
                   </div>
                 </div>
@@ -3517,6 +3519,33 @@ function App() {
                       </Link>
                     </div>
                   )}
+
+                  {/* Active Bot / Agent Conversation Banner (Hermes & Grok style) */}
+                  {activePersona && activePersona.id !== 'none' && activePersona.id !== 'disabled' && (
+                    <div className="mb-2 px-3.5 py-1.5 rounded-xl bg-card/80 backdrop-blur-xs border border-border/60 shadow-2xs flex items-center justify-between gap-3 shrink-0 animate-in fade-in duration-200">
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <BotAvatar persona={activePersona} className="w-7 h-7 rounded-lg shadow-2xs" iconClassName="w-3.5 h-3.5" />
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-xs font-bold text-foreground truncate">{activePersona.name}</span>
+                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" title="Online" />
+                          </div>
+                          <p className="text-[10px] text-muted-foreground truncate">{activePersona.description}</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-1 shrink-0">
+                        <button
+                          type="button"
+                          onClick={() => setActivePersona(null)}
+                          className="px-2 py-0.5 rounded text-[10px] text-muted-foreground hover:text-foreground hover:bg-muted transition-colors cursor-pointer"
+                          title={t('personas.deactivateTitle') || "Desativar bot"}
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
                   <div 
                     ref={messagesContainerRef} 
                     className="flex-1 overflow-y-auto mb-6 min-h-0 custom-scrollbar"
@@ -3577,6 +3606,7 @@ function App() {
                       onSelectWorkspace={handleSelectWorkspace}
                       favoriteModels={favoriteModels}
                       onToggleFavoriteModel={handleToggleFavoriteModel}
+                      activePersona={activePersona}
                     />
                   </div>
                 </div>

@@ -31,9 +31,17 @@ import {
   ArchiveRestore,
   SlidersHorizontal,
   Terminal,
-  FolderTree
+  FolderTree,
+  Bot,
+  Sparkles,
+  Edit2,
+  Sliders,
+  Droplets,
+  Compass,
+  Inbox
 } from 'lucide-react';
 import WorkspaceFileTree from './WorkspaceFileTree';
+import { BotAvatar, getStoredPersonas, saveCustomPersona, deleteCustomPersona, getPersonaIcon } from './PersonaSelector';
 import { cn } from '../lib/utils';
 
 // LocalStorage keys
@@ -235,7 +243,9 @@ function ChatHistorySidebar({
   workspaceInfo = null,
   onSelectWorkspace,
   onOpenFileInCanvas,
-  onInsertPrompt
+  onInsertPrompt,
+  activePersona = null,
+  onSelectPersona = null,
 }) {
   const { 
     chatList, 
@@ -277,6 +287,143 @@ function ChatHistorySidebar({
   const [menuPosition, setMenuPosition] = useState({ top: 0, left: 0 });
   const menuButtonRefs = useRef({});
   const editInputRef = useRef(null);
+
+  // Top-level Navigation Tab: 'sessions' | 'bots' (inspired by Hermes & Grok)
+  const [sidebarNavTab, setSidebarNavTab] = useState(() => {
+    try {
+      return localStorage.getItem('neochat_sidebar_nav_tab') || 'sessions';
+    } catch (e) {
+      return 'sessions';
+    }
+  });
+
+  const handleSidebarNavTabChange = (tab) => {
+    setSidebarNavTab(tab);
+    try {
+      localStorage.setItem('neochat_sidebar_nav_tab', tab);
+    } catch (e) {}
+  };
+
+  // Bot search & state
+  const [botSearchQuery, setBotSearchQuery] = useState('');
+  const [personasVersion, setPersonasVersion] = useState(0);
+  const [isBotModalOpen, setIsBotModalOpen] = useState(false);
+  const [editingBot, setEditingBot] = useState(null);
+  const [botFormData, setBotFormData] = useState({
+    name: '',
+    description: '',
+    systemPrompt: '',
+    temperature: 0.7,
+    color: '#8b5cf6',
+    icon: 'Bot'
+  });
+
+  const allPersonas = useMemo(() => {
+    return getStoredPersonas(t);
+  }, [t, personasVersion]);
+
+  const filteredBots = useMemo(() => {
+    if (!botSearchQuery.trim()) return allPersonas;
+    const q = botSearchQuery.toLowerCase();
+    return allPersonas.filter(p => 
+      (p.name && p.name.toLowerCase().includes(q)) || 
+      (p.description && p.description.toLowerCase().includes(q))
+    );
+  }, [allPersonas, botSearchQuery]);
+
+  const botLastInteractionMap = useMemo(() => {
+    const map = new Map();
+    (chatList || []).forEach(chat => {
+      const bId = chat.personaId || chat.botId;
+      if (bId) {
+        const existing = map.get(bId);
+        const chatDate = new Date(chat.updatedAt || chat.createdAt || 0).getTime();
+        if (!existing || chatDate > existing.date) {
+          const lastMsg = (chat.messages && chat.messages.length > 0)
+            ? chat.messages[chat.messages.length - 1]
+            : null;
+          let preview = '';
+          if (lastMsg) {
+            preview = typeof lastMsg.content === 'string'
+              ? lastMsg.content
+              : (Array.isArray(lastMsg.content) ? lastMsg.content.map(c => c.text || '').join(' ') : '');
+          }
+          map.set(bId, {
+            chatId: chat.id,
+            date: chatDate,
+            dateString: chat.updatedAt || chat.createdAt,
+            preview: preview || chat.title || ''
+          });
+        }
+      }
+    });
+    return map;
+  }, [chatList]);
+
+  const handleBotClick = async (bot) => {
+    if (loading) return;
+    if (onSelectPersona) {
+      onSelectPersona(bot);
+    }
+    const interaction = botLastInteractionMap.get(bot.id);
+    if (interaction && interaction.chatId) {
+      handleChatClick(interaction.chatId);
+    } else {
+      onNewChat();
+    }
+  };
+
+  const handleOpenCreateBot = () => {
+    setEditingBot(null);
+    setBotFormData({
+      name: '',
+      description: '',
+      systemPrompt: '',
+      temperature: 0.7,
+      color: '#8b5cf6',
+      icon: 'Bot'
+    });
+    setIsBotModalOpen(true);
+  };
+
+  const handleOpenEditBot = (e, bot) => {
+    if (e) e.stopPropagation();
+    setEditingBot(bot);
+    setBotFormData({
+      name: bot.name,
+      description: bot.description || '',
+      systemPrompt: bot.systemPrompt || '',
+      temperature: bot.temperature ?? 0.7,
+      color: bot.color || '#8b5cf6',
+      icon: bot.icon || 'Bot'
+    });
+    setIsBotModalOpen(true);
+  };
+
+  const handleSaveBot = (e) => {
+    e.preventDefault();
+    if (!botFormData.name.trim()) return;
+    saveCustomPersona({
+      id: editingBot?.id,
+      name: botFormData.name.trim(),
+      description: botFormData.description.trim(),
+      systemPrompt: botFormData.systemPrompt.trim(),
+      temperature: Number(botFormData.temperature) || 0.7,
+      color: botFormData.color || '#8b5cf6',
+      icon: botFormData.icon || 'Bot',
+    });
+    setPersonasVersion(v => v + 1);
+    setIsBotModalOpen(false);
+  };
+
+  const handleDeleteBot = (e, botId) => {
+    if (e) e.stopPropagation();
+    deleteCustomPersona(botId);
+    setPersonasVersion(v => v + 1);
+    if (activePersona?.id === botId && onSelectPersona) {
+      onSelectPersona(null);
+    }
+  };
 
   // Active view tab: 'active' | 'archived'
   const [activeViewTab, setActiveViewTab] = useState('active');
@@ -1447,6 +1594,172 @@ function ChatHistorySidebar({
         </div>
       </div>
 
+      {/* Primary Top Tab Switcher: SESSIONS | BOTS (Hermes style) */}
+      <div className="px-3 pt-1 pb-1">
+        <div className="flex items-center border-b border-border/40 text-xs">
+          <button
+            type="button"
+            onClick={() => handleSidebarNavTabChange('sessions')}
+            className={cn(
+              "pb-2 px-3 font-semibold text-xs tracking-wider transition-all relative cursor-pointer",
+              sidebarNavTab === 'sessions'
+                ? "text-foreground after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-primary font-bold"
+                : "text-muted-foreground hover:text-foreground font-medium"
+            )}
+          >
+            {t('sidebar.sessionsTabShort') || 'SESSIONS'}
+          </button>
+          <button
+            type="button"
+            onClick={() => handleSidebarNavTabChange('bots')}
+            className={cn(
+              "pb-2 px-3 font-semibold text-xs tracking-wider transition-all relative cursor-pointer flex items-center gap-1.5",
+              sidebarNavTab === 'bots'
+                ? "text-foreground after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-primary font-bold"
+                : "text-muted-foreground hover:text-foreground font-medium"
+            )}
+          >
+            <span>{t('sidebar.botsTabShort') || 'BOTS'}</span>
+            <span className={cn(
+              "text-[10px] px-1.5 py-0.2 rounded-full font-mono font-semibold",
+              sidebarNavTab === 'bots' ? "bg-primary/20 text-primary" : "bg-muted text-muted-foreground"
+            )}>
+              {allPersonas.length}
+            </span>
+          </button>
+        </div>
+      </div>
+
+      {sidebarNavTab === 'bots' ? (
+        <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
+          {/* Bots Header & Search Bar */}
+          <div className="px-3 pt-2 pb-2 space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
+                {t('sidebar.botsTitle') || 'Bots & Agentes'}
+              </span>
+              <button
+                type="button"
+                onClick={handleOpenCreateBot}
+                className="h-6 px-2 rounded-md bg-primary/10 hover:bg-primary/20 text-primary text-xs font-semibold flex items-center gap-1 transition-colors cursor-pointer"
+                title={t('sidebar.newBot') || 'Novo Bot'}
+              >
+                <Plus className="w-3.5 h-3.5" />
+                <span>{t('sidebar.newBot') || 'Novo Bot'}</span>
+              </button>
+            </div>
+
+            {/* Search bots input */}
+            <div className="relative">
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+              <input
+                type="text"
+                value={botSearchQuery}
+                onChange={(e) => setBotSearchQuery(e.target.value)}
+                placeholder={t('sidebar.searchBotsPlaceholder') || "Buscar bot ou papel..."}
+                className="w-full pl-8 pr-7 py-1.5 text-xs rounded-lg bg-background/70 border border-border/50 text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary transition-all shadow-2xs"
+              />
+              {botSearchQuery && (
+                <button
+                  type="button"
+                  onClick={() => setBotSearchQuery('')}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground p-0.5 rounded"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* Bot List (Messenger style as in Hermes and Grok images) */}
+          <div className="flex-1 overflow-y-auto px-2 space-y-1 pb-4">
+            {filteredBots.length === 0 ? (
+              <div className="px-4 py-8 text-center text-xs text-muted-foreground">
+                <Bot className="h-8 w-8 mx-auto mb-2 opacity-30 text-muted-foreground" />
+                <p className="font-medium text-foreground/80">{t('sidebar.noBotsFound') || 'Nenhum bot encontrado'}</p>
+                <p className="text-[11px] mt-1 text-muted-foreground/70">{t('sidebar.noBotsDesc') || 'Crie um bot personalizado clicando em + acima.'}</p>
+              </div>
+            ) : (
+              filteredBots.map((bot) => {
+                const isSelected = activePersona?.id === bot.id;
+                const interaction = botLastInteractionMap.get(bot.id);
+                const subtitle = interaction?.preview || bot.description || '';
+                const timeDisplay = interaction?.dateString ? formatCompactTime(interaction.dateString) : '';
+
+                return (
+                  <div
+                    key={bot.id}
+                    onClick={() => handleBotClick(bot)}
+                    className={cn(
+                      "group relative flex items-center gap-3 p-2.5 rounded-xl cursor-pointer transition-all border",
+                      isSelected 
+                        ? "bg-muted/90 border-primary/40 shadow-xs text-foreground" 
+                        : "border-transparent hover:bg-muted/60 hover:border-border/50 text-muted-foreground hover:text-foreground"
+                    )}
+                    title={t('sidebar.chatWithBot') || 'Conversar com este bot'}
+                  >
+                    <BotAvatar persona={bot} className="w-9 h-9 rounded-xl shadow-2xs shrink-0" iconClassName="w-4 h-4" />
+                    
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center justify-between gap-1">
+                        <span className={cn(
+                          "text-xs truncate",
+                          isSelected ? "font-bold text-foreground" : "font-semibold text-foreground/90 group-hover:text-foreground"
+                        )}>
+                          {bot.name}
+                        </span>
+                        {timeDisplay && (
+                          <span className="text-[10px] text-muted-foreground/70 shrink-0 font-mono">
+                            {timeDisplay}
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-[11px] text-muted-foreground truncate leading-tight mt-0.5">
+                        {subtitle}
+                      </p>
+                    </div>
+
+                    {/* Actions on hover */}
+                    <div className="opacity-0 group-hover:opacity-100 flex items-center gap-0.5 bg-background/90 backdrop-blur-xs px-1 py-0.5 rounded-md border border-border/50 shadow-2xs z-10">
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (onSelectPersona) onSelectPersona(bot);
+                          onNewChat();
+                        }}
+                        className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-primary transition-colors cursor-pointer"
+                        title={t('sidebar.newChat') || 'Nova conversa'}
+                      >
+                        <Plus className="w-3.5 h-3.5" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={(e) => handleOpenEditBot(e, bot)}
+                        className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+                        title={t('common.edit') || 'Editar'}
+                      >
+                        <Edit2 className="w-3 h-3" />
+                      </button>
+                      {bot.isCustom && (
+                        <button
+                          type="button"
+                          onClick={(e) => handleDeleteBot(e, bot.id)}
+                          className="p-1 rounded hover:bg-destructive/15 text-muted-foreground hover:text-destructive transition-colors cursor-pointer"
+                          title={t('common.delete') || 'Excluir'}
+                        >
+                          <Trash2 className="w-3 h-3" />
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                );
+              })
+            )}
+          </div>
+        </div>
+      ) : (
+        <>
       {/* Mode Switcher: Chat | Code */}
       {onModeChange && (
         <div className="px-2.5 pt-2 pb-0.5">
@@ -1865,6 +2178,8 @@ function ChatHistorySidebar({
       </div>
         </>
       )}
+        </>
+      )}
 
       {/* Delete Chat Confirmation Modal */}
       {chatToDelete && typeof document !== 'undefined' && createPortal(
@@ -1985,6 +2300,128 @@ function ChatHistorySidebar({
                 )}
               </button>
             </div>
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {/* Bot / Persona Create & Edit Modal */}
+      {isBotModalOpen && typeof document !== 'undefined' && createPortal(
+        <div
+          className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center z-[9999] p-4 animate-in fade-in-0"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setIsBotModalOpen(false);
+          }}
+        >
+          <div className="bg-card border border-border rounded-2xl w-full max-w-md max-h-[90vh] overflow-y-auto p-5 shadow-2xl animate-in zoom-in-95 flex flex-col space-y-4">
+            <div className="flex items-center justify-between pb-3 border-b border-border">
+              <div className="flex items-center gap-2">
+                <BotAvatar persona={{ icon: botFormData.icon, color: botFormData.color }} className="w-8 h-8 rounded-lg" iconClassName="w-4 h-4" />
+                <h3 className="font-semibold text-sm text-foreground">
+                  {editingBot ? (t('personas.editModalTitle') || 'Editar Bot / Agente') : (t('personas.modalTitle') || 'Criar Novo Bot / Agente')}
+                </h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsBotModalOpen(false)}
+                className="p-1 rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveBot} className="space-y-3.5">
+              <div>
+                <label className="text-xs font-medium text-foreground block mb-1">{t('personas.nameLabel') || 'Nome do Agente'}</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="ex: Chief, Mr Tester, Developer, Talent Scout..."
+                  value={botFormData.name}
+                  onChange={e => setBotFormData({ ...botFormData, name: e.target.value })}
+                  className="w-full px-3 py-2 text-xs rounded-lg border border-input bg-background text-foreground focus:ring-1 focus:ring-primary focus:outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="text-xs font-medium text-foreground block mb-1">{t('personas.descLabel') || 'Descrição / Papel'}</label>
+                <input
+                  type="text"
+                  placeholder="ex: Coordenador de pipeline e tarefas..."
+                  value={botFormData.description}
+                  onChange={e => setBotFormData({ ...botFormData, description: e.target.value })}
+                  className="w-full px-3 py-2 text-xs rounded-lg border border-input bg-background text-foreground focus:ring-1 focus:ring-primary focus:outline-none"
+                />
+              </div>
+
+              {/* Icon & Color Selector */}
+              <div>
+                <label className="text-xs font-medium text-foreground block mb-1.5">Cor do Avatar</label>
+                <div className="flex items-center gap-2 flex-wrap">
+                  {['#f97316', '#10b981', '#8b5cf6', '#0ea5e9', '#f43f5e', '#6366f1', '#f59e0b', '#059669', '#64748b'].map((c) => (
+                    <button
+                      key={c}
+                      type="button"
+                      onClick={() => setBotFormData({ ...botFormData, color: c })}
+                      className={cn(
+                        "w-6 h-6 rounded-full border-2 transition-transform cursor-pointer",
+                        botFormData.color === c ? "scale-110 border-primary shadow-xs" : "border-transparent opacity-80 hover:opacity-100"
+                      )}
+                      style={{ backgroundColor: c }}
+                    />
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <label className="text-xs font-medium text-foreground block mb-1">{t('personas.promptLabel') || 'Instruções de Sistema'}</label>
+                <textarea
+                  rows={4}
+                  placeholder="Defina a personalidade, objetivo, tom e conhecimentos especializados deste agente..."
+                  value={botFormData.systemPrompt}
+                  onChange={e => setBotFormData({ ...botFormData, systemPrompt: e.target.value })}
+                  className="w-full px-3 py-2 text-xs rounded-lg border border-input bg-background text-foreground focus:ring-1 focus:ring-primary focus:outline-none font-mono"
+                />
+              </div>
+
+              {/* Temperature Slider */}
+              <div className="pt-1">
+                <div className="flex items-center justify-between text-xs mb-1.5">
+                  <label className="font-medium text-foreground flex items-center gap-1.5">
+                    <Sliders className="w-3.5 h-3.5 text-primary" />
+                    {t('personas.tempLabel') || 'Temperatura / Criatividade'}
+                  </label>
+                  <span className="font-mono font-semibold text-primary bg-primary/10 px-1.5 py-0.5 rounded text-[11px]">
+                    {Number(botFormData.temperature).toFixed(2)}
+                  </span>
+                </div>
+                <input
+                  type="range"
+                  min="0"
+                  max="1"
+                  step="0.05"
+                  value={botFormData.temperature}
+                  onChange={e => setBotFormData({ ...botFormData, temperature: parseFloat(e.target.value) })}
+                  className="w-full h-1.5 bg-muted rounded-lg appearance-none cursor-pointer accent-primary"
+                />
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-3 border-t border-border mt-4">
+                <button
+                  type="button"
+                  onClick={() => setIsBotModalOpen(false)}
+                  className="px-3.5 py-1.5 rounded-lg text-xs font-medium text-muted-foreground hover:bg-muted transition-colors"
+                >
+                  {t('common.cancel')}
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-1.5 rounded-lg text-xs font-semibold bg-primary text-primary-foreground hover:bg-primary/90 transition-colors shadow-xs"
+                >
+                  {editingBot ? t('common.save') : t('personas.createButton')}
+                </button>
+              </div>
+            </form>
           </div>
         </div>,
         document.body
