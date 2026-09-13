@@ -2780,7 +2780,7 @@ function App() {
       {/* Main Content Area */}
       <div className="flex flex-col flex-1 min-w-0">
         {/* Modern Sticky Header */}
-        <header className="sticky top-0 z-50 bg-background/95 backdrop-blur-sm">
+        <header className="sticky top-0 z-50 bg-background/80 backdrop-blur-md border-b border-border/60 transition-colors">
           <div className="flex h-14 items-center justify-between px-4 max-w-full">
             <div className="flex items-center space-x-3">
               {/* Sidebar toggle for mobile/collapsed state */}
@@ -2796,26 +2796,45 @@ function App() {
                 </Button>
               )}
 
-              {/* Trajectory (Trajetória) View Toggle Switch */}
+              {/* View Tabs Selector: Chat | Trajetória */}
               {isPowerUser && showTrajectoryTab && (
-                <button
-                  type="button"
-                  onClick={() => setActiveTab(prev => prev === 'trajectory' ? 'chat' : 'trajectory')}
-                  className={cn(
-                    "h-7 px-2.5 text-xs flex items-center gap-2 rounded-lg transition-all cursor-pointer select-none",
-                    activeTab === 'trajectory'
-                      ? "bg-emerald-500/15 border-emerald-500/40 text-emerald-600 dark:text-emerald-400 font-semibold shadow-2xs"
-                      : "text-muted-foreground hover:text-foreground hover:bg-muted/80 font-medium"
-                  )}
-                  title={activeTab === 'trajectory' ? 'Voltar para o Chat' : (t('trajectory.trajectoryTab') || 'Visualizar Trajetória')}
-                >
-                  <Activity className={cn("w-3.5 h-3.5 transition-colors", activeTab === 'trajectory' ? "text-emerald-500" : "text-muted-foreground")} />
-                  <span className="hidden sm:inline">{t('trajectory.trajectoryTab') || 'Trajetória'}</span>
-                </button>
+                <div className="flex items-center p-0.5 rounded-xl bg-muted/60 border border-border/60 text-xs shadow-2xs">
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab('chat')}
+                    className={cn(
+                      "h-7 px-2.5 rounded-lg font-medium transition-all flex items-center gap-1.5 cursor-pointer select-none",
+                      activeTab === 'chat'
+                        ? "bg-background text-foreground shadow-xs font-semibold"
+                        : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                    )}
+                    title={t('chat.chatModeChat') || 'Conversa'}
+                  >
+                    <MessageSquare className={cn("w-3.5 h-3.5 transition-colors", activeTab === 'chat' ? "text-primary" : "text-muted-foreground")} />
+                    <span>{t('chat.chatModeChat') || 'Chat'}</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab('trajectory')}
+                    className={cn(
+                      "h-7 px-2.5 rounded-lg font-medium transition-all flex items-center gap-1.5 cursor-pointer select-none",
+                      activeTab === 'trajectory'
+                        ? "bg-background text-emerald-600 dark:text-emerald-400 shadow-xs font-semibold"
+                        : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                    )}
+                    title={t('trajectory.trajectoryTab') || 'Visualizar Trajetória'}
+                  >
+                    <Activity className={cn("w-3.5 h-3.5 transition-colors", activeTab === 'trajectory' ? "text-emerald-500" : "text-muted-foreground")} />
+                    <span>{t('trajectory.trajectoryTab') || 'Trajetória'}</span>
+                  </button>
+                </div>
               )}
 
-              
-              
+              {/* Header section separator */}
+              {isPowerUser && showTrajectoryTab && (
+                <div className="h-4 w-px bg-border/60 mx-0.5 hidden sm:block" />
+              )}
+
               {/* Persona Selector */}
               {isPowerUser && (
                 <PersonaSelector

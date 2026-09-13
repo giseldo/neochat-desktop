@@ -411,15 +411,15 @@ export function PersonaSelector({ activePersona, onSelectPersona, className }) {
         type="button"
         onClick={() => setIsOpen(!isOpen)}
         className={cn(
-          "h-7 flex items-center gap-1.5 px-2.5 rounded-lg text-xs transition-colors group/btn cursor-pointer",
+          "h-7 flex items-center gap-1.5 px-2.5 rounded-lg text-xs transition-all group/btn cursor-pointer border shadow-2xs",
           !isDeactivated
-            ? "text-foreground hover:bg-muted font-medium"
-            : "border-border bg-background hover:bg-muted text-muted-foreground font-medium"
+            ? "bg-background/80 hover:bg-muted/70 border-border/60 text-foreground font-medium"
+            : "bg-muted/30 hover:bg-muted/60 border-border/40 text-muted-foreground font-medium"
         )}
         title={!isDeactivated ? `${currentPersona?.name} • ${t('personas.clickToDeactivate') || 'Clique para desativar'}` : t('personas.buttonTitle')}
       >
         <IconComponent className={cn("w-3.5 h-3.5 shrink-0", !isDeactivated ? "text-primary" : "text-muted-foreground")} />
-        <span className="max-w-[110px] truncate">
+        <span className="max-w-[120px] truncate">
           {!isDeactivated ? currentPersona?.name : (t('personas.deactivated') || 'Desativado')}
         </span>
         {!isDeactivated && (
@@ -427,7 +427,7 @@ export function PersonaSelector({ activePersona, onSelectPersona, className }) {
             role="button"
             tabIndex={0}
             onClick={handleDeactivate}
-            className="ml-0.5 -mr-1 p-0.5 rounded hover:bg-primary/20 text-primary/70 hover:text-primary transition-colors cursor-pointer"
+            className="ml-0.5 -mr-1 p-0.5 rounded hover:bg-muted text-muted-foreground hover:text-destructive transition-colors cursor-pointer"
             title={t('personas.deactivateTitle')}
           >
             <X className="w-3 h-3" />
