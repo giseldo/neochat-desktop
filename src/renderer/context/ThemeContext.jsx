@@ -39,6 +39,12 @@ export const FONT_SIZES = [
   { id: 'xl', name: 'Extra Grande', scale: '19px' },
 ];
 
+export const LETTER_SPACINGS = [
+  { id: 'normal', value: 'normal' },
+  { id: 'relaxed', value: '0.025em' },
+  { id: 'wide', value: '0.05em' },
+];
+
 export const ThemeContext = createContext({
   theme: 'system',
   setTheme: () => {},
@@ -54,6 +60,8 @@ export const ThemeContext = createContext({
   setChatWidth: () => {},
   textAlign: 'left',
   setTextAlign: () => {},
+  letterSpacing: 'normal',
+  setLetterSpacing: () => {},
   resolvedTheme: 'light',
   isDark: false,
 });
@@ -130,6 +138,30 @@ export const ThemeProvider = ({ children }) => {
       return 'left';
     }
   });
+
+  const [letterSpacing, setLetterSpacingState] = useState(() => {
+    try {
+      const saved = localStorage.getItem('neochat_letter_spacing');
+      return LETTER_SPACINGS.some(option => option.id === saved) ? saved : 'normal';
+    } catch {
+      return 'normal';
+    }
+  });
+
+  useEffect(() => {
+    const spacing = LETTER_SPACINGS.find(option => option.id === letterSpacing);
+    document.documentElement.style.setProperty('--chat-letter-spacing', spacing?.value || 'normal');
+  }, [letterSpacing]);
+
+  const setLetterSpacing = (value) => {
+    const valid = LETTER_SPACINGS.some(option => option.id === value) ? value : 'normal';
+    setLetterSpacingState(valid);
+    try {
+      localStorage.setItem('neochat_letter_spacing', valid);
+    } catch (error) {
+      console.error('Failed to save letter spacing:', error);
+    }
+  };
 
   const [systemIsDark, setSystemIsDark] = useState(() => {
     if (typeof window !== 'undefined' && window.matchMedia) {
@@ -276,6 +308,8 @@ export const ThemeProvider = ({ children }) => {
       setChatWidth,
       textAlign,
       setTextAlign,
+      letterSpacing,
+      setLetterSpacing,
       resolvedTheme,
       isDark,
     }}>

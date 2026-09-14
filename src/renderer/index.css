@@ -450,6 +450,16 @@
   }
 
   /* Text alignment preference */
+  .markdown-content {
+    letter-spacing: var(--chat-letter-spacing, normal);
+  }
+
+  .markdown-content pre,
+  .markdown-content code,
+  .markdown-content .katex {
+    letter-spacing: normal;
+  }
+
   [data-text-align="justify"] .markdown-content p {
     text-align: justify;
     text-justify: inter-word;
@@ -876,4 +886,4 @@ select#model-select {
 
 .chat-sidebar .overflow-y-auto::-webkit-scrollbar-thumb:hover {
   background-color: hsl(var(--muted-foreground) / 0.6);
-} 
+}

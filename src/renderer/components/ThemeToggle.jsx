@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Sun, Moon, Laptop, Check, ArrowRight } from 'lucide-react';
-import { useTheme, COLOR_THEMES, FONT_THEMES, FONT_SIZES } from '../context/ThemeContext';
+import { useTheme, COLOR_THEMES, FONT_THEMES, FONT_SIZES, LETTER_SPACINGS } from '../context/ThemeContext';
 import { useLanguage } from '../context/LanguageContext';
 import { cn } from '../lib/utils';
 
@@ -22,7 +22,9 @@ export function ThemeToggle({ className, interfaceMode: propInterfaceMode, onInt
     chatWidth,
     setChatWidth,
     textAlign,
-    setTextAlign
+    setTextAlign,
+    letterSpacing,
+    setLetterSpacing
   } = useTheme();
   
   const { t, language } = useLanguage();
@@ -178,6 +180,20 @@ export function ThemeToggle({ className, interfaceMode: propInterfaceMode, onInt
                     </button>
                   ))}
                 </div>
+              </fieldset>
+              <fieldset>
+                <legend className="text-xs text-muted-foreground mb-2">{pt ? 'Espaçamento entre letras' : 'Letter spacing'}</legend>
+                <div className="grid grid-cols-3 gap-1 bg-muted/60 rounded-lg p-1">
+                  {LETTER_SPACINGS.map((option, index) => (
+                    <button key={option.id} type="button" aria-pressed={letterSpacing === option.id} onClick={() => setLetterSpacing(option.id)} className={optionStyle(letterSpacing === option.id)}>
+                      {(pt ? ['Padrão', 'Suave', 'Amplo'] : ['Default', 'Relaxed', 'Wide'])[index]}
+                    </button>
+                  ))}
+                </div>
+                <p className="mt-2 text-xs text-muted-foreground">{pt ? 'Aplicado ao texto das conversas; código mantém o espaçamento original.' : 'Applies to conversation text; code keeps its original spacing.'}</p>
+                <p className="mt-2 text-sm leading-relaxed break-words" style={{ letterSpacing: LETTER_SPACINGS.find(option => option.id === letterSpacing)?.value }}>
+                  {pt ? 'Um espaço para conversar e criar.' : 'A space to talk and create.'}
+                </p>
               </fieldset>
               <fieldset>
                 <legend className="text-xs text-muted-foreground mb-2">{pt ? 'Modo da interface' : 'Interface mode'}</legend>
