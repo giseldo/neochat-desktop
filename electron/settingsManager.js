@@ -4,9 +4,6 @@ const { createSecretStore } = require('./secretStore');
 const { invalidateModelsCache } = require('../shared/models.js');
 const { getDefaultEnabledModels, getDefaultModel } = require('../shared/providers.js');
 
-// Load environment variables from .env file
-require('dotenv').config();
-
 let appInstance; // To store app instance for userData path
 let secretStore;
 
@@ -69,7 +66,6 @@ function loadSettings() {
             showWelcomeSuggestions: false,
             showButtonLabels: false,
             textAlign: 'left',
-            GROQ_API_KEY: process.env.GROQ_API_KEY || "<replace me>",
             model: process.env.GROQ_DEFAULT_MODEL || getDefaultModel({ provider: 'groq' }),
             temperature: 0.7,
             top_p: 0.95,
@@ -153,7 +149,6 @@ function loadSettings() {
         autoUpdate: { checkOnStartup: true, channel: 'stable' },
         observability: { monthlyBudgetUsd: 0, defaultRate: { input: 0, output: 0 }, modelRates: {} },
         gitIntegration: { repositoryPath: '' },
-        GROQ_API_KEY: process.env.GROQ_API_KEY || "<replace me>",
         model: process.env.GROQ_DEFAULT_MODEL || getDefaultModel({ provider: 'groq' }),
         temperature: 0.7,
         top_p: 0.95,
@@ -204,7 +199,6 @@ function loadSettings() {
             const data = fs.readFileSync(settingsPath, 'utf8');
             const parsedSettings = JSON.parse(data);
             const hasPlaintextSecrets = Boolean(
-                parsedSettings.GROQ_API_KEY ||
                 Object.keys(parsedSettings.apiKeys || {}).length ||
                 parsedSettings.googleOAuthToken ||
                 parsedSettings.googleRefreshToken ||
@@ -219,15 +213,6 @@ function loadSettings() {
 
             // Merge defaults and ensure required fields exist, applying defaults if necessary
             const settings = { ...defaultSettings, ...loadedSettings };
-
-            // Environment variables take precedence over settings file for API key
-            if (process.env.GROQ_API_KEY) {
-                settings.GROQ_API_KEY = process.env.GROQ_API_KEY;
-                console.log('Using GROQ_API_KEY from environment variable');
-            } else {
-                // Explicitly check and apply defaults for potentially missing/undefined fields
-                settings.GROQ_API_KEY = settings.GROQ_API_KEY || defaultSettings.GROQ_API_KEY;
-            }
 
             settings.language = settings.language || defaultSettings.language;
             settings.interfaceMode = settings.interfaceMode === 'power' ? 'power' : 'user';
@@ -274,10 +259,6 @@ function loadSettings() {
     settings.observability = { ...defaultSettings.observability, ...(settings.observability || {}), defaultRate: { ...defaultSettings.observability.defaultRate, ...(settings.observability?.defaultRate || {}) } };
     settings.gitIntegration = { ...defaultSettings.gitIntegration, ...(settings.gitIntegration || {}) };
 
-            // Migrate legacy GROQ_API_KEY into apiKeys.groq (and keep in sync)
-            if (settings.GROQ_API_KEY && settings.GROQ_API_KEY !== "<replace me>" && !settings.apiKeys.groq) {
-                settings.apiKeys.groq = settings.GROQ_API_KEY;
-            }
             settings.mcpServers = settings.mcpServers || defaultSettings.mcpServers;
             settings.disabledMcpServers = settings.disabledMcpServers || defaultSettings.disabledMcpServers;
             settings.toolPermissions = settings.toolPermissions || defaultSettings.toolPermissions;
@@ -378,12 +359,6 @@ function initializeSettingsHandlers(ipcMain, app, safeStorage) {
             settings.provider = settings.provider || 'groq';
             settings.agentHarness = settings.agentHarness === 'pi' ? 'pi' : 'native';
             settings.apiKeys = settings.apiKeys || {};
-            // Keep legacy GROQ_API_KEY in sync with apiKeys.groq
-            if (settings.apiKeys.groq) {
-                settings.GROQ_API_KEY = settings.apiKeys.groq;
-            } else if (settings.GROQ_API_KEY) {
-                settings.apiKeys.groq = settings.GROQ_API_KEY;
-            }
             // Optionally add more validation here
             const protectedStorage = persistSettings(settings, settingsPath);
             invalidateModelsCache();
@@ -416,11 +391,6 @@ async function saveSettings(settings) {
         settings.provider = settings.provider || 'groq';
         settings.agentHarness = settings.agentHarness === 'pi' ? 'pi' : 'native';
         settings.apiKeys = settings.apiKeys || {};
-        if (settings.apiKeys.groq) {
-            settings.GROQ_API_KEY = settings.apiKeys.groq;
-        } else if (settings.GROQ_API_KEY) {
-            settings.apiKeys.groq = settings.GROQ_API_KEY;
-        }
         const protectedStorage = persistSettings(settings, settingsPath);
         invalidateModelsCache();
         return { success: true, protectedStorage };

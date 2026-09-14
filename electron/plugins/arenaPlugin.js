@@ -34,7 +34,7 @@ class ArenaEngine {
 
     // Resolve provider endpoint and API key
     let baseUrl = 'https://api.groq.com/openai/v1';
-    let apiKey = process.env.GROQ_API_KEY || '';
+    let apiKey = '';
 
     if (settings) {
       if (resolvedProvider) {

@@ -87,8 +87,8 @@ async function run() {
     assert.throws(() => validateMessage(''));
     assert.throws(() => validateAgentOptions({ workspaceRoot: 'relative/path' }));
 
-    const restrictedEnv = buildRestrictedEnv({ PATH: process.env.PATH || '', GROQ_API_KEY: 'secret', CUSTOM_SAFE: 'allowed' }, ['CUSTOM_SAFE']);
-    assert.strictEqual(restrictedEnv.GROQ_API_KEY, undefined);
+    const restrictedEnv = buildRestrictedEnv({ PATH: process.env.PATH || '', UNSAFE_SECRET: 'secret', CUSTOM_SAFE: 'allowed' }, ['CUSTOM_SAFE']);
+    assert.strictEqual(restrictedEnv.UNSAFE_SECRET, undefined);
     assert.strictEqual(restrictedEnv.CUSTOM_SAFE, 'allowed');
     assert.throws(() => validateCommand('git push origin main'), /network access/);
     assert.doesNotThrow(() => validateCommand('git push origin main', { networkAccess: true }));

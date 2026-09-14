@@ -45,7 +45,7 @@ async function runTestSuite() {
     assert(typeof chatHandler.createGroqClient === 'function', 'createGroqClient deve ser uma função');
 
     // Test client creation and buildURL fix against 404
-    const client = chatHandler.createGroqClient({ provider: 'groq', GROQ_API_KEY: 'test-key' });
+    const client = chatHandler.createGroqClient({ provider: 'groq', apiKeys: { groq: 'test-key' } });
     const resolvedUrl = client.buildURL('/openai/v1/chat/completions');
     assert.strictEqual(resolvedUrl, 'https://api.groq.com/openai/v1/chat/completions', 'URL não deve duplicar o prefixo /openai/v1/');
   });

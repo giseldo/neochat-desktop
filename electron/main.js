@@ -846,7 +846,7 @@ app.whenReady().then(async () => {
     }
     const voiceApiKey = currentSettings.voiceInput?.apiKey?.trim();
     const hasVoiceKey = Boolean(voiceApiKey && voiceApiKey !== '<replace me>');
-    const fallbackApiKey = currentSettings.GROQ_API_KEY || (currentSettings.apiKeys && currentSettings.apiKeys.groq) || process.env.GROQ_API_KEY;
+    const fallbackApiKey = currentSettings.apiKeys && currentSettings.apiKeys.groq;
     const isGroqProviderEnabled = !Array.isArray(currentSettings.enabledProviders) || currentSettings.enabledProviders.includes('groq');
     const hasFallbackKey = Boolean(fallbackApiKey && fallbackApiKey !== '<replace me>' && isGroqProviderEnabled);
 

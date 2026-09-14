@@ -333,7 +333,7 @@ function Settings() {
     showWelcomeTips: false,
     showWelcomeSuggestions: false,
     showButtonLabels: false,
-    GROQ_API_KEY: '',
+    apiKeys: {},
     temperature: 0.7,
     top_p: 0.95,
     reasoning_effort: 'medium',
@@ -1010,7 +1010,7 @@ function Settings() {
       const presets = POPULAR_PROVIDER_PRESETS.filter(p => p.id !== 'custom');
       const allMerged = [...presets, ...customItems.filter(c => !presets.some(p => p.id === c.id))];
       return allMerged.map(p => {
-        const apiKey = targetSettings.apiKeys?.[p.id] || (p.id === 'groq' ? targetSettings.GROQ_API_KEY : '') || p.apiKey || '';
+        const apiKey = targetSettings.apiKeys?.[p.id] || p.apiKey || '';
         const isConfigured = p.isLocal || Boolean(apiKey && apiKey !== '<replace me>' && apiKey.trim());
         const isEnabled = Array.isArray(targetSettings.enabledProviders)
           ? targetSettings.enabledProviders.includes(p.id)
@@ -1128,10 +1128,6 @@ function Settings() {
         if (!settingsData.provider) {
             settingsData.provider = 'groq';
         }
-        // Migrate legacy GROQ_API_KEY into apiKeys.groq
-        if (settingsData.GROQ_API_KEY && !settingsData.apiKeys.groq) {
-            settingsData.apiKeys.groq = settingsData.GROQ_API_KEY;
-        }
         if (!settingsData.providerFilterTab) {
             settingsData.providerFilterTab = 'active';
         }
@@ -1160,7 +1156,7 @@ function Settings() {
         console.error('Error loading settings:', error);
         setSettings(prev => ({
             ...prev,
-            GROQ_API_KEY: '',
+            apiKeys: {},
             temperature: 0.7,
             top_p: 0.95,
             mcpServers: {},
@@ -1418,7 +1414,7 @@ function Settings() {
         const presets = POPULAR_PROVIDER_PRESETS.filter(p => p.id !== 'custom');
         const allMerged = [...presets, ...customItems.filter(c => !presets.some(p => p.id === c.id))];
         const fallbackList = allMerged.map(p => {
-          const apiKey = settings.apiKeys?.[p.id] || (p.id === 'groq' ? settings.GROQ_API_KEY : '') || p.apiKey || '';
+          const apiKey = settings.apiKeys?.[p.id] || p.apiKey || '';
           const isConfigured = p.isLocal || Boolean(apiKey && apiKey !== '<replace me>' && apiKey.trim());
           const isEnabled = Array.isArray(settings.enabledProviders)
             ? settings.enabledProviders.includes(p.id)
@@ -1492,9 +1488,6 @@ function Settings() {
         [providerId]: value
       }
     };
-    if (providerId === 'groq') {
-      updatedSettings.GROQ_API_KEY = value;
-    }
     setSettings(updatedSettings);
     saveSettings(updatedSettings);
   };
@@ -1530,7 +1523,7 @@ function Settings() {
     }));
 
     try {
-      const apiKey = settings.apiKeys?.[providerId] || (providerId === 'groq' ? settings.GROQ_API_KEY : '');
+      const apiKey = settings.apiKeys?.[providerId] || '';
       const baseUrl = settings.providerUrls?.[providerId];
       const result = await window.electron.testProvider({
         providerId,
@@ -1640,7 +1633,7 @@ function Settings() {
   const handleSelectPreset = (preset) => {
     setSelectedPresetId(preset.id);
     setModalTestResult(null);
-    const existingApiKey = settings.apiKeys?.[preset.id] || (preset.id === 'groq' ? settings.GROQ_API_KEY : '') || '';
+    const existingApiKey = settings.apiKeys?.[preset.id] || '';
     if (preset.id === 'custom') {
       setIsAdvancedOptionsOpen(true);
       setCustomProviderForm({
@@ -1786,8 +1779,7 @@ function Settings() {
 
     let primaryProvider = settings.provider || 'groq';
     const isGroqConfigured = Boolean(
-      (currentApiKeys.groq && currentApiKeys.groq !== '<replace me>') ||
-      (settings.GROQ_API_KEY && settings.GROQ_API_KEY !== '<replace me>')
+      currentApiKeys.groq && currentApiKeys.groq !== '<replace me>'
     );
     if (customProviderForm.enabled && (!settings.provider || (primaryProvider === 'groq' && !isGroqConfigured))) {
       primaryProvider = finalId;
@@ -1884,9 +1876,7 @@ function Settings() {
   const getActiveApiKeyValue = () => {
     const providerId = settings.provider || 'groq';
     const key = settings.apiKeys?.[providerId];
-    if (key) return key;
-    if (providerId === 'groq') return settings.GROQ_API_KEY || '';
-    return '';
+    return key || '';
   };
 
   const handleApiKeyChange = (e) => {
@@ -1899,10 +1889,6 @@ function Settings() {
         [providerId]: value
       }
     };
-    // Keep legacy GROQ_API_KEY in sync for the Groq provider
-    if (providerId === 'groq') {
-      updatedSettings.GROQ_API_KEY = value;
-    }
     setSettings(updatedSettings);
     saveSettings(updatedSettings);
   };
@@ -3611,7 +3597,7 @@ function Settings() {
 
         {visibleCardIds.has('voiceInput') && (() => {
           const hasVoiceApiKey = Boolean(settings.voiceInput?.apiKey && settings.voiceInput.apiKey.trim() && settings.voiceInput.apiKey.trim() !== '<replace me>');
-          const groqProviderKey = settings.apiKeys?.groq || settings.GROQ_API_KEY;
+          const groqProviderKey = settings.apiKeys?.groq;
           const isGroqProviderEnabled = !Array.isArray(settings.enabledProviders) || settings.enabledProviders.includes('groq');
           const hasGeneralGroqKey = Boolean(groqProviderKey && groqProviderKey.trim() && groqProviderKey.trim() !== '<replace me>' && isGroqProviderEnabled);
           const hasGroqKeyForVoice = hasVoiceApiKey || hasGeneralGroqKey;
@@ -5125,7 +5111,7 @@ function Settings() {
                       const isFallback = (settings.fallbackProviders || []).includes(provider.id);
                       const testResult = providerTestResults[provider.id];
                       const showKey = Boolean(showProviderApiKeyMap[provider.id]);
-                      const currentKey = settings.apiKeys?.[provider.id] || (provider.id === 'groq' ? settings.GROQ_API_KEY : '') || '';
+                      const currentKey = settings.apiKeys?.[provider.id] || '';
                       const currentBaseUrl = settings.providerUrls?.[provider.id] || (provider.id === 'custom' ? settings.customApiBaseUrl : '') || provider.baseUrl || '';
                       const IconComp = getProviderIconComponent(provider);
                       const isSearchActive = Boolean(providerSearchTerm.trim());

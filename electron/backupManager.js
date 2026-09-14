@@ -2,7 +2,7 @@ const fs = require('fs');
 const path = require('path');
 
 const BACKUP_VERSION = 1;
-const SECRET_KEYS = new Set(['apiKeys', 'GROQ_API_KEY', 'googleOAuthToken', 'googleRefreshToken', 'googleClientSecret']);
+const SECRET_KEYS = new Set(['apiKeys', 'googleOAuthToken', 'googleRefreshToken', 'googleClientSecret']);
 
 function sanitizeSettings(settings) {
     const clean = JSON.parse(JSON.stringify(settings || {}));

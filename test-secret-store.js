@@ -19,7 +19,6 @@ async function run() {
     try {
         fs.writeFileSync(settingsPath, JSON.stringify({
             interfaceMode: 'power',
-            GROQ_API_KEY: 'gsk-secret',
             apiKeys: { groq: 'gsk-secret', openai: 'sk-secret' },
             googleRefreshToken: 'refresh-secret',
             webSearch: { enabled: true, apiKey: 'search-secret' },

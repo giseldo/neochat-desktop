@@ -4,25 +4,10 @@
 
 O NeoChat Desktop é um espaço de trabalho e cliente de chat de IA para desktop, independente e universal. Conecte modelos locais (**Ollama, LM Studio, vLLM**) para ter 100% de privacidade e custo zero, ou use suas próprias chaves de API com provedores remotos (**Groq, OpenAI, Anthropic, DeepSeek, OpenRouter**), incluindo suporte a qualquer endpoint compatível com OpenAI. Disponível para Windows, macOS e Linux!
 
-> **Nota para usuários do macOS**: depois de instalar no macOS, pode ser necessário executar este comando para abrir o aplicativo:
-> ```sh
-> xattr -c /Applications/Neochat\ Desktop.app
-> ```
-
-## Instalação não oficial pelo Homebrew (macOS)
-
-Você pode instalar a versão mais recente usando o [Homebrew](https://brew.sh/) por meio de um tap não oficial:
-
-```sh
-brew tap ricklamers/groq-desktop-unofficial
-brew install --cask groq-desktop
-# Permitir a execução do aplicativo
-xattr -c /Applications/Neochat\ Desktop.app
-```
 
 ## Recursos
 
-- **Universal e com múltiplos provedores**: conecte modelos locais (Ollama, LM Studio, LocalAI) ou APIs remotas (Groq, OpenAI, Claude, DeepSeek, OpenRouter, Together AI) e endpoints personalizados compatíveis com OpenAI.
+- **Universal e com múltiplos provedores**: conecte modelos locais (Ollama, LM Studio, LocalAI) ou APIs remotas (Groq, OpenAI, Claude, Mistral, DeepSeek, OpenRouter, Together AI, etc) e endpoints personalizados compatíveis com OpenAI.
 - **Fallback inteligente entre provedores**: failover automático e ordenado entre provedores quando a API principal estiver indisponível ou limitada por taxa.
 - **Multimodalidade e visão**: suporte completo a imagens, reconhecimento óptico, ferramenta de recorte de capturas de tela e análise visual.
 - **Base de conhecimento local (RAG)**: indexação incremental e privada de arquivos (PDF, Word DOCX, Excel XLSX, Markdown e código), com busca semântica local.
@@ -71,7 +56,7 @@ O NeoChat Desktop oferece suporte a várias configurações de provedores:
 
 2. **Provedores remotos e na nuvem**:
    - Adicione suas chaves de API em Configurações para **Groq**, **OpenAI**, **Anthropic**, **DeepSeek** ou qualquer endpoint personalizado compatível com OpenAI.
-   - Também é possível configurar variáveis de ambiente como `GROQ_API_KEY`, `OPENAI_API_KEY` etc.
+   - Chaves de provedores são configuradas pela tela de Configurações.
 
 ## Solução de problemas
 
@@ -237,7 +222,7 @@ NeoChat Desktop supports multiple provider configurations:
 
 2. **Cloud & Remote Providers**:
    - Add your API keys in Settings for **Groq**, **OpenAI**, **Anthropic**, **DeepSeek**, or any custom OpenAI-compatible endpoint.
-   - You can also configure environment variables such as `GROQ_API_KEY`, `OPENAI_API_KEY`, etc.
+   - Provider keys are configured through the Settings screen.
 
 ## Troubleshooting
 
@@ -328,4 +313,21 @@ pnpm test:tts-settings
 pnpm test:update-manager
 pnpm test:observability
 pnpm test:git-manager
+```
+
+
+> **Nota para usuários do macOS**: depois de instalar no macOS, pode ser necessário executar este comando para abrir o aplicativo:
+> ```sh
+> xattr -c /Applications/Neochat\ Desktop.app
+> ```
+
+## Instalação não oficial pelo Homebrew (macOS)
+
+Você pode instalar a versão mais recente usando o [Homebrew](https://brew.sh/) por meio de um tap não oficial:
+
+```sh
+brew tap ricklamers/groq-desktop-unofficial
+brew install --cask groq-desktop
+# Permitir a execução do aplicativo
+xattr -c /Applications/Neochat\ Desktop.app
 ```

@@ -22,7 +22,6 @@ async function main() {
 
   const resolved = resolvePiModel('groq::test-model', {
     provider: 'groq',
-    GROQ_API_KEY: 'test-key',
     apiKeys: { groq: 'test-key' },
     maxContextTokens: 16000
   });
@@ -118,7 +117,7 @@ async function main() {
     sessionId: 'pi_test',
     messages: [{ role: 'user', content: 'Read the README', timestamp: Date.now() }],
     model: 'groq::test-model',
-    settings: { provider: 'groq', GROQ_API_KEY: 'test-key', apiKeys: { groq: 'test-key' }, agentMode: true },
+    settings: { provider: 'groq', apiKeys: { groq: 'test-key' }, agentMode: true },
     toolRegistry: new ToolRegistry(),
     permissionEngine: new PermissionEngine({ agentMode: true }),
     eventBus: bus,
@@ -165,7 +164,7 @@ async function main() {
       sessionId: 'real_pi_test',
       messages: [{ role: 'user', content: 'Use a tool', timestamp: Date.now() }],
       model: 'groq::test-model',
-      settings: { provider: 'groq', GROQ_API_KEY: 'test-key', apiKeys: { groq: 'test-key' }, agentMode: true },
+      settings: { provider: 'groq', apiKeys: { groq: 'test-key' }, agentMode: true },
       toolRegistry: new ToolRegistry(),
       permissionEngine: new PermissionEngine({ agentMode: true }),
       eventBus: new AgentEventBus('real_pi_test'),

@@ -7,7 +7,6 @@ const PROVIDERS = {
     name: 'Groq',
     baseUrl: 'https://api.groq.com/openai/v1',
     modelsUrl: 'https://api.groq.com/openai/v1/models',
-    envVar: 'GROQ_API_KEY',
     defaultModel: 'llama-3.3-70b-versatile',
     description: 'Inferência LPU ultra-rápida com modelos Llama, Qwen e DeepSeek R1 Distill',
     icon: 'Zap',
@@ -579,7 +578,7 @@ function getActiveProviders(settings = {}) {
 
 /**
  * Resolve the API key for the currently selected provider.
- * Priority: environment variable > settings.apiKeys[provider] > custom provider key > legacy GROQ_API_KEY.
+ * Priority: environment variable > settings.apiKeys[provider] > custom provider key.
  */
 function getActiveApiKey(settings) {
   if (!settings) return null;
@@ -662,10 +661,6 @@ function getApiKeyForProvider(arg1, arg2) {
 
   if (provider.apiKey && provider.apiKey !== '<replace me>' && provider.apiKey.trim()) {
     return provider.apiKey.trim();
-  }
-
-  if (provider.id === 'groq' && settings.GROQ_API_KEY && settings.GROQ_API_KEY !== '<replace me>') {
-    return settings.GROQ_API_KEY.trim();
   }
 
   return null;

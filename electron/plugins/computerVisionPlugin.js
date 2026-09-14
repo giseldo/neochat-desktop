@@ -28,7 +28,7 @@ class ComputerVisionEngine {
     const { getActiveApiKey, getBaseUrlForProvider } = require('../settingsManager');
 
     let baseUrl = 'https://api.groq.com/openai/v1';
-    let apiKey = process.env.GROQ_API_KEY || '';
+    let apiKey = '';
 
     if (settings) {
       const providerId = settings.provider || 'groq';

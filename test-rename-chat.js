@@ -14,7 +14,7 @@ const mockApp = {
 };
 
 const mockLoadSettings = () => ({
-    GROQ_API_KEY: 'test-key',
+    apiKeys: { groq: 'test-key' },
     model: 'llama-3.3-70b-versatile',
 });
 

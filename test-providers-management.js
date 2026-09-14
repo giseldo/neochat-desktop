@@ -30,8 +30,8 @@ console.log('  ✓ Presets exist (' + presetKeys.length + ' presets found)');
 console.log('Test 2: Configured vs Active status...');
 const mockSettings = {
   provider: 'groq',
-  GROQ_API_KEY: 'gsk_test123',
   apiKeys: {
+    groq: 'gsk_test123',
     openai: 'sk-test456',
     deepseek: '<replace me>'
   },

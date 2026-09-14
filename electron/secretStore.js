@@ -1,7 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 
-const SECRET_FIELDS = ['apiKeys', 'GROQ_API_KEY', 'googleOAuthToken', 'googleRefreshToken', 'googleClientSecret'];
+const SECRET_FIELDS = ['apiKeys', 'googleOAuthToken', 'googleRefreshToken', 'googleClientSecret'];
 
 function createSecretStore({ userDataPath, safeStorage }) {
     const vaultPath = path.join(userDataPath, 'secrets.vault');

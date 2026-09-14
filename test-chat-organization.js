@@ -13,7 +13,7 @@ const mockApp = {
 };
 
 const mockLoadSettings = () => ({
-    GROQ_API_KEY: 'test-key',
+    apiKeys: { groq: 'test-key' },
     model: 'llama-3.3-70b-versatile',
 });
 
@@ -87,7 +87,7 @@ async function runTests() {
 
         // 6. Test searchChatsContent includes pinned and archived fields
         console.log('\n6. Testing searchChatsContent metadata...');
-        chatHistoryManager.updateChatTitle(chat1.id, 'Análise Financeira');
+        chatHistoryManager.updateChatTitle(chat1.id, 'Anï¿½lise Financeira');
         chatHistoryManager.togglePinChat(chat1.id, true);
         const searchResults = chatHistoryManager.searchChatsContent('Financeira');
         assert(searchResults.length > 0, 'Search should find the chat');

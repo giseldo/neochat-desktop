@@ -19,7 +19,7 @@ function isVoiceFeatureAvailable(settings) {
 	}
 	const isKeyValid = (k) => Boolean(k && typeof k === 'string' && k.trim() && k.trim() !== '<replace me>');
 	const hasVoiceApiKey = isKeyValid(settings.voiceInput?.apiKey);
-	const groqProviderKey = settings.apiKeys?.groq || settings.GROQ_API_KEY;
+	const groqProviderKey = settings.apiKeys?.groq;
 	const isGroqProviderEnabled = !Array.isArray(settings.enabledProviders) || settings.enabledProviders.includes('groq');
 	const hasGeneralGroqKey = isKeyValid(groqProviderKey) && isGroqProviderEnabled;
 	return hasVoiceApiKey || hasGeneralGroqKey;
