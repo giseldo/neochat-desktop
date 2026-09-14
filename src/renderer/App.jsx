@@ -14,7 +14,6 @@ import { useTheme } from './context/ThemeContext';
 import { Settings, PanelLeftClose, PanelLeft, Radio, MessagesSquare, Sparkles, Store, Columns2, X, FolderKanban, BookOpen, Scale, Bot, Workflow, ChevronDown, Keyboard, Key, AlertCircle, PenSquare, Terminal, Briefcase, MessageSquare, Globe, Clock, Activity, LayoutGrid, MoreHorizontal, Brain, FolderTree } from 'lucide-react';
 import { Button } from './components/ui/button';
 import { SearchableSelect } from './components/ui/SearchableSelect';
-import ContextUsageIndicator from './components/ContextUsageIndicator';
 import { cn } from './lib/utils';
 import { groupModels, getModelGroup, getModelDisplayName as getModelDisplayNameLib } from './lib/modelGrouping';
 import { extractThinking } from './lib/messageUtils';
@@ -2923,21 +2922,15 @@ function App() {
                     onToggleFavorite={handleToggleFavoriteModel}
                     dropdownPosition="bottom"
                   />
-                  <ContextUsageIndicator
-                    messages={messages}
-                    selectedModel={selectedModel}
-                    modelConfigs={modelConfigs}
-                    tooltipPosition="bottom"
-                    onClick={() => setIsModelParamsModalOpen(true)}
-                  />
+                  <Suspense fallback={null}>
+                    <ConversationStats
+                      messages={messages}
+                      selectedModel={selectedModel}
+                      modelConfigs={modelConfigs}
+                      onConfigureModel={() => setIsModelParamsModalOpen(true)}
+                    />
+                  </Suspense>
                 </div>
-              )}
-
-              {/* Conversation token count and detailed usage popover */}
-              {isPowerUser && (
-                <Suspense fallback={null}>
-                  <ConversationStats messages={messages} />
-                </Suspense>
               )}
 
               {/* Active Project Badge */}

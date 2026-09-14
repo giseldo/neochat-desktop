@@ -1,10 +1,12 @@
 import React, { useState, useMemo, useEffect, useRef, useId } from 'react';
-import { Activity, ChevronDown } from 'lucide-react';
+import { Activity, ChevronDown, SlidersHorizontal } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
 import { cn } from '../lib/utils';
+import { calculateContextUsage } from '../lib/contextUsage';
 
-export function ConversationStats({ messages = [], className }) {
-  const { t, language } = useLanguage();
+export function ConversationStats({ messages = [], selectedModel = '', modelConfigs = {}, onConfigureModel, className }) {
+  const { language } = useLanguage();
+  const contextUsage = useMemo(() => calculateContextUsage({ messages, selectedModel, modelConfigs }), [messages, selectedModel, modelConfigs]);
   const [isOpen, setIsOpen] = useState(false);
   const triggerRef = useRef(null);
   const panelId = useId();
@@ -93,15 +95,10 @@ export function ConversationStats({ messages = [], className }) {
     };
   }, [messages]);
 
-  // If there are no messages or no tokens recorded yet, hide or show minimal
-  if (stats.totalTurns === 0 || (stats.totalTokens === 0 && !stats.totalTimeSec)) {
-    return null;
-  }
-
   const promptPercent = stats.totalTokens > 0 
     ? Math.round((stats.totalPromptTokens / stats.totalTokens) * 100) 
-    : 50;
-  const completionPercent = 100 - promptPercent;
+    : 0;
+  const completionPercent = stats.totalTokens > 0 ? 100 - promptPercent : 0;
 
   const formatNumber = (num) => (num ? num.toLocaleString(language === 'pt' ? 'pt-BR' : 'en-US') : '0');
   const locale = language === 'pt' ? 'pt-BR' : 'en-US';
@@ -114,6 +111,8 @@ export function ConversationStats({ messages = [], className }) {
   const inputLabel = pt ? 'Entrada' : 'Input';
   const outputLabel = pt ? 'Saída' : 'Output';
   const title = pt ? 'Métricas da conversa' : 'Conversation metrics';
+  const contextLabel = pt ? 'Ocupação do contexto' : 'Context usage';
+  const usageColor = contextUsage.clampedPercentage >= 90 ? 'text-rose-500' : contextUsage.clampedPercentage >= 70 ? 'text-amber-500' : 'text-muted-foreground';
 
   return (
     <div className={cn("relative inline-block text-left select-none font-sans", className)}>
@@ -123,24 +122,37 @@ export function ConversationStats({ messages = [], className }) {
         onClick={() => setIsOpen(!isOpen)}
         aria-expanded={isOpen}
         aria-controls={panelId}
-        className="flex items-center gap-1.5 px-2 py-1 rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground transition-colors text-xs cursor-pointer"
-        title={t('stats.buttonTitle')}
+        className={cn("h-8 flex items-center gap-1.5 px-2 rounded-lg hover:bg-muted hover:text-foreground transition-colors text-xs cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50", usageColor)}
+        title={title}
+        aria-label={`${pt ? 'Uso' : 'Usage'} · ${contextUsage.displayPercentage}% · ${contextLabel} · ${formatNumber(stats.totalTokens)} tokens`}
       >
         <Activity className="w-3.5 h-3.5 shrink-0" />
-        <span className="tabular-nums">{formatNumber(stats.totalTokens)} tokens</span>
+        <span className="tabular-nums whitespace-nowrap">{pt ? 'Uso' : 'Usage'} · {contextUsage.displayPercentage}% · {formatNumber(stats.totalTokens)} tokens</span>
         <ChevronDown className={cn("w-3 h-3 transition-transform", isOpen && "rotate-180")} />
       </button>
 
       {isOpen && (
         <>
           <div className="fixed inset-0 z-40" onClick={() => setIsOpen(false)} />
-          <section id={panelId} aria-label={title} className="absolute right-0 mt-2 w-[340px] max-w-[calc(100vw-24px)] max-h-[calc(100vh-80px)] overflow-y-auto rounded-xl border border-border/60 bg-popover text-popover-foreground p-5 shadow-lg z-50">
+          <section id={panelId} aria-label={title} className="absolute left-0 mt-2 w-[340px] max-w-[calc(100vw-24px)] max-h-[calc(100vh-80px)] overflow-y-auto rounded-xl border border-border/60 bg-popover text-popover-foreground p-5 shadow-lg z-50">
             <header className="mb-5">
               <h4 className="font-semibold text-sm text-foreground">{title}</h4>
               <p className="mt-1 text-xs text-muted-foreground">
                 {formatNumber(stats.totalTurns)} {stats.totalTurns === 1 ? (pt ? 'mensagem' : 'message') : (pt ? 'mensagens' : 'messages')}
               </p>
             </header>
+
+            <div className="mb-5 space-y-2">
+              <div className="flex items-center justify-between gap-3 text-xs">
+                <span className="text-muted-foreground">{contextLabel}</span>
+                <span className={cn('font-medium tabular-nums', usageColor)}>{contextUsage.usedPctStr}%</span>
+              </div>
+              <div role="progressbar" aria-label={contextLabel} aria-valuemin={0} aria-valuemax={100} aria-valuenow={contextUsage.clampedPercentage} className="h-1.5 rounded-full overflow-hidden bg-muted">
+                <div className={cn('h-full', contextUsage.clampedPercentage >= 90 ? 'bg-rose-500' : contextUsage.clampedPercentage >= 70 ? 'bg-amber-500' : 'bg-primary')} style={{ width: `${contextUsage.clampedPercentage}%` }} />
+              </div>
+              <p className="text-xs text-muted-foreground tabular-nums">{formatNumber(contextUsage.conversationTokens)} / {formatNumber(contextUsage.totalContext)} tokens</p>
+              <p className="text-[11px] text-muted-foreground">{pt ? 'Estimativa de ocupação; o total abaixo acumula os turnos da conversa.' : 'Estimated usage; the total below accumulates conversation turns.'}</p>
+            </div>
 
             <dl className="grid grid-cols-2 gap-4 mb-5">
               <div>
@@ -179,7 +191,7 @@ export function ConversationStats({ messages = [], className }) {
               </div>
               <div className="flex justify-between items-baseline gap-3">
                 <dt className="text-muted-foreground">{pt ? 'Contexto atual' : 'Current context'}</dt>
-                <dd className="font-medium text-right tabular-nums">{formatNumber(stats.latestContextSize)} tokens</dd>
+                <dd className="font-medium text-right tabular-nums">{formatNumber(contextUsage.conversationTokens)} tokens</dd>
               </div>
               {stats.totalCachedTokens > 0 && (
                 <div className="flex justify-between items-baseline gap-3">
@@ -194,6 +206,12 @@ export function ConversationStats({ messages = [], className }) {
                 </dd>
               </div>
             </dl>
+            {onConfigureModel && (
+              <button type="button" onClick={() => { setIsOpen(false); onConfigureModel(); }} className="mt-4 pt-3 border-t border-border/50 w-full flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50">
+                <SlidersHorizontal className="w-3.5 h-3.5" />
+                {pt ? 'Parâmetros do modelo' : 'Model parameters'}
+              </button>
+            )}
           </section>
         </>
       )}
