@@ -48,7 +48,6 @@ function ChatInput({
 	agentHarness = "native",
 	onHarnessChange,
 	workspaceInfo = null,
-	onSelectWorkspace,
 	favoriteModels = [],
 	onToggleFavoriteModel,
 	activePersona = null,
@@ -834,16 +833,16 @@ function ChatInput({
 		}
 	};
 
-	// Calculate if we're at max height (10 rows + padding)
-	// Account for padding (py-3 = 0.75rem * 2 = 1.5rem = 24px at default font size)
-	const maxHeightThreshold = rowHeight ? (rowHeight * 10) + 24 : null;
+	// Calculate if we're at the compact maximum height (8 rows + padding)
+	// Account for the compact vertical padding used by the textarea.
+	const maxHeightThreshold = rowHeight ? (rowHeight * 8) + 16 : null;
 	const isAtMaxHeight = textareaHeight && maxHeightThreshold && textareaHeight >= maxHeightThreshold;
 
 	return (
     <div 
 			className={cn(
-				"flex flex-col gap-2 border rounded-2xl w-full mx-auto p-3 bg-background relative transition-colors focus-within:border-primary/40",
-				harnessMode === 'code' ? "border-amber-500/40 ring-1 ring-amber-500/20" : "border-border/80",
+				"flex flex-col gap-1.5 border rounded-2xl w-full mx-auto p-2.5 bg-background relative transition-colors shadow-sm focus-within:border-primary/50 focus-within:ring-1 focus-within:ring-primary/10",
+				harnessMode === 'code' ? "border-primary/35" : "border-border/80",
 				isDragOver 
 					? "border-primary border-2 bg-primary/5 transition-all duration-200" 
 					: ""
@@ -852,7 +851,7 @@ function ChatInput({
 			onDragLeave={handleDragLeave}
 			onDrop={handleDrop}
 		>
-		<form onSubmit={handleSubmit} className="flex flex-col gap-4">
+		<form onSubmit={handleSubmit} className="flex flex-col gap-2.5">
 			{/* File Previews Area */}
 			{files.length > 0 && (
 				<div className="flex flex-col gap-3">
@@ -908,7 +907,7 @@ function ChatInput({
 
 			{/* Active Code Workspace Indicator */}
 			{harnessMode === 'code' && (
-				<div className="flex items-center justify-between gap-2 px-1 pt-0.5 text-xs select-none animate-in fade-in duration-200">
+				<div className="flex items-center gap-2 px-1 text-xs select-none animate-in fade-in duration-200">
 					<div className="flex items-center gap-1.5 min-w-0">
 						<Terminal className="w-3.5 h-3.5 text-amber-500 shrink-0" />
 						<span className="text-amber-600 dark:text-amber-400 font-semibold shrink-0">
@@ -952,15 +951,6 @@ function ChatInput({
 							)}
 						</button>
 					</div>
-					{onSelectWorkspace && (
-						<button
-							type="button"
-							onClick={onSelectWorkspace}
-							className="text-[11px] text-amber-600 dark:text-amber-400 hover:underline font-medium shrink-0 cursor-pointer"
-						>
-							{workspaceInfo?.root ? t('common.edit') : t('chat.selectWorkspace')}
-						</button>
-					)}
 				</div>
 			)}
 
@@ -1039,9 +1029,9 @@ function ChatInput({
 				</div>
 			)}
 
-			<div className="flex flex-col gap-3">
+			<div className="flex flex-col gap-1.5">
 				{/* Input Area with Submit Button */}
-				<div className="flex items-center gap-3">
+				<div className="flex items-center gap-2">
 					<div className="flex-1 relative">
 						{/* Slash Commands Popover */}
 						{isSlashMenuOpen && (
@@ -1077,7 +1067,7 @@ function ChatInput({
 												: t('chat.askAnything'))
 							}
 							className={cn(
-								"w-full px-4 py-3 bg-transparent resize-none border-0 rounded-2xl text-foreground placeholder:text-muted-foreground focus:outline-none",
+								"w-full px-3 py-2 bg-transparent resize-none border-0 rounded-xl text-foreground placeholder:text-muted-foreground focus:outline-none",
 								// Control overflow based on whether we're at max height
 								isAtMaxHeight ? "overflow-y-auto" : "overflow-y-hidden"
 							)}
@@ -1087,7 +1077,7 @@ function ChatInput({
 								scrollbarGutter: 'stable'
 							}}
 							minRows={1}
-							maxRows={10}
+							maxRows={8}
 							cacheMeasurements={true}
 						/>
 						{/* Drag overlay */}
@@ -1106,7 +1096,7 @@ function ChatInput({
 							type={loading ? "button" : "submit"}
 							size="icon"
 							className={cn(
-								"h-12 w-12 rounded-2xl transition-all duration-200 shadow-md hover:shadow-lg flex items-center justify-center shrink-0",
+								"h-10 w-10 rounded-xl transition-all duration-200 shadow-sm hover:shadow-md flex items-center justify-center shrink-0",
 								imageMode 
 									? "bg-purple-600 hover:bg-purple-700 text-white shadow-purple-500/20 hover:scale-105" 
 									: "bg-primary hover:bg-primary/90 text-primary-foreground hover:scale-105"
@@ -1122,7 +1112,7 @@ function ChatInput({
 							) : imageMode ? (
 								<Sparkles className="w-6 h-6" aria-hidden="true" />
 							) : (
-								<ArrowRight className="w-6 h-6" aria-hidden="true" />
+								<ArrowRight className="w-5 h-5" aria-hidden="true" />
 							)}
 						</Button>
 					</div>

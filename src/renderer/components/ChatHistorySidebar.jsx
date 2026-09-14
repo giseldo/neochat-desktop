@@ -289,21 +289,29 @@ function ChatHistorySidebar({
   const menuButtonRefs = useRef({});
   const editInputRef = useRef(null);
 
-  // Top-level Navigation Tab: 'sessions' | 'bots' (inspired by Hermes & Grok)
+  // Stable top-level navigation for the three primary product areas.
   const [sidebarNavTab, setSidebarNavTab] = useState(() => {
     try {
-      return localStorage.getItem('neochat_sidebar_nav_tab') || 'sessions';
+      const savedTab = localStorage.getItem('neochat_sidebar_nav_tab');
+      return savedTab === 'bots' ? 'bots' : (harnessMode === 'code' ? 'code' : 'chat');
     } catch (e) {
-      return 'sessions';
+      return harnessMode === 'code' ? 'code' : 'chat';
     }
   });
 
   const handleSidebarNavTabChange = (tab) => {
     setSidebarNavTab(tab);
+    if (tab === 'chat' || tab === 'code') onModeChange?.(tab);
     try {
       localStorage.setItem('neochat_sidebar_nav_tab', tab);
     } catch (e) {}
   };
+
+  useEffect(() => {
+    if (sidebarNavTab !== 'bots') {
+      setSidebarNavTab(harnessMode === 'code' ? 'code' : 'chat');
+    }
+  }, [harnessMode]);
 
   // Bot search & state
   const [botSearchQuery, setBotSearchQuery] = useState('');
@@ -1598,32 +1606,47 @@ function ChatHistorySidebar({
         </div>
       </div>
 
-      {/* Primary Top Tab Switcher: SESSIONS | BOTS (Hermes style) */}
-      <div className="px-3 pt-1 pb-1">
-        <div className="flex items-center border-b border-border/40 text-xs">
+      {/* Stable primary navigation */}
+      <div className="px-3 pt-1 pb-2">
+        <div className="grid grid-cols-3 items-center gap-1 rounded-xl bg-muted/60 p-1 text-xs border border-border/50">
           <button
             type="button"
-            onClick={() => handleSidebarNavTabChange('sessions')}
+            onClick={() => handleSidebarNavTabChange('chat')}
             className={cn(
-              "pb-2 px-3 font-semibold text-xs tracking-wider transition-all relative cursor-pointer",
-              sidebarNavTab === 'sessions'
-                ? "text-foreground after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-primary font-bold"
-                : "text-muted-foreground hover:text-foreground font-medium"
+              "h-8 px-2 rounded-lg font-semibold transition-all cursor-pointer flex items-center justify-center gap-1.5",
+              sidebarNavTab === 'chat'
+                ? "bg-background text-foreground shadow-xs"
+                : "text-muted-foreground hover:text-foreground hover:bg-background/50"
             )}
           >
-            {t('sidebar.sessionsTabShort') || 'SESSIONS'}
+            <MessageSquare className={cn("w-3.5 h-3.5", sidebarNavTab === 'chat' && "text-primary")} />
+            <span>{t('chat.chatModeChat') || 'Chat'}</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => handleSidebarNavTabChange('code')}
+            className={cn(
+              "h-8 px-2 rounded-lg font-semibold transition-all cursor-pointer flex items-center justify-center gap-1.5",
+              sidebarNavTab === 'code'
+                ? "bg-background text-foreground shadow-xs"
+                : "text-muted-foreground hover:text-foreground hover:bg-background/50"
+            )}
+          >
+            <Code className={cn("w-3.5 h-3.5", sidebarNavTab === 'code' && "text-orange-500")} />
+            <span>{t('chat.chatModeCode') || 'Code'}</span>
           </button>
           <button
             type="button"
             onClick={() => handleSidebarNavTabChange('bots')}
             className={cn(
-              "pb-2 px-3 font-semibold text-xs tracking-wider transition-all relative cursor-pointer flex items-center gap-1.5",
+              "h-8 px-2 rounded-lg font-semibold transition-all cursor-pointer flex items-center justify-center gap-1.5",
               sidebarNavTab === 'bots'
-                ? "text-foreground after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-primary font-bold"
-                : "text-muted-foreground hover:text-foreground font-medium"
+                ? "bg-background text-foreground shadow-xs"
+                : "text-muted-foreground hover:text-foreground hover:bg-background/50"
             )}
           >
-            <span>{t('sidebar.botsTabShort') || 'BOTS'}</span>
+            <Bot className={cn("w-3.5 h-3.5", sidebarNavTab === 'bots' && "text-primary")} />
+            <span>{t('sidebar.botsTabShort') || 'Bots'}</span>
             <span className={cn(
               "text-[10px] px-1.5 py-0.2 rounded-full font-mono font-semibold",
               sidebarNavTab === 'bots' ? "bg-primary/20 text-primary" : "bg-muted text-muted-foreground"
@@ -1763,43 +1786,6 @@ function ChatHistorySidebar({
         </div>
       ) : (
         <>
-      {/* Mode Switcher: Chat | Code */}
-      {onModeChange && (
-        <div className="px-2.5 pt-2 pb-0.5">
-          <div className="flex items-center gap-1 p-0.5">
-            <button
-              type="button"
-              onClick={() => onModeChange('chat')}
-              className={cn(
-                "flex-1 py-1 px-1.5 text-xs font-semibold rounded-lg transition-all flex items-center justify-center gap-1.5 cursor-pointer",
-                harnessMode === 'chat'
-                  ? "bg-muted text-foreground font-medium"
-                  : "text-muted-foreground hover:text-foreground"
-              )}
-              title={t('chat.chatModeChatTooltip') || t('chat.chatModeChat')}
-            >
-              <MessageSquare className="w-3.5 h-3.5 shrink-0" />
-              <span className="truncate">{t('chat.chatModeChat')}</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => onModeChange('code')}
-              className={cn(
-                "flex-1 py-1 px-1.5 text-xs font-semibold rounded-lg transition-all flex items-center justify-center gap-1.5 cursor-pointer",
-                harnessMode === 'code'
-                  ? "bg-muted text-foreground font-medium"
-                  : "text-muted-foreground hover:text-foreground"
-              )}
-              title={t('chat.chatModeCodeTooltip')}
-            >
-              <Terminal className="w-3.5 h-3.5 shrink-0" />
-              <span className="truncate">{t('chat.chatModeCode')}</span>
-            </button>
-          </div>
-        </div>
-      )}
-
       {/* In Code mode: Sub-tabs between [ Arquivos ] and [ Conversas ] */}
       {harnessMode === 'code' && (
         <div className="px-2.5 pt-1.5 pb-0.5">

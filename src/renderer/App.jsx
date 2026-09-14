@@ -4,7 +4,7 @@ import MessageList from './components/MessageList';
 import ChatInput from './components/ChatInput';
 import ChatHistorySidebar from './components/ChatHistorySidebar';
 import ThemeToggle from './components/ThemeToggle';
-import PersonaSelector, { DEFAULT_PERSONAS, getStoredActivePersona, getStoredPersonas, ACTIVE_PERSONA_STORAGE_KEY, BotAvatar } from './components/PersonaSelector';
+import { DEFAULT_PERSONAS, getStoredActivePersona, getStoredPersonas, ACTIVE_PERSONA_STORAGE_KEY, BotAvatar } from './components/PersonaSelector';
 import WelcomeScreen from './components/WelcomeScreen';
 import { useChat } from './context/ChatContext';
 import { useCanvas } from './context/CanvasContext';
@@ -33,7 +33,6 @@ const ArtifactsPanel = lazy(() => import('./components/ArtifactsPanel'));
 const CanvasPanel = lazy(() => import('./components/CanvasPanel'));
 const WorkspaceExplorerPanel = lazy(() => import('./components/WorkspaceExplorerPanel'));
 const McpCatalogModal = lazy(() => import('./components/McpCatalogModal'));
-const ConversationStats = lazy(() => import('./components/ConversationStats'));
 const TrajectoryView = lazy(() => import('./components/TrajectoryView'));
 const ProjectModal = lazy(() => import('./components/ProjectModal'));
 const MoveToProjectModal = lazy(() => import('./components/MoveToProjectModal'));
@@ -2863,53 +2862,42 @@ function App() {
                 </Button>
               )}
 
-              {/* View Tabs Selector: Chat | Trajetória */}
-              {isPowerUser && showTrajectoryTab && (
-                <div className="flex items-center p-0.5 rounded-xl bg-muted/60 border border-border/60 text-xs shadow-2xs">
+              {/* Trajectory is a secondary detail view; primary modes live in the sidebar. */}
+              {isPowerUser && showTrajectoryTab && activeTab === 'trajectory' && (
+                <div className="flex items-center rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-xs">
                   <button
                     type="button"
                     onClick={() => setActiveTab('chat')}
-                    className={cn(
-                      "h-7 px-2.5 rounded-lg font-medium transition-all flex items-center gap-1.5 cursor-pointer select-none",
-                      activeTab === 'chat'
-                        ? "bg-background text-foreground shadow-xs font-semibold"
-                        : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
-                    )}
+                    className="h-7 px-2.5 rounded-lg font-medium transition-all flex items-center gap-1.5 cursor-pointer text-muted-foreground hover:text-foreground"
                     title={t('chat.chatModeChat') || 'Conversa'}
                   >
-                    <MessageSquare className={cn("w-3.5 h-3.5 transition-colors", activeTab === 'chat' ? "text-primary" : "text-muted-foreground")} />
+                    <MessageSquare className="w-3.5 h-3.5" />
                     <span>{t('chat.chatModeChat') || 'Chat'}</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setActiveTab('trajectory')}
-                    className={cn(
-                      "h-7 px-2.5 rounded-lg font-medium transition-all flex items-center gap-1.5 cursor-pointer select-none",
-                      activeTab === 'trajectory'
-                        ? "bg-background text-emerald-600 dark:text-emerald-400 shadow-xs font-semibold"
-                        : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
-                    )}
-                    title={t('trajectory.trajectoryTab') || 'Visualizar Trajetória'}
-                  >
-                    <Activity className={cn("w-3.5 h-3.5 transition-colors", activeTab === 'trajectory' ? "text-emerald-500" : "text-muted-foreground")} />
+                    <span className="text-muted-foreground/50">/</span>
+                    <Activity className="w-3.5 h-3.5 text-emerald-500" />
                     <span>{t('trajectory.trajectoryTab') || 'Trajetória'}</span>
                   </button>
                 </div>
               )}
 
               {/* Header section separator */}
-              {isPowerUser && showTrajectoryTab && (
+              {isPowerUser && showTrajectoryTab && activeTab === 'trajectory' && (
                 <div className="h-4 w-px bg-border/60 mx-0.5 hidden sm:block" />
               )}
 
-              {/* Persona / Bot Selector */}
-              <PersonaSelector
-                activePersona={activePersona}
-                onSelectPersona={setActivePersona}
-              />
-
-              {/* Divider between Persona and Model */}
-              <div className="h-4 w-px bg-border/60 mx-0.5 sm:mx-1 shrink-0" />
+              {isPowerUser && showTrajectoryTab && activeTab === 'chat' && messages.length > 0 && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setActiveTab('trajectory')}
+                  className="h-8 w-8 rounded-xl text-muted-foreground hover:text-emerald-600 hover:bg-emerald-500/10"
+                  title={t('trajectory.trajectoryTab') || 'Visualizar Trajetória'}
+                  aria-label={t('trajectory.trajectoryTab') || 'Visualizar Trajetória'}
+                >
+                  <Activity className="h-4 w-4" />
+                </Button>
+              )}
 
               {/* Model Selector & Parameters */}
               {sortedModels.length === 0 ? (
@@ -2977,33 +2965,6 @@ function App() {
                 </div>
               )}
 
-              {/* Project Knowledge Base (RAG) Button */}
-              {isPowerUser && activeProject && (
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  onClick={openKnowledgeBaseModal}
-                  className="h-7 px-2.5 text-xs flex items-center gap-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted"
-                  title={t('rag.viewKnowledge')}
-                >
-                  <BookOpen className="w-3.5 h-3.5" />
-                  {showButtonLabels && (
-                    <span className="hidden sm:inline font-medium">
-                      {activeProject.folders?.length > 0
-                        ? `${activeProject.folders.length} ${activeProject.folders.length === 1 ? 'pasta' : 'pastas'}`
-                        : t('rag.knowledgeBase')}
-                    </span>
-                  )}
-                </Button>
-              )}
-
-              {/* Total Conversation Metrics & Token Summation */}
-              {isPowerUser && (
-                <Suspense fallback={null}>
-                  <ConversationStats messages={messages} />
-                </Suspense>
-              )}
             </div>
 
             <div className="flex items-center space-x-1.5 sm:space-x-2">
@@ -3692,7 +3653,7 @@ function App() {
                     </button>
                   )}
                   
-                  <div className="flex-shrink-0 bg-background/95 backdrop-blur pt-6 px-4">
+                  <div className="flex-shrink-0 bg-background/95 backdrop-blur pt-3 px-4">
                     <ChatInput
                       messages={messages}
                       onSendMessage={handleSendMessage}
