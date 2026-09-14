@@ -92,9 +92,9 @@ export const ChatProvider = ({ children }) => {
   }, []);
 
   // Create a new chat
-  const createNewChat = useCallback(async (model, useResponsesApi = false, projectId = null) => {
+  const createNewChat = useCallback(async (model, useResponsesApi = false, projectId = null, personaId = null) => {
     try {
-      const chat = await window.electron.chatHistory.create(model, useResponsesApi, projectId);
+      const chat = await window.electron.chatHistory.create(model, useResponsesApi, projectId, personaId);
       if (chat) {
         // Update both state and ref immediately
         currentChatIdRef.current = chat.id;
@@ -103,7 +103,7 @@ export const ChatProvider = ({ children }) => {
         needsTitleGeneration.current = true;
         // Refresh the chat list
         await loadChatList();
-        console.log('[ChatContext] Created new chat:', chat.id, 'useResponsesApi:', useResponsesApi, 'projectId:', projectId);
+        console.log('[ChatContext] Created new chat:', chat.id, 'useResponsesApi:', useResponsesApi, 'projectId:', projectId, 'personaId:', personaId);
         return chat;
       }
     } catch (error) {
@@ -111,6 +111,18 @@ export const ChatProvider = ({ children }) => {
     }
     return null;
   }, [loadChatList]);
+
+  // Update persona/bot assigned to a chat
+  const updateChatPersonaLocally = useCallback((chatId, personaId) => {
+    setChatList(prev => prev.map(chat =>
+      chat.id === chatId ? { ...chat, personaId } : chat
+    ));
+    if (window.electron?.chatHistory?.updatePersona) {
+      window.electron.chatHistory.updatePersona(chatId, personaId).catch(err => {
+        console.error('Error updating chat persona:', err);
+      });
+    }
+  }, []);
 
   // Load a specific chat
   const loadChat = useCallback(async (chatId) => {
@@ -359,6 +371,7 @@ export const ChatProvider = ({ children }) => {
     deleteAllChats,
     clearCurrentChat,
     updateChatProject,
+    updateChatPersonaLocally,
     renameChat,
     togglePinChat,
     toggleArchiveChat,

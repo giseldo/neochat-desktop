@@ -246,6 +246,7 @@ function ChatHistorySidebar({
   onInsertPrompt,
   activePersona = null,
   onSelectPersona = null,
+  onSelectBotChat = null,
 }) {
   const { 
     chatList, 
@@ -339,15 +340,7 @@ function ChatHistorySidebar({
         const existing = map.get(bId);
         const chatDate = new Date(chat.updatedAt || chat.createdAt || 0).getTime();
         if (!existing || chatDate > existing.date) {
-          const lastMsg = (chat.messages && chat.messages.length > 0)
-            ? chat.messages[chat.messages.length - 1]
-            : null;
-          let preview = '';
-          if (lastMsg) {
-            preview = typeof lastMsg.content === 'string'
-              ? lastMsg.content
-              : (Array.isArray(lastMsg.content) ? lastMsg.content.map(c => c.text || '').join(' ') : '');
-          }
+          const preview = chat.lastMessagePreview || '';
           map.set(bId, {
             chatId: chat.id,
             date: chatDate,
@@ -360,17 +353,23 @@ function ChatHistorySidebar({
     return map;
   }, [chatList]);
 
-  const handleBotClick = async (bot) => {
+  const handleBotClick = async (bot, forceNew = false) => {
     if (loading) return;
+    if (onSelectBotChat) {
+      await onSelectBotChat(bot, { forceNew });
+      return;
+    }
     if (onSelectPersona) {
       onSelectPersona(bot);
     }
-    const interaction = botLastInteractionMap.get(bot.id);
-    if (interaction && interaction.chatId) {
-      handleChatClick(interaction.chatId);
-    } else {
-      onNewChat();
+    if (!forceNew) {
+      const interaction = botLastInteractionMap.get(bot.id);
+      if (interaction && interaction.chatId) {
+        handleChatClick(interaction.chatId);
+        return;
+      }
     }
+    onNewChat();
   };
 
   const handleOpenCreateBot = () => {
@@ -935,6 +934,7 @@ function ChatHistorySidebar({
     const isEditing = editingChatId === chat.id;
     const isPinned = Boolean(chat.pinned);
     const isArchived = Boolean(chat.archived);
+    const matchedBot = chat.personaId ? allPersonas.find(p => p.id === chat.personaId) : null;
 
     return (
       <div
@@ -960,11 +960,15 @@ function ChatHistorySidebar({
         }}
       >
         <div className="flex items-center gap-1.5 min-w-0 flex-1 pr-1">
-          <MessageSquare className={cn(
-            "flex-shrink-0 transition-colors",
-            isIndented ? "h-3.5 w-3.5 text-muted-foreground/50 group-hover:text-primary" : "h-3.5 w-3.5 text-muted-foreground/60 group-hover:text-primary",
-            isCurrent && "text-primary font-semibold"
-          )} />
+          {matchedBot ? (
+            <BotAvatar persona={matchedBot} className="w-3.5 h-3.5 rounded-sm shadow-2xs shrink-0" iconClassName="w-2.5 h-2.5" />
+          ) : (
+            <MessageSquare className={cn(
+              "flex-shrink-0 transition-colors",
+              isIndented ? "h-3.5 w-3.5 text-muted-foreground/50 group-hover:text-primary" : "h-3.5 w-3.5 text-muted-foreground/60 group-hover:text-primary",
+              isCurrent && "text-primary font-semibold"
+            )} />
+          )}
 
           {isEditing ? (
             <div className="flex items-center gap-1 min-w-0 flex-1" onClick={(e) => e.stopPropagation()}>
@@ -1689,7 +1693,7 @@ function ChatHistorySidebar({
                 return (
                   <div
                     key={bot.id}
-                    onClick={() => handleBotClick(bot)}
+                    onClick={() => handleBotClick(bot, false)}
                     className={cn(
                       "group relative flex items-center gap-3 p-2.5 rounded-xl cursor-pointer transition-all border",
                       isSelected 
@@ -1725,8 +1729,7 @@ function ChatHistorySidebar({
                         type="button"
                         onClick={(e) => {
                           e.stopPropagation();
-                          if (onSelectPersona) onSelectPersona(bot);
-                          onNewChat();
+                          handleBotClick(bot, true);
                         }}
                         className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-primary transition-colors cursor-pointer"
                         title={t('sidebar.newChat') || 'Nova conversa'}

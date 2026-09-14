@@ -61,7 +61,7 @@ function resolveEffectiveModel(model) {
  * @param {string|null} projectId - Optional project ID to associate with this chat
  * @returns {Object} The new chat object
  */
-function createChat(model = null, useResponsesApi = false, projectId = null) {
+function createChat(model = null, useResponsesApi = false, projectId = null, personaId = null) {
     const effectiveModel = resolveEffectiveModel(model);
     const now = new Date().toISOString();
     const chat = {
@@ -72,6 +72,7 @@ function createChat(model = null, useResponsesApi = false, projectId = null) {
         model: effectiveModel,
         useResponsesApi: useResponsesApi,
         projectId: projectId || null,
+        personaId: personaId || null,
         pinned: false,
         pinnedAt: null,
         archived: false,
@@ -205,6 +206,12 @@ function listChats() {
                         messageCount: chat.messages?.length || 0,
                         useResponsesApi: chat.useResponsesApi || false,
                         projectId: chat.projectId || null,
+                        personaId: chat.personaId || null,
+                        lastMessagePreview: (chat.messages && chat.messages.length > 0)
+                            ? (typeof chat.messages[chat.messages.length - 1].content === 'string'
+                                ? chat.messages[chat.messages.length - 1].content.slice(0, 120)
+                                : '')
+                            : '',
                         pinned: Boolean(chat.pinned),
                         pinnedAt: chat.pinnedAt || null,
                         archived: Boolean(chat.archived),
@@ -277,6 +284,24 @@ function updateChatProject(chatId, projectId) {
     }
     
     chat.projectId = projectId || null;
+    saveChat(chat);
+    return chat;
+}
+
+/**
+ * Update a chat's associated persona / bot ID
+ * @param {string} chatId - The chat ID
+ * @param {string|null} personaId - The new persona ID (or null to unassign)
+ * @returns {Object|null} The updated chat object
+ */
+function updateChatPersona(chatId, personaId) {
+    const chat = loadChat(chatId);
+    if (!chat) {
+        console.error(`Chat ${chatId} not found for persona update`);
+        return null;
+    }
+    
+    chat.personaId = personaId || null;
     saveChat(chat);
     return chat;
 }
@@ -486,9 +511,9 @@ function initializeChatHistoryHandlers(ipcMain) {
         return loadChat(chatId);
     });
     
-    // Create a new chat (with optional projectId)
-    ipcMain.handle('chat-history-create', async (event, model, useResponsesApi, projectId) => {
-        return createChat(model, useResponsesApi, projectId);
+    // Create a new chat (with optional projectId and personaId)
+    ipcMain.handle('chat-history-create', async (event, model, useResponsesApi, projectId, personaId) => {
+        return createChat(model, useResponsesApi, projectId, personaId);
     });
 
     ipcMain.handle('chat-history-branch', async (_event, chatId, messageIndex) => {
@@ -518,6 +543,11 @@ function initializeChatHistoryHandlers(ipcMain) {
     // Update chat project
     ipcMain.handle('chat-history-update-project', async (event, chatId, projectId) => {
         return updateChatProject(chatId, projectId);
+    });
+
+    // Update chat persona / bot
+    ipcMain.handle('chat-history-update-persona', async (event, chatId, personaId) => {
+        return updateChatPersona(chatId, personaId);
     });
 
     // Update chat canvas document
@@ -757,6 +787,7 @@ module.exports = {
     updateChatMessages,
     updateChatTitle,
     updateChatProject,
+    updateChatPersona,
     updateChatCanvasDoc,
     unassignProjectFromChats,
     generateChatTitle,

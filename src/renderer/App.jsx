@@ -71,7 +71,8 @@ function App() {
     isSidebarCollapsed,
     toggleSidebar,
     collapseSidebar,
-    needsTitleGeneration
+    needsTitleGeneration,
+    updateChatPersonaLocally
   } = useChat(); // Use context state
   const {
     canvasDoc,
@@ -1854,12 +1855,19 @@ function App() {
 
     if (!hasContent) return;
 
-    // If no current chat exists, create one first with current API mode
+    // If no current chat exists, create one first with current API mode and active bot/project
     let activeChatId = currentChatId;
+    const personaIdToUse = (activePersona?.id && activePersona.id !== 'none' && activePersona.id !== 'disabled') ? activePersona.id : null;
     if (!activeChatId) {
-      const createdChat = await createNewChat(selectedModel, useResponsesApi);
+      const createdChat = await createNewChat(selectedModel, useResponsesApi, activeProjectId, personaIdToUse);
       activeChatId = createdChat?.id;
       if (!activeChatId) return;
+    } else if (personaIdToUse) {
+      // Sync personaId to existing chat if not already set
+      const currentChatMeta = (chatList || []).find(c => c.id === activeChatId);
+      if (currentChatMeta && currentChatMeta.personaId !== personaIdToUse) {
+        updateChatPersonaLocally(activeChatId, personaIdToUse);
+      }
     }
 
     // Reset cancellation flag for new message
@@ -2586,7 +2594,7 @@ function App() {
   };
 
   // Handle creating a new chat
-  const handleNewChat = useCallback(async (targetProjectId = undefined) => {
+  const handleNewChat = useCallback(async (targetProjectId = undefined, targetPersonaId = undefined) => {
     // Stop any ongoing streams before clearing
     if (loading) {
       console.log('Stopping streams before starting new chat...');
@@ -2610,12 +2618,16 @@ function App() {
     closeCanvas();
     setActiveArtifact(null);
 
-    // Create a new chat in history with the current API mode and target project
-    await createNewChat(selectedModel, useResponsesApi, projId);
+    const personaIdToUse = targetPersonaId !== undefined
+      ? targetPersonaId
+      : (activePersona?.id && activePersona.id !== 'none' && activePersona.id !== 'disabled' ? activePersona.id : null);
+
+    // Create a new chat in history with the current API mode and target project and personaId
+    await createNewChat(selectedModel, useResponsesApi, projId, personaIdToUse);
 
     // Signal the ChatInput to focus on the text area
     setChatFocusSignal(s => s + 1);
-  }, [loading, createNewChat, selectedModel, useResponsesApi, activeProjectId, setActiveProjectId, clearCanvas, closeCanvas]);
+  }, [loading, createNewChat, selectedModel, useResponsesApi, activeProjectId, setActiveProjectId, clearCanvas, closeCanvas, activePersona]);
 
   // Global Keyboard shortcuts:
   // - Ctrl/Cmd + N -> New Chat
@@ -2726,6 +2738,17 @@ function App() {
       setActiveProjectId(null);
     }
 
+    // Sync activePersona with chat's personaId
+    if (chat.personaId) {
+      const allBots = getStoredPersonas(t);
+      const matched = allBots.find(b => b.id === chat.personaId);
+      if (matched) {
+        setActivePersona(matched);
+      }
+    } else {
+      setActivePersona(null);
+    }
+
     if (chat.useResponsesApi !== undefined) {
       const chatApiMode = chat.useResponsesApi;
       
@@ -2745,7 +2768,44 @@ function App() {
         }
       }
     }
-  }, [useResponsesApi, setActiveProjectId, loadChatCanvas]);
+  }, [useResponsesApi, setActiveProjectId, loadChatCanvas, t]);
+
+  // Dedicated Bot / Agent Conversation Switcher (Hermes & Grok style)
+  const handleSelectBotChat = useCallback(async (bot, options = { forceNew: false }) => {
+    if (!bot) return;
+
+    // Set this bot as the active persona
+    setActivePersona(bot);
+
+    if (loading) {
+      window.electron.stopChatStream();
+      setLoading(false);
+      setPendingApprovalCall(null);
+      setPausedChatState(null);
+    }
+
+    setActiveTab('chat');
+    clearCanvas();
+    closeCanvas();
+    setActiveArtifact(null);
+
+    // If not forcing a new chat, try to find the most recent conversation with this bot
+    if (!options?.forceNew) {
+      const existingBotChat = (chatList || []).find(c => c.personaId === bot.id && !c.archived);
+      if (existingBotChat) {
+        const fullChat = await loadChat(existingBotChat.id);
+        if (fullChat) {
+          await handleChatLoaded(fullChat);
+          setChatFocusSignal(s => s + 1);
+          return;
+        }
+      }
+    }
+
+    // If no existing chat or forceNew requested, create a brand new chat dedicated to this bot
+    await createNewChat(selectedModel, useResponsesApi, activeProjectId, bot.id);
+    setChatFocusSignal(s => s + 1);
+  }, [loading, clearCanvas, closeCanvas, chatList, loadChat, handleChatLoaded, createNewChat, selectedModel, useResponsesApi, activeProjectId]);
 
   const handleBranchFromMessage = useCallback(async (messageIndex) => {
     if (!currentChatId || loading) return;
@@ -2777,6 +2837,7 @@ function App() {
         onInsertPrompt={handleInsertPrompt}
         activePersona={activePersona}
         onSelectPersona={setActivePersona}
+        onSelectBotChat={handleSelectBotChat}
       />
       
       {/* Main Content Area */}
@@ -3536,7 +3597,12 @@ function App() {
                       <div className="flex items-center gap-1 shrink-0">
                         <button
                           type="button"
-                          onClick={() => setActivePersona(null)}
+                          onClick={() => {
+                            setActivePersona(null);
+                            if (currentChatId) {
+                              updateChatPersonaLocally(currentChatId, null);
+                            }
+                          }}
                           className="px-2 py-0.5 rounded text-[10px] text-muted-foreground hover:text-foreground hover:bg-muted transition-colors cursor-pointer"
                           title={t('personas.deactivateTitle') || "Desativar bot"}
                         >
