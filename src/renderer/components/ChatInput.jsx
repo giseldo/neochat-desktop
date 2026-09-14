@@ -45,6 +45,7 @@ function ChatInput({
 	showButtonLabels = false,
 	presetMessage = "",
 	harnessMode = "chat",
+	onModeChange,
 	agentHarness = "native",
 	onHarnessChange,
 	workspaceInfo = null,
@@ -1371,6 +1372,22 @@ function ChatInput({
 							)}
 						</div>
 
+
+						{onModeChange && (
+							<Button
+								type="button"
+								variant="ghost"
+								size="icon"
+								onClick={() => onModeChange(agentModeActive ? 'chat' : 'code')}
+								disabled={loading}
+								aria-pressed={agentModeActive}
+								aria-label={language === 'pt' ? (agentModeActive ? 'Desativar modo Code' : 'Ativar modo Code') : (agentModeActive ? 'Disable Code mode' : 'Enable Code mode')}
+								title={language === 'pt' ? (agentModeActive ? 'Desativar modo Code' : 'Ativar modo Code') : (agentModeActive ? 'Disable Code mode' : 'Enable Code mode')}
+								className={cn('h-8 w-8 rounded-xl shrink-0 focus-visible:ring-2 focus-visible:ring-primary/50', agentModeActive ? 'bg-orange-500/10 text-orange-500 hover:bg-orange-500/20 hover:text-orange-600' : 'text-muted-foreground hover:text-foreground hover:bg-muted/80')}
+							>
+								<Bot className="w-4 h-4" aria-hidden="true" />
+							</Button>
+						)}
 
 						{/* Voice Dictation (Whisper) Button */}
 						{voiceInputEnabled && (

@@ -2831,8 +2831,7 @@ function App() {
         onNewChat={handleNewChat}
         onChatLoaded={handleChatLoaded}
         loading={loading}
-        harnessMode={harnessMode}
-        onModeChange={handleModeChange}
+
         activePersona={activePersona}
         onSelectPersona={setActivePersona}
         onSelectBotChat={handleSelectBotChat}
@@ -3451,6 +3450,7 @@ function App() {
                       powerUserMode={isPowerUser}
                       showButtonLabels={showButtonLabels}
                       harnessMode={harnessMode}
+                      onModeChange={handleModeChange}
                       agentHarness={agentHarness}
                       onHarnessChange={handleAgentHarnessChange}
                       workspaceInfo={workspaceInfo}
@@ -3499,6 +3499,7 @@ function App() {
                       showButtonLabels={showButtonLabels}
                       presetMessage={presetInputMessage}
                       harnessMode={harnessMode}
+                      onModeChange={handleModeChange}
                       agentHarness={agentHarness}
                       onHarnessChange={handleAgentHarnessChange}
                       workspaceInfo={workspaceInfo}
@@ -3552,6 +3553,7 @@ function App() {
                       powerUserMode={isPowerUser}
                       showButtonLabels={showButtonLabels}
                       harnessMode={harnessMode}
+                      onModeChange={handleModeChange}
                       agentHarness={agentHarness}
                       onHarnessChange={handleAgentHarnessChange}
                       workspaceInfo={workspaceInfo}
@@ -3668,6 +3670,7 @@ function App() {
                       powerUserMode={isPowerUser}
                       showButtonLabels={showButtonLabels}
                       harnessMode={harnessMode}
+                      onModeChange={handleModeChange}
                       agentHarness={agentHarness}
                       onHarnessChange={handleAgentHarnessChange}
                       workspaceInfo={workspaceInfo}

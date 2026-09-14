@@ -235,8 +235,6 @@ function ChatHistorySidebar({
   onNewChat, 
   onChatLoaded, 
   loading,
-  harnessMode = 'chat',
-  onModeChange,
   activePersona = null,
   onSelectPersona = null,
   onSelectBotChat = null,
@@ -286,25 +284,18 @@ function ChatHistorySidebar({
   const [sidebarNavTab, setSidebarNavTab] = useState(() => {
     try {
       const savedTab = localStorage.getItem('neochat_sidebar_nav_tab');
-      return savedTab === 'bots' ? 'bots' : (harnessMode === 'code' ? 'code' : 'chat');
+      return savedTab === 'bots' ? 'bots' : 'chat';
     } catch (e) {
-      return harnessMode === 'code' ? 'code' : 'chat';
+      return 'chat';
     }
   });
 
   const handleSidebarNavTabChange = (tab) => {
     setSidebarNavTab(tab);
-    if (tab === 'chat' || tab === 'code') onModeChange?.(tab);
     try {
       localStorage.setItem('neochat_sidebar_nav_tab', tab);
     } catch (e) {}
   };
-
-  useEffect(() => {
-    if (sidebarNavTab !== 'bots') {
-      setSidebarNavTab(harnessMode === 'code' ? 'code' : 'chat');
-    }
-  }, [harnessMode]);
 
   // Bot search & state
   const [botSearchQuery, setBotSearchQuery] = useState('');
@@ -1563,7 +1554,7 @@ function ChatHistorySidebar({
 
       {/* Stable primary navigation */}
       <div className="px-3 pt-1 pb-2">
-        <div className="grid grid-cols-3 items-center gap-1 rounded-xl bg-muted/60 p-1 text-xs border border-border/50">
+        <div className="grid grid-cols-2 items-center gap-1 rounded-xl bg-muted/60 p-1 text-xs border border-border/50">
           <button
             type="button"
             onClick={() => handleSidebarNavTabChange('chat')}
@@ -1576,19 +1567,6 @@ function ChatHistorySidebar({
           >
             <MessageSquare className={cn("w-3.5 h-3.5", sidebarNavTab === 'chat' && "text-primary")} />
             <span>{t('chat.chatModeChat') || 'Chat'}</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => handleSidebarNavTabChange('code')}
-            className={cn(
-              "h-8 px-2 rounded-lg font-semibold transition-all cursor-pointer flex items-center justify-center gap-1.5",
-              sidebarNavTab === 'code'
-                ? "bg-background text-foreground shadow-xs"
-                : "text-muted-foreground hover:text-foreground hover:bg-background/50"
-            )}
-          >
-            <Code className={cn("w-3.5 h-3.5", sidebarNavTab === 'code' && "text-orange-500")} />
-            <span>{t('chat.chatModeCode') || 'Code'}</span>
           </button>
           <button
             type="button"
