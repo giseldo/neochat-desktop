@@ -1,4 +1,4 @@
-export function filterModels(modelList, configs, filterParam = [], legacyParam) {
+export function filterModels(modelList, configs, filterParam = [], _legacyParam) {
   let resolvedConfigs = configs;
   let enabledList = null;
   let disabledList = [];
