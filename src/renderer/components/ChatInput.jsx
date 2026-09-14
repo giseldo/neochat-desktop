@@ -1106,10 +1106,10 @@ function ChatInput({
 							type={loading ? "button" : "submit"}
 							size="icon"
 							className={cn(
-								"h-10 w-10 rounded-xl transition-colors",
+								"h-12 w-12 rounded-2xl transition-all duration-200 shadow-md hover:shadow-lg flex items-center justify-center shrink-0",
 								imageMode 
-									? "bg-purple-600 hover:bg-purple-700 text-white shadow-md shadow-purple-500/20" 
-									: "bg-primary hover:bg-primary/90 text-primary-foreground"
+									? "bg-purple-600 hover:bg-purple-700 text-white shadow-purple-500/20 hover:scale-105" 
+									: "bg-primary hover:bg-primary/90 text-primary-foreground hover:scale-105"
 							)}
 							disabled={!loading && (!message.trim() && files.length === 0)}
 							onClick={loading ? (e) => {
@@ -1120,9 +1120,9 @@ function ChatInput({
 							{loading ? (
 								<Square className="w-5 h-5" aria-hidden="true" />
 							) : imageMode ? (
-								<Sparkles className="w-5 h-5" aria-hidden="true" />
+								<Sparkles className="w-6 h-6" aria-hidden="true" />
 							) : (
-								<ArrowRight className="w-5 h-5" aria-hidden="true" />
+								<ArrowRight className="w-6 h-6" aria-hidden="true" />
 							)}
 						</Button>
 					</div>
