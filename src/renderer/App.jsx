@@ -2833,11 +2833,6 @@ function App() {
         loading={loading}
         harnessMode={harnessMode}
         onModeChange={handleModeChange}
-        workspacePath={workspacePath}
-        workspaceInfo={workspaceInfo}
-        onSelectWorkspace={handleSelectWorkspace}
-        onOpenFileInCanvas={handleOpenFileInCanvas}
-        onInsertPrompt={handleInsertPrompt}
         activePersona={activePersona}
         onSelectPersona={setActivePersona}
         onSelectBotChat={handleSelectBotChat}

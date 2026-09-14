@@ -48,6 +48,7 @@ function ChatInput({
 	agentHarness = "native",
 	onHarnessChange,
 	workspaceInfo = null,
+	onSelectWorkspace,
 	favoriteModels = [],
 	onToggleFavoriteModel,
 	activePersona = null,
@@ -908,15 +909,23 @@ function ChatInput({
 			{/* Active Code Workspace Indicator */}
 			{harnessMode === 'code' && (
 				<div className="flex items-center gap-2 px-1 text-xs select-none animate-in fade-in duration-200">
-					<div className="flex items-center gap-1.5 min-w-0">
+					<div className="flex flex-wrap items-center gap-1.5 min-w-0">
 						<Terminal className="w-3.5 h-3.5 text-amber-500 shrink-0" />
 						<span className="text-amber-600 dark:text-amber-400 font-semibold shrink-0">
 							{t('chat.chatModeCode')}
 						</span>
 						<span className="text-muted-foreground/50">•</span>
-						<span className="text-muted-foreground truncate font-mono text-[11px]">
-							{workspaceInfo?.name || workspaceInfo?.root || t('chat.noWorkspaceSelected')}
-						</span>
+						<button
+							type="button"
+							onClick={onSelectWorkspace}
+							disabled={loading || !onSelectWorkspace}
+							className="inline-flex min-w-0 max-w-[min(16rem,100%)] items-center gap-1.5 rounded-md px-2 py-1 text-[11px] text-muted-foreground hover:bg-muted hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+							title={workspaceInfo?.root || t('chat.selectWorkspace')}
+							aria-label={workspaceInfo?.root ? `${t('chat.changeWorkspace')}: ${workspaceInfo.name || workspaceInfo.root}` : t('chat.selectWorkspace')}
+						>
+							<Briefcase className="h-3.5 w-3.5 shrink-0" />
+							<span className="truncate">{workspaceInfo?.name || workspaceInfo?.root || t('chat.chooseWorkspace')}</span>
+						</button>
 						{workspaceInfo?.git?.branch && (
 							<span className="px-1.5 py-0.5 rounded bg-muted text-muted-foreground text-[10px] font-mono shrink-0">
 								🌿 {workspaceInfo.git.branch}

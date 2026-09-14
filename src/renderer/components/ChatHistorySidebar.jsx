@@ -31,7 +31,6 @@ import {
   ArchiveRestore,
   SlidersHorizontal,
   Terminal,
-  FolderTree,
   Bot,
   Sparkles,
   Edit2,
@@ -40,7 +39,6 @@ import {
   Compass,
   Inbox
 } from 'lucide-react';
-import WorkspaceFileTree from './WorkspaceFileTree';
 import { BotAvatar, getStoredPersonas, saveCustomPersona, deleteCustomPersona, getPersonaIcon } from './PersonaSelector';
 import { cn } from '../lib/utils';
 
@@ -239,11 +237,6 @@ function ChatHistorySidebar({
   loading,
   harnessMode = 'chat',
   onModeChange,
-  workspacePath = '',
-  workspaceInfo = null,
-  onSelectWorkspace,
-  onOpenFileInCanvas,
-  onInsertPrompt,
   activePersona = null,
   onSelectPersona = null,
   onSelectBotChat = null,
@@ -434,22 +427,6 @@ function ChatHistorySidebar({
 
   // Active view tab: 'active' | 'archived'
   const [activeViewTab, setActiveViewTab] = useState('active');
-
-  // When in Code mode: 'files' | 'chats'
-  const [sidebarCodeView, setSidebarCodeView] = useState(() => {
-    try {
-      return localStorage.getItem('neochat_sidebar_code_view') || 'files';
-    } catch (e) {
-      return 'files';
-    }
-  });
-
-  const handleSidebarCodeViewChange = useCallback((view) => {
-    setSidebarCodeView(view);
-    try {
-      localStorage.setItem('neochat_sidebar_code_view', view);
-    } catch (e) {}
-  }, []);
 
   // Compact Mode density state (persisted in localStorage)
   const [isCompactMode, setIsCompactMode] = useState(() => {
@@ -1786,53 +1763,6 @@ function ChatHistorySidebar({
         </div>
       ) : (
         <>
-      {/* In Code mode: Sub-tabs between [ Arquivos ] and [ Conversas ] */}
-      {harnessMode === 'code' && (
-        <div className="px-2.5 pt-1.5 pb-0.5">
-          <div className="flex items-center p-0.5 bg-muted/60 rounded-lg border border-border/60 text-xs">
-            <button
-              type="button"
-              onClick={() => handleSidebarCodeViewChange('files')}
-              className={cn(
-                "flex-1 py-1 px-2 rounded-md font-medium text-center transition-all flex items-center justify-center gap-1.5 cursor-pointer",
-                sidebarCodeView === 'files'
-                  ? "bg-background text-foreground shadow-2xs font-semibold"
-                  : "text-muted-foreground hover:text-foreground"
-              )}
-            >
-              <FolderTree className="w-3.5 h-3.5 text-amber-500" />
-              <span>{t('sidebar.filesTab') || 'Arquivos'}</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => handleSidebarCodeViewChange('chats')}
-              className={cn(
-                "flex-1 py-1 px-2 rounded-md font-medium text-center transition-all flex items-center justify-center gap-1.5 cursor-pointer",
-                sidebarCodeView === 'chats'
-                  ? "bg-background text-foreground shadow-2xs font-semibold"
-                  : "text-muted-foreground hover:text-foreground"
-              )}
-            >
-              <MessageSquare className="w-3.5 h-3.5" />
-              <span>{t('sidebar.chatsTab') || 'Conversas'}</span>
-            </button>
-          </div>
-        </div>
-      )}
-
-      {harnessMode === 'code' && sidebarCodeView === 'files' ? (
-        <div className="flex-1 min-h-0 overflow-hidden">
-          <WorkspaceFileTree
-            workspacePath={workspacePath}
-            workspaceInfo={workspaceInfo}
-            onSelectWorkspace={onSelectWorkspace}
-            onOpenFileInCanvas={onOpenFileInCanvas}
-            onInsertPrompt={onInsertPrompt}
-          />
-        </div>
-      ) : (
-        <>
-
       {/* Search Input & View Tab Switch */}
       <div className="px-2.5 pt-2 pb-1.5 space-y-2">
         <div className="relative">
@@ -2165,8 +2095,6 @@ function ChatHistorySidebar({
           </>
         )}
       </div>
-        </>
-      )}
         </>
       )}
 
