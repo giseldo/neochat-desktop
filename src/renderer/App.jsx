@@ -34,6 +34,7 @@ const CanvasPanel = lazy(() => import('./components/CanvasPanel'));
 const WorkspaceExplorerPanel = lazy(() => import('./components/WorkspaceExplorerPanel'));
 const McpCatalogModal = lazy(() => import('./components/McpCatalogModal'));
 const TrajectoryView = lazy(() => import('./components/TrajectoryView'));
+const ConversationStats = lazy(() => import('./components/ConversationStats'));
 const ProjectModal = lazy(() => import('./components/ProjectModal'));
 const MoveToProjectModal = lazy(() => import('./components/MoveToProjectModal'));
 const KnowledgeBaseModal = lazy(() => import('./components/KnowledgeBaseModal'));
@@ -2930,6 +2931,13 @@ function App() {
                     onClick={() => setIsModelParamsModalOpen(true)}
                   />
                 </div>
+              )}
+
+              {/* Conversation token count and detailed usage popover */}
+              {isPowerUser && (
+                <Suspense fallback={null}>
+                  <ConversationStats messages={messages} />
+                </Suspense>
               )}
 
               {/* Active Project Badge */}
