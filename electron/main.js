@@ -270,7 +270,10 @@ app.whenReady().then(async () => {
   // Helper to fetch and merge all models across active providers with unique keys
   async function getMergedModelConfigs(currentSettings, forceRefresh = false) {
     const allAvailProviders = getAllProviders(currentSettings);
-    const activeProviders = allAvailProviders.filter(p => isProviderEnabled(currentSettings, p.id) || isProviderConfigured(currentSettings, p.id));
+    // Respect explicit enable/disable state; isProviderEnabled already falls back to
+    // isProviderConfigured when no explicit list is set, so don't OR it in here -
+    // otherwise disabled local providers (Ollama/LM Studio) get probed anyway.
+    const activeProviders = allAvailProviders.filter(p => isProviderEnabled(currentSettings, p.id));
     const providersToProcess = activeProviders.length > 0 ? activeProviders : [getActiveProvider(currentSettings)];
     let allApiModels = {};
 
@@ -335,7 +338,7 @@ app.whenReady().then(async () => {
       v8Version: process.versions.v8,
       platform: process.platform,
       arch: process.arch,
-      copyright: 'Copyright © 2025-2026 NeoChat Desktop / Groq, Inc. Todos os direitos reservados.',
+      copyright: 'Copyright © 2025-2026 NeoChat Desktop. Todos os direitos reservados.',
       license: 'MIT License',
       homepage: 'https://github.com/giseldo/neochat-desktop',
       repository: 'https://github.com/giseldo/neochat-desktop',

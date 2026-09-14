@@ -7463,7 +7463,7 @@ function Settings() {
     if (!hasVisible) return null;
 
     const versionStr = appInfo?.version || updateStatus?.currentVersion || '0.0.1';
-    const copyrightStr = appInfo?.copyright || t('settings.copyrightNotice') || 'Copyright © 2025-2026 NeoChat Desktop / Groq, Inc. Todos os direitos reservados.';
+    const copyrightStr = appInfo?.copyright || t('settings.copyrightNotice') || 'Copyright © 2025-2026 NeoChat Desktop. Todos os direitos reservados.';
 
     const handleCopyDiagnostics = () => {
       const diagData = {

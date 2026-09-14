@@ -129,7 +129,13 @@ async function fetchModelsFromAPI(apiKey, modelsUrl, options = {}) {
       });
 
       req.on('error', (err) => {
-        console.error('Error fetching models from API:', err);
+        // Connection refused typically just means a local provider (Ollama/LM Studio) isn't running - not worth a full stack trace
+        const isConnRefused = err.code === 'ECONNREFUSED' || (err.errors && err.errors.every(e => e.code === 'ECONNREFUSED'));
+        if (isConnRefused) {
+          console.warn(`Models endpoint unreachable (${url}): connection refused`);
+        } else {
+          console.error('Error fetching models from API:', err);
+        }
         reject(err);
       });
     });
