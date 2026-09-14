@@ -10,7 +10,8 @@ export function ContextUsageIndicator({
   draftMessage = '',
   draftFiles = [],
   className = '',
-  onClick = null
+  onClick = null,
+  tooltipPosition = 'top'
 }) {
   const { t } = useLanguage();
   const [isHovered, setIsHovered] = useState(false);
@@ -119,7 +120,12 @@ export function ContextUsageIndicator({
       {showTooltip && (
         <div
           role="tooltip"
-          className="absolute bottom-full right-0 mb-2 p-2.5 rounded-xl bg-popover border border-border text-popover-foreground shadow-xl backdrop-blur-sm z-50 pointer-events-none whitespace-nowrap select-none text-left animate-in fade-in-0 zoom-in-95 duration-150"
+          className={cn(
+            "absolute p-2.5 rounded-xl bg-popover border border-border text-popover-foreground shadow-2xl backdrop-blur-sm z-50 pointer-events-none whitespace-nowrap select-none text-left animate-in fade-in-0 zoom-in-95 duration-150",
+            tooltipPosition === "bottom"
+              ? "top-full left-0 mt-2"
+              : "bottom-full right-0 mb-2"
+          )}
         >
           <div className="text-xs text-foreground/90 font-medium leading-relaxed">
             <div>

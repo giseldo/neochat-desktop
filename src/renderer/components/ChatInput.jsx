@@ -1,9 +1,7 @@
-import { ArrowRight, Loader2, ImagePlus, Hammer, Upload, Zap, ZapOff, Square, Mic, MicOff, Terminal, Globe, BookOpen, Camera, Bot, Key, Layout, X, Code2, Briefcase, MessageSquare, RotateCcw, Plus, Check, Cpu, Blocks, Sparkles } from "lucide-react";
+import { ArrowRight, Loader2, ImagePlus, Hammer, Upload, Zap, ZapOff, Square, Mic, MicOff, Terminal, Globe, BookOpen, Camera, Bot, Layout, X, Code2, Briefcase, MessageSquare, RotateCcw, Plus, Check, Cpu, Blocks, Sparkles } from "lucide-react";
 import React, { useContext, useEffect, useRef, useState, useMemo } from "react";
 import { createPortal } from "react-dom";
-import { Link } from "react-router-dom";
 import TextAreaAutosize from "react-textarea-autosize";
-import { SearchableSelect } from "./ui/SearchableSelect";
 import { Button } from "./ui/button";
 import { cn } from "../lib/utils";
 import { ChatContext } from "../context/ChatContext";
@@ -11,12 +9,9 @@ import { useCanvas } from "../context/CanvasContext";
 import { useLanguage } from "../context/LanguageContext";
 import { useProjects } from "../context/ProjectContext";
 import SlashCommandsPopover from "./SlashCommandsPopover";
-import ContextUsageIndicator from "./ContextUsageIndicator";
 const PromptTemplatesModal = React.lazy(() => import("./PromptTemplatesModal"));
-const ModelParametersModal = React.lazy(() => import("./ModelParametersModal"));
 const SnipModal = React.lazy(() => import("./SnipModal"));
 import { getAllPromptCommands, PROMPT_TEMPLATES_STORAGE_KEY } from "../lib/defaultPromptCommands";
-import { getModelGroup, getModelDisplayName as getModelDisplayNameLib, groupModels } from "../lib/modelGrouping";
 
 function isVoiceFeatureAvailable(settings) {
 	if (!settings || settings.voiceInput?.enabled === false) {
@@ -88,7 +83,6 @@ function ChatInput({
 	const [selectedSlashIndex, setSelectedSlashIndex] = useState(0);
 	const [slashFilterQuery, setSlashFilterQuery] = useState("");
 	const [isPromptTemplatesModalOpen, setIsPromptTemplatesModalOpen] = useState(false);
-	const [isModelParamsModalOpen, setIsModelParamsModalOpen] = useState(false);
 
 	const [files, setFiles] = useState([]); // Changed from images to files to handle all file types
 	const [textareaHeight, setTextareaHeight] = useState(null);
@@ -538,17 +532,6 @@ function ChatInput({
 		};
 	}, []);
 
-	// Helper function to get display name for a model
-	const getModelDisplayName = (modelId) => {
-		const modelInfo = modelConfigs[modelId];
-		return getModelDisplayNameLib(modelId, modelInfo);
-	};
-
-	// Sort and group models by provider/category and display name
-	const sortedModels = useMemo(() => {
-		const groups = groupModels(models, modelConfigs);
-		return groups.flatMap(g => g.models);
-	}, [models, modelConfigs]);
 	const [isDragOver, setIsDragOver] = useState(false);
 	const [fullScreenImage, setFullScreenImage] = useState(null);
 	const textareaRef = useRef(null);
@@ -1454,45 +1437,6 @@ function ChatInput({
 						)}
 					</div>
 
-					<div className="flex items-center gap-2 flex-shrink-0 ml-auto min-w-0">
-						{/* Model Selector & Parameters */}
-						{(!models || models.length === 0) ? (
-							<Link
-								to="/settings"
-								className="flex items-center gap-1.5 px-2.5 py-1 text-xs rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/30 transition-colors font-medium shrink-0"
-								title={t('chat.noModelsAlert')}
-							>
-								<Key className="w-3.5 h-3.5 flex-shrink-0 text-amber-500" />
-								<span className="truncate">{t('common.configureApiKey')}</span>
-							</Link>
-						) : (
-							<div className="flex items-center gap-1">
-								<SearchableSelect
-									value={selectedModel}
-									onValueChange={onModelChange}
-									options={sortedModels}
-									placeholder={t('chat.selectModel')}
-									className="w-36 sm:w-48 max-w-[200px] min-w-[110px]"
-									disabled={loading}
-									getDisplayValue={(value) => getModelDisplayName(value)}
-									getOptionLabel={(model) => getModelDisplayName(model)}
-									getOptionValue={(model) => model}
-									groupBy={(model) => getModelGroup(model, modelConfigs[model])}
-									dropdownWidthClass="w-72 sm:w-80"
-									favoriteItems={favoriteModels}
-									onToggleFavorite={onToggleFavoriteModel}
-								/>
-								<ContextUsageIndicator
-									messages={messages}
-									selectedModel={selectedModel}
-									modelConfigs={modelConfigs}
-									draftMessage={message}
-									draftFiles={files}
-									onClick={() => setIsModelParamsModalOpen(true)}
-								/>
-							</div>
-						)}
-					</div>
 				</div>
 			</div>
 		</form>
@@ -1529,14 +1473,6 @@ function ChatInput({
 				onTemplatesUpdated={(updated) => setCustomTemplates(updated)}
 			/>
 
-			{/* Model Parameters Modal */}
-			<ModelParametersModal
-				isOpen={isModelParamsModalOpen}
-				onClose={() => setIsModelParamsModalOpen(false)}
-				selectedModel={selectedModel}
-				modelConfigs={modelConfigs}
-				onModelConfigUpdated={onModelConfigUpdated}
-			/>
 
 			{/* Snip & Ask Screen Capture Modal */}
 			<SnipModal

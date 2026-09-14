@@ -13,8 +13,10 @@ import { useLanguage } from './context/LanguageContext';
 import { useTheme } from './context/ThemeContext';
 import { Settings, PanelLeftClose, PanelLeft, Radio, MessagesSquare, Sparkles, Store, Columns2, X, FolderKanban, BookOpen, Scale, Bot, Workflow, ChevronDown, Keyboard, Key, AlertCircle, PenSquare, Terminal, Briefcase, MessageSquare, Globe, Clock, Activity, LayoutGrid, MoreHorizontal, Brain, FolderTree } from 'lucide-react';
 import { Button } from './components/ui/button';
+import { SearchableSelect } from './components/ui/SearchableSelect';
+import ContextUsageIndicator from './components/ContextUsageIndicator';
 import { cn } from './lib/utils';
-import { groupModels } from './lib/modelGrouping';
+import { groupModels, getModelGroup, getModelDisplayName as getModelDisplayNameLib } from './lib/modelGrouping';
 import { extractThinking } from './lib/messageUtils';
 import { createStreamThrottler } from './lib/streamThrottler';
 import { useAgentRuntime } from './hooks/useAgentRuntime';
@@ -55,6 +57,7 @@ const McpHubModal = lazy(() => import('./components/McpHubModal'));
 const ComputerVisionModal = lazy(() => import('./components/ComputerVisionModal'));
 const UserMemoryModal = lazy(() => import('./components/UserMemoryModal'));
 const SkillsModal = lazy(() => import('./components/SkillsModal'));
+const ModelParametersModal = lazy(() => import('./components/ModelParametersModal'));
 
 function App() {
   // const [messages, setMessages] = useState([]); // Remove local state
@@ -168,6 +171,7 @@ function App() {
   const [isDailyBriefingOpen, setIsDailyBriefingOpen] = useState(false);
   const [isMcpHubOpen, setIsMcpHubOpen] = useState(false);
   const [isComputerVisionOpen, setIsComputerVisionOpen] = useState(false);
+  const [isModelParamsModalOpen, setIsModelParamsModalOpen] = useState(false);
   const { isToolsDropdownOpen, setIsToolsDropdownOpen, toolsDropdownRef } = useToolsDropdown();
 
   const handleOpenSkillsModal = useCallback((tab = 'installed') => {
@@ -2904,6 +2908,47 @@ function App() {
                 onSelectPersona={setActivePersona}
               />
 
+              {/* Divider between Persona and Model */}
+              <div className="h-4 w-px bg-border/60 mx-0.5 sm:mx-1 shrink-0" />
+
+              {/* Model Selector & Parameters */}
+              {sortedModels.length === 0 ? (
+                <Link
+                  to="/settings"
+                  className="flex items-center gap-1.5 px-2.5 py-1 text-xs rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/30 transition-colors font-medium shrink-0"
+                  title={t('chat.noModelsAlert')}
+                >
+                  <Key className="w-3.5 h-3.5 flex-shrink-0 text-amber-500" />
+                  <span className="truncate hidden md:inline">{t('common.configureApiKey')}</span>
+                </Link>
+              ) : (
+                <div className="flex items-center gap-1.5 shrink-0">
+                  <SearchableSelect
+                    value={selectedModel}
+                    onValueChange={setSelectedModel}
+                    options={sortedModels}
+                    placeholder={t('chat.selectModel')}
+                    className="w-32 sm:w-44 md:w-48 max-w-[210px] min-w-[110px]"
+                    disabled={loading}
+                    getDisplayValue={(value) => getModelDisplayNameLib(value, modelConfigs[value], t)}
+                    getOptionLabel={(model) => getModelDisplayNameLib(model, modelConfigs[model], t)}
+                    getOptionValue={(model) => model}
+                    groupBy={(model) => getModelGroup(model, modelConfigs[model])}
+                    dropdownWidthClass="w-72 sm:w-80"
+                    favoriteItems={favoriteModels}
+                    onToggleFavorite={handleToggleFavoriteModel}
+                    dropdownPosition="bottom"
+                  />
+                  <ContextUsageIndicator
+                    messages={messages}
+                    selectedModel={selectedModel}
+                    modelConfigs={modelConfigs}
+                    tooltipPosition="bottom"
+                    onClick={() => setIsModelParamsModalOpen(true)}
+                  />
+                </div>
+              )}
+
               {/* Active Project Badge */}
               {isPowerUser && activeProject && (
                 <div 
@@ -3963,6 +4008,15 @@ function App() {
             const cmd = skill.slashCommand || skill.id;
             handleSendMessage(`/${cmd} `);
           }}
+        />
+
+        {/* Model Parameters Modal */}
+        <ModelParametersModal
+          isOpen={isModelParamsModalOpen}
+          onClose={() => setIsModelParamsModalOpen(false)}
+          selectedModel={selectedModel}
+          modelConfigs={modelConfigs}
+          onModelConfigUpdated={handleModelConfigUpdated}
         />
       </Suspense>
 

@@ -21,6 +21,7 @@ export function SearchableSelect({
   dropdownWidthClass = "w-full min-w-[240px] max-w-[90vw]",
   favoriteItems = [],
   onToggleFavorite = null,
+  dropdownPosition = "top",
 }) {
   const { t } = useLanguage();
   const [isOpen, setIsOpen] = useState(false);
@@ -212,7 +213,10 @@ export function SearchableSelect({
       {/* Dropdown */}
       {isOpen && (
         <div className={cn(
-          "absolute z-50 bottom-full right-0 mb-1 rounded-xl border bg-popover text-popover-foreground shadow-xl animate-in fade-in-0 zoom-in-95 backdrop-blur-md",
+          "absolute z-50 rounded-xl border bg-popover text-popover-foreground shadow-2xl animate-in fade-in-0 zoom-in-95 backdrop-blur-md",
+          dropdownPosition === "bottom"
+            ? "top-full left-0 mt-1.5"
+            : "bottom-full right-0 mb-1",
           dropdownWidthClass
         )}>
           {/* Search Input */}
