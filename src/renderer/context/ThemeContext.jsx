@@ -45,6 +45,12 @@ export const LETTER_SPACINGS = [
   { id: 'wide', value: '0.05em' },
 ];
 
+export const PARAGRAPH_SPACINGS = [
+  { id: 'normal', value: '0.5rem' },
+  { id: 'relaxed', value: '1rem' },
+  { id: 'wide', value: '1.5rem' },
+];
+
 export const ThemeContext = createContext({
   theme: 'system',
   setTheme: () => {},
@@ -62,6 +68,8 @@ export const ThemeContext = createContext({
   setTextAlign: () => {},
   letterSpacing: 'normal',
   setLetterSpacing: () => {},
+  paragraphSpacing: 'normal',
+  setParagraphSpacing: () => {},
   resolvedTheme: 'light',
   isDark: false,
 });
@@ -160,6 +168,30 @@ export const ThemeProvider = ({ children }) => {
       localStorage.setItem('neochat_letter_spacing', valid);
     } catch (error) {
       console.error('Failed to save letter spacing:', error);
+    }
+  };
+
+  const [paragraphSpacing, setParagraphSpacingState] = useState(() => {
+    try {
+      const saved = localStorage.getItem('neochat_paragraph_spacing');
+      return PARAGRAPH_SPACINGS.some(option => option.id === saved) ? saved : 'normal';
+    } catch {
+      return 'normal';
+    }
+  });
+
+  useEffect(() => {
+    const spacing = PARAGRAPH_SPACINGS.find(option => option.id === paragraphSpacing);
+    document.documentElement.style.setProperty('--chat-paragraph-spacing', spacing?.value || '0.5rem');
+  }, [paragraphSpacing]);
+
+  const setParagraphSpacing = (value) => {
+    const valid = PARAGRAPH_SPACINGS.some(option => option.id === value) ? value : 'normal';
+    setParagraphSpacingState(valid);
+    try {
+      localStorage.setItem('neochat_paragraph_spacing', valid);
+    } catch (error) {
+      console.error('Failed to save paragraph spacing:', error);
     }
   };
 
@@ -310,6 +342,8 @@ export const ThemeProvider = ({ children }) => {
       setTextAlign,
       letterSpacing,
       setLetterSpacing,
+      paragraphSpacing,
+      setParagraphSpacing,
       resolvedTheme,
       isDark,
     }}>

@@ -446,7 +446,7 @@
   }
 
   .markdown-content p:not(:last-child) {
-    @apply mb-2;
+    margin-bottom: var(--chat-paragraph-spacing, 0.5rem);
   }
 
   /* Text alignment preference */

@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Sun, Moon, Laptop, Check, ArrowRight } from 'lucide-react';
-import { useTheme, COLOR_THEMES, FONT_THEMES, FONT_SIZES, LETTER_SPACINGS } from '../context/ThemeContext';
+import { useTheme, COLOR_THEMES, FONT_THEMES, FONT_SIZES, LETTER_SPACINGS, PARAGRAPH_SPACINGS } from '../context/ThemeContext';
 import { useLanguage } from '../context/LanguageContext';
 import { cn } from '../lib/utils';
 
@@ -24,7 +24,9 @@ export function ThemeToggle({ className, interfaceMode: propInterfaceMode, onInt
     textAlign,
     setTextAlign,
     letterSpacing,
-    setLetterSpacing
+    setLetterSpacing,
+    paragraphSpacing,
+    setParagraphSpacing
   } = useTheme();
   
   const { t, language } = useLanguage();
@@ -194,6 +196,21 @@ export function ThemeToggle({ className, interfaceMode: propInterfaceMode, onInt
                 <p className="mt-2 text-sm leading-relaxed break-words" style={{ letterSpacing: LETTER_SPACINGS.find(option => option.id === letterSpacing)?.value }}>
                   {pt ? 'Um espaço para conversar e criar.' : 'A space to talk and create.'}
                 </p>
+              </fieldset>
+              <fieldset>
+                <legend className="text-xs text-muted-foreground mb-2">{pt ? 'Espaçamento entre parágrafos' : 'Paragraph spacing'}</legend>
+                <div className="grid grid-cols-3 gap-1 bg-muted/60 rounded-lg p-1">
+                  {PARAGRAPH_SPACINGS.map((option, index) => (
+                    <button key={option.id} type="button" aria-pressed={paragraphSpacing === option.id} onClick={() => setParagraphSpacing(option.id)} className={optionStyle(paragraphSpacing === option.id)}>
+                      {(pt ? ['Padrão', 'Suave', 'Amplo'] : ['Default', 'Relaxed', 'Wide'])[index]}
+                    </button>
+                  ))}
+                </div>
+                <p className="mt-2 text-xs text-muted-foreground">{pt ? 'Prévia do espaçamento nas conversas' : 'Preview of conversation spacing'}</p>
+                <div className="mt-2 text-sm leading-relaxed break-words" style={{ letterSpacing: LETTER_SPACINGS.find(option => option.id === letterSpacing)?.value }}>
+                  <p style={{ marginBottom: PARAGRAPH_SPACINGS.find(option => option.id === paragraphSpacing)?.value }}>{pt ? 'Um espaço para conversar e criar.' : 'A space to talk and create.'}</p>
+                  <p>{pt ? 'Mais espaço para uma leitura confortável.' : 'More space for comfortable reading.'}</p>
+                </div>
               </fieldset>
               <fieldset>
                 <legend className="text-xs text-muted-foreground mb-2">{pt ? 'Modo da interface' : 'Interface mode'}</legend>
