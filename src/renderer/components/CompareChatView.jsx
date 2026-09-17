@@ -15,7 +15,9 @@ import {
   ChevronRight,
   AlertCircle,
   Loader2,
-  Key
+  Key,
+  Scale,
+  X
 } from 'lucide-react';
 import MarkdownRenderer from './MarkdownRenderer';
 import { Button } from './ui/button';
@@ -33,7 +35,8 @@ export function CompareChatView({
   streamStateA = {},
   streamStateB = {},
   onSelectWinningResponse,
-  onPreviewArtifact
+  onPreviewArtifact,
+  onClose
 }) {
   const { t } = useLanguage();
   const [copiedA, setCopiedA] = useState(false);
@@ -95,8 +98,34 @@ export function CompareChatView({
   }
 
   return (
-    <div className="w-full flex-1 grid grid-cols-1 md:grid-cols-2 divide-y md:divide-y-0 md:divide-x divide-border overflow-hidden bg-background/50">
-      {/* MODEL A COLUMN */}
+    <div className="w-full flex-1 flex flex-col h-full overflow-hidden bg-background/50 rounded-2xl border border-border/80 shadow-xs">
+      {/* Compare Top Subheader */}
+      <div className="flex items-center justify-between px-4 py-2 border-b border-border/60 bg-muted/20 shrink-0">
+        <div className="flex items-center gap-2 min-w-0">
+          <Scale className="w-4 h-4 text-purple-500 shrink-0" />
+          <span className="font-semibold text-xs text-foreground truncate">
+            {t('header.compareModels') || 'Comparar Modelos'}
+          </span>
+          <span className="text-[10px] text-muted-foreground hidden sm:inline">
+            · {t('header.compareModelsSubtitle') || 'Visualização lado a lado'}
+          </span>
+        </div>
+        {onClose && (
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            onClick={onClose}
+            className="h-7 w-7 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted/80 cursor-pointer"
+            title={t('header.closeCompare') || 'Fechar comparação e voltar ao chat'}
+          >
+            <X className="w-4 h-4" />
+          </Button>
+        )}
+      </div>
+
+      <div className="w-full flex-1 grid grid-cols-1 md:grid-cols-2 divide-y md:divide-y-0 md:divide-x divide-border overflow-hidden">
+        {/* MODEL A COLUMN */}
       <div className="flex flex-col h-full overflow-hidden p-4 space-y-3">
         {/* Model A Header / Selector */}
         <div className="flex items-center justify-between gap-2 p-2.5 rounded-xl border border-border/80 bg-muted/20">
@@ -383,6 +412,7 @@ export function CompareChatView({
           </div>
         )}
       </div>
+    </div>
     </div>
   );
 }

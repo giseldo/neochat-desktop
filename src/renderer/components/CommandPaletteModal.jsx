@@ -37,7 +37,8 @@ import {
   LayoutGrid,
   MessageSquare,
   FolderTree,
-  ExternalLink
+  ExternalLink,
+  Activity
 } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
 import { useChat } from '../context/ChatContext';
@@ -69,6 +70,7 @@ export function CommandPaletteModal({
   onOpenProjects,
   onOpenMcpCatalog,
   onToggleCompareMode,
+  onToggleTrajectory,
   onToggleTerminal,
   onToggleExplorer,
   onOpenInOsExplorer,
@@ -322,6 +324,15 @@ export function CommandPaletteModal({
         action: () => { onClose(); onToggleCompareMode?.(); }
       },
       {
+        id: 'nav_trajectory',
+        category: 'nav',
+        categoryLabel: 'Navegação',
+        title: 'Trajetória & Timeline de Execução',
+        subtitle: 'Inspecionar turnos, chamadas de ferramentas e eventos detalhados',
+        icon: Activity,
+        action: () => { onClose(); onToggleTrajectory?.(); }
+      },
+      {
         id: 'nav_browser',
         category: 'nav',
         categoryLabel: 'Navegação',
@@ -514,6 +525,7 @@ export function CommandPaletteModal({
     onOpenProjects,
     onOpenMcpCatalog,
     onToggleCompareMode,
+    onToggleTrajectory,
     onToggleTerminal,
     onToggleBackgroundTasks,
     onToggleBrowser,

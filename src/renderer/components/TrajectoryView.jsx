@@ -1,6 +1,6 @@
 import { useState, useMemo, useRef } from 'react';
 import { useLanguage } from '../context/LanguageContext';
-import { Clock, Layers, Terminal, Search, Download, Check, Sparkles, Zap, Activity, RotateCcw } from 'lucide-react';
+import { Clock, Layers, Terminal, Search, Download, Check, Sparkles, Zap, Activity, RotateCcw, X } from 'lucide-react';
 import TrajectoryTimeline from './TrajectoryTimeline';
 import TrajectoryLedger from './TrajectoryLedger';
 import { Button } from './ui/button';
@@ -21,6 +21,7 @@ export default function TrajectoryView({
   onPreviewArtifact,
   onOpenMcpTools,
   onRollback,
+  onClose,
 }) {
   const { t, language } = useLanguage();
   const [viewMode, setViewMode] = useState('duration'); // 'duration' | 'turns' | 'calls'
@@ -404,9 +405,10 @@ export default function TrajectoryView({
 
   return (
     <div className="flex flex-col h-full min-h-0 space-y-4">
-      {/* 1. Trajectory Top Subheader (Title, Badges, Session Log Export) */}
+      {/* 1. Trajectory Top Subheader (Title, Badges, Session Log Export, Close) */}
       <div className="flex flex-wrap items-center justify-between gap-3 pb-2 border-b border-border/60">
         <div className="flex items-center gap-2.5 min-w-0">
+          <Activity className="w-4 h-4 text-emerald-500 shrink-0" />
           <h2 className="font-semibold text-sm text-foreground truncate">
             {currentChatTitle || activeProject?.name || t('trajectory.title')}
           </h2>
@@ -469,6 +471,20 @@ export default function TrajectoryView({
             <span>{t('trajectory.sessionLog')}</span>
             <span className="text-[10px] text-muted-foreground">↓</span>
           </Button>
+
+          {/* Close Button */}
+          {onClose && (
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              onClick={onClose}
+              className="h-7 w-7 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted cursor-pointer"
+              title={t('header.closeTrajectory') || 'Fechar trajetória e voltar ao chat'}
+            >
+              <X className="w-4 h-4" />
+            </Button>
+          )}
         </div>
       </div>
 

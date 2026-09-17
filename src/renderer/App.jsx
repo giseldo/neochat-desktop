@@ -2856,43 +2856,6 @@ function App() {
                 </Button>
               )}
 
-              {/* Trajectory is a secondary detail view; primary modes live in the sidebar. */}
-              {isPowerUser && showTrajectoryTab && activeTab === 'trajectory' && (
-                <div className="flex items-center rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-xs">
-                  <button
-                    type="button"
-                    onClick={() => setActiveTab('chat')}
-                    className="h-7 px-2.5 rounded-lg font-medium transition-all flex items-center gap-1.5 cursor-pointer text-muted-foreground hover:text-foreground"
-                    title={t('chat.chatModeChat') || 'Conversa'}
-                  >
-                    <MessageSquare className="w-3.5 h-3.5" />
-                    <span>{t('chat.chatModeChat') || 'Chat'}</span>
-                    <span className="text-muted-foreground/50">/</span>
-                    <Activity className="w-3.5 h-3.5 text-emerald-500" />
-                    <span>{t('trajectory.trajectoryTab') || 'Trajetória'}</span>
-                  </button>
-                </div>
-              )}
-
-              {/* Header section separator */}
-              {isPowerUser && showTrajectoryTab && activeTab === 'trajectory' && (
-                <div className="h-4 w-px bg-border/60 mx-0.5 hidden sm:block" />
-              )}
-
-              {isPowerUser && showTrajectoryTab && activeTab === 'chat' && messages.length > 0 && (
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => setActiveTab('trajectory')}
-                  className="h-8 w-8 rounded-xl text-muted-foreground hover:text-emerald-600 hover:bg-emerald-500/10"
-                  title={t('trajectory.trajectoryTab') || 'Visualizar Trajetória'}
-                  aria-label={t('trajectory.trajectoryTab') || 'Visualizar Trajetória'}
-                >
-                  <Activity className="h-4 w-4" />
-                </Button>
-              )}
-
               {/* Model Selector & Parameters */}
               {sortedModels.length === 0 ? (
                 <Link
@@ -2980,7 +2943,7 @@ function App() {
                     aria-label={t('header.toolsMenu') || 'Ferramentas e Recursos'}
                   >
                     <LayoutGrid className="h-4 w-4" />
-                    {(runningTasksCount > 0 || isTerminalOpen || isCanvasOpen || isExplorerOpen || isBrowserOpen || isTasksOpen || Boolean(activeArtifact) || isCompareMode) && (
+                    {(runningTasksCount > 0 || isTerminalOpen || isCanvasOpen || isExplorerOpen || isBrowserOpen || isTasksOpen || Boolean(activeArtifact) || isCompareMode || activeTab === 'trajectory') && (
                       <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-primary animate-pulse" />
                     )}
                   </Button>
@@ -2989,7 +2952,6 @@ function App() {
                   {isToolsDropdownOpen && (
                     <div className="absolute right-0 mt-2 w-72 max-h-[calc(100vh-5rem)] overflow-y-auto overscroll-contain custom-scrollbar p-1.5 rounded-2xl bg-popover border border-border text-popover-foreground shadow-2xl z-50 animate-in fade-in-0 zoom-in-95 space-y-0.5 text-xs">
                       
-                      
                       {/* Compare Models */}
                       <button
                         type="button"
@@ -2997,17 +2959,48 @@ function App() {
                           setIsToolsDropdownOpen(false);
                           setIsCompareMode(!isCompareMode);
                         }}
-                        className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-muted/80 text-foreground transition-colors text-left"
+                        className={cn(
+                          "w-full flex items-center gap-2.5 px-3 py-2 rounded-xl transition-colors text-left",
+                          isCompareMode 
+                            ? "bg-purple-500/10 text-purple-700 dark:text-purple-300 font-medium" 
+                            : "hover:bg-muted/80 text-foreground"
+                        )}
                       >
                         <Scale className="w-4 h-4 text-purple-500 shrink-0" />
                         <div className="flex-1 min-w-0">
-                          <div className="font-semibold text-foreground flex items-center justify-between">
+                          <div className="font-semibold flex items-center justify-between">
                             <span>{t('header.compareModels') || 'Comparar Modelos'}</span>
-                            {isCompareMode && <span className="px-1.5 py-0.2 rounded bg-purple-500/20 text-purple-600 dark:text-purple-400 text-[10px] font-mono">Aberto</span>}
+                            {isCompareMode && <span className="px-1.5 py-0.2 rounded bg-purple-500/20 text-purple-600 dark:text-purple-400 text-[10px] font-mono font-semibold">Aberto</span>}
                           </div>
-                          <div className="text-[10px] text-muted-foreground truncate">Visualização lado a lado</div>
+                          <div className="text-[10px] text-muted-foreground truncate">{t('header.compareModelsSubtitle') || 'Visualização lado a lado'}</div>
                         </div>
                       </button>
+
+                      {/* Trajectory */}
+                      {showTrajectoryTab && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIsToolsDropdownOpen(false);
+                            setActiveTab(activeTab === 'trajectory' ? 'chat' : 'trajectory');
+                          }}
+                          className={cn(
+                            "w-full flex items-center gap-2.5 px-3 py-2 rounded-xl transition-colors text-left",
+                            activeTab === 'trajectory' 
+                              ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 font-medium" 
+                              : "hover:bg-muted/80 text-foreground"
+                          )}
+                        >
+                          <Activity className="w-4 h-4 text-emerald-500 shrink-0" />
+                          <div className="flex-1 min-w-0">
+                            <div className="font-semibold flex items-center justify-between">
+                              <span>{t('trajectory.trajectoryTab') || 'Trajetória'}</span>
+                              {activeTab === 'trajectory' && <span className="px-1.5 py-0.2 rounded bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-[10px] font-mono font-semibold">Aberto</span>}
+                            </div>
+                            <div className="text-[10px] text-muted-foreground truncate">{t('header.trajectorySubtitle') || 'Linha do tempo & eventos detalhados'}</div>
+                          </div>
+                        </button>
+                      )}
                       
                       <div className="my-1 border-t border-border/60" />
                       
@@ -3440,10 +3433,11 @@ function App() {
                         streamStateB={streamStateB}
                         onSelectWinningResponse={handleSelectWinningResponse}
                         onPreviewArtifact={(art) => setActiveArtifact(art)}
+                        onClose={() => setIsCompareMode(false)}
                       />
                     </Suspense>
                   </div>
-                  <div className="flex-shrink-0 bg-background/95 backdrop-blur pt-3 px-4 w-full">
+                  <div className="flex-shrink-0 bg-background/95 backdrop-blur pt-3 w-full">
                     <ChatInput
                       messages={messages}
                       onSendMessage={handleSendMessage}
@@ -3542,11 +3536,12 @@ function App() {
                         onPreviewArtifact={(art) => setActiveArtifact(art)}
                         onOpenMcpTools={() => setIsToolsPanelOpen(true)}
                         onRollback={handleRollback}
+                        onClose={() => setActiveTab('chat')}
                       />
                     </Suspense>
                   </div>
 
-                  <div className="flex-shrink-0 bg-background/95 backdrop-blur pt-3 px-4">
+                  <div className="flex-shrink-0 bg-background/95 backdrop-blur pt-3 w-full">
                     <ChatInput
                       messages={messages}
                       onSendMessage={handleSendMessage}
@@ -3663,7 +3658,7 @@ function App() {
                     </button>
                   )}
                   
-                  <div className="flex-shrink-0 bg-background/95 backdrop-blur pt-3 px-4">
+                  <div className="flex-shrink-0 bg-background/95 backdrop-blur pt-3 w-full">
                     <ChatInput
                       messages={messages}
                       onSendMessage={handleSendMessage}
@@ -3835,6 +3830,7 @@ function App() {
           onOpenProjects={openCreateProjectModal}
           onOpenMcpCatalog={() => setIsMcpCatalogOpen(true)}
           onToggleCompareMode={() => setIsCompareMode(prev => !prev)}
+          onToggleTrajectory={() => setActiveTab(prev => prev === 'trajectory' ? 'chat' : 'trajectory')}
           onToggleTerminal={() => setIsTerminalOpen(prev => !prev)}
           onToggleExplorer={() => setIsExplorerOpen(prev => !prev)}
           onOpenInOsExplorer={() => {
