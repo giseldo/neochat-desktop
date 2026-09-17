@@ -1811,75 +1811,8 @@ function ChatHistorySidebar({
               </div>
             )}
 
-            {/* --- SECTION 2: CHATS (Gerais / Sem Projeto) --- */}
+            {/* --- SECTION: PROJETOS --- */}
             <div className="space-y-1 pt-1">
-              {/* Chats Section Header */}
-              <div className="flex items-center justify-between px-2.5 py-1 text-muted-foreground group">
-                <button
-                  type="button"
-                  onClick={() => setIsChatsSectionOpen(prev => !prev)}
-                  className="flex items-center gap-1.5 text-xs font-medium hover:text-foreground transition-colors"
-                >
-                  <ChevronDown className={cn("w-3 h-3 transition-transform duration-200", !isChatsSectionOpen && "-rotate-90")} />
-                  <span>{t('sidebar.chatsSection')}</span>
-                  {unassignedChats.length > 0 && (
-                    <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-muted text-muted-foreground font-normal">
-                      {unassignedChats.length}
-                    </span>
-                  )}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => onNewChat(null)}
-                  className="opacity-0 group-hover:opacity-100 p-1 rounded hover:bg-muted text-muted-foreground hover:text-primary transition-all"
-                  title={t('sidebar.newChat')}
-                >
-                  <Plus className="w-3.5 h-3.5" />
-                </button>
-              </div>
-
-              {/* Unassigned Chats List */}
-              {isChatsSectionOpen && (
-                <div>
-                  {unassignedChats.length === 0 && projects.length === 0 && pinnedChats.length === 0 ? (
-                    <div className="px-4 py-8 text-center text-sm text-muted-foreground">
-                      <MessageSquare className="h-7 w-7 mx-auto mb-2 opacity-40 text-primary" />
-                      <p className="text-xs font-medium">{t('sidebar.emptyTitle')}</p>
-                      <p className="text-[11px] mt-1 text-muted-foreground/80">{t('sidebar.emptySubtitle')}</p>
-                      <button
-                        type="button"
-                        onClick={() => onNewChat(null)}
-                        className="mt-3 px-3 py-1.5 text-xs font-semibold bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors shadow-xs inline-flex items-center gap-1.5"
-                      >
-                        <Plus className="w-3.5 h-3.5" />
-                        <span>{t('sidebar.newChat')}</span>
-                      </button>
-                    </div>
-                  ) : unassignedChats.length === 0 ? (
-                    <div className="px-3 py-2 text-[11px] text-muted-foreground/70">
-                      {t('sidebar.emptySubtitle')}
-                    </div>
-                  ) : groupByDate ? (
-                    /* Grouped by date view */
-                    <div className="space-y-1.5">
-                      {renderDateSection('today', t('sidebar.today'), groupedUnassigned.today)}
-                      {renderDateSection('yesterday', t('sidebar.yesterday'), groupedUnassigned.yesterday)}
-                      {renderDateSection('thisWeek', t('sidebar.thisWeek'), groupedUnassigned.thisWeek)}
-                      {renderDateSection('thisMonth', t('sidebar.thisMonth'), groupedUnassigned.thisMonth)}
-                      {renderDateSection('older', t('sidebar.older'), groupedUnassigned.older)}
-                    </div>
-                  ) : (
-                    /* Flat continuous list */
-                    <div className="space-y-0.5">
-                      {unassignedChats.map(c => renderChatItem(c))}
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-
-            {/* --- SECTION 1: PROJETOS --- */}
-            <div className="space-y-1">
               {/* Projects Section Header */}
               <div className="flex items-center justify-between px-2.5 py-1 text-muted-foreground group">
                 <button
@@ -1899,7 +1832,7 @@ function ChatHistorySidebar({
                 <button
                   type="button"
                   onClick={openCreateProjectModal}
-                  className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-primary transition-colors"
+                  className="opacity-0 group-hover:opacity-100 p-1 rounded hover:bg-muted text-muted-foreground hover:text-primary transition-all"
                   aria-label={t('projects.newProject')}
                   title={t('projects.newProject')}
                 >
@@ -2040,6 +1973,73 @@ function ChatHistorySidebar({
                         </div>
                       );
                     })}
+                </div>
+              )}
+            </div>
+
+            {/* --- SECTION: CHATS (Gerais / Sem Projeto) --- */}
+            <div className="space-y-1 pt-1">
+              {/* Chats Section Header */}
+              <div className="flex items-center justify-between px-2.5 py-1 text-muted-foreground group">
+                <button
+                  type="button"
+                  onClick={() => setIsChatsSectionOpen(prev => !prev)}
+                  className="flex items-center gap-1.5 text-xs font-medium hover:text-foreground transition-colors"
+                >
+                  <ChevronDown className={cn("w-3 h-3 transition-transform duration-200", !isChatsSectionOpen && "-rotate-90")} />
+                  <span>{t('sidebar.chatsSection')}</span>
+                  {unassignedChats.length > 0 && (
+                    <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-muted text-muted-foreground font-normal">
+                      {unassignedChats.length}
+                    </span>
+                  )}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => onNewChat(null)}
+                  className="opacity-0 group-hover:opacity-100 p-1 rounded hover:bg-muted text-muted-foreground hover:text-primary transition-all"
+                  title={t('sidebar.newChat')}
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                </button>
+              </div>
+
+              {/* Unassigned Chats List */}
+              {isChatsSectionOpen && (
+                <div>
+                  {unassignedChats.length === 0 && projects.length === 0 && pinnedChats.length === 0 ? (
+                    <div className="px-4 py-8 text-center text-sm text-muted-foreground">
+                      <MessageSquare className="h-7 w-7 mx-auto mb-2 opacity-40 text-primary" />
+                      <p className="text-xs font-medium">{t('sidebar.emptyTitle')}</p>
+                      <p className="text-[11px] mt-1 text-muted-foreground/80">{t('sidebar.emptySubtitle')}</p>
+                      <button
+                        type="button"
+                        onClick={() => onNewChat(null)}
+                        className="mt-3 px-3 py-1.5 text-xs font-semibold bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors shadow-xs inline-flex items-center gap-1.5"
+                      >
+                        <Plus className="w-3.5 h-3.5" />
+                        <span>{t('sidebar.newChat')}</span>
+                      </button>
+                    </div>
+                  ) : unassignedChats.length === 0 ? (
+                    <div className="px-3 py-2 text-[11px] text-muted-foreground/70">
+                      {t('sidebar.emptySubtitle')}
+                    </div>
+                  ) : groupByDate ? (
+                    /* Grouped by date view */
+                    <div className="space-y-1.5">
+                      {renderDateSection('today', t('sidebar.today'), groupedUnassigned.today)}
+                      {renderDateSection('yesterday', t('sidebar.yesterday'), groupedUnassigned.yesterday)}
+                      {renderDateSection('thisWeek', t('sidebar.thisWeek'), groupedUnassigned.thisWeek)}
+                      {renderDateSection('thisMonth', t('sidebar.thisMonth'), groupedUnassigned.thisMonth)}
+                      {renderDateSection('older', t('sidebar.older'), groupedUnassigned.older)}
+                    </div>
+                  ) : (
+                    /* Flat continuous list */
+                    <div className="space-y-0.5">
+                      {unassignedChats.map(c => renderChatItem(c))}
+                    </div>
+                  )}
                 </div>
               )}
             </div>
