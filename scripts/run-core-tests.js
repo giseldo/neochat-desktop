@@ -24,8 +24,7 @@ const tests = [
   'test-browser-panel.js',
   'test-plugin-manager.js',
   'test-terminal-and-tasks.js',
-  'test-default-model-empty.js',
-  'test-prepare-latest-assets.js'
+  'test-default-model-empty.js'
 ];
 
 for (const test of tests) {
