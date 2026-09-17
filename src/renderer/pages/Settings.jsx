@@ -7619,7 +7619,7 @@ function Settings() {
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => handleOpenLink('https://github.com/giseldo/neochat-releases')}
+                  onClick={() => handleOpenLink('https://github.com/giseldo/neochat-desktop/releases')}
                   className="text-xs h-8"
                 >
                   <Sparkles className="w-3.5 h-3.5 mr-1.5 text-amber-500" />

@@ -342,7 +342,7 @@ app.whenReady().then(async () => {
       license: 'MIT License',
       homepage: 'https://github.com/giseldo/neochat-desktop',
       repository: 'https://github.com/giseldo/neochat-desktop',
-      releasesUrl: 'https://github.com/giseldo/neochat-releases',
+      releasesUrl: 'https://github.com/giseldo/neochat-desktop/releases',
       upstreamName: 'groq-desktop-beta',
       upstreamRepository: 'https://github.com/groq/groq-desktop-beta'
     };

@@ -291,7 +291,7 @@
 - [x] Scripts de build para Linux (`pnpm dist:linux` com pacotes AppImage e deb)
 - [x] Fluxo de lançamento automatizado (`pnpm release:create` e `pnpm release:publish`)
 - [x] Suporte à instalação não-oficial via Homebrew Tap para macOS
-- [x] Publicação de artefatos no repositório `giseldo/neochat-releases`
+- [x] Publicação de artefatos no repositório `giseldo/neochat-desktop`
 
 ---
 

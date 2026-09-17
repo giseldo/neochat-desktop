@@ -2,7 +2,7 @@ const fs = require('fs');
 const path = require('path');
 const { execSync } = require('child_process');
 
-const REPO_TARGET = 'giseldo/neochat-releases';
+const REPO_TARGET = 'giseldo/neochat-desktop';
 const rootDir = path.join(__dirname, '..');
 const pkgPath = path.join(rootDir, 'package.json');
 
@@ -160,7 +160,7 @@ Options:
     console.log('⏩ Skipping git push (--skip-push).');
   }
 
-  // 8. Publish Release to giseldo/neochat-releases
+  // 8. Publish Release to giseldo/neochat-desktop
   console.log(`\n[5/5] Publishing release assets to ${REPO_TARGET}...`);
   if (!isSkipPush) {
     run('node scripts/publish-release.js', { dryRun: isDryRun });

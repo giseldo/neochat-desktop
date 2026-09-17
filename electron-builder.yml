@@ -63,7 +63,7 @@ linux:
 publish:
   provider: github
   owner: giseldo
-  repo: neochat-releases
+  repo: neochat-desktop
 
 # Ensure executable permissions are set
 asarUnpack:
