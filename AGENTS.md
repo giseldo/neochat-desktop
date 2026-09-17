@@ -7,7 +7,7 @@ Electron + React 19 desktop AI workspace & chat app with universal multi-provide
 - Install: `pnpm install`. **pnpm is canonical** (`packageManager: pnpm@10.9.0`); `pnpm-lock.yaml` is the real lockfile, `package-lock.json` is stale — never use `npm install`.
 - Dev: `pnpm dev` (runs Vite on :5173 + Electron concurrently). DevTools auto-opens; main window is created `fullscreen: true` (`electron/windowManager.js`).
 - Build: `pnpm build` (Vite → `dist/`), `pnpm build:electron` (electron-builder), `pnpm dist` (both, output to `release/`).
-- **No test framework, no typecheck, no lint script.** Verification is ad-hoc `node test-*.js` scripts (`test-paths.js`, `test-resolver.js`, `test-popup-window.js`, ...). `pnpm test:paths` runs one; `test-cross-platform.sh` requires Docker and runs Linux tests via `test-linux.Dockerfile`; `test-windows.ps1` for Windows. Run ESLint via `npx eslint` (flat config).
+- **No test framework, no typecheck, no lint script.** Verification is ad-hoc `node tests/test-*.js` scripts (`tests/test-paths.js`, `tests/test-resolver.js`, `tests/test-popup-window.js`, ...). `pnpm test` runs core tests; `pnpm test:paths` runs one; `tests/test-cross-platform.sh` requires Docker and runs Linux tests via `tests/test-linux.Dockerfile`; `tests/test-windows.ps1` for Windows. Run ESLint via `npx eslint` (flat config).
 - **Workflow**: Always test/build, then `git commit` and `git push` to `origin main` automatically after implementing each requested change/feature.
 - **Release Workflow**: Whenever generating a new release:
   - **Automated**: Run `pnpm release:create [patch|minor|major|<version>]` (e.g. `pnpm release:create patch`).

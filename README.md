@@ -125,7 +125,7 @@ pnpm test:platforms
 pnpm test:paths
 
 # No Windows, executar o script de teste do PowerShell
-.\test-windows.ps1
+.\tests\test-windows.ps1
 ```
 
 ### Testes de recursos
@@ -291,7 +291,7 @@ pnpm test:platforms
 pnpm test:paths
 
 # If on Windows, run the PowerShell test script
-.\test-windows.ps1
+.\tests\test-windows.ps1
 ```
 
 ### Feature tests

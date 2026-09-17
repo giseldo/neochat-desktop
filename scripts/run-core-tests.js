@@ -1,4 +1,7 @@
+const path = require('path');
 const { spawnSync } = require('child_process');
+
+const testsDir = path.join(__dirname, '..', 'tests');
 
 const tests = [
   'test-agent-security.js',
@@ -25,7 +28,8 @@ const tests = [
 
 for (const test of tests) {
   console.log(`\n=== ${test} ===`);
-  const result = spawnSync(process.execPath, [test], { stdio: 'inherit', cwd: process.cwd() });
+  const testPath = path.join(testsDir, test);
+  const result = spawnSync(process.execPath, [testPath], { stdio: 'inherit', cwd: path.join(__dirname, '..') });
   if (result.status !== 0) process.exit(result.status || 1);
 }
 

@@ -1,0 +1,95 @@
+const path = require('path');
+const fs = require('fs');
+const assert = require('assert');
+const { SkillManager, CURATED_CATALOG } = require('../electron/skillManager');
+
+async function runTests() {
+  console.log('🧪 Testing SkillManager backend...\n');
+
+  const testDir = path.join(__dirname, 'test-temp-userdata');
+  if (fs.existsSync(testDir)) {
+    fs.rmSync(testDir, { recursive: true, force: true });
+  }
+
+  const mockApp = {
+    getPath: (name) => {
+      if (name === 'userData') return testDir;
+      return testDir;
+    }
+  };
+
+  const manager = new SkillManager();
+  manager.initialize(mockApp);
+
+  // 1. Check Catalog
+  const catalog = manager.getCatalog();
+  assert(catalog.length >= 12, 'Catalog must contain at least 12 curated skills');
+  console.log(`✅ Curated catalog loaded with ${catalog.length} skills.`);
+
+  // 2. Check default bootstrapped skills
+  const initialSkills = manager.listSkills();
+  assert(initialSkills.length >= 4, 'Default skills should be bootstrapped on first launch');
+  assert(initialSkills.every(s => s.enabled === false), 'Default skills must be disabled on first launch');
+  assert.strictEqual(manager.getActiveSkills().length, 0, 'No skills should be active on first launch');
+  console.log(`✅ Default skills bootstrapped as disabled: ${initialSkills.map(s => s.id).join(', ')}`);
+
+  // 3. Install from catalog
+  const installRes = manager.installFromCatalog('sys-architect');
+  assert(installRes.success === true, 'Failed to install sys-architect from catalog');
+  assert(manager.installedSkills.has('sys-architect'), 'sys-architect should be in installed map');
+  console.log('✅ Installed skill from catalog: sys-architect');
+
+  // 4. Create custom skill
+  const customSkill = {
+    name: 'Custom SEO Optimizer',
+    description: 'Otimiza textos e artigos para SEO on-page e palavras-chave.',
+    category: 'writing',
+    tags: ['seo', 'marketing', 'conteudo'],
+    icon: 'Sparkles',
+    slashCommand: 'seo-opt',
+    instructions: '# Instruções SEO\nOtimize o texto para busca orgânica com H1, H2 e densidade de palavras-chave.'
+  };
+  const createRes = manager.installSkill(customSkill);
+  assert(createRes.success === true, 'Failed to create custom skill');
+  assert(manager.installedSkills.has('custom-seo-optimizer'), 'custom-seo-optimizer must exist');
+  console.log('✅ Created custom skill: custom-seo-optimizer');
+
+  // 5. Toggle skill
+  const toggleRes = manager.toggleSkill('custom-seo-optimizer', false);
+  assert(toggleRes.enabled === false, 'Skill should be disabled');
+  assert(manager.installedSkills.get('custom-seo-optimizer').enabled === false, 'Skill state in map must be disabled');
+  console.log('✅ Toggled skill off/on');
+
+  // 6. Test Build Skills Prompt
+  const activeSkills = manager.getActiveSkills();
+  const prompt = manager.buildSkillsPrompt(activeSkills);
+  assert(prompt.includes('ATIVAÇÃO DE SKILLS'), 'Prompt should include header');
+  assert(!prompt.includes('Custom SEO Optimizer'), 'Disabled skill should not appear in active prompt');
+  console.log('✅ Built skills system prompt correctly with active skills only');
+
+  // 7. Test Export
+  const exportMd = manager.exportSkill('sys-architect', 'md');
+  assert(exportMd.content.includes('---'), 'Markdown export must contain YAML frontmatter');
+  assert(exportMd.filename.endsWith('.SKILL.md'), 'Export filename must end with .SKILL.md');
+  console.log('✅ Exported skill as SKILL.md');
+
+  // 8. Test Import
+  const importedRes = manager.importSkillFromContent(exportMd.content, 'sys-architect-copy.md');
+  assert(importedRes.success === true, 'Import must succeed');
+  console.log('✅ Imported skill from Markdown string');
+
+  // 9. Test Delete
+  const delRes = manager.deleteSkill('custom-seo-optimizer');
+  assert(delRes.success === true, 'Delete must succeed');
+  assert(!manager.installedSkills.has('custom-seo-optimizer'), 'Deleted skill must not exist in map');
+  console.log('✅ Deleted skill successfully');
+
+  // Clean up
+  fs.rmSync(testDir, { recursive: true, force: true });
+  console.log('\n🎉 ALL SKILL MANAGER TESTS PASSED SUCCESSFULLY!\n');
+}
+
+runTests().catch(err => {
+  console.error('❌ Test failed:', err);
+  process.exit(1);
+});
