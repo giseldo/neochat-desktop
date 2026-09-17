@@ -2988,6 +2988,29 @@ function App() {
                   {/* Dropdown Menu */}
                   {isToolsDropdownOpen && (
                     <div className="absolute right-0 mt-2 w-72 max-h-[calc(100vh-5rem)] overflow-y-auto overscroll-contain custom-scrollbar p-1.5 rounded-2xl bg-popover border border-border text-popover-foreground shadow-2xl z-50 animate-in fade-in-0 zoom-in-95 space-y-0.5 text-xs">
+                      
+                      
+                      {/* Compare Models */}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsToolsDropdownOpen(false);
+                          setIsCompareMode(!isCompareMode);
+                        }}
+                        className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-muted/80 text-foreground transition-colors text-left"
+                      >
+                        <Scale className="w-4 h-4 text-purple-500 shrink-0" />
+                        <div className="flex-1 min-w-0">
+                          <div className="font-semibold text-foreground flex items-center justify-between">
+                            <span>{t('header.compareModels') || 'Comparar Modelos'}</span>
+                            {isCompareMode && <span className="px-1.5 py-0.2 rounded bg-purple-500/20 text-purple-600 dark:text-purple-400 text-[10px] font-mono">Aberto</span>}
+                          </div>
+                          <div className="text-[10px] text-muted-foreground truncate">Visualização lado a lado</div>
+                        </div>
+                      </button>
+                      
+                      <div className="my-1 border-t border-border/60" />
+                      
                       {/* Terminal Workspace */}
                       <button
                         type="button"
@@ -3006,6 +3029,8 @@ function App() {
                           <div className="text-[10px] text-muted-foreground truncate">PowerShell & comandos (Ctrl+`)</div>
                         </div>
                       </button>
+
+                      
 
                       {/* Workspace File Explorer */}
                       <button
@@ -3042,106 +3067,6 @@ function App() {
                             {isCanvasOpen && <span className="px-1.5 py-0.2 rounded bg-primary/20 text-primary text-[10px] font-mono">Aberto</span>}
                           </div>
                           <div className="text-[10px] text-muted-foreground truncate">Editor lado a lado (Ctrl+Shift+C)</div>
-                        </div>
-                      </button>
-
-                      {/* Swarm */}
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setIsToolsDropdownOpen(false);
-                          setIsSwarmModalOpen(true);
-                        }}
-                        className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-muted/80 text-foreground transition-colors text-left"
-                      >
-                        <Bot className="w-4 h-4 text-indigo-500 shrink-0" />
-                        <div className="flex-1 min-w-0">
-                          <div className="font-semibold text-foreground flex items-center justify-between">
-                            <span>Equipe Swarm</span>
-                            {isSwarmModalOpen && <span className="px-1.5 py-0.2 rounded bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 text-[10px] font-mono">Aberto</span>}
-                          </div>
-                          <div className="text-[10px] text-muted-foreground truncate">Multi-agentes autônomos</div>
-                        </div>
-                      </button>
-
-                      {/* MCP Catalog */}
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setIsToolsDropdownOpen(false);
-                          setIsMcpCatalogOpen(true);
-                        }}
-                        className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-muted/80 text-foreground transition-colors text-left"
-                      >
-                        <Store className="w-4 h-4 text-amber-500 shrink-0" />
-                        <div className="flex-1 min-w-0">
-                          <div className="font-semibold text-foreground flex items-center justify-between">
-                            <span>{t('mcpCatalog.title') || 'Loja MCP'}</span>
-                            {isMcpCatalogOpen && <span className="px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-600 dark:text-amber-400 text-[10px] font-mono">Aberto</span>}
-                          </div>
-                          <div className="text-[10px] text-muted-foreground truncate">Servidores de ferramentas e integrações</div>
-                        </div>
-                      </button>
-
-                      {/* Workflows */}
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setIsToolsDropdownOpen(false);
-                          setIsWorkflowsOpen(true);
-                        }}
-                        className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-muted/80 text-foreground transition-colors text-left"
-                      >
-                        <Workflow className="w-4 h-4 text-teal-500 shrink-0" />
-                        <div className="flex-1 min-w-0">
-                          <div className="font-semibold text-foreground flex items-center justify-between">
-                            <span>{t('workflows.title') || 'Workflows'}</span>
-                            {isWorkflowsOpen && <span className="px-1.5 py-0.2 rounded bg-teal-500/20 text-teal-600 dark:text-teal-400 text-[10px] font-mono">Aberto</span>}
-                          </div>
-                          <div className="text-[10px] text-muted-foreground truncate">Fluxos de trabalho automatizados</div>
-                        </div>
-                      </button>
-
-                      {/* Compare Models */}
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setIsToolsDropdownOpen(false);
-                          setIsCompareMode(!isCompareMode);
-                        }}
-                        className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-muted/80 text-foreground transition-colors text-left"
-                      >
-                        <Scale className="w-4 h-4 text-purple-500 shrink-0" />
-                        <div className="flex-1 min-w-0">
-                          <div className="font-semibold text-foreground flex items-center justify-between">
-                            <span>{t('header.compareModels') || 'Comparar Modelos'}</span>
-                            {isCompareMode && <span className="px-1.5 py-0.2 rounded bg-purple-500/20 text-purple-600 dark:text-purple-400 text-[10px] font-mono">Aberto</span>}
-                          </div>
-                          <div className="text-[10px] text-muted-foreground truncate">Visualização lado a lado</div>
-                        </div>
-                      </button>
-
-                      {/* User Long-Term Memory */}
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setIsToolsDropdownOpen(false);
-                          if (window.electron?.getSettings) {
-                            window.electron.getSettings().then(s => {
-                              setIsUserMemoryEnabled(s?.userMemory?.enabled !== false);
-                            }).catch(() => {});
-                          }
-                          setIsUserMemoryModalOpen(true);
-                        }}
-                        className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-muted/80 text-foreground transition-colors text-left"
-                      >
-                        <Brain className="w-4 h-4 text-purple-600 dark:text-purple-400 shrink-0" />
-                        <div className="flex-1 min-w-0">
-                          <div className="font-semibold text-foreground flex items-center justify-between">
-                            <span>{t('memory.title') || 'Memória Persistente'}</span>
-                            {isUserMemoryModalOpen && <span className="px-1.5 py-0.2 rounded bg-purple-500/20 text-purple-600 dark:text-purple-400 text-[10px] font-mono">Aberto</span>}
-                          </div>
-                          <div className="text-[10px] text-muted-foreground truncate">Preferências e fatos lembrados pela IA</div>
                         </div>
                       </button>
 
@@ -3213,28 +3138,93 @@ function App() {
 
                       <div className="my-1 border-t border-border/60" />
 
-                      {/* Plugins & Modules Hub */}
+                      {/* MCP Catalog */}
                       <button
                         type="button"
                         onClick={() => {
                           setIsToolsDropdownOpen(false);
-                          setIsPluginsManagerOpen(true);
+                          setIsMcpCatalogOpen(true);
                         }}
                         className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-muted/80 text-foreground transition-colors text-left"
                       >
-                        <Sparkles className="w-4 h-4 text-indigo-400 shrink-0" />
+                        <Store className="w-4 h-4 text-amber-500 shrink-0" />
                         <div className="flex-1 min-w-0">
                           <div className="font-semibold text-foreground flex items-center justify-between">
-                            <span>Módulos & Extensões</span>
-                            <div className="flex items-center gap-1.5">
-                              <span className="px-1.5 py-0.2 rounded bg-indigo-500/20 text-indigo-400 text-[9px] font-semibold">Hub</span>
-                              {isPluginsManagerOpen && <span className="px-1.5 py-0.2 rounded bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 text-[10px] font-mono">Aberto</span>}
-                            </div>
+                            <span>{t('mcpCatalog.title') || 'Loja MCP'}</span>
+                            {isMcpCatalogOpen && <span className="px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-600 dark:text-amber-400 text-[10px] font-mono">Aberto</span>}
                           </div>
-                          <div className="text-[10px] text-muted-foreground truncate">Ativar/desativar módulos (0MB idle)</div>
+                          <div className="text-[10px] text-muted-foreground truncate">Servidores de ferramentas e integrações</div>
                         </div>
                       </button>
 
+                      {/* User Long-Term Memory */}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsToolsDropdownOpen(false);
+                          if (window.electron?.getSettings) {
+                            window.electron.getSettings().then(s => {
+                              setIsUserMemoryEnabled(s?.userMemory?.enabled !== false);
+                            }).catch(() => {});
+                          }
+                          setIsUserMemoryModalOpen(true);
+                        }}
+                        className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-muted/80 text-foreground transition-colors text-left"
+                      >
+                        <Brain className="w-4 h-4 text-purple-600 dark:text-purple-400 shrink-0" />
+                        <div className="flex-1 min-w-0">
+                          <div className="font-semibold text-foreground flex items-center justify-between">
+                            <span>{t('memory.title') || 'Memória Persistente'}</span>
+                            {isUserMemoryModalOpen && <span className="px-1.5 py-0.2 rounded bg-purple-500/20 text-purple-600 dark:text-purple-400 text-[10px] font-mono">Aberto</span>}
+                          </div>
+                          <div className="text-[10px] text-muted-foreground truncate">Preferências e fatos lembrados pela IA</div>
+                        </div>
+                      </button>
+
+                      <div className="my-1 border-t border-border/60" />
+
+                      {/* Swarm */}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsToolsDropdownOpen(false);
+                          setIsSwarmModalOpen(true);
+                        }}
+                        className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-muted/80 text-foreground transition-colors text-left"
+                      >
+                        <Bot className="w-4 h-4 text-indigo-500 shrink-0" />
+                        <div className="flex-1 min-w-0">
+                          <div className="font-semibold text-foreground flex items-center justify-between">
+                            <span>Equipe Swarm</span>
+                            {isSwarmModalOpen && <span className="px-1.5 py-0.2 rounded bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 text-[10px] font-mono">Aberto</span>}
+                          </div>
+                          <div className="text-[10px] text-muted-foreground truncate">Multi-agentes autônomos</div>
+                        </div>
+                      </button>
+
+                      
+
+                      {/* Workflows */}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsToolsDropdownOpen(false);
+                          setIsWorkflowsOpen(true);
+                        }}
+                        className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-muted/80 text-foreground transition-colors text-left"
+                      >
+                        <Workflow className="w-4 h-4 text-teal-500 shrink-0" />
+                        <div className="flex-1 min-w-0">
+                          <div className="font-semibold text-foreground flex items-center justify-between">
+                            <span>{t('workflows.title') || 'Workflows'}</span>
+                            {isWorkflowsOpen && <span className="px-1.5 py-0.2 rounded bg-teal-500/20 text-teal-600 dark:text-teal-400 text-[10px] font-mono">Aberto</span>}
+                          </div>
+                          <div className="text-[10px] text-muted-foreground truncate">Fluxos de trabalho automatizados</div>
+                        </div>
+                      </button>
+
+
+                     
                       {/* AI Arena */}
                       <button
                         type="button"
@@ -3327,6 +3317,28 @@ function App() {
                             {isDailyBriefingOpen && <span className="px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-600 dark:text-amber-400 text-[10px] font-mono">Aberto</span>}
                           </div>
                           <div className="text-[10px] text-muted-foreground truncate">Resumo matinal inteligente</div>
+                        </div>
+                      </button>
+
+                       {/* Plugins & Modules Hub */}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsToolsDropdownOpen(false);
+                          setIsPluginsManagerOpen(true);
+                        }}
+                        className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-muted/80 text-foreground transition-colors text-left"
+                      >
+                        <Sparkles className="w-4 h-4 text-indigo-400 shrink-0" />
+                        <div className="flex-1 min-w-0">
+                          <div className="font-semibold text-foreground flex items-center justify-between">
+                            <span>Módulos & Extensões</span>
+                            <div className="flex items-center gap-1.5">
+                              <span className="px-1.5 py-0.2 rounded bg-indigo-500/20 text-indigo-400 text-[9px] font-semibold">Hub</span>
+                              {isPluginsManagerOpen && <span className="px-1.5 py-0.2 rounded bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 text-[10px] font-mono">Aberto</span>}
+                            </div>
+                          </div>
+                          <div className="text-[10px] text-muted-foreground truncate">Ativar/desativar módulos (0MB idle)</div>
                         </div>
                       </button>
 
