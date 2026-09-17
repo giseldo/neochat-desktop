@@ -5579,7 +5579,7 @@ function Settings() {
                                       </p>
                                       {isConfigured && (
                                         <p className="text-[11px] text-muted-foreground">
-                                          Clique no botão <span className="font-semibold text-foreground">"{t('settings.testConnection') || 'Testar Conexão'}"</span> acima para verificar e sincronizar os modelos disponíveis.
+                                          Clique no botão <span className="font-semibold text-foreground">&ldquo;{t('settings.testConnection') || 'Testar Conexão'}&rdquo;</span> acima para verificar e sincronizar os modelos disponíveis.
                                         </p>
                                       )}
                                     </div>
