@@ -11,16 +11,21 @@ const releaseDir = path.join(__dirname, '..', 'release');
 
 console.log('\n📦 Publishing release ' + tag + ' to ' + REPO_TARGET + '...');
 
+const { prepareLatestAssets } = require('./prepare-latest-assets');
+
 if (!fs.existsSync(releaseDir)) {
   console.error('❌ Release directory does not exist: ' + releaseDir);
   process.exit(1);
 }
 
+// Prepare unversioned alias assets
+prepareLatestAssets(releaseDir, version);
+
 const allFiles = fs.readdirSync(releaseDir);
 const filesToUpload = allFiles
   .filter((file) => {
     if (file === 'latest.yml' || file === 'latest-mac.yml' || file === 'latest-linux.yml') return true;
-    if (file.includes(version) && (file.endsWith('.exe') || file.endsWith('.dmg') || file.endsWith('.zip') || file.endsWith('.AppImage') || file.endsWith('.deb') || file.endsWith('.blockmap'))) {
+    if (file.endsWith('.exe') || file.endsWith('.dmg') || file.endsWith('.zip') || file.endsWith('.AppImage') || file.endsWith('.deb') || file.endsWith('.rpm') || file.endsWith('.blockmap')) {
       return true;
     }
     return false;

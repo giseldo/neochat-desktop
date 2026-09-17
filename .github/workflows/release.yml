@@ -60,6 +60,24 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Upload Unversioned Latest Assets
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          node scripts/prepare-latest-assets.js
+          PKG_VERSION=$(node -p "require('./package.json').version")
+          TAG_NAME="${GITHUB_REF_NAME:-v$PKG_VERSION}"
+          echo "Uploading unversioned assets to release tag: ${TAG_NAME}"
+          cd release
+          for f in *; do
+            if [ -f "$f" ] && [[ "$f" =~ \.(exe|dmg|zip|AppImage|deb|rpm)$ ]] && [[ ! "$f" =~ "$PKG_VERSION" ]]; then
+              echo "Uploading unversioned asset '$f' to ${TAG_NAME}..."
+              gh release upload "${TAG_NAME}" "$f" --clobber || true
+            fi
+          done
+
       - name: Upload Build Artifacts
         uses: actions/upload-artifact@v4
         if: always()
