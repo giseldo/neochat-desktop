@@ -61,7 +61,6 @@ function loadSettings() {
             language: 'pt',
             interfaceMode: 'user',
             agentHarness: 'native',
-            showTrajectoryTab: true,
             showWelcomeTips: false,
             showWelcomeSuggestions: false,
             showButtonLabels: false,
@@ -124,7 +123,6 @@ function loadSettings() {
         language: 'pt',
         interfaceMode: 'user',
         agentHarness: 'native',
-        showTrajectoryTab: true,
         showWelcomeTips: false,
         showWelcomeSuggestions: false,
         showButtonLabels: false,
@@ -217,7 +215,6 @@ function loadSettings() {
             settings.language = settings.language || defaultSettings.language;
             settings.interfaceMode = settings.interfaceMode === 'power' ? 'power' : 'user';
             settings.agentHarness = settings.agentHarness === 'pi' ? 'pi' : 'native';
-            settings.showTrajectoryTab = settings.showTrajectoryTab ?? defaultSettings.showTrajectoryTab;
             settings.showWelcomeTips = settings.showWelcomeTips ?? defaultSettings.showWelcomeTips;
             settings.showWelcomeSuggestions = settings.showWelcomeSuggestions ?? defaultSettings.showWelcomeSuggestions;
             settings.showButtonLabels = settings.showButtonLabels ?? defaultSettings.showButtonLabels;

@@ -102,7 +102,6 @@ function App() {
 
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('chat'); // 'chat' | 'trajectory'
-  const [showTrajectoryTab, setShowTrajectoryTab] = useState(true);
   const [showWelcomeTips, setShowWelcomeTips] = useState(false);
   const [showWelcomeSuggestions, setShowWelcomeSuggestions] = useState(false);
   const [showButtonLabels, setShowButtonLabels] = useState(false);
@@ -654,7 +653,6 @@ function App() {
         const settings = await window.electron.getSettings(); // Await settings
         setInterfaceMode(settings.interfaceMode === 'power' ? 'power' : 'user');
         setAgentHarness(settings.agentHarness === 'pi' ? 'pi' : 'native');
-        setShowTrajectoryTab(settings.showTrajectoryTab !== false);
         setShowWelcomeTips(settings.showWelcomeTips === true);
         setShowWelcomeSuggestions(settings.showWelcomeSuggestions === true);
         setShowButtonLabels(settings.showButtonLabels === true);
@@ -753,14 +751,9 @@ function App() {
       try {
         const settings = await window.electron.getSettings();
         setInterfaceMode(settings.interfaceMode === 'power' ? 'power' : 'user');
-        const trajectoryEnabled = settings.showTrajectoryTab !== false;
-        setShowTrajectoryTab(trajectoryEnabled);
         setShowWelcomeTips(settings.showWelcomeTips === true);
         setShowWelcomeSuggestions(settings.showWelcomeSuggestions === true);
         setShowButtonLabels(settings.showButtonLabels === true);
-        if (!trajectoryEnabled) {
-          setActiveTab('chat');
-        }
         setEnabledModels(settings.enabledModels || []);
         setDisabledModels(settings.disabledModels || []);
         setFavoriteModels(settings.favoriteModels || []);
@@ -2977,30 +2970,28 @@ function App() {
                       </button>
 
                       {/* Trajectory */}
-                      {showTrajectoryTab && (
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setIsToolsDropdownOpen(false);
-                            setActiveTab(activeTab === 'trajectory' ? 'chat' : 'trajectory');
-                          }}
-                          className={cn(
-                            "w-full flex items-center gap-2.5 px-3 py-2 rounded-xl transition-colors text-left",
-                            activeTab === 'trajectory' 
-                              ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 font-medium" 
-                              : "hover:bg-muted/80 text-foreground"
-                          )}
-                        >
-                          <Activity className="w-4 h-4 text-emerald-500 shrink-0" />
-                          <div className="flex-1 min-w-0">
-                            <div className="font-semibold flex items-center justify-between">
-                              <span>{t('trajectory.trajectoryTab') || 'Trajetória'}</span>
-                              {activeTab === 'trajectory' && <span className="px-1.5 py-0.2 rounded bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-[10px] font-mono font-semibold">Aberto</span>}
-                            </div>
-                            <div className="text-[10px] text-muted-foreground truncate">{t('header.trajectorySubtitle') || 'Linha do tempo & eventos detalhados'}</div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsToolsDropdownOpen(false);
+                          setActiveTab(activeTab === 'trajectory' ? 'chat' : 'trajectory');
+                        }}
+                        className={cn(
+                          "w-full flex items-center gap-2.5 px-3 py-2 rounded-xl transition-colors text-left",
+                          activeTab === 'trajectory' 
+                            ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 font-medium" 
+                            : "hover:bg-muted/80 text-foreground"
+                        )}
+                      >
+                        <Activity className="w-4 h-4 text-emerald-500 shrink-0" />
+                        <div className="flex-1 min-w-0">
+                          <div className="font-semibold flex items-center justify-between">
+                            <span>{t('trajectory.trajectoryTab') || 'Trajetória'}</span>
+                            {activeTab === 'trajectory' && <span className="px-1.5 py-0.2 rounded bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-[10px] font-mono font-semibold">Aberto</span>}
                           </div>
-                        </button>
-                      )}
+                          <div className="text-[10px] text-muted-foreground truncate">{t('header.trajectorySubtitle') || 'Linha do tempo & eventos detalhados'}</div>
+                        </div>
+                      </button>
                       
                       <div className="my-1 border-t border-border/60" />
                       
@@ -3466,7 +3457,7 @@ function App() {
                     />
                   </div>
                 </div>
-              ) : (messages.length === 0 && (activeTab === 'chat' || !showTrajectoryTab || !isPowerUser)) ? (
+              ) : (messages.length === 0 && (activeTab === 'chat' || !isPowerUser)) ? (
                 /* Welcome Screen */
                 <div className={cn(
                   "flex flex-col items-center justify-center h-full mx-auto w-full px-4 py-6 overflow-y-auto",
@@ -3516,7 +3507,7 @@ function App() {
                     />
                   </div>
                 </div>
-              ) : (activeTab === 'trajectory' && showTrajectoryTab && isPowerUser) ? (
+              ) : (activeTab === 'trajectory' && isPowerUser) ? (
                 /* Trajectory View */
                 <div className="flex flex-col h-full min-h-0">
                   <div className="flex-1 overflow-hidden min-h-0 mb-4">

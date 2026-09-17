@@ -1081,12 +1081,6 @@ export const translations = {
       buttonLabelsLabel: 'Exibir Rótulo dos Botões',
       buttonLabelsHelp: 'Quando desativado, os botões mostram apenas ícones minimalistas com dicas ao passar o mouse, economizando espaço em ambos os modos (Usuário e Power User). Desativado por padrão.',
 
-      // Trajectory Tab Card
-      trajectoryTabTitle: 'Aba Trajetória',
-      trajectoryTabDesc: 'Ative ou desative a exibição da aba Trajetória no cabeçalho do chat.',
-      trajectoryTabLabel: 'Exibir Aba Trajetória',
-      trajectoryTabHelp: 'Quando desativado, a aba de trajetória fica oculta da barra de navegação superior, mantendo o foco exclusivo no chat.',
-
       // Thinking Summaries Card
       thinkingSummariesTitle: 'Sumários de Raciocínio (Thinking)',
       thinkingSummariesDesc: 'Controla se os sumários de raciocínio são exibidos durante a resposta do modelo. Quando desativado, apenas o texto bruto de raciocínio será mostrado.',
@@ -2823,12 +2817,6 @@ export const translations = {
       buttonLabelsDesc: 'Show or hide descriptive text next to icons on header and toolbar buttons.',
       buttonLabelsLabel: 'Show Button Labels',
       buttonLabelsHelp: 'When disabled, buttons display only minimalist icons with tooltips on hover, saving space across both User and Power User modes. Disabled by default.',
-
-      // Trajectory Tab Card
-      trajectoryTabTitle: 'Trajectory Tab',
-      trajectoryTabDesc: 'Enable or disable displaying the Trajectory tab in the chat header.',
-      trajectoryTabLabel: 'Show Trajectory Tab',
-      trajectoryTabHelp: 'When disabled, the trajectory tab is hidden from the top navigation bar, keeping full focus on the chat.',
 
       // Thinking Summaries Card
       thinkingSummariesTitle: 'Thinking Summaries',

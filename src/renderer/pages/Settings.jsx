@@ -329,7 +329,6 @@ function Settings() {
     language: 'pt',
     interfaceMode: 'user',
     agentHarness: 'native',
-    showTrajectoryTab: true,
     showWelcomeTips: false,
     showWelcomeSuggestions: false,
     showButtonLabels: false,
@@ -695,14 +694,6 @@ function Settings() {
       desc: t('settings.appearanceDesc') || 'Cores, modo claro/escuro, fontes e tamanhos',
       keywords: 'tema aparencia cores modo escuro dark mode light fundo background tipografia font tamanho size preview oled slate warm zinc tinted alinhamento justify justificado texto alignment',
       isPowerOnly: false
-    },
-    {
-      id: 'trajectoryTab',
-      category: 'interface',
-      title: t('settings.trajectoryTabTitle') || 'Aba de Trajetória',
-      desc: t('settings.trajectoryTabDesc') || 'Exibir ou ocultar a aba de raciocínio no chat',
-      keywords: 'trajetoria trajectory aba tab raciocinio pensamento agente timeline passos ledger',
-      isPowerOnly: true
     },
     {
       id: 'welcomeTips',
@@ -1078,9 +1069,6 @@ function Settings() {
         if (!settingsData.reasoning_effort) {
             settingsData.reasoning_effort = 'medium';
         }
-        if (settingsData.showTrajectoryTab === undefined) {
-            settingsData.showTrajectoryTab = true;
-        }
         if (settingsData.showWelcomeTips === undefined) {
             settingsData.showWelcomeTips = false;
         }
@@ -1173,7 +1161,6 @@ function Settings() {
                 browserSearch: false
             },
             reasoning_effort: 'medium',
-            showTrajectoryTab: true,
             showWelcomeTips: false,
             showWelcomeSuggestions: false,
             showButtonLabels: false,
@@ -3365,7 +3352,6 @@ function Settings() {
       visibleCardIds.has('interfaceMode') ||
       visibleCardIds.has('language') ||
       visibleCardIds.has('appearance') ||
-      visibleCardIds.has('trajectoryTab') ||
       visibleCardIds.has('welcomeTips') ||
       visibleCardIds.has('welcomeSuggestions') ||
       visibleCardIds.has('buttonLabels') ||
@@ -3415,37 +3401,6 @@ function Settings() {
               <p className={cn("pt-4 text-muted-foreground", textAlign === 'justify' ? "text-justify [text-justify:inter-word]" : "text-left")} style={{ fontSize: FONT_SIZES.find(f => f.id === fontSize)?.scale }}>{language === 'pt' ? 'Um espaço para conversar, criar e raciocinar com clareza através de inteligência artificial.' : 'A space to talk, create and reason with clarity through artificial intelligence.'}</p>
             </CardContent>
           </Card>
-        )}
-
-        {visibleCardIds.has('trajectoryTab') && (
-          <Card layout="row">
-              <CardHeader>
-                <CardTitle className="flex items-center space-x-2">
-                  <Route className="h-5 w-5 text-primary" />
-                  <span>{t('settings.trajectoryTabTitle')}</span>
-                </CardTitle>
-                <CardDescription>
-                  {t('settings.trajectoryTabDesc')}
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="flex items-center justify-between">
-                  <div className="space-y-0.5">
-                    <Label htmlFor="trajectory-tab-toggle" className="font-medium">
-                      {t('settings.trajectoryTabLabel')}
-                    </Label>
-                    <p className="text-xs text-muted-foreground">
-                      {t('settings.trajectoryTabHelp')}
-                    </p>
-                  </div>
-                  <Switch
-                    id="trajectory-tab-toggle"
-                    checked={settings.showTrajectoryTab !== false}
-                    onChange={(e) => handleToggleChange('showTrajectoryTab', e.target.checked)}
-                  />
-                </div>
-              </CardContent>
-            </Card>
         )}
 
         {visibleCardIds.has('welcomeTips') && (
