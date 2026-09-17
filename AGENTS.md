@@ -10,13 +10,11 @@ Electron + React 19 desktop AI workspace & chat app with universal multi-provide
 - **No test framework, no typecheck, no lint script.** Verification is ad-hoc `node tests/test-*.js` scripts (`tests/test-paths.js`, `tests/test-resolver.js`, `tests/test-popup-window.js`, ...). `pnpm test` runs core tests; `pnpm test:paths` runs one; `tests/test-cross-platform.sh` requires Docker and runs Linux tests via `tests/test-linux.Dockerfile`; `tests/test-windows.ps1` for Windows. Run ESLint via `npx eslint` (flat config).
 - **Workflow**: Always test/build, then `git commit` and `git push` to `origin main` automatically after implementing each requested change/feature.
 - **Release Workflow**: Whenever generating a new release:
-  - **Automated**: Run `pnpm release:create [patch|minor|major|<version>]` (e.g. `pnpm release:create patch`).
+  - **Automated**: Run `pnpm release:create [patch|minor|major|<version>]` (e.g. `pnpm release:create patch`). This automatically bumps version, tags, pushes, and triggers GitHub Actions to build and publish release artifacts.
   - **Manual**:
     1. Bump version in `package.json` (e.g. semver patch/minor).
-    2. Build distributions (`pnpm dist:win`).
-    3. Commit (`chore(release): bump version to X.Y.Z`) and create git tag `vX.Y.Z`.
-    4. Push commit and tag `git push origin main && git push origin vX.Y.Z`.
-    5. Always publish release artifacts to `giseldo/neochat-desktop` via `pnpm release:publish` (or `gh release create`).
+    2. Commit (`chore(release): bump version to X.Y.Z`) and create git tag `vX.Y.Z`.
+    3. Push commit and tag `git push origin main && git push origin vX.Y.Z`. GitHub Actions will automatically build and publish release artifacts.
 
 ## Architecture
 

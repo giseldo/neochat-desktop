@@ -49,13 +49,13 @@ function calculateNextVersion(currentVersion, bumpType = 'patch') {
     return explicit;
   }
 
-  throw new Error(`Unknown bump type or invalid version: "${bumpType}". Expected: "patch", "minor", "major", or a version like "0.0.2".`);
+  throw new Error(`Unknown bump type or invalid version: "${bumpType}". Expected: "patch", "minor", "major", or a version like "0.0.6".`);
 }
 
 function main() {
   const args = process.argv.slice(2);
   const isDryRun = args.includes('--dry-run');
-  const isSkipBuild = args.includes('--skip-build');
+  const isLocalBuild = args.includes('--local');
   const isSkipPush = args.includes('--skip-push');
   const isHelp = args.includes('--help') || args.includes('-h');
 
@@ -68,16 +68,15 @@ Usage:
   pnpm release:create [patch|minor|major|<version>] [options]
 
 Arguments:
-  patch                  Increment patch version (0.0.1 -> 0.0.2) [Default]
-  minor                  Increment minor version (0.0.1 -> 0.1.0)
-  major                  Increment major version (0.0.1 -> 1.0.0)
-  <version>              Specify exact version (e.g. 0.0.2)
+  patch                  Increment patch version (0.0.5 -> 0.0.6) [Default]
+  minor                  Increment minor version (0.0.5 -> 0.1.0)
+  major                  Increment major version (0.0.5 -> 1.0.0)
+  <version>              Specify exact version (e.g. 0.0.6)
 
 Options:
-  --platform=<win|all>   Target platform to build (default: win)
-  --dry-run              Preview steps without modifying files, building or pushing
-  --skip-build           Skip the build step (pnpm dist)
-  --skip-push            Skip git push and release publishing
+  --dry-run              Preview steps without modifying files, tagging or pushing
+  --local                Also build and upload locally instead of relying purely on GitHub Actions
+  --skip-push            Skip git push to remote
   --help, -h             Show this help message
 `);
     process.exit(0);
@@ -85,7 +84,6 @@ Options:
 
   // Extract bump type (first argument that doesn't start with --)
   const bumpArg = args.find(a => !a.startsWith('--')) || 'patch';
-  const platformArg = (args.find(a => a.startsWith('--platform=')) || '--platform=win').split('=')[1];
 
   console.log('==============================================');
   console.log('  🚀 NeoChat Desktop - Automated Release');
@@ -102,18 +100,8 @@ Options:
   console.log(`Current version: ${currentVersion}`);
   console.log(`Target version:  ${nextVersion} (${tag})`);
   console.log(`Target repo:     ${REPO_TARGET}`);
-  console.log(`Platform build:  ${platformArg}`);
 
-  // 2. Check for gh CLI
-  try {
-    execSync('gh --version', { stdio: 'ignore' });
-  } catch (err) {
-    console.error('\n❌ GitHub CLI ("gh") is not installed or not in PATH.');
-    console.error('   Please install GitHub CLI: https://cli.github.com/ and login with "gh auth login".');
-    process.exit(1);
-  }
-
-  // 3. Check git tag collision
+  // 2. Check git tag collision
   try {
     const existingTag = execSync(`git tag -l "${tag}"`, { encoding: 'utf8' }).trim();
     if (existingTag) {
@@ -124,8 +112,8 @@ Options:
     // Ignore error if check fails
   }
 
-  // 4. Update package.json
-  console.log(`\n[1/5] Updating package.json to ${nextVersion}...`);
+  // 3. Update package.json
+  console.log(`\n[1/3] Updating package.json to ${nextVersion}...`);
   if (!isDryRun) {
     pkg.version = nextVersion;
     fs.writeFileSync(pkgPath, JSON.stringify(pkg, null, 2) + '\n', 'utf8');
@@ -134,43 +122,35 @@ Options:
     console.log(`  [dry-run] Would update package.json version to ${nextVersion}`);
   }
 
-  // 5. Build distributions
-  console.log('\n[2/5] Building application distribution...');
-  if (!isSkipBuild) {
-    const buildCommand = platformArg === 'all' ? 'pnpm dist' : `pnpm dist:${platformArg}`;
-    run(buildCommand, { dryRun: isDryRun });
-    console.log('✔ Build completed successfully.');
-  } else {
-    console.log('⏩ Skipping build step (--skip-build).');
-  }
-
-  // 6. Commit & Tag
-  console.log(`\n[3/5] Creating Git commit and tag (${tag})...`);
+  // 4. Commit & Tag
+  console.log(`\n[2/3] Creating Git commit and tag (${tag})...`);
   run('git add -A', { dryRun: isDryRun });
   run(`git commit -m "chore(release): bump version to ${nextVersion}"`, { dryRun: isDryRun });
   run(`git tag ${tag}`, { dryRun: isDryRun });
   console.log(`✔ Git commit and tag ${tag} created.`);
 
-  // 7. Push to remote
-  console.log('\n[4/5] Pushing commit and tag to origin main...');
+  // 5. Push to remote
+  console.log(`\n[3/3] Pushing commit and tag ${tag} to origin main...`);
   if (!isSkipPush) {
     run(`git push origin main && git push origin ${tag}`, { dryRun: isDryRun });
-    console.log('✔ Git push completed.');
+    console.log(`✔ Git push completed.`);
   } else {
     console.log('⏩ Skipping git push (--skip-push).');
   }
 
-  // 8. Publish Release to giseldo/neochat-desktop
-  console.log(`\n[5/5] Publishing release assets to ${REPO_TARGET}...`);
-  if (!isSkipPush) {
+  // Optional local build/publish if requested
+  if (isLocalBuild) {
+    console.log('\n[Local Build] Building and uploading release locally (--local)...');
+    run('pnpm dist:win', { dryRun: isDryRun });
     run('node scripts/publish-release.js', { dryRun: isDryRun });
-  } else {
-    console.log('⏩ Skipping release upload (--skip-push).');
   }
 
   console.log('\n==============================================');
-  console.log(`🎉 Release ${tag} successfully generated and published!`);
-  console.log(`🔗 https://github.com/${REPO_TARGET}/releases/tag/${tag}`);
+  console.log(`🎉 Release ${tag} triggered successfully!`);
+  console.log(`⚙️  GitHub Actions CI/CD is compiling and publishing artifacts:`);
+  console.log(`   https://github.com/${REPO_TARGET}/actions`);
+  console.log(`🔗 Release URL when ready:`);
+  console.log(`   https://github.com/${REPO_TARGET}/releases/tag/${tag}`);
   console.log('==============================================\n');
 }
 
