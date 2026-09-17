@@ -7575,6 +7575,34 @@ function Settings() {
                 </div>
               </div>
 
+              {/* Origem e Atribuição Open Source */}
+              <div className="rounded-xl border border-primary/20 bg-primary/5 p-3.5 space-y-2">
+                <div className="flex items-center justify-between gap-2 flex-wrap">
+                  <span className="text-[11px] font-semibold text-primary uppercase tracking-wider flex items-center gap-1.5">
+                    <Sparkles className="w-3.5 h-3.5" />
+                    {t('settings.upstreamAttributionTitle') || 'Origem & Atribuição de Código Aberto'}
+                  </span>
+                  <Badge variant="outline" className="text-[10px] font-normal border-primary/30 text-primary">
+                    Fork / Derivative Work (MIT)
+                  </Badge>
+                </div>
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  {t('settings.upstreamAttributionDesc') || 'O NeoChat Desktop foi desenvolvido e evoluiu a partir do projeto de código aberto groq-desktop-beta, criado pela Groq, Inc. sob licença MIT.'}
+                </p>
+                <div className="pt-0.5">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleOpenLink('https://github.com/groq/groq-desktop-beta')}
+                    className="text-xs h-7 bg-background/80 hover:bg-background text-foreground"
+                  >
+                    <Github className="w-3.5 h-3.5 mr-1.5" />
+                    {t('settings.upstreamRepoBtn') || 'Repositório Original (groq-desktop-beta)'}
+                    <ExternalLink className="w-3 h-3 ml-1.5 opacity-60" />
+                  </Button>
+                </div>
+              </div>
+
               {/* Links Oficiais */}
               <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-border/50">
                 <Button

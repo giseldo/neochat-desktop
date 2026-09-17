@@ -149,6 +149,16 @@ pnpm test:observability
 pnpm test:git-manager
 ```
 
+## Agradecimentos e Atribuição
+
+Este projeto originou-se e evoluiu a partir do repositório de código aberto [`groq-desktop-beta`](https://github.com/groq/groq-desktop-beta) da **Groq, Inc.**, distribuído sob a licença MIT.
+
+Agradecemos aos criadores e colaboradores originais pela base sólida que permitiu expandir o NeoChat Desktop para um ambiente de trabalho de inteligência artificial desktop multi-provedor com runtime de agentes autônomos, suporte a ferramentas MCP e RAG local.
+
+## Licença
+
+Distribuído sob a licença MIT. Consulte o arquivo [LICENSE](LICENSE) para obter mais informações.
+
 ---
 
 # NeoChat Desktop (English)
@@ -315,19 +325,12 @@ pnpm test:observability
 pnpm test:git-manager
 ```
 
+## Acknowledgments & Attribution
 
-> **Nota para usuários do macOS**: depois de instalar no macOS, pode ser necessário executar este comando para abrir o aplicativo:
-> ```sh
-> xattr -c /Applications/Neochat\ Desktop.app
-> ```
+This project originated and evolved from the open-source repository [`groq-desktop-beta`](https://github.com/groq/groq-desktop-beta) by **Groq, Inc.**, distributed under the MIT License.
 
-## Instalação não oficial pelo Homebrew (macOS)
+We extend our gratitude to the original creators and contributors for providing the solid foundation that enabled NeoChat Desktop to expand into a universal desktop AI workspace with autonomous agent runtimes, local RAG, and MCP tool ecosystem.
 
-Você pode instalar a versão mais recente usando o [Homebrew](https://brew.sh/) por meio de um tap não oficial:
+## License
 
-```sh
-brew tap ricklamers/groq-desktop-unofficial
-brew install --cask groq-desktop
-# Permitir a execução do aplicativo
-xattr -c /Applications/Neochat\ Desktop.app
-```
+Distributed under the MIT License. See [LICENSE](LICENSE) for more information.
