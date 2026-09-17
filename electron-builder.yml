@@ -1,6 +1,6 @@
 appId: com.neochat.desktop
 productName: NeoChat Desktop
-artifactName: "${productName}-${version}.${ext}"
+artifactName: "NeoChat-Desktop.${ext}"
 copyright: "Copyright © 2026 Neo"
 
 directories:
@@ -19,6 +19,7 @@ mac:
   target:
     - dmg
     - zip
+  artifactName: "NeoChat-Desktop.${ext}"
   icon: public/icon.png
   darkModeSupport: true
   hardenedRuntime: true
@@ -33,7 +34,7 @@ win:
   requestedExecutionLevel: asInvoker
 
 nsis:
-  artifactName: "${productName}-Setup-${version}.${ext}"
+  artifactName: "NeoChat-Desktop-Setup.${ext}"
   oneClick: false
   perMachine: false
   allowToChangeInstallationDirectory: true
@@ -44,7 +45,7 @@ nsis:
   deleteAppDataOnUninstall: false
 
 portable:
-  artifactName: "${productName}-Portable-${version}.${ext}"
+  artifactName: "NeoChat-Desktop-Portable.${ext}"
 
 # Linux Configuration
 linux:
@@ -52,6 +53,7 @@ linux:
     - AppImage
     - deb
     - rpm
+  artifactName: "NeoChat-Desktop.${ext}"
   category: Development
   synopsis: Local Desktop chat app with MCP support
   description: Chat interface with image support and local MCP servers
