@@ -70,6 +70,20 @@ export function ProjectModal() {
     setIsSaving(false);
   }, [editingProject, projectModalMode, isProjectModalOpen]);
 
+  useEffect(() => {
+    if (!isProjectModalOpen) return;
+
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        setIsProjectModalOpen(false);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isProjectModalOpen, setIsProjectModalOpen]);
+
   if (!isProjectModalOpen) return null;
 
   const handleSubmit = async (e) => {

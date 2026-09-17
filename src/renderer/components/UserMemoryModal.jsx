@@ -72,6 +72,20 @@ export function UserMemoryModal({ isOpen, onClose, isMemoryEnabled: propIsMemory
     }
   }, [isOpen, propIsMemoryEnabled]);
 
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        onClose();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, onClose]);
+
   const isMemoryEnabled = propIsMemoryEnabled !== undefined ? propIsMemoryEnabled : internalEnabled;
   
   // Add memory form state

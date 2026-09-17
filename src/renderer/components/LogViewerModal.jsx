@@ -109,6 +109,18 @@ function LogViewerModal({ serverId, transportType, onClose }) {
   // Pass transportType to the custom hook
   const { logs, isLoading, error } = useLogViewer(serverId, transportType, t);
 
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        onClose();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [onClose]);
+
   if (typeof document === 'undefined') return null;
 
   return createPortal(

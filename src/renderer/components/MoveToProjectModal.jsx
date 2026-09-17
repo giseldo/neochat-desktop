@@ -17,6 +17,20 @@ export function MoveToProjectModal() {
   const { updateChatProject } = useChat();
   const { t } = useLanguage();
 
+  useEffect(() => {
+    if (!isMoveModalOpen) return;
+
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        closeMoveModal();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isMoveModalOpen, closeMoveModal]);
+
   if (!isMoveModalOpen || !chatToMove) return null;
 
   const currentProjectId = chatToMove.projectId || null;

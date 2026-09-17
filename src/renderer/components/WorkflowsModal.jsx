@@ -91,6 +91,20 @@ export default function WorkflowsModal({ isOpen, onClose, onRun }) {
     }
   }, [isOpen, refresh]);
 
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        onClose();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, onClose]);
+
   const parsedSteps = useMemo(() => {
     if (!form.steps) return [];
     return form.steps
