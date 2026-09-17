@@ -2,7 +2,7 @@ const fs = require('fs');
 const path = require('path');
 const { createSecretStore } = require('./secretStore');
 const { invalidateModelsCache } = require('../shared/models.js');
-const { getDefaultEnabledModels, getDefaultModel } = require('../shared/providers.js');
+const { getDefaultEnabledModels } = require('../shared/providers.js');
 
 let appInstance; // To store app instance for userData path
 let secretStore;
@@ -66,7 +66,7 @@ function loadSettings() {
             showWelcomeSuggestions: false,
             showButtonLabels: false,
             textAlign: 'left',
-            model: process.env.GROQ_DEFAULT_MODEL || getDefaultModel({ provider: 'groq' }),
+            model: '',
             temperature: 0.7,
             top_p: 0.95,
             autoPrune: false,
@@ -149,7 +149,7 @@ function loadSettings() {
         autoUpdate: { checkOnStartup: true, channel: 'stable' },
         observability: { monthlyBudgetUsd: 0, defaultRate: { input: 0, output: 0 }, modelRates: {} },
         gitIntegration: { repositoryPath: '' },
-        model: process.env.GROQ_DEFAULT_MODEL || getDefaultModel({ provider: 'groq' }),
+        model: '',
         temperature: 0.7,
         top_p: 0.95,
         reasoning_effort: 'medium',
@@ -221,7 +221,7 @@ function loadSettings() {
             settings.showWelcomeTips = settings.showWelcomeTips ?? defaultSettings.showWelcomeTips;
             settings.showWelcomeSuggestions = settings.showWelcomeSuggestions ?? defaultSettings.showWelcomeSuggestions;
             settings.showButtonLabels = settings.showButtonLabels ?? defaultSettings.showButtonLabels;
-            settings.model = settings.model || defaultSettings.model;
+            settings.model = typeof settings.model === 'string' ? settings.model : '';
             settings.temperature = settings.temperature ?? defaultSettings.temperature; // Use nullish coalescing
             settings.top_p = settings.top_p ?? defaultSettings.top_p;
             settings.reasoning_effort = settings.reasoning_effort || defaultSettings.reasoning_effort;
