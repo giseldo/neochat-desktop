@@ -10,9 +10,19 @@ permissions:
   contents: write
 
 jobs:
-  release-windows:
-    name: Build & Publish Windows Release
-    runs-on: windows-latest
+  release:
+    name: Build & Publish Release (${{ matrix.platform }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            platform: win
+            run_cmd: pnpm release:win
+          - os: macos-latest
+            platform: mac
+            run_cmd: pnpm release:mac
+    runs-on: ${{ matrix.os }}
 
     steps:
       - name: Checkout code
@@ -28,7 +38,7 @@ jobs:
           cache: 'pnpm'
 
       - name: Install dependencies
-        run: pnpm install
+        run: pnpm install --frozen-lockfile
 
       - name: Validate Version Tag
         shell: bash
@@ -46,7 +56,7 @@ jobs:
           fi
 
       - name: Build & Publish Release
-        run: pnpm release
+        run: ${{ matrix.run_cmd }}
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -54,9 +64,11 @@ jobs:
         uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: neochat-windows-${{ github.ref_name || 'build' }}
+          name: neochat-${{ matrix.platform }}-${{ github.ref_name || 'build' }}
           path: |
             release/*.exe
+            release/*.dmg
+            release/*.zip
             release/*.blockmap
-            release/latest.yml
+            release/latest*.yml
           if-no-files-found: warn

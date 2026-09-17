@@ -1,21 +1,16 @@
-name: Build macOS Electron App
+name: Build macOS Electron App (CI)
 
 on:
   push:
     branches: [ main ]
     paths-ignore:
       - '**.md'
-      - 'docs/**' # Ignore documentation changes if you have/create this folder
+      - 'docs/**'
   workflow_dispatch:
-
-permissions:
-  contents: write
 
 jobs:
   build:
     runs-on: macos-latest
-    env:
-      TAP_REPO_PAT: ${{ secrets.TAP_REPO_PAT }}
 
     steps:
     - name: Checkout code
@@ -36,161 +31,16 @@ jobs:
     - name: Verify core behavior
       run: pnpm test:core
 
-    - name: Extract App Info
-      id: get_info
-      run: |
-        APP_VERSION=$(node -p "require('./package.json').version")
-        PRODUCT_NAME=$(sed -n 's/^productName:[[:space:]]*//p' electron-builder.yml | head -n 1)
-        if [ -z "${PRODUCT_NAME}" ]; then
-          echo "Error: productName is missing from electron-builder.yml"
-          exit 1
-        fi
-        SHORT_SHA=$(echo "${{ github.sha }}" | cut -c1-7)
-        BUILD_TIMESTAMP=$(date +'%Y%m%d%H%M') # Generate timestamp YYYYMMDDHHMM
-        CASK_VERSION="${APP_VERSION}-${BUILD_TIMESTAMP}" # Combine with hyphen
-        echo "APP_VERSION=${APP_VERSION}" >> $GITHUB_ENV
-        echo "PRODUCT_NAME=${PRODUCT_NAME}" >> $GITHUB_ENV
-        echo "SHORT_SHA=${SHORT_SHA}" >> $GITHUB_ENV
-        echo "BUILD_TIMESTAMP=${BUILD_TIMESTAMP}" >> $GITHUB_ENV # Add timestamp to env
-        echo "CASK_VERSION=${CASK_VERSION}" >> $GITHUB_ENV # Export combined version
-        # Use environment files for outputs
-        echo "version=${APP_VERSION}" >> $GITHUB_OUTPUT
-        echo "product_name=${PRODUCT_NAME}" >> $GITHUB_OUTPUT
-        echo "short_sha=${SHORT_SHA}" >> $GITHUB_OUTPUT
-        echo "build_timestamp=${BUILD_TIMESTAMP}" >> $GITHUB_OUTPUT # Output timestamp
-        echo "cask_version=${CASK_VERSION}" >> $GITHUB_OUTPUT # Output combined version
+    - name: Build macOS Electron App
+      run: pnpm dist:mac
 
-    - name: Build Electron app
-      run: pnpm dist # This script handles both vite build and electron build
-      env:
-        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-    - name: Find DMG File
-      id: find_dmg
-      run: |
-        # Find the DMG file matching the version and architecture (case-insensitive glob)
-        # Assumes only one matching DMG exists per run
-        DMG_FILE_PATH=$(ls release/*${{ env.APP_VERSION }}*.dmg | head -n 1)
-        if [ -z "$DMG_FILE_PATH" ]; then
-          echo "Error: No DMG file found in release/ matching version ${{ env.APP_VERSION }}"
-          ls -l release/
-          exit 1
-        fi
-        DMG_FILENAME=$(basename "$DMG_FILE_PATH")
-        echo "Found DMG: $DMG_FILENAME"
-        echo "DMG_FILENAME=${DMG_FILENAME}" >> $GITHUB_ENV
-        # Use environment files for outputs
-        echo "dmg_filename=${DMG_FILENAME}" >> $GITHUB_OUTPUT
-
-    - name: Create GitHub Release
-      id: create_release # Add an ID to reference the release later if needed
-      uses: softprops/action-gh-release@v2
+    - name: Upload Artifacts
+      uses: actions/upload-artifact@v4
       with:
-        files: release/*.dmg # Broad glob to find the DMG(s)
-        tag_name: v${{ env.APP_VERSION }}-${{ env.SHORT_SHA }} # Keep tag unique with SHA
-        name: Release v${{ env.APP_VERSION }} (${{ env.BUILD_TIMESTAMP }}) (${{ env.SHORT_SHA }}) # Use timestamp for sortable name, include SHA
-        body: |
-          Automated build for v${{ env.APP_VERSION }}.
-          Commit: ${{ github.sha }}
-          Short SHA: ${{ env.SHORT_SHA }}
-        prerelease: false # Create a full release, not a pre-release
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-    - name: Checkout Tap Repo
-      if: env.TAP_REPO_PAT != ''
-      uses: actions/checkout@v4
-      with:
-        repository: ricklamers/homebrew-groq-desktop-unofficial # Your tap repo
-        token: ${{ env.TAP_REPO_PAT }} # PAT with repo write access stored as secret
-        path: homebrew-tap # Checkout to a specific subdirectory
-
-    - name: Update Cask File
-      if: env.TAP_REPO_PAT != ''
-      run: |
-        # Use the exact DMG filename found locally (with space, lowercase arch)
-        LOCAL_DMG_FILENAME="${{ env.DMG_FILENAME }}"
-        if [ -z "${LOCAL_DMG_FILENAME}" ]; then
-          echo "Error: DMG_FILENAME environment variable not set."
-          exit 1
-        fi
-        echo "Using discovered local DMG filename: ${LOCAL_DMG_FILENAME}"
-
-        # Construct the filename segment required for the download URL
-        # (replace space with dot in product name, use uppercase arch)
-        RAW_PRODUCT_NAME="${{ env.PRODUCT_NAME }}" # Get product name into shell variable
-        PRODUCT_NAME_DOT="${RAW_PRODUCT_NAME// /.}" # Perform bash replacement on shell variable (no quotes around dot)
-        ARCH_UPPER=$(echo "${{ runner.arch }}" | tr '[:lower:]' '[:upper:]') # Use tr directly
-        URL_FILENAME_SEGMENT="${PRODUCT_NAME_DOT}-${{ env.APP_VERSION }}-${ARCH_UPPER}.dmg"
-        echo "Constructed URL filename segment: ${URL_FILENAME_SEGMENT}"
-
-        # URL Encode the transformed segment for the download URL
-        URL_FILENAME_SEGMENT_ENCODED=$(printf %s "${URL_FILENAME_SEGMENT}" | jq -sRr @uri)
-        DOWNLOAD_URL="https://github.com/${{ github.repository }}/releases/download/v${{ env.APP_VERSION }}-${{ env.SHORT_SHA }}/${URL_FILENAME_SEGMENT_ENCODED}"
-
-        echo "Constructed Download URL for Cask: ${DOWNLOAD_URL}"
-        echo "Looking for local DMG at: release/${LOCAL_DMG_FILENAME}"
-
-        # Ensure local DMG exists (using the exact local filename with space)
-        if [ ! -f "release/${LOCAL_DMG_FILENAME}" ]; then
-          echo "Error: DMG file 'release/${LOCAL_DMG_FILENAME}' not found after build."
-          ls -l release/
-          exit 1
-        fi
-
-        # Calculate SHA256 from the local file (using the exact local filename with space)
-        SHA256=$(shasum -a 256 "release/${LOCAL_DMG_FILENAME}" | awk '{ print $1 }')
-        if [ -z "${SHA256}" ]; then
-          echo "Error: Failed to calculate SHA256 for release/${LOCAL_DMG_FILENAME}"
-          exit 1
-        fi
-        echo "Calculated SHA256: ${SHA256}"
-
-        CASK_FILE="homebrew-tap/Casks/groq-desktop.rb"
-
-        # Check if cask file exists before attempting to modify
-        if [ ! -f "${CASK_FILE}" ]; then
-          echo "Error: Cask file '${CASK_FILE}' not found in tap repository."
-          # List contents for debugging
-          ls -l homebrew-tap/
-          ls -l homebrew-tap/Casks/
-          exit 1
-        fi
-
-        echo "Updating Cask File: ${CASK_FILE}"
-        # Use sed to replace the entire line
-        # Use the DOWNLOAD_URL constructed to match the working URL (dot, uppercase arch)
-        # Use the single hyphenated CASK_VERSION string
-        sed -i.bak "s|^ *version .*|  version \"${{ env.CASK_VERSION }}\"|" "${CASK_FILE}"
-        sed -i.bak "s|^ *sha256 .*|  sha256 \"${SHA256}\"|" "${CASK_FILE}"
-        sed -i.bak "s|^ *url .*|  url \"${DOWNLOAD_URL}\"|" "${CASK_FILE}"
-        rm "${CASK_FILE}.bak" # Clean up sed backup
-
-        echo "Updated Cask File Content:"
-        cat "${CASK_FILE}"
-      shell: bash
-
-    - name: Commit and Push Cask Update
-      if: env.TAP_REPO_PAT != ''
-      run: |
-        cd homebrew-tap
-        git config --global user.name 'github-actions[bot]'
-        git config --global user.email 'github-actions[bot]@users.noreply.github.com'
-        git add Casks/groq-desktop.rb
-        # Check if there are changes to commit
-        if git diff --staged --quiet; then
-          echo "No changes detected in the cask file. Skipping commit."
-        else
-          echo "Changes detected. Committing and pushing cask update."
-          # Update commit message format to use hyphenated version
-          git commit -m "Update groq-desktop cask to v${{ env.CASK_VERSION }}"
-          git push
-          echo "Pushed cask update to ricklamers/homebrew-groq-desktop-unofficial."
-        fi
-      shell: bash
-
-    - name: Skip Homebrew tap update when token is unavailable
-      if: env.TAP_REPO_PAT == ''
-      run: echo "TAP_REPO_PAT is not configured; macOS build and GitHub release completed without updating the external Homebrew tap."
-
-    # Removed old upload-artifact step as release step handles it
+        name: neochat-macos-ci-${{ github.sha }}
+        path: |
+          release/*.dmg
+          release/*.zip
+          release/*.blockmap
+          release/latest-mac.yml
+        if-no-files-found: warn
