@@ -3829,6 +3829,16 @@ function App() {
           onOpenWorkflows={() => setIsWorkflowsOpen(true)}
           onOpenProjects={openCreateProjectModal}
           onOpenMcpCatalog={() => setIsMcpCatalogOpen(true)}
+          onOpenUserMemory={() => {
+            if (window.electron?.getSettings) {
+              window.electron.getSettings().then(s => {
+                setIsUserMemoryEnabled(s?.userMemory?.enabled !== false);
+              }).catch(() => {});
+            }
+            setIsUserMemoryModalOpen(true);
+          }}
+          onOpenShortcuts={() => setIsShortcutsModalOpen(true)}
+          onOpenModelParameters={() => setIsModelParamsModalOpen(true)}
           onToggleCompareMode={() => setIsCompareMode(prev => !prev)}
           onToggleTrajectory={() => setActiveTab(prev => prev === 'trajectory' ? 'chat' : 'trajectory')}
           onToggleTerminal={() => setIsTerminalOpen(prev => !prev)}

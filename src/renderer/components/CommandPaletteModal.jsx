@@ -38,7 +38,9 @@ import {
   MessageSquare,
   FolderTree,
   ExternalLink,
-  Activity
+  Activity,
+  Brain,
+  SlidersHorizontal
 } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
 import { useChat } from '../context/ChatContext';
@@ -61,6 +63,16 @@ export const KeyBadge = ({ children, className }) => (
   </kbd>
 );
 
+const normalizeText = (text) => {
+  if (!text) return '';
+  return text
+    .toString()
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .trim();
+};
+
 export function CommandPaletteModal({
   isOpen,
   onClose,
@@ -69,6 +81,9 @@ export function CommandPaletteModal({
   onOpenWorkflows,
   onOpenProjects,
   onOpenMcpCatalog,
+  onOpenUserMemory,
+  onOpenShortcuts,
+  onOpenModelParameters,
   onToggleCompareMode,
   onToggleTrajectory,
   onToggleTerminal,
@@ -131,12 +146,44 @@ export function CommandPaletteModal({
     // --- Category: Navigation & Views ---
     items.push(
       {
+        id: 'nav_memory',
+        category: 'nav',
+        categoryLabel: 'Navegação',
+        title: 'Memória Persistente & Perfil (User Memory)',
+        subtitle: 'Gerenciar preferências do usuário, fatos e regras lembradas pela IA',
+        icon: Brain,
+        keywords: ['memoria', 'memória', 'memory', 'lembrancas', 'lembranças', 'fatos', 'preferencias', 'preferências', 'perfil', 'regras', 'aprendizado', 'long-term', 'persistente', 'personalizacao', 'personalização'],
+        action: () => { onClose(); onOpenUserMemory?.(); }
+      },
+      {
+        id: 'nav_shortcuts',
+        category: 'nav',
+        categoryLabel: 'Navegação',
+        title: 'Atalhos de Teclado (Shortcuts)',
+        subtitle: 'Ver mapa completo de comandos rápidos e teclas de atalho globais',
+        icon: Command,
+        shortcut: `${modKey}+/`,
+        keywords: ['atalhos', 'shortcuts', 'teclado', 'keyboard', 'hotkeys', 'comandos', 'ajuda', 'teclas'],
+        action: () => { onClose(); onOpenShortcuts?.(); }
+      },
+      {
+        id: 'nav_model_params',
+        category: 'nav',
+        categoryLabel: 'Navegação',
+        title: 'Parâmetros de Inferência do Modelo',
+        subtitle: 'Ajustar Temperature, Top-P, Janela de Contexto e Max Tokens',
+        icon: SlidersHorizontal,
+        keywords: ['parametros', 'parâmetros', 'temperatura', 'temperature', 'top-p', 'tokens', 'hiperparametros', 'configuracao modelo'],
+        action: () => { onClose(); onOpenModelParameters?.(); }
+      },
+      {
         id: 'nav_plugins',
         category: 'nav',
         categoryLabel: 'Navegação',
         title: 'Módulos & Extensões (Plugins Hub)',
         subtitle: 'Ativar/desativar módulos com zero overhead em repouso',
         icon: Blocks,
+        keywords: ['plugins', 'modulos', 'módulos', 'extensoes', 'extensões', 'hub', 'addons'],
         action: () => { onClose(); onOpenPluginsManager?.(); }
       },
       {
@@ -146,6 +193,7 @@ export function CommandPaletteModal({
         title: 'AI Arena & Debate Multi-Modelos',
         subtitle: 'Debate em rodadas entre modelos e votação por consenso',
         icon: Swords,
+        keywords: ['arena', 'debate', 'batalha', 'comparação', 'comparar', 'votação', 'modelos'],
         action: () => { onClose(); onOpenArenaModal?.(); }
       },
       {
@@ -155,6 +203,7 @@ export function CommandPaletteModal({
         title: 'Web Sandbox & Live Dev Preview',
         subtitle: 'Preview interativo de HTML, Tailwind, React e JS com console',
         icon: FileCode,
+        keywords: ['sandbox', 'preview', 'html', 'tailwind', 'react', 'js', 'live dev', 'codigo', 'executar'],
         action: () => { onClose(); onOpenLiveSandbox?.(); }
       },
       {
@@ -164,6 +213,7 @@ export function CommandPaletteModal({
         title: 'Podcast & Audio Studio',
         subtitle: 'Gerar conversa de 2 apresentadores via TTS (NotebookLM style)',
         icon: Mic,
+        keywords: ['podcast', 'audio', 'áudio', 'voz', 'tts', 'notebooklm', 'apresentadores', 'estudio'],
         action: () => { onClose(); onOpenPodcastStudio?.(); }
       },
       {
@@ -173,6 +223,7 @@ export function CommandPaletteModal({
         title: 'Knowledge Graph & Data Studio',
         subtitle: 'Visualizador 2D do RAG e gráficos dinâmicos para tabelas',
         icon: Layers,
+        keywords: ['graph', 'grafo', 'conhecimento', 'data studio', 'rag', 'visualizador', '2d', 'graficos'],
         action: () => { onClose(); onOpenKnowledgeGraph?.(); }
       },
       {
@@ -182,6 +233,7 @@ export function CommandPaletteModal({
         title: 'Proactive Daily Briefing',
         subtitle: 'Painel matinal inteligente com agenda, commits e áudio',
         icon: Sun,
+        keywords: ['briefing', 'matinal', 'resumo', 'agenda', 'commits', 'noticias', 'notícias'],
         action: () => { onClose(); onOpenDailyBriefing?.(); }
       },
       {
@@ -191,6 +243,7 @@ export function CommandPaletteModal({
         title: 'Community MCP Hub & Store',
         subtitle: 'Instalação 1-click de servidores MCP e receitas prontas',
         icon: Store,
+        keywords: ['mcp hub', 'store', 'loja', 'comunidade', 'servidores', 'receitas', 'tools'],
         action: () => { onClose(); onOpenMcpHub?.(); }
       },
       {
@@ -200,6 +253,7 @@ export function CommandPaletteModal({
         title: 'Computer Vision & Desktop Assistant',
         subtitle: 'Inspeção de tela, OCR e automação visual guiada',
         icon: Camera,
+        keywords: ['vision', 'visão', 'visao', 'ocr', 'tela', 'camera', 'câmera', 'captura', 'desktop', 'screen'],
         action: () => { onClose(); onOpenComputerVision?.(); }
       },
       {
@@ -207,9 +261,10 @@ export function CommandPaletteModal({
         category: 'nav',
         categoryLabel: 'Navegação',
         title: 'Abrir Configurações (Settings)',
-        subtitle: 'Provedores, chaves de API, interface, observabilidade',
+        subtitle: 'Provedores, chaves de API, interface, observabilidade, memória',
         icon: Settings,
         shortcut: `${modKey}+,`,
+        keywords: ['configurações', 'configuracoes', 'settings', 'provedores', 'api keys', 'chaves', 'interface', 'opções', 'ajustes', 'memoria', 'memória', 'preferencias'],
         action: () => { onClose(); onOpenSettings?.(); }
       },
       {
@@ -220,6 +275,7 @@ export function CommandPaletteModal({
         subtitle: 'Editor de código, diff e sandbox interativo',
         icon: Columns2,
         shortcut: `${modKey}+Shift+C`,
+        keywords: ['canvas', 'artifacts', 'artefatos', 'editor', 'diff', 'sandbox', 'painel', 'codigo'],
         action: () => { onClose(); openCanvas?.(); }
       },
       {
@@ -230,6 +286,7 @@ export function CommandPaletteModal({
         subtitle: 'Sessão interativa de terminal shell multi-abas',
         icon: Terminal,
         shortcut: `${modKey}+\``,
+        keywords: ['terminal', 'shell', 'bash', 'powershell', 'cmd', 'console', 'linha de comando'],
         action: () => { onClose(); onToggleTerminal?.(); }
       },
       {
@@ -240,6 +297,7 @@ export function CommandPaletteModal({
         subtitle: 'Visualizar pastas, arquivos e navegar pelo código do projeto',
         icon: FolderTree,
         shortcut: `${modKey}+Shift+E`,
+        keywords: ['explorer', 'arquivos', 'pastas', 'workspace', 'tree', 'codigo', 'navegar', 'files'],
         action: () => { onClose(); onToggleExplorer?.(); }
       },
       {
@@ -249,6 +307,7 @@ export function CommandPaletteModal({
         title: 'Abrir no Explorador de Arquivos do Sistema',
         subtitle: 'Abre a pasta do workspace atual no Windows Explorer / Finder',
         icon: ExternalLink,
+        keywords: ['abrir pasta', 'explorer', 'windows explorer', 'finder', 'sistema', 'pasta do projeto'],
         action: () => { onClose(); onOpenInOsExplorer?.(); }
       },
       {
@@ -258,6 +317,7 @@ export function CommandPaletteModal({
         title: 'Multi-Agent Swarm (Equipe de Agentes)',
         subtitle: 'Orquestração de subagentes concorrentes e síntese',
         icon: Users,
+        keywords: ['swarm', 'multi-agent', 'equipe', 'agentes', 'subagentes', 'orquestracao', 'orquestração'],
         action: () => { onClose(); onOpenSwarmModal?.(); }
       },
       {
@@ -267,6 +327,7 @@ export function CommandPaletteModal({
         title: 'Base de Conhecimento (RAG Local)',
         subtitle: 'Indexar pastas, PDFs, código e documentos',
         icon: BookOpen,
+        keywords: ['base de conhecimento', 'rag', 'conhecimento', 'pdf', 'documentos', 'indexar', 'arquivos', 'knowledge base'],
         action: () => { onClose(); onOpenKnowledgeBase?.(); }
       },
       {
@@ -276,6 +337,7 @@ export function CommandPaletteModal({
         title: 'Hub de Skills & Habilidades de IA',
         subtitle: 'Catálogo de skills, criação, importação de SKILL.md e regras',
         icon: Sparkles,
+        keywords: ['skills', 'habilidades', 'ferramentas', 'skill.md', 'regras', 'comandos de barra'],
         action: () => { onClose(); onOpenSkills?.(); }
       },
       {
@@ -285,6 +347,7 @@ export function CommandPaletteModal({
         title: 'Criar Nova Skill Personalizada',
         subtitle: 'Definir novo comando de barra e instruções especializadas',
         icon: Plus,
+        keywords: ['criar skill', 'nova skill', 'comando barra', 'personalizada', 'instrucoes'],
         action: () => { onClose(); onOpenSkills?.('create'); }
       },
       {
@@ -294,6 +357,7 @@ export function CommandPaletteModal({
         title: 'Workflows & Automações',
         subtitle: 'Criar e executar fluxos em sequência e webhooks',
         icon: Wand2,
+        keywords: ['workflows', 'fluxos', 'automações', 'automacoes', 'sequencia', 'webhooks', 'pipeline'],
         action: () => { onClose(); onOpenWorkflows?.(); }
       },
       {
@@ -303,6 +367,7 @@ export function CommandPaletteModal({
         title: 'Gerenciador de Projetos',
         subtitle: 'Organizar conversas e pastas de trabalho',
         icon: FolderKanban,
+        keywords: ['projetos', 'projects', 'pastas', 'gerenciador de projetos', 'workspace'],
         action: () => { onClose(); onOpenProjects?.(); }
       },
       {
@@ -312,6 +377,7 @@ export function CommandPaletteModal({
         title: 'Catálogo de Ferramentas MCP',
         subtitle: 'Servidores e ferramentas locais/remotas MCP',
         icon: Sparkles,
+        keywords: ['mcp', 'catalogo', 'ferramentas', 'tools', 'servidores'],
         action: () => { onClose(); onOpenMcpCatalog?.(); }
       },
       {
@@ -321,6 +387,7 @@ export function CommandPaletteModal({
         title: 'Modo Comparação de Modelos (Side-by-Side)',
         subtitle: 'Comparar respostas entre 2 modelos simultâneos',
         icon: Scale,
+        keywords: ['comparar', 'side-by-side', 'comparacao', 'comparação', 'dois modelos'],
         action: () => { onClose(); onToggleCompareMode?.(); }
       },
       {
@@ -330,6 +397,7 @@ export function CommandPaletteModal({
         title: 'Trajetória & Timeline de Execução',
         subtitle: 'Inspecionar turnos, chamadas de ferramentas e eventos detalhados',
         icon: Activity,
+        keywords: ['trajetoria', 'trajetória', 'timeline', 'execucao', 'execução', 'turnos', 'ferramentas', 'eventos'],
         action: () => { onClose(); onToggleTrajectory?.(); }
       },
       {
@@ -340,6 +408,7 @@ export function CommandPaletteModal({
         subtitle: 'Pesquisa web e visualizador de páginas',
         icon: Globe,
         shortcut: `${modKey}+Shift+B`,
+        keywords: ['browser', 'navegador', 'web', 'pesquisa', 'internet', 'site'],
         action: () => { onClose(); onToggleBrowser?.(); }
       },
       {
@@ -350,6 +419,7 @@ export function CommandPaletteModal({
         subtitle: 'Monitorar comandos e agentes em background',
         icon: Clock,
         shortcut: `${modKey}+Shift+T`,
+        keywords: ['tarefas', 'segundo plano', 'background', 'tasks', 'processos', 'monitorar'],
         action: () => { onClose(); onToggleBackgroundTasks?.(); }
       }
     );
@@ -364,6 +434,7 @@ export function CommandPaletteModal({
         subtitle: 'Iniciar uma conversa limpa',
         icon: Plus,
         shortcut: `${modKey}+N`,
+        keywords: ['novo chat', 'nova conversa', 'limpar', 'iniciar', 'conversa'],
         action: () => { onClose(); (onNewChat || createNewChat)?.(); }
       },
       {
@@ -373,6 +444,7 @@ export function CommandPaletteModal({
         title: 'Criar Novo Documento no Canvas',
         subtitle: 'Abrir documento vazio no editor interativo',
         icon: FileCode,
+        keywords: ['novo documento', 'canvas', 'novo arquivo', 'documento', 'editor'],
         action: () => { onClose(); createNewDocument?.(); openCanvas?.(); }
       },
       {
@@ -382,6 +454,7 @@ export function CommandPaletteModal({
         title: 'Limpar Mensagens da Conversa Atual',
         subtitle: 'Resetar o histórico da conversa ativa',
         icon: Trash2,
+        keywords: ['limpar mensagens', 'limpar conversa', 'resetar', 'apagar historico', 'apagar histórico'],
         action: () => { onClose(); onClearChat?.(); }
       },
       {
@@ -391,6 +464,7 @@ export function CommandPaletteModal({
         title: 'Exportar Conversa',
         subtitle: 'Salvar conversa como Markdown, HTML, JSON ou PDF',
         icon: Download,
+        keywords: ['exportar', 'salvar', 'markdown', 'pdf', 'html', 'json', 'download'],
         action: () => { onClose(); onExportChat?.(); }
       },
       {
@@ -400,6 +474,7 @@ export function CommandPaletteModal({
         title: 'Capturar Tela (Snip & Ask)',
         subtitle: 'Enviar recorte visual para o modelo',
         icon: Camera,
+        keywords: ['snip', 'captura de tela', 'print', 'screenshot', 'recorte', 'imagem', 'foto'],
         action: () => { onClose(); onTriggerSnip?.(); }
       },
       {
@@ -410,6 +485,7 @@ export function CommandPaletteModal({
         subtitle: 'Falar diretamente com o chat',
         icon: Mic,
         shortcut: `${modKey}+Alt`,
+        keywords: ['voz', 'ditado', 'falar', 'microfone', 'transcrição', 'transcricao', 'audio', 'áudio'],
         action: () => { onClose(); onTriggerVoice?.(); }
       }
     );
@@ -428,6 +504,7 @@ export function CommandPaletteModal({
           subtitle: isSelected ? 'Modelo atualmente em uso' : `Alternar para ${modelId}`,
           icon: Bot,
           active: isSelected,
+          keywords: ['modelo', 'model', 'llm', 'ia', modelId, modelName],
           action: () => { onClose(); onSelectModel?.(modelId); }
         });
       });
@@ -446,6 +523,7 @@ export function CommandPaletteModal({
           subtitle: `${t('personas.deactivateCommandDesc') || 'Desativar instruções especializadas'} (${activePersona.name || activePersona.id})`,
           icon: X,
           active: false,
+          keywords: ['desativar persona', 'persona padrao', 'remover persona'],
           action: () => {
             onClose();
             onSelectPersona?.(null);
@@ -461,6 +539,7 @@ export function CommandPaletteModal({
         subtitle: t('personas.deactivatedDesc') || 'Sem persona especializada ativa (conversação padrão)',
         icon: BotOff,
         active: isDeactivated,
+        keywords: ['desativado', 'sem persona', 'conversacao padrao'],
         action: () => {
           onClose();
           onSelectPersona?.(null);
@@ -479,6 +558,7 @@ export function CommandPaletteModal({
             : (p.description || 'Persona de IA personalizada'),
           icon: Sparkles,
           active: isSelected,
+          keywords: ['persona', 'personagem', 'especialista', p.name, p.description || ''],
           action: () => {
             onClose();
             if (isSelected) {
@@ -503,6 +583,7 @@ export function CommandPaletteModal({
           subtitle: new Date(c.updatedAt || c.createdAt || Date.now()).toLocaleString(),
           icon: GitBranch,
           active: isCurrent,
+          keywords: ['chat', 'conversa', 'historico', c.title || ''],
           action: () => { onClose(); loadChat?.(c.id); }
         });
       });
@@ -524,6 +605,9 @@ export function CommandPaletteModal({
     onOpenWorkflows,
     onOpenProjects,
     onOpenMcpCatalog,
+    onOpenUserMemory,
+    onOpenShortcuts,
+    onOpenModelParameters,
     onToggleCompareMode,
     onToggleTrajectory,
     onToggleTerminal,
@@ -577,13 +661,19 @@ export function CommandPaletteModal({
     if (categoryFilter !== 'all') {
       result = result.filter(item => item.category === categoryFilter);
     }
-    if (query.trim()) {
-      const q = query.toLowerCase().trim();
-      result = result.filter(item =>
-        item.title.toLowerCase().includes(q) ||
-        (item.subtitle && item.subtitle.toLowerCase().includes(q)) ||
-        item.categoryLabel.toLowerCase().includes(q)
-      );
+    const cleanQuery = normalizeText(query);
+    if (cleanQuery) {
+      const queryWords = cleanQuery.split(/\s+/).filter(Boolean);
+      result = result.filter(item => {
+        const titleNorm = normalizeText(item.title);
+        const subtitleNorm = normalizeText(item.subtitle);
+        const catNorm = normalizeText(item.categoryLabel);
+        const keywordsNorm = Array.isArray(item.keywords)
+          ? item.keywords.map(normalizeText).join(' ')
+          : normalizeText(item.keywords);
+        const combined = `${titleNorm} ${subtitleNorm} ${catNorm} ${keywordsNorm}`;
+        return queryWords.every(word => combined.includes(word));
+      });
     }
     return result;
   }, [allItems, query, categoryFilter]);
