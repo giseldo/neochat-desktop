@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { 
   Brain, 
   X, 
@@ -397,8 +398,15 @@ export function UserMemoryModal({ isOpen, onClose, isMemoryEnabled: propIsMemory
 
   const activeCount = memories.filter(m => m.enabled !== false).length;
 
-  return (
-    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-200">
+  if (!isOpen || typeof document === 'undefined') return null;
+
+  return createPortal(
+    <div 
+      className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-200"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+    >
       <div className="bg-card border border-border rounded-2xl shadow-2xl w-full max-w-2xl max-h-[85vh] flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-border bg-muted/40">
@@ -802,7 +810,8 @@ export function UserMemoryModal({ isOpen, onClose, isMemoryEnabled: propIsMemory
           </div>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
 
