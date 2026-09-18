@@ -34,7 +34,7 @@ win:
   requestedExecutionLevel: asInvoker
 
 nsis:
-  artifactName: "NeoChat-Desktop-Setup.${ext}"
+  artifactName: "NeoChat-desktop-Setup.${ext}"
   oneClick: false
   perMachine: false
   allowToChangeInstallationDirectory: true
@@ -45,7 +45,7 @@ nsis:
   deleteAppDataOnUninstall: false
 
 portable:
-  artifactName: "NeoChat-Desktop-Portable.${ext}"
+  artifactName: "NeoChat-desktop-Portable.${ext}"
 
 # Linux Configuration
 linux:
