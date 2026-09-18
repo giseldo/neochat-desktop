@@ -10,18 +10,18 @@ permissions:
   contents: write
 
 jobs:
-  release:
-    name: Build & Publish Release (${{ matrix.platform }})
+  build:
+    name: Build Release Binaries (${{ matrix.platform }})
     strategy:
       fail-fast: false
       matrix:
         include:
           - os: windows-latest
             platform: win
-            run_cmd: pnpm release:win
+            run_cmd: pnpm dist:win
           - os: macos-latest
             platform: mac
-            run_cmd: pnpm release:mac
+            run_cmd: pnpm dist:mac
     runs-on: ${{ matrix.os }}
 
     steps:
@@ -55,31 +55,33 @@ jobs:
             fi
           fi
 
-      - name: Build & Publish Release
+      - name: Build Release Binaries
         run: ${{ matrix.run_cmd }}
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Upload Build Artifacts
+      - name: Upload Platform Artifacts
         uses: actions/upload-artifact@v4
-        if: always()
         with:
-          name: neochat-${{ matrix.platform }}-${{ github.ref_name || 'build' }}
+          name: release-${{ matrix.platform }}
           path: |
             release/*.exe
             release/*.dmg
             release/*.zip
             release/*.blockmap
             release/latest*.yml
-          if-no-files-found: warn
+          if-no-files-found: error
 
-  finalize:
-    name: Finalize & Publish GitHub Release
-    needs: release
+  publish:
+    name: Publish Unified GitHub Release
+    needs: build
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+
+      - name: Download all platform artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: all-artifacts
 
       - name: Publish GitHub Release
         shell: bash
@@ -88,5 +90,19 @@ jobs:
         run: |
           PKG_VERSION=$(node -p "require('./package.json').version")
           TAG_NAME="${GITHUB_REF_NAME:-v$PKG_VERSION}"
-          echo "Finalizing release for ${TAG_NAME}..."
-          gh release edit "${TAG_NAME}" --draft=false --latest --title "NeoChat Desktop ${TAG_NAME}" || true
+          TITLE="NeoChat Desktop ${TAG_NAME}"
+          
+          mkdir -p release-files
+          find all-artifacts -type f -exec cp {} release-files/ \;
+          
+          echo "Files to publish:"
+          ls -la release-files/
+          
+          if gh release view "${TAG_NAME}" >/dev/null 2>&1; then
+            echo "Updating existing release ${TAG_NAME}..."
+            gh release upload "${TAG_NAME}" release-files/* --clobber
+            gh release edit "${TAG_NAME}" --draft=false --latest --title "${TITLE}"
+          else
+            echo "Creating new release ${TAG_NAME}..."
+            gh release create "${TAG_NAME}" release-files/* --title "${TITLE}" --generate-notes --latest
+          fi
