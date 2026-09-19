@@ -397,6 +397,7 @@ export function CommandPaletteModal({
         title: 'Trajetória & Timeline de Execução',
         subtitle: 'Inspecionar turnos, chamadas de ferramentas e eventos detalhados',
         icon: Activity,
+        shortcut: `${modKey}+T`,
         keywords: ['trajetoria', 'trajetória', 'timeline', 'execucao', 'execução', 'turnos', 'ferramentas', 'eventos'],
         action: () => { onClose(); onToggleTrajectory?.(); }
       },

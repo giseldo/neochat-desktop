@@ -2673,6 +2673,13 @@ function App() {
         return;
       }
 
+      // Ctrl/Cmd + T: Toggle Trajectory Tab
+      if (isModifier && !e.shiftKey && !e.altKey && e.key.toLowerCase() === 't') {
+        e.preventDefault();
+        setActiveTab(prev => prev === 'trajectory' ? 'chat' : 'trajectory');
+        return;
+      }
+
       // Ctrl/Cmd + Shift + C: Toggle Canvas
       if (isModifier && e.shiftKey && e.key.toLowerCase() === 'c') {
         e.preventDefault();

@@ -162,6 +162,13 @@ export default function KeyboardShortcutsModal({ isOpen, onClose }) {
         keys: [modKey, 'B']
       },
       {
+        id: 'toggleTrajectory',
+        category: 'navigation',
+        title: t('shortcuts.items.toggleTrajectory') || 'Alternar Trajetória',
+        description: t('shortcuts.items.toggleTrajectoryDesc') || 'Abre ou fecha a visualização da trajetória e linha do tempo de execução.',
+        keys: [modKey, 'T']
+      },
+      {
         id: 'toggleCanvas',
         category: 'navigation',
         title: t('shortcuts.items.toggleCanvas'),
