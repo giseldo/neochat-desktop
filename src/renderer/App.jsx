@@ -52,6 +52,7 @@ const LiveSandboxModal = lazy(() => import('./components/LiveSandboxModal'));
 const PodcastStudioModal = lazy(() => import('./components/PodcastStudioModal'));
 const KnowledgeGraphModal = lazy(() => import('./components/KnowledgeGraphModal'));
 const DailyBriefingModal = lazy(() => import('./components/DailyBriefingModal'));
+const NewsDiscoverModal = lazy(() => import('./components/NewsDiscoverModal'));
 const McpHubModal = lazy(() => import('./components/McpHubModal'));
 const ComputerVisionModal = lazy(() => import('./components/ComputerVisionModal'));
 const UserMemoryModal = lazy(() => import('./components/UserMemoryModal'));
@@ -167,6 +168,7 @@ function App() {
   const [isPodcastStudioOpen, setIsPodcastStudioOpen] = useState(false);
   const [isKnowledgeGraphOpen, setIsKnowledgeGraphOpen] = useState(false);
   const [isDailyBriefingOpen, setIsDailyBriefingOpen] = useState(false);
+  const [isNewsDiscoverOpen, setIsNewsDiscoverOpen] = useState(false);
   const [isMcpHubOpen, setIsMcpHubOpen] = useState(false);
   const [isComputerVisionOpen, setIsComputerVisionOpen] = useState(false);
   const [isModelParamsModalOpen, setIsModelParamsModalOpen] = useState(false);
@@ -2842,6 +2844,7 @@ function App() {
         activePersona={activePersona}
         onSelectPersona={setActivePersona}
         onSelectBotChat={handleSelectBotChat}
+        onOpenNewsDiscover={() => setIsNewsDiscoverOpen(true)}
       />
       
       {/* Main Content Area */}
@@ -3321,6 +3324,25 @@ function App() {
                             {isDailyBriefingOpen && <span className="px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-600 dark:text-amber-400 text-[10px] font-mono">Aberto</span>}
                           </div>
                           <div className="text-[10px] text-muted-foreground truncate">Resumo matinal inteligente</div>
+                        </div>
+                      </button>
+
+                      {/* AI News & Discovery */}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsToolsDropdownOpen(false);
+                          setIsNewsDiscoverOpen(true);
+                        }}
+                        className="w-full flex items-center gap-2.5 px-3 py-1.5 rounded-xl hover:bg-muted/80 text-foreground transition-colors text-left"
+                      >
+                        <Compass className="w-4 h-4 text-sky-400 shrink-0" />
+                        <div className="flex-1 min-w-0">
+                          <div className="font-semibold text-foreground flex items-center justify-between">
+                            <span>Descoberta & Notícias IA</span>
+                            {isNewsDiscoverOpen && <span className="px-1.5 py-0.2 rounded bg-sky-500/20 text-sky-600 dark:text-sky-400 text-[10px] font-mono">Aberto</span>}
+                          </div>
+                          <div className="text-[10px] text-muted-foreground truncate">Síntese multi-fonte e citações</div>
                         </div>
                       </button>
 
@@ -3869,6 +3891,7 @@ function App() {
           onOpenPodcastStudio={() => setIsPodcastStudioOpen(true)}
           onOpenKnowledgeGraph={() => setIsKnowledgeGraphOpen(true)}
           onOpenDailyBriefing={() => setIsDailyBriefingOpen(true)}
+          onOpenNewsDiscover={() => setIsNewsDiscoverOpen(true)}
           onOpenMcpHub={() => setIsMcpHubOpen(true)}
           onOpenComputerVision={() => setIsComputerVisionOpen(true)}
           onTriggerSnip={handleStartSnip}
@@ -3918,6 +3941,7 @@ function App() {
             else if (pluginId === 'podcast-studio') setIsPodcastStudioOpen(true);
             else if (pluginId === 'knowledge-graph') setIsKnowledgeGraphOpen(true);
             else if (pluginId === 'daily-briefing') setIsDailyBriefingOpen(true);
+            else if (pluginId === 'news') setIsNewsDiscoverOpen(true);
             else if (pluginId === 'mcp-hub') setIsMcpHubOpen(true);
             else if (pluginId === 'computer-vision') setIsComputerVisionOpen(true);
             else if (pluginId === 'rag') openKnowledgeBaseModal();
@@ -3964,6 +3988,13 @@ function App() {
         <DailyBriefingModal
           isOpen={isDailyBriefingOpen}
           onClose={() => setIsDailyBriefingOpen(false)}
+          onSendToChat={(content) => handleSendMessage(content)}
+        />
+
+        {/* AI News & Discovery Module */}
+        <NewsDiscoverModal
+          isOpen={isNewsDiscoverOpen}
+          onClose={() => setIsNewsDiscoverOpen(false)}
           onSendToChat={(content) => handleSendMessage(content)}
         />
 

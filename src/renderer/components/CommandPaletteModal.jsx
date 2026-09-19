@@ -99,6 +99,7 @@ export function CommandPaletteModal({
   onOpenPodcastStudio,
   onOpenKnowledgeGraph,
   onOpenDailyBriefing,
+  onOpenNewsDiscover,
   onOpenMcpHub,
   onOpenComputerVision,
   onTriggerSnip,
@@ -235,6 +236,16 @@ export function CommandPaletteModal({
         icon: Sun,
         keywords: ['briefing', 'matinal', 'resumo', 'agenda', 'commits', 'noticias', 'notícias'],
         action: () => { onClose(); onOpenDailyBriefing?.(); }
+      },
+      {
+        id: 'nav_news',
+        category: 'nav',
+        categoryLabel: 'Navegação',
+        title: 'Descoberta & Notícias IA (Perplexity Discover)',
+        subtitle: 'Feed editorial com síntese multi-fontes, citações inline e chat Q&A',
+        icon: Compass,
+        keywords: ['noticias', 'notícias', 'news', 'feed', 'discover', 'descoberta', 'artigos', 'perplexity'],
+        action: () => { onClose(); onOpenNewsDiscover?.(); }
       },
       {
         id: 'nav_mcp_hub',

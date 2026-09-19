@@ -508,6 +508,16 @@ contextBridge.exposeInMainWorld('electron', {
     }
   },
 
+  // --- AI News & Discovery ---
+  news: {
+    getFeed: (params) => ipcRenderer.invoke('news:get-feed', params),
+    getArticle: (articleId) => ipcRenderer.invoke('news:get-article', { articleId }),
+    toggleFavorite: (articleId) => ipcRenderer.invoke('news:toggle-favorite', { articleId }),
+    getFavorites: () => ipcRenderer.invoke('news:get-favorites'),
+    askFollowUp: (payload) => ipcRenderer.invoke('news:ask-followup', payload),
+    refresh: (params) => ipcRenderer.invoke('news:refresh', params)
+  },
+
   // --- Browser Helpers ---
   browser: {
     fetchPage: (url, timeoutMs) => ipcRenderer.invoke('browser:fetch-page', { url, timeoutMs }),
