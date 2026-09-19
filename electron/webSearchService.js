@@ -148,62 +148,264 @@ function extractRealUrl(rawUrl) {
 }
 
 /**
- * Direct Local Web Search (Zero-Config, Free, No API key or credit card required)
- * Runs directly from the user's computer.
+ * Sanitize and clean search queries (removes redundant quotes, fixes bracket syntax)
  */
-async function searchLocalDirect(query, maxResults = 3) {
-  const url = `https://www.bing.com/search?q=${encodeURIComponent(query)}&setlang=pt-br`;
-  const headers = {
-    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36',
-    'Accept-Language': 'pt-BR,pt;q=0.9,en-US;q=0.8,en;q=0.7',
-    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-    'Sec-Fetch-Dest': 'document',
-    'Sec-Fetch-Mode': 'navigate',
-    'Sec-Fetch-Site': 'none'
-  };
+function sanitizeSearchQuery(query) {
+  if (!query) return '';
+  let q = query.trim();
+  // Remove outer repeated quotes e.g. ""query"" or "\"query\""
+  q = q.replace(/^["'\s]+|["'\s]+$/g, '').replace(/""+/g, '"');
+  return q;
+}
 
-  const response = await fetch(url, {
-    method: 'GET',
-    headers,
-    timeout: 10000
-  });
+/**
+ * Check if query is looking for current news / breaking events
+ */
+function isNewsQuery(query) {
+  const q = String(query || '').toLowerCase();
+  return /\b(not[ií]cia|not[ií]cias|news|hoje|today|manchete|manchetes|lan[çc]amento|atualidade|atualidades|acontece|fato|fatos|tecnologia|inform[aá]tica)\b/i.test(q);
+}
 
-  if (!response.ok) {
-    throw new Error(`Busca local retornou status ${response.status}`);
+/**
+ * Google News RSS Search (Zero-Config, Real-time news & headlines)
+ */
+async function searchGoogleNews(query, maxResults = 5) {
+  try {
+    let cleanQ = sanitizeSearchQuery(query)
+      .replace(/["']/g, ' ')
+      .replace(/\b(202[0-9]|203[0-9])\b/g, '') // remove specific future/mock year lock
+      .replace(/\b(site:[^\s]+)/gi, '')
+      .replace(/\s+/g, ' ')
+      .trim();
+
+    if (!cleanQ) cleanQ = query;
+
+    const url = `https://news.google.com/rss/search?q=${encodeURIComponent(cleanQ)}&hl=pt-BR&gl=BR&ceid=BR:pt-419`;
+    const res = await fetch(url, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36',
+        'Accept': 'application/rss+xml, application/xml, text/xml;q=0.9, */*;q=0.8'
+      },
+      timeout: 6000
+    });
+
+    if (!res.ok) return [];
+
+    const xml = await res.text();
+    const results = [];
+    const itemRegex = /<item>([\s\S]*?)<\/item>/gi;
+    let match;
+
+    while ((match = itemRegex.exec(xml)) !== null && results.length < maxResults) {
+      const itemBlock = match[1];
+      const titleMatch = /<title>([\s\S]*?)<\/title>/i.exec(itemBlock);
+      const linkMatch = /<link>([\s\S]*?)<\/link>/i.exec(itemBlock);
+      const pubDateMatch = /<pubDate>([\s\S]*?)<\/pubDate>/i.exec(itemBlock);
+      const sourceMatch = /<source[^>]*>([\s\S]*?)<\/source>/i.exec(itemBlock);
+      const descMatch = /<description>([\s\S]*?)<\/description>/i.exec(itemBlock);
+
+      if (titleMatch) {
+        const title = decodeHtmlEntities(titleMatch[1].replace(/<!\[CDATA\[|\]\]>/g, '').trim());
+        const link = linkMatch ? linkMatch[1].trim() : '';
+        const source = sourceMatch ? decodeHtmlEntities(sourceMatch[1].trim()) : '';
+        let snippet = '';
+
+        if (descMatch) {
+          const rawDesc = descMatch[1].replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+          snippet = decodeHtmlEntities(rawDesc);
+        }
+
+        let dateStr = '';
+        if (pubDateMatch) {
+          try {
+            const d = new Date(pubDateMatch[1].trim());
+            if (!isNaN(d.getTime())) {
+              dateStr = d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+            }
+          } catch {}
+        }
+
+        const fullSnippet = [source ? `[${source}]` : '', dateStr ? `(${dateStr})` : '', snippet || title]
+          .filter(Boolean)
+          .join(' ');
+
+        if (title && link) {
+          results.push({
+            title,
+            url: link,
+            snippet: cleanAndTrimSnippet(fullSnippet, 280),
+            domain: source || 'news.google.com',
+            source: 'google_news'
+          });
+        }
+      }
+    }
+
+    return results;
+  } catch (err) {
+    console.warn('[GoogleNews] Error:', err.message);
+    return [];
+  }
+}
+
+/**
+ * DuckDuckGo HTML Search (Zero-Config, Organic results)
+ */
+async function searchDuckDuckGo(query, maxResults = 5) {
+  try {
+    const cleanQ = sanitizeSearchQuery(query);
+    const url = 'https://html.duckduckgo.com/html/';
+    const body = `q=${encodeURIComponent(cleanQ)}&kl=br-pt`;
+
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36',
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+        'Accept-Language': 'pt-BR,pt;q=0.9,en-US;q=0.8,en;q=0.7'
+      },
+      body,
+      timeout: 7000
+    });
+
+    if (!response.ok) return [];
+
+    const html = await response.text();
+    const results = [];
+    const bodyRegex = /<div class="[^"]*result__body[^"]*">([\s\S]*?)<\/div>\s*<\/div>/gi;
+    let match;
+
+    while ((match = bodyRegex.exec(html)) !== null && results.length < maxResults) {
+      const block = match[1];
+      const titleMatch = /<a[^>]*class="[^"]*result__a[^"]*"[^>]*href="([^"]*)"[^>]*>([\s\S]*?)<\/a>/i.exec(block);
+      const snippetMatch = /<a[^>]*class="[^"]*result__snippet[^"]*"[^>]*>([\s\S]*?)<\/a>/i.exec(block);
+
+      if (titleMatch) {
+        const rawUrl = titleMatch[1];
+        const uddgMatch = /[?&]uddg=([^&]+)/.exec(rawUrl);
+        const realUrl = uddgMatch ? decodeURIComponent(uddgMatch[1]) : rawUrl;
+        const title = decodeHtmlEntities(titleMatch[2]);
+        const snippet = snippetMatch ? cleanAndTrimSnippet(snippetMatch[1]) : title;
+        const domain = getDomainFromUrl(realUrl);
+
+        if (title && realUrl && realUrl.startsWith('http') && !results.some(r => r.url === realUrl)) {
+          results.push({
+            title,
+            url: realUrl,
+            snippet: snippet || title,
+            domain,
+            source: 'duckduckgo'
+          });
+        }
+      }
+    }
+
+    return results;
+  } catch (err) {
+    console.warn('[DuckDuckGo] Error:', err.message);
+    return [];
+  }
+}
+
+/**
+ * Direct Local Web Search (Zero-Config, Free, Multi-Engine)
+ * Runs directly from the user's computer combining Google News, DuckDuckGo and Bing.
+ */
+async function searchLocalDirect(query, maxResults = 5) {
+  const cleanQ = sanitizeSearchQuery(query);
+  const results = [];
+  const seenUrls = new Set();
+
+  function addResult(item) {
+    if (!item || !item.url || seenUrls.has(item.url)) return;
+    seenUrls.add(item.url);
+    results.push(item);
   }
 
-  const html = await response.text();
-  const results = [];
-  const blockRegex = /<li class="b_algo"[\s\S]*?<\/li>/gi;
-  const blocks = html.match(blockRegex) || [];
+  // 1. If query is news related, fetch Google News RSS first
+  if (isNewsQuery(cleanQ)) {
+    const newsResults = await searchGoogleNews(cleanQ, Math.min(maxResults, 5));
+    for (const r of newsResults) addResult(r);
+  }
 
-  for (const block of blocks) {
-    if (results.length >= maxResults) break;
-
-    const linkMatch = /<h2[^>]*>\s*<a[^>]*href="([^"]+)"[^>]*>([\s\S]*?)<\/a>/i.exec(block);
-    if (!linkMatch) continue;
-
-    const rawUrl = linkMatch[1].replace(/&amp;/g, '&');
-    const realUrl = extractRealUrl(rawUrl);
-    const title = decodeHtmlEntities(linkMatch[2]);
-
-    const snippetMatch = /<(?:p|div)[^>]*class="[^"]*(?:b_lineclamp|b_caption|b_snippet)[^"]*"[^>]*>([\s\S]*?)<\/(?:p|div)>/i.exec(block) ||
-                         /<p[^>]*>([\s\S]*?)<\/p>/i.exec(block);
-    const rawSnippet = snippetMatch ? snippetMatch[1] : title;
-    const snippet = cleanAndTrimSnippet(rawSnippet, 220);
-    const domain = getDomainFromUrl(realUrl);
-
-    if (title && realUrl && realUrl.startsWith('http') && !results.some(r => r.url === realUrl)) {
-      results.push({
-        title,
-        url: realUrl,
-        snippet: snippet || title,
-        domain
-      });
+  // 2. Query DuckDuckGo
+  if (results.length < maxResults) {
+    const ddgResults = await searchDuckDuckGo(cleanQ, maxResults - results.length + 2);
+    for (const r of ddgResults) {
+      if (results.length >= maxResults) break;
+      addResult(r);
     }
   }
 
-  return results;
+  // 3. Fallback to Bing
+  if (results.length < maxResults) {
+    try {
+      const url = `https://www.bing.com/search?q=${encodeURIComponent(cleanQ)}&setlang=pt-br&count=10`;
+      const headers = {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36',
+        'Accept-Language': 'pt-BR,pt;q=0.9,en-US;q=0.8,en;q=0.7',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8'
+      };
+
+      const response = await fetch(url, { method: 'GET', headers, timeout: 7000 });
+      if (response.ok) {
+        const html = await response.text();
+        const blockRegex = /<li class="b_algo"[\s\S]*?<\/li>/gi;
+        const blocks = html.match(blockRegex) || [];
+
+        for (const block of blocks) {
+          if (results.length >= maxResults) break;
+
+          const linkMatch = /<h2[^>]*>\s*<a[^>]*href="([^"]+)"[^>]*>([\s\S]*?)<\/a>/i.exec(block);
+          if (!linkMatch) continue;
+
+          const rawUrl = linkMatch[1].replace(/&amp;/g, '&');
+          const realUrl = extractRealUrl(rawUrl);
+          const title = decodeHtmlEntities(linkMatch[2]);
+
+          const snippetMatch = /<(?:p|div)[^>]*class="[^"]*(?:b_lineclamp|b_caption|b_snippet|b_algoSlug)[^"]*"[^>]*>([\s\S]*?)<\/(?:p|div)>/i.exec(block) ||
+                               /<p[^>]*>([\s\S]*?)<\/p>/i.exec(block);
+          const rawSnippet = snippetMatch ? snippetMatch[1] : title;
+          const snippet = cleanAndTrimSnippet(rawSnippet, 240);
+          const domain = getDomainFromUrl(realUrl);
+
+          if (title && realUrl && realUrl.startsWith('http')) {
+            addResult({
+              title,
+              url: realUrl,
+              snippet: snippet || title,
+              domain,
+              source: 'bing'
+            });
+          }
+        }
+      }
+    } catch (bingErr) {
+      console.warn('[Bing] Error:', bingErr.message);
+    }
+  }
+
+  // 4. Relaxed query fallback if 0 results found (e.g. over-quoted query)
+  if (results.length === 0) {
+    const relaxed = cleanQ
+      .replace(/["']/g, ' ')
+      .replace(/\b(202[0-9]|203[0-9])\b/g, '')
+      .replace(/\b(site:[^\s]+)/gi, '')
+      .replace(/\s+/g, ' ')
+      .trim();
+
+    if (relaxed && relaxed !== cleanQ) {
+      const fallbackNews = await searchGoogleNews(relaxed, maxResults);
+      for (const r of fallbackNews) addResult(r);
+      if (results.length < maxResults) {
+        const fallbackDDG = await searchDuckDuckGo(relaxed, maxResults);
+        for (const r of fallbackDDG) addResult(r);
+      }
+    }
+  }
+
+  return results.slice(0, maxResults);
 }
 
 /**
@@ -217,13 +419,13 @@ async function executeWebSearch(query, options = {}) {
     provider = 'local';
   }
   const apiKey = options.apiKey || '';
-  const maxResults = Math.min(Math.max(options.maxResults || 3, 1), 10);
+  const maxResults = Math.min(Math.max(options.maxResults || 5, 1), 10);
 
   if (!query || typeof query !== 'string' || !query.trim()) {
     throw new Error('Search query cannot be empty.');
   }
 
-  const cleanQuery = query.trim();
+  const cleanQuery = sanitizeSearchQuery(query);
   console.log(`[WebSearch] Executing search for "${cleanQuery}" via provider: ${provider} (maxResults: ${maxResults})`);
 
   let results = [];
@@ -237,7 +439,7 @@ async function executeWebSearch(query, options = {}) {
       results = tavilyRes.results || [];
       summaryAnswer = tavilyRes.answer || null;
     } else {
-      // Default: Local Direct Search (Zero-Config, Free)
+      // Default: Local Direct Search (Zero-Config, Free, Multi-Engine)
       results = await searchLocalDirect(cleanQuery, maxResults);
     }
   } catch (err) {
@@ -271,13 +473,13 @@ function getWebSearchToolDefinition() {
     type: 'function',
     function: {
       name: 'web_search',
-      description: 'Search the live web for real-time information, news, current events, facts, weather, technical docs, and latest data. Returns concise search results with titles, URLs, and descriptive snippets.',
+      description: 'Search the live web for real-time information, news, current events, facts, weather, technical docs, and latest data. Returns concise search results with titles, URLs, and descriptive snippets. For best results, use clear keywords (e.g. "notícias tecnologia hoje") and avoid overly restrictive exact-match quotes.',
       parameters: {
         type: 'object',
         properties: {
           query: {
             type: 'string',
-            description: 'The search query to look up on the web. Be specific and include key terms.'
+            description: 'The search query to look up on the web. Be specific and include key search terms.'
           }
         },
         required: ['query']
@@ -291,6 +493,8 @@ module.exports = {
   searchWeb: executeWebSearch,
   getWebSearchToolDefinition,
   searchLocalDirect,
+  searchGoogleNews,
+  searchDuckDuckGo,
   searchTavily,
   searchBrave,
   cleanAndTrimSnippet

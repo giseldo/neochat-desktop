@@ -110,7 +110,7 @@ async function handleExecuteToolCall(event, toolCall, discoveredTools, mcpClient
     }
 
     try {
-      const searchOptions = settings?.webSearch || { provider: 'local', apiKey: '', maxResults: 3 };
+      const searchOptions = settings?.webSearch || { provider: 'local', apiKey: '', maxResults: 5 };
       const searchResponse = await executeWebSearch(query, searchOptions);
       return {
         result: limitContentLength(JSON.stringify(searchResponse), settings?.toolOutputLimit || 8000),
