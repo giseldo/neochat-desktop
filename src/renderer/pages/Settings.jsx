@@ -5304,102 +5304,111 @@ function Settings() {
 
                               {/* Bottom: Credentials & Test Connection */}
                               <div className="pt-2 border-t border-border/40 space-y-3">
-                                <div className="grid grid-cols-1 md:grid-cols-12 gap-3 items-end">
-                                  {/* API Key Input (if requires key or is custom) */}
-                                  {(provider.requiresApiKey !== false || provider.isCustom) && (() => {
-                                    const resolvedKeyUrl = provider.keyUrl || provider.apiKeyUrl || getKnownApiKeyUrl(provider.id, provider.baseUrl, provider.name);
-                                    return (
-                                      <div className={cn(
-                                        provider.isCustom || provider.id === 'custom' ? "md:col-span-6" : "md:col-span-8",
-                                        "space-y-1.5"
-                                      )}>
-                                        <div className="flex items-center justify-between gap-2">
-                                          <Label htmlFor={`api-key-${provider.id}`} className="text-xs font-medium">
-                                            {t('settings.apiKeyLabel')}
-                                          </Label>
-                                          {resolvedKeyUrl && (
-                                            <a
-                                              href={resolvedKeyUrl}
-                                              target="_blank"
-                                              rel="noreferrer"
-                                              onClick={(e) => {
-                                                if (window.electron?.openExternal) {
-                                                  e.preventDefault();
-                                                  window.electron.openExternal(resolvedKeyUrl);
-                                                }
-                                              }}
-                                              className="text-[11px] text-primary hover:underline inline-flex items-center gap-1 font-medium group transition-colors cursor-pointer"
-                                              title={t('settings.getApiKeyTooltip', { provider: provider.name })}
+                                {(() => {
+                                  const hasBaseUrlInput = Boolean(provider.isCustom || provider.id === 'custom' || provider.id === 'omnirouter' || provider.id === 'omniroute');
+                                  const resolvedKeyUrl = provider.keyUrl || provider.apiKeyUrl || getKnownApiKeyUrl(provider.id, provider.baseUrl, provider.name);
+
+                                  return (
+                                    <div className="grid grid-cols-1 md:grid-cols-12 gap-3 items-end">
+                                      {/* API Key Input (if requires key or is custom) */}
+                                      {(provider.requiresApiKey !== false || provider.isCustom) && (
+                                        <div className={cn(
+                                          hasBaseUrlInput ? "md:col-span-5" : "md:col-span-8",
+                                          "space-y-1.5"
+                                        )}>
+                                          <div className="flex items-center justify-between gap-2">
+                                            <Label htmlFor={`api-key-${provider.id}`} className="text-xs font-medium">
+                                              {t('settings.apiKeyLabel')}
+                                            </Label>
+                                            {resolvedKeyUrl && (
+                                              <a
+                                                href={resolvedKeyUrl}
+                                                target="_blank"
+                                                rel="noreferrer"
+                                                onClick={(e) => {
+                                                  if (window.electron?.openExternal) {
+                                                    e.preventDefault();
+                                                    window.electron.openExternal(resolvedKeyUrl);
+                                                  }
+                                                }}
+                                                className="text-[11px] text-primary hover:underline inline-flex items-center gap-1 font-medium group transition-colors cursor-pointer"
+                                                title={t('settings.getApiKeyTooltip', { provider: provider.name })}
+                                              >
+                                                <span>{t('settings.getApiKey')}</span>
+                                                <ExternalLink className="w-3 h-3 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
+                                              </a>
+                                            )}
+                                          </div>
+                                          <div className="relative">
+                                            <Input
+                                              type={showKey ? "text" : "password"}
+                                              id={`api-key-${provider.id}`}
+                                              value={currentKey}
+                                              onChange={(e) => handleProviderApiKeyChange(provider.id, e.target.value)}
+                                              placeholder={t('settings.providerCardApiKeyPlaceholder')}
+                                              className="text-xs h-8 pr-8"
+                                            />
+                                            <Button
+                                              type="button"
+                                              variant="ghost"
+                                              size="icon"
+                                              className="absolute right-0 top-0 h-8 w-8 text-muted-foreground"
+                                              onClick={() => toggleProviderApiKeyVisibility(provider.id)}
                                             >
-                                              <span>{t('settings.getApiKey')}</span>
-                                              <ExternalLink className="w-3 h-3 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
-                                            </a>
-                                          )}
+                                              {showKey ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+                                            </Button>
+                                          </div>
                                         </div>
-                                        <div className="relative">
-                                          <Input
-                                            type={showKey ? "text" : "password"}
-                                            id={`api-key-${provider.id}`}
-                                            value={currentKey}
-                                            onChange={(e) => handleProviderApiKeyChange(provider.id, e.target.value)}
-                                            placeholder={t('settings.providerCardApiKeyPlaceholder')}
-                                            className="text-xs h-8 pr-8"
-                                          />
-                                          <Button
-                                            type="button"
-                                            variant="ghost"
-                                            size="icon"
-                                            className="absolute right-0 top-0 h-8 w-8 text-muted-foreground"
-                                            onClick={() => toggleProviderApiKeyVisibility(provider.id)}
-                                          >
-                                            {showKey ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
-                                          </Button>
-                                        </div>
-                                      </div>
-                                    );
-                                  })()}
-
-                                  {/* Base URL (if custom or overriding) */}
-                                  {(provider.isCustom || provider.id === 'custom') && (
-                                    <div className="md:col-span-6 space-y-1.5">
-                                      <Label htmlFor={`base-url-${provider.id}`} className="text-xs font-medium">
-                                        {t('settings.customBaseUrlLabel')}
-                                      </Label>
-                                      <Input
-                                        type="text"
-                                        id={`base-url-${provider.id}`}
-                                        value={currentBaseUrl}
-                                        onChange={(e) => handleProviderBaseUrlChange(provider.id, e.target.value)}
-                                        placeholder="https://api.exemplo.com/v1"
-                                        className="text-xs h-8"
-                                      />
-                                    </div>
-                                  )}
-
-                                  {/* Test Connection Button */}
-                                  <div className="md:col-span-4 flex items-center gap-2">
-                                    <Button
-                                      type="button"
-                                      variant="outline"
-                                      size="sm"
-                                      onClick={() => handleTestProvider(provider.id)}
-                                      disabled={testResult?.testing}
-                                      className="h-8 text-xs w-full justify-center gap-1.5"
-                                    >
-                                      {testResult?.testing ? (
-                                        <>
-                                          <RefreshCw className="w-3 h-3 animate-spin text-primary" />
-                                          <span>{t('settings.testingConnection')}</span>
-                                        </>
-                                      ) : (
-                                        <>
-                                          <Zap className="w-3 h-3 text-amber-500" />
-                                          <span>{t('settings.testConnection')}</span>
-                                        </>
                                       )}
-                                    </Button>
-                                  </div>
-                                </div>
+
+                                      {/* Base URL (if custom, overriding, or omnirouter) */}
+                                      {hasBaseUrlInput && (
+                                        <div className="md:col-span-4 space-y-1.5">
+                                          <div className="flex items-center justify-between gap-2">
+                                            <Label htmlFor={`base-url-${provider.id}`} className="text-xs font-medium">
+                                              {t('settings.customBaseUrlLabel') || 'Endpoint / Base URL'}
+                                            </Label>
+                                          </div>
+                                          <Input
+                                            type="text"
+                                            id={`base-url-${provider.id}`}
+                                            value={currentBaseUrl}
+                                            onChange={(e) => handleProviderBaseUrlChange(provider.id, e.target.value)}
+                                            placeholder={provider.baseUrl || "http://localhost:20128/v1"}
+                                            className="text-xs h-8 font-mono text-[11.5px]"
+                                          />
+                                        </div>
+                                      )}
+
+                                      {/* Test Connection Button */}
+                                      <div className={cn(
+                                        hasBaseUrlInput ? "md:col-span-3" : "md:col-span-4",
+                                        "flex items-center gap-2"
+                                      )}>
+                                        <Button
+                                          type="button"
+                                          variant="outline"
+                                          size="sm"
+                                          onClick={() => handleTestProvider(provider.id)}
+                                          disabled={testResult?.testing}
+                                          className="h-8 text-xs w-full justify-center gap-1.5"
+                                        >
+                                          {testResult?.testing ? (
+                                            <>
+                                              <RefreshCw className="w-3 h-3 animate-spin text-primary" />
+                                              <span>{t('settings.testingConnection')}</span>
+                                            </>
+                                          ) : (
+                                            <>
+                                              <Zap className="w-3 h-3 text-amber-500" />
+                                              <span>{t('settings.testConnection')}</span>
+                                            </>
+                                          )}
+                                        </Button>
+                                      </div>
+                                    </div>
+                                  );
+                                })()}
 
                                 {/* Live Test Results Alert */}
                                 {testResult && !testResult.testing && (
