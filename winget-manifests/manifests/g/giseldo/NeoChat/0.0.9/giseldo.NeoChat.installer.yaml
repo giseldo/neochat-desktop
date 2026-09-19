@@ -1,0 +1,16 @@
+# yaml-language-server: $schema=https://aka.ms/winget-manifest.installer.1.6.0.schema.json
+
+PackageIdentifier: giseldo.NeoChat
+PackageVersion: 0.0.9
+InstallerType: nullsoft
+InstallModes:
+  - interactive
+  - silent
+UpgradeBehavior: install
+ReleaseDate: 2026-09-19
+Installers:
+  - Architecture: x64
+    InstallerUrl: https://github.com/giseldo/neochat-desktop/releases/download/v0.0.9/NeoChat-Desktop-Setup.exe
+    InstallerSha256: 0000000000000000000000000000000000000000000000000000000000000000
+ManifestType: installer
+ManifestVersion: 1.6.0

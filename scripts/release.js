@@ -113,7 +113,7 @@ Options:
   }
 
   // 3. Update package.json
-  console.log(`\n[1/3] Updating package.json to ${nextVersion}...`);
+  console.log(`\n[1/4] Updating package.json to ${nextVersion}...`);
   if (!isDryRun) {
     pkg.version = nextVersion;
     fs.writeFileSync(pkgPath, JSON.stringify(pkg, null, 2) + '\n', 'utf8');
@@ -122,17 +122,41 @@ Options:
     console.log(`  [dry-run] Would update package.json version to ${nextVersion}`);
   }
 
-  // 4. Commit & Tag
-  console.log(`\n[2/3] Creating Git commit and tag (${tag})...`);
+  // 4. Update WinGet manifests
+  console.log(`\n[2/4] Updating WinGet manifests for ${nextVersion}...`);
+  const wingetDir = path.join(rootDir, 'winget-manifests', 'manifests', 'g', 'giseldo', 'NeoChat', nextVersion);
+  const releaseDate = new Date().toISOString().split('T')[0];
+  if (!isDryRun) {
+    fs.mkdirSync(wingetDir, { recursive: true });
+
+    const versionYaml = `# yaml-language-server: $schema=https://aka.ms/winget-manifest.version.1.6.0.schema.json\n\nPackageIdentifier: giseldo.NeoChat\nPackageVersion: ${nextVersion}\nDefaultLocale: en-US\nManifestType: version\nManifestVersion: 1.6.0\n`;
+    const localeYaml = `# yaml-language-server: $schema=https://aka.ms/winget-manifest.defaultLocale.1.6.0.schema.json\n\nPackageIdentifier: giseldo.NeoChat\nPackageVersion: ${nextVersion}\nPackageLocale: en-US\nPublisher: Neo\nPublisherUrl: https://github.com/giseldo/neochat-desktop\nPublisherSupportUrl: https://github.com/giseldo/neochat-desktop/issues\nAuthor: Neo\nPackageName: NeoChat Desktop\nPackageUrl: https://github.com/giseldo/neochat-desktop\nLicense: ISC\nLicenseUrl: https://github.com/giseldo/neochat-desktop/blob/main/LICENSE\nCopyright: Copyright © ${new Date().getFullYear()} Neo\nShortDescription: NeoChat Desktop AI Workspace & Chat\nDescription: Electron + React desktop AI workspace & chat app with universal multi-provider support, local RAG, image input, and local/remote MCP servers.\nTags:\n  - ai\n  - chat\n  - groq\n  - mcp\n  - workspace\nManifestType: defaultLocale\nManifestVersion: 1.6.0\n`;
+    const installerYaml = `# yaml-language-server: $schema=https://aka.ms/winget-manifest.installer.1.6.0.schema.json\n\nPackageIdentifier: giseldo.NeoChat\nPackageVersion: ${nextVersion}\nInstallerType: nullsoft\nInstallModes:\n  - interactive\n  - silent\nUpgradeBehavior: install\nReleaseDate: ${releaseDate}\nInstallers:\n  - Architecture: x64\n    InstallerUrl: https://github.com/giseldo/neochat-desktop/releases/download/v${nextVersion}/NeoChat-Desktop-Setup.exe\n    InstallerSha256: 0000000000000000000000000000000000000000000000000000000000000000\nManifestType: installer\nManifestVersion: 1.6.0\n`;
+
+    fs.writeFileSync(path.join(wingetDir, 'giseldo.NeoChat.yaml'), versionYaml, 'utf8');
+    fs.writeFileSync(path.join(wingetDir, 'giseldo.NeoChat.locale.en-US.yaml'), localeYaml, 'utf8');
+    fs.writeFileSync(path.join(wingetDir, 'giseldo.NeoChat.installer.yaml'), installerYaml, 'utf8');
+    console.log(`✔ WinGet manifests created for ${nextVersion}`);
+  } else {
+    console.log(`  [dry-run] Would create WinGet manifests at ${wingetDir}`);
+  }
+
+  // 5. Build dist assets for NPX and desktop
+  console.log(`\n[3/4] Building web/dist assets for npx and packaging...`);
+  run('pnpm build', { dryRun: isDryRun });
+
+  // 6. Commit & Tag
+  console.log(`\n[4/4] Creating Git commit and tag (${tag})...`);
   run('git add -A', { dryRun: isDryRun });
   run(`git commit -m "chore(release): bump version to ${nextVersion}"`, { dryRun: isDryRun });
   run(`git tag ${tag}`, { dryRun: isDryRun });
   console.log(`✔ Git commit and tag ${tag} created.`);
 
-  // 5. Push to remote
-  console.log(`\n[3/3] Pushing commit and tag ${tag} to origin main...`);
+  // 7. Push to remote
+  console.log(`\nPushing commit and tag ${tag} to origin main...`);
   if (!isSkipPush) {
-    run(`git push origin main && git push origin ${tag}`, { dryRun: isDryRun });
+    run('git push origin main', { dryRun: isDryRun });
+    run(`git push origin ${tag}`, { dryRun: isDryRun });
     console.log(`✔ Git push completed.`);
   } else {
     console.log('⏩ Skipping git push (--skip-push).');
