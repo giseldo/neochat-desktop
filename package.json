@@ -4,6 +4,17 @@
   "description": "NeoChat Desktop AI Workspace & Chat",
   "main": "electron/main.js",
   "type": "commonjs",
+  "bin": {
+    "neochat": "./bin/cli.js",
+    "neochat-desktop": "./bin/cli.js"
+  },
+  "files": [
+    "bin",
+    "electron",
+    "dist",
+    "shared",
+    "public"
+  ],
   "packageManager": "pnpm@10.9.0",
   "scripts": {
     "dev": "concurrently \"pnpm dev:vite\" \"pnpm dev:electron\"",
