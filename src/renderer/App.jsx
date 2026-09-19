@@ -2680,6 +2680,13 @@ function App() {
         return;
       }
 
+      // Ctrl/Cmd + M or Ctrl/Cmd + Shift + M: Toggle Compare Models
+      if (isModifier && !e.altKey && e.key.toLowerCase() === 'm') {
+        e.preventDefault();
+        setIsCompareMode(prev => !prev);
+        return;
+      }
+
       // Ctrl/Cmd + Shift + C: Toggle Canvas
       if (isModifier && e.shiftKey && e.key.toLowerCase() === 'c') {
         e.preventDefault();
@@ -2950,32 +2957,8 @@ function App() {
 
                   {/* Dropdown Menu */}
                   {isToolsDropdownOpen && (
-                    <div className="absolute right-0 mt-2 w-72 max-h-[calc(100vh-5rem)] overflow-y-auto overscroll-contain custom-scrollbar p-1.5 rounded-2xl bg-popover border border-border text-popover-foreground shadow-2xl z-50 animate-in fade-in-0 zoom-in-95 space-y-0.5 text-xs">
+                    <div className="absolute right-0 mt-2 w-80 max-h-[calc(100vh-5rem)] overflow-y-auto overscroll-contain custom-scrollbar p-1.5 rounded-2xl bg-popover border border-border text-popover-foreground shadow-2xl z-50 animate-in fade-in-0 zoom-in-95 space-y-0.5 text-xs">
                       
-                      {/* Compare Models */}
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setIsToolsDropdownOpen(false);
-                          setIsCompareMode(!isCompareMode);
-                        }}
-                        className={cn(
-                          "w-full flex items-center gap-2.5 px-3 py-2 rounded-xl transition-colors text-left",
-                          isCompareMode 
-                            ? "bg-purple-500/10 text-purple-700 dark:text-purple-300 font-medium" 
-                            : "hover:bg-muted/80 text-foreground"
-                        )}
-                      >
-                        <Scale className="w-4 h-4 text-purple-500 shrink-0" />
-                        <div className="flex-1 min-w-0">
-                          <div className="font-semibold flex items-center justify-between">
-                            <span>{t('header.compareModels') || 'Comparar Modelos'}</span>
-                            {isCompareMode && <span className="px-1.5 py-0.2 rounded bg-purple-500/20 text-purple-600 dark:text-purple-400 text-[10px] font-mono font-semibold">Aberto</span>}
-                          </div>
-                          <div className="text-[10px] text-muted-foreground truncate">{t('header.compareModelsSubtitle') || 'Visualização lado a lado'}</div>
-                        </div>
-                      </button>
-
                       {/* Trajectory */}
                       <button
                         type="button"
@@ -2992,11 +2975,41 @@ function App() {
                       >
                         <Activity className="w-4 h-4 text-emerald-500 shrink-0" />
                         <div className="flex-1 min-w-0">
-                          <div className="font-semibold flex items-center justify-between">
+                          <div className="font-semibold flex items-center justify-between gap-1">
                             <span>{t('trajectory.trajectoryTab') || 'Trajetória'}</span>
-                            {activeTab === 'trajectory' && <span className="px-1.5 py-0.2 rounded bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-[10px] font-mono font-semibold">Aberto</span>}
+                            <div className="flex items-center gap-1.5 shrink-0">
+                              <kbd className="px-1.5 py-0.5 rounded bg-muted/80 text-[10px] font-mono font-medium border border-border/60 text-muted-foreground">Ctrl+T</kbd>
+                              {activeTab === 'trajectory' && <span className="px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-[10px] font-mono font-semibold">Aberto</span>}
+                            </div>
                           </div>
                           <div className="text-[10px] text-muted-foreground truncate">{t('header.trajectorySubtitle') || 'Linha do tempo & eventos detalhados'}</div>
+                        </div>
+                      </button>
+
+                      {/* Compare Models */}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsToolsDropdownOpen(false);
+                          setIsCompareMode(!isCompareMode);
+                        }}
+                        className={cn(
+                          "w-full flex items-center gap-2.5 px-3 py-2 rounded-xl transition-colors text-left",
+                          isCompareMode 
+                            ? "bg-purple-500/10 text-purple-700 dark:text-purple-300 font-medium" 
+                            : "hover:bg-muted/80 text-foreground"
+                        )}
+                      >
+                        <Scale className="w-4 h-4 text-purple-500 shrink-0" />
+                        <div className="flex-1 min-w-0">
+                          <div className="font-semibold flex items-center justify-between gap-1">
+                            <span>{t('header.compareModels') || 'Comparar Modelos'}</span>
+                            <div className="flex items-center gap-1.5 shrink-0">
+                              <kbd className="px-1.5 py-0.5 rounded bg-muted/80 text-[10px] font-mono font-medium border border-border/60 text-muted-foreground">Ctrl+M</kbd>
+                              {isCompareMode && <span className="px-1.5 py-0.5 rounded bg-purple-500/20 text-purple-600 dark:text-purple-400 text-[10px] font-mono font-semibold">Aberto</span>}
+                            </div>
+                          </div>
+                          <div className="text-[10px] text-muted-foreground truncate">{t('header.compareModelsSubtitle') || 'Visualização lado a lado'}</div>
                         </div>
                       </button>
                       

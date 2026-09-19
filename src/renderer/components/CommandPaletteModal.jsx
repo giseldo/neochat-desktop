@@ -381,16 +381,6 @@ export function CommandPaletteModal({
         action: () => { onClose(); onOpenMcpCatalog?.(); }
       },
       {
-        id: 'nav_compare',
-        category: 'nav',
-        categoryLabel: 'Navegação',
-        title: 'Modo Comparação de Modelos (Side-by-Side)',
-        subtitle: 'Comparar respostas entre 2 modelos simultâneos',
-        icon: Scale,
-        keywords: ['comparar', 'side-by-side', 'comparacao', 'comparação', 'dois modelos'],
-        action: () => { onClose(); onToggleCompareMode?.(); }
-      },
-      {
         id: 'nav_trajectory',
         category: 'nav',
         categoryLabel: 'Navegação',
@@ -400,6 +390,17 @@ export function CommandPaletteModal({
         shortcut: `${modKey}+T`,
         keywords: ['trajetoria', 'trajetória', 'timeline', 'execucao', 'execução', 'turnos', 'ferramentas', 'eventos'],
         action: () => { onClose(); onToggleTrajectory?.(); }
+      },
+      {
+        id: 'nav_compare',
+        category: 'nav',
+        categoryLabel: 'Navegação',
+        title: 'Modo Comparação de Modelos (Side-by-Side)',
+        subtitle: 'Comparar respostas entre 2 modelos simultâneos',
+        icon: Scale,
+        shortcut: `${modKey}+M`,
+        keywords: ['comparar', 'side-by-side', 'comparacao', 'comparação', 'dois modelos'],
+        action: () => { onClose(); onToggleCompareMode?.(); }
       },
       {
         id: 'nav_browser',

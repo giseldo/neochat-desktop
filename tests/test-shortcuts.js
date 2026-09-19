@@ -36,6 +36,8 @@ async function runTests() {
   assert.ok(translationsContent.includes("toggleExplorer: 'Toggle File Explorer'"), 'Tradução en.shortcuts.items.toggleExplorer deve existir');
   assert.ok(translationsContent.includes("toggleTrajectory: 'Alternar Trajetória'"), 'Tradução pt.shortcuts.items.toggleTrajectory deve existir');
   assert.ok(translationsContent.includes("toggleTrajectory: 'Toggle Trajectory'"), 'Tradução en.shortcuts.items.toggleTrajectory deve existir');
+  assert.ok(translationsContent.includes("toggleCompareMode: 'Alternar Comparação de Modelos'"), 'Tradução pt.shortcuts.items.toggleCompareMode deve existir');
+  assert.ok(translationsContent.includes("toggleCompareMode: 'Toggle Model Comparison'"), 'Tradução en.shortcuts.items.toggleCompareMode deve existir');
   console.log('   ✅ Todas as traduções de atalhos e janela flutuante estão completas');
 
   // 3. Test settingsManager defaults

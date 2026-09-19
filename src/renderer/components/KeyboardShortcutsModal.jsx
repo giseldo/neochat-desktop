@@ -169,6 +169,14 @@ export default function KeyboardShortcutsModal({ isOpen, onClose }) {
         keys: [modKey, 'T']
       },
       {
+        id: 'toggleCompareMode',
+        category: 'navigation',
+        title: t('shortcuts.items.toggleCompareMode') || 'Alternar Comparação de Modelos',
+        description: t('shortcuts.items.toggleCompareModeDesc') || 'Abre ou fecha a visualização de comparação lado a lado entre dois modelos.',
+        keys: [modKey, 'M'],
+        altKeys: [modKey, shiftKey, 'M']
+      },
+      {
         id: 'toggleCanvas',
         category: 'navigation',
         title: t('shortcuts.items.toggleCanvas'),
