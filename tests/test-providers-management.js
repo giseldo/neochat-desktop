@@ -44,7 +44,8 @@ assert.strictEqual(isProviderConfigured(mockSettings, 'groq'), true, 'Groq shoul
 assert.strictEqual(isProviderConfigured(mockSettings, 'openai'), true, 'OpenAI should be configured');
 assert.strictEqual(isProviderConfigured(mockSettings, 'deepseek'), false, 'DeepSeek with placeholder key is not configured');
 assert.strictEqual(isProviderConfigured(mockSettings, 'ollama'), true, 'Local Ollama is always configured');
-assert.strictEqual(isProviderConfigured(mockSettings, 'omnirouter'), true, 'Local OmniRouter is always configured');
+assert.strictEqual(isProviderConfigured(mockSettings, 'omnirouter'), false, 'OmniRouter without key is not configured');
+assert.strictEqual(isProviderConfigured({ ...mockSettings, apiKeys: { ...mockSettings.apiKeys, omnirouter: 'sk-omni123' } }, 'omnirouter'), true, 'OmniRouter with key is configured');
 assert.strictEqual(isProviderConfigured(mockSettings, 'mistral'), false, 'Mistral without key is not configured');
 
 assert.strictEqual(isProviderEnabled(mockSettings, 'groq'), true, 'Groq is in enabledProviders');

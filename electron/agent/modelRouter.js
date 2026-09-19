@@ -75,7 +75,7 @@ class ModelRouter {
    */
   validateApiKey(settings) {
     const provider = settings.provider || 'groq';
-    const isLocal = provider === 'ollama' || provider === 'lmstudio' || provider === 'omnirouter' || provider === 'omniroute' || provider === 'custom_local';
+    const isLocal = provider === 'ollama' || provider === 'lmstudio' || provider === 'custom_local';
     if (isLocal) return true;
 
     const apiKey = getActiveApiKey(settings);
