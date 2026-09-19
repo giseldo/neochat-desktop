@@ -42,7 +42,7 @@ async function run() {
         assert.strictEqual(path.resolve(initialInfo.currentPath), path.resolve(defaultUserDataDir));
 
         // Create sample config files in default directory
-        const sampleSettings = { language: 'pt', model: 'llama-3.3-70b-versatile', customKey: 'val123' };
+        const sampleSettings = { language: 'pt', model: 'llama-3.1-8b-instant', customKey: 'val123' };
         fs.writeFileSync(path.join(defaultUserDataDir, 'settings.json'), JSON.stringify(sampleSettings));
         fs.writeFileSync(path.join(defaultUserDataDir, 'projects.json'), JSON.stringify([{ id: 'p1', name: 'Project 1' }]));
         

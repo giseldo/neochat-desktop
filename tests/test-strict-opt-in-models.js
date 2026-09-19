@@ -18,7 +18,7 @@ console.log('--- Testing Strict Opt-In Model Activation ---');
 console.log('Test 1: getDefaultEnabledModels curation...');
 const defaults = getDefaultEnabledModels();
 assert.ok(Array.isArray(defaults), 'Defaults should be an array');
-assert.ok(defaults.includes('llama-3.3-70b-versatile'), 'Must include llama-3.3-70b-versatile');
+assert.ok(defaults.includes('llama-3.1-8b-instant'), 'Must include llama-3.1-8b-instant');
 assert.ok(defaults.includes('gpt-4o'), 'Must include gpt-4o');
 assert.ok(defaults.includes('anthropic/claude-3.7-sonnet'), 'Must include claude-3.7-sonnet');
 assert.ok(defaults.includes('grok-2-latest'), 'Must include grok-2-latest');
@@ -28,25 +28,25 @@ console.log('  ✓ Curated defaults verified (Total curated models: ' + defaults
 // Test 2: filterModels rejects uncurated remote models not in enabledModels
 console.log('Test 2: filterModels strict opt-in behavior...');
 const modelList = [
-  'llama-3.3-70b-versatile',
+  'llama-3.1-8b-instant',
   'qwen-2.5-coder-32b',
   'canopylabs/orpheus-v1-english',
   'unapproved-remote-model-xyz',
   'gpt-4o'
 ];
 const configs = {
-  'llama-3.3-70b-versatile': { rawModelId: 'llama-3.3-70b-versatile' },
+  'llama-3.1-8b-instant': { rawModelId: 'llama-3.1-8b-instant' },
   'qwen-2.5-coder-32b': { rawModelId: 'qwen-2.5-coder-32b' },
   'canopylabs/orpheus-v1-english': { rawModelId: 'canopylabs/orpheus-v1-english' },
   'unapproved-remote-model-xyz': { rawModelId: 'unapproved-remote-model-xyz' },
   'gpt-4o': { rawModelId: 'gpt-4o' }
 };
 
-const userEnabledModels = ['llama-3.3-70b-versatile', 'gpt-4o'];
+const userEnabledModels = ['llama-3.1-8b-instant', 'gpt-4o'];
 const filtered = filterModels(modelList, configs, userEnabledModels);
 
 assert.strictEqual(filtered.length, 2, 'Only the 2 explicitly enabled models should pass');
-assert.ok(filtered.includes('llama-3.3-70b-versatile'), 'llama-3.3-70b-versatile must pass');
+assert.ok(filtered.includes('llama-3.1-8b-instant'), 'llama-3.1-8b-instant must pass');
 assert.ok(filtered.includes('gpt-4o'), 'gpt-4o must pass');
 assert.ok(!filtered.includes('canopylabs/orpheus-v1-english'), 'canopylabs/orpheus-v1-english must be filtered out');
 assert.ok(!filtered.includes('unapproved-remote-model-xyz'), 'unapproved-remote-model-xyz must be filtered out');
@@ -55,15 +55,15 @@ console.log('  ✓ Remote models not in enabledModels are strictly filtered out'
 
 // Test 3: Namespaced modelKey matching
 console.log('Test 3: Namespaced modelKey matching with rawModelId...');
-const namespacedList = ['groq::llama-3.3-70b-versatile', 'groq::canopylabs/orpheus-v1-english'];
+const namespacedList = ['groq::llama-3.1-8b-instant', 'groq::canopylabs/orpheus-v1-english'];
 const namespacedConfigs = {
-  'groq::llama-3.3-70b-versatile': { rawModelId: 'llama-3.3-70b-versatile' },
+  'groq::llama-3.1-8b-instant': { rawModelId: 'llama-3.1-8b-instant' },
   'groq::canopylabs/orpheus-v1-english': { rawModelId: 'canopylabs/orpheus-v1-english' }
 };
 
-const filteredNamespaced = filterModels(namespacedList, namespacedConfigs, ['llama-3.3-70b-versatile']);
-assert.strictEqual(filteredNamespaced.length, 1, 'Only groq::llama-3.3-70b-versatile should match rawModelId');
-assert.strictEqual(filteredNamespaced[0], 'groq::llama-3.3-70b-versatile');
+const filteredNamespaced = filterModels(namespacedList, namespacedConfigs, ['llama-3.1-8b-instant']);
+assert.strictEqual(filteredNamespaced.length, 1, 'Only groq::llama-3.1-8b-instant should match rawModelId');
+assert.strictEqual(filteredNamespaced[0], 'groq::llama-3.1-8b-instant');
 console.log('  ✓ Namespaced models correctly match by rawModelId');
 
 // Test 4: Dynamic toggle test

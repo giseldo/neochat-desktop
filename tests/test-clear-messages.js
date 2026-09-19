@@ -15,7 +15,7 @@ const mockApp = {
 
 const mockLoadSettings = () => ({
     apiKeys: { groq: 'test-key' },
-    model: 'llama-3.3-70b-versatile',
+    model: 'llama-3.1-8b-instant',
 });
 
 console.log('Testing deleteAllChats and clearChatMessages functionality...');
@@ -29,20 +29,20 @@ chatHistoryManager.initialize(mockApp, mockLoadSettings);
 try {
     // 1. Create multiple chats with messages
     console.log('\n1. Creating test chats with messages...');
-    const chat1 = chatHistoryManager.createChat('llama-3.3-70b-versatile', false, null);
+    const chat1 = chatHistoryManager.createChat('llama-3.1-8b-instant', false, null);
     chatHistoryManager.updateChatMessages(chat1.id, [
         { role: 'user', content: 'Olá, teste 1' },
         { role: 'assistant', content: 'Resposta 1' }
     ]);
 
-    const chat2 = chatHistoryManager.createChat('llama-3.3-70b-versatile', false, null);
+    const chat2 = chatHistoryManager.createChat('llama-3.1-8b-instant', false, null);
     chatHistoryManager.updateChatMessages(chat2.id, [
         { role: 'user', content: 'Olá, teste 2' },
         { role: 'assistant', content: 'Resposta 2' },
         { role: 'user', content: 'Mensagem adicional' }
     ]);
 
-    const chat3 = chatHistoryManager.createChat('llama-3.3-70b-versatile', false, null);
+    const chat3 = chatHistoryManager.createChat('llama-3.1-8b-instant', false, null);
 
     const initialChats = chatHistoryManager.listChats();
     assert.strictEqual(initialChats.length, 3, 'Should have 3 chats created');

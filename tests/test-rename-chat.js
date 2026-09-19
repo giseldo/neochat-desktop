@@ -15,7 +15,7 @@ const mockApp = {
 
 const mockLoadSettings = () => ({
     apiKeys: { groq: 'test-key' },
-    model: 'llama-3.3-70b-versatile',
+    model: 'llama-3.1-8b-instant',
 });
 
 console.log('Testing updateChatTitle functionality...');
@@ -30,7 +30,7 @@ async function runTests() {
     try {
         // 1. Create a test chat
         console.log('\n1. Creating test chat...');
-        const chat = chatHistoryManager.createChat('llama-3.3-70b-versatile', false, null);
+        const chat = chatHistoryManager.createChat('llama-3.1-8b-instant', false, null);
         assert.strictEqual(chat.title, 'New Chat', 'Initial title should be "New Chat"');
         console.log('✓ Initial chat created with title:', chat.title);
 

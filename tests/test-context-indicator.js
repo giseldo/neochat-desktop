@@ -14,12 +14,12 @@ async function runTests() {
   console.log('[1] Testing getModelContextWindow...');
   // Test direct config
   const configs = {
-    'llama-3.3-70b-versatile': { context: 128000 },
+    'llama-3.1-8b-instant': { context: 128000 },
     'custom::my-model': { context: 16384 },
     'mistral-small-2603': { context: 8192 }
   };
 
-  assert.strictEqual(getModelContextWindow('llama-3.3-70b-versatile', configs), 128000);
+  assert.strictEqual(getModelContextWindow('llama-3.1-8b-instant', configs), 128000);
   assert.strictEqual(getModelContextWindow('custom::my-model', configs), 16384);
   assert.strictEqual(getModelContextWindow('groq::mistral-small-2603', configs), 8192);
 

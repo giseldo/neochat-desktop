@@ -15,7 +15,7 @@ const mockApp = {
 
 const mockLoadSettings = () => ({
     apiKeys: { groq: 'test-key' },
-    model: 'llama-3.3-70b-versatile',
+    model: 'llama-3.1-8b-instant',
 });
 
 console.log('Testing Projects Manager and Chat History Integration...');
@@ -72,7 +72,7 @@ try {
 
     // 5. Create Chat assigned to Project
     console.log('\n5. Testing createChat with projectId...');
-    const chat1 = chatHistoryManager.createChat('llama-3.3-70b-versatile', false, project1.id);
+    const chat1 = chatHistoryManager.createChat('llama-3.1-8b-instant', false, project1.id);
     assert.strictEqual(chat1.projectId, project1.id);
     console.log('✓ Chat created with projectId:', chat1.id, '->', chat1.projectId);
 

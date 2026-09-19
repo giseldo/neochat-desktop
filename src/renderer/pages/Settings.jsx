@@ -24,8 +24,8 @@ const POPULAR_PROVIDER_PRESETS = [
   {
     id: 'groq',
     name: 'Groq',
-    badge: 'Llama 3.3, Qwen 2.5, DeepSeek R1',
-    defaultModel: 'llama-3.3-70b-versatile',
+    badge: 'Llama 3.1, Qwen 2.5, DeepSeek R1',
+    defaultModel: 'llama-3.1-8b-instant',
     baseUrl: 'https://api.groq.com/openai/v1',
     description: 'Inferência LPU ultra-rápida com modelos Llama, Qwen e DeepSeek R1 Distill',
     icon: Zap,

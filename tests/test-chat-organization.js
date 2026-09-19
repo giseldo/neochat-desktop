@@ -14,7 +14,7 @@ const mockApp = {
 
 const mockLoadSettings = () => ({
     apiKeys: { groq: 'test-key' },
-    model: 'llama-3.3-70b-versatile',
+    model: 'llama-3.1-8b-instant',
 });
 
 console.log('Testing Chat Organization Features (Pin, Archive, List Metadata)...');
@@ -29,7 +29,7 @@ async function runTests() {
     try {
         // 1. Create a test chat
         console.log('\n1. Creating test chat...');
-        const chat1 = chatHistoryManager.createChat('llama-3.3-70b-versatile', false, null);
+        const chat1 = chatHistoryManager.createChat('llama-3.1-8b-instant', false, null);
         assert.strictEqual(chat1.pinned, false, 'Initial chat should not be pinned');
         assert.strictEqual(chat1.archived, false, 'Initial chat should not be archived');
         console.log('? Chat created with pinned=false, archived=false');

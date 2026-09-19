@@ -7,14 +7,14 @@ const PROVIDERS = {
     name: 'Groq',
     baseUrl: 'https://api.groq.com/openai/v1',
     modelsUrl: 'https://api.groq.com/openai/v1/models',
-    defaultModel: 'llama-3.3-70b-versatile',
+    defaultModel: 'llama-3.1-8b-instant',
     description: 'Inferência LPU ultra-rápida com modelos Llama, Qwen e DeepSeek R1 Distill',
     icon: 'Zap',
     isLocal: false,
     keyUrl: 'https://console.groq.com/keys',
     keyPlaceholder: 'gsk_...',
     popularModels: [
-      'llama-3.3-70b-versatile',
+      'llama-3.1-8b-instant',
       'deepseek-r1-distill-llama-70b',
       'qwen-2.5-coder-32b',
       'deepseek-r1-distill-qwen-32b',
@@ -629,7 +629,7 @@ function getDefaultModel(settings) {
   if (Array.isArray(provider?.popularModels) && provider.popularModels.length > 0) {
     return provider.popularModels[0];
   }
-  return PROVIDERS.groq?.defaultModel || 'llama-3.3-70b-versatile';
+  return PROVIDERS.groq?.defaultModel || 'llama-3.1-8b-instant';
 }
 
 /**
