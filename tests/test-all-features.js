@@ -96,6 +96,7 @@ async function runTestSuite() {
     assert(typeof result.detected === 'boolean', 'detected deve ser boolean');
     assert(result.providers && result.providers.ollama, 'providers.ollama deve existir');
     assert(result.providers && result.providers.lmstudio, 'providers.lmstudio deve existir');
+    assert(result.providers && result.providers.omnirouter, 'providers.omnirouter deve existir');
   });
 
   // 3. Web Search Service Test (DuckDuckGo Zero-Config)

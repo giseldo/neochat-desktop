@@ -1,4 +1,4 @@
-﻿const assert = require('assert');
+const assert = require('assert');
 const {
   PROVIDERS,
   getCustomProviders,
@@ -21,9 +21,11 @@ assert.ok(presetKeys.length >= 7, 'Should have at least 7 preset providers');
 const groq = PROVIDERS.groq;
 const openai = PROVIDERS.openai;
 const ollama = PROVIDERS.ollama;
+const omnirouter = PROVIDERS.omnirouter;
 assert.ok(groq, 'Groq provider preset must exist');
 assert.ok(openai, 'OpenAI provider preset must exist');
 assert.ok(ollama, 'Ollama provider preset must exist');
+assert.ok(omnirouter, 'OmniRouter provider preset must exist');
 console.log('  ✓ Presets exist (' + presetKeys.length + ' presets found)');
 
 // Test 2: Status Configured vs Active
@@ -42,6 +44,7 @@ assert.strictEqual(isProviderConfigured(mockSettings, 'groq'), true, 'Groq shoul
 assert.strictEqual(isProviderConfigured(mockSettings, 'openai'), true, 'OpenAI should be configured');
 assert.strictEqual(isProviderConfigured(mockSettings, 'deepseek'), false, 'DeepSeek with placeholder key is not configured');
 assert.strictEqual(isProviderConfigured(mockSettings, 'ollama'), true, 'Local Ollama is always configured');
+assert.strictEqual(isProviderConfigured(mockSettings, 'omnirouter'), true, 'Local OmniRouter is always configured');
 assert.strictEqual(isProviderConfigured(mockSettings, 'mistral'), false, 'Mistral without key is not configured');
 
 assert.strictEqual(isProviderEnabled(mockSettings, 'groq'), true, 'Groq is in enabledProviders');

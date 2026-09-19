@@ -50,6 +50,15 @@ async function detectLocalAiProviders() {
       latencyMs: null,
       models: [],
       error: null
+    },
+    omnirouter: {
+      running: false,
+      name: 'OmniRouter',
+      url: 'http://localhost:20128/v1',
+      modelsUrl: 'http://localhost:20128/v1/models',
+      latencyMs: null,
+      models: [],
+      error: null
     }
   };
 
@@ -118,8 +127,38 @@ async function detectLocalAiProviders() {
     results.lmstudio.error = err.message;
   }
 
+  // 3. Probe OmniRouter
+  try {
+    const omniProbe = await probeEndpoint('http://localhost:20128/v1/models', 2000);
+    if (omniProbe.ok && omniProbe.data) {
+      results.omnirouter.running = true;
+      results.omnirouter.latencyMs = omniProbe.latencyMs;
+      const rawModels = Array.isArray(omniProbe.data.data) ? omniProbe.data.data : (Array.isArray(omniProbe.data) ? omniProbe.data : []);
+      results.omnirouter.models = rawModels.map(m => ({
+        id: m.id || m.name,
+        name: m.name || m.id,
+        ownedBy: m.owned_by
+      }));
+    } else {
+      const fallbackOmni = await probeEndpoint('http://127.0.0.1:20128/v1/models', 1500);
+      if (fallbackOmni.ok && fallbackOmni.data) {
+        results.omnirouter.running = true;
+        results.omnirouter.url = 'http://127.0.0.1:20128/v1';
+        results.omnirouter.latencyMs = fallbackOmni.latencyMs;
+        const rawModels = Array.isArray(fallbackOmni.data.data) ? fallbackOmni.data.data : (Array.isArray(fallbackOmni.data) ? fallbackOmni.data : []);
+        results.omnirouter.models = rawModels.map(m => ({
+          id: m.id || m.name,
+          name: m.name || m.id,
+          ownedBy: m.owned_by
+        }));
+      }
+    }
+  } catch (err) {
+    results.omnirouter.error = err.message;
+  }
+
   return {
-    detected: results.ollama.running || results.lmstudio.running,
+    detected: results.ollama.running || results.lmstudio.running || results.omnirouter.running,
     providers: results
   };
 }

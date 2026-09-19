@@ -204,6 +204,19 @@ const POPULAR_PROVIDER_PRESETS = [
     keyUrlLabel: 'OpenRouter Keys',
   },
   {
+    id: 'omnirouter',
+    name: 'OmniRouter',
+    badge: 'Gateway Local / Multi-LLM',
+    defaultModel: '',
+    baseUrl: 'http://localhost:20128/v1',
+    description: 'Gateway inteligente de múltiplos provedores e auto-hospedado (porta 20128)',
+    icon: Route,
+    color: 'from-violet-500/10 to-purple-500/10 border-violet-500/30 text-violet-400',
+    keyPlaceholder: 'Não requer chave (ou chave do gateway)',
+    keyUrl: 'http://localhost:20128',
+    keyUrlLabel: 'OmniRouter Dashboard',
+  },
+  {
     id: 'custom',
     name: 'Personalizado',
     badge: 'vLLM, LiteLLM, Ollama Remoto',
@@ -226,6 +239,10 @@ function getKnownApiKeyUrl(id = '', baseUrl = '', name = '') {
   const preset = POPULAR_PROVIDER_PRESETS.find(p => p.id === normId || normName.includes(p.id) || (p.baseUrl && normUrl.includes(p.baseUrl.replace(/\/+$/, ''))));
   if (preset && preset.keyUrl) {
     return preset.keyUrl;
+  }
+
+  if (normId.includes('omnirouter') || normId.includes('omniroute') || normUrl.includes('20128') || normName.includes('omnirouter') || normName.includes('omniroute')) {
+    return 'http://localhost:20128';
   }
 
   if (normId.includes('groq') || normUrl.includes('groq.com') || normName.includes('groq')) {
@@ -1828,7 +1845,6 @@ function Settings() {
 
   const getProviderIconComponent = (provider) => {
     if (!provider) return Server;
-    if (provider.isLocal) return Laptop;
     switch (provider.id) {
       case 'groq': return Zap;
       case 'gemini': return Sparkles;
@@ -1845,9 +1861,11 @@ function Settings() {
       case 'cohere': return Sparkles;
       case 'fireworks': return Flame;
       case 'openrouter': return Globe;
+      case 'omnirouter':
+      case 'omniroute': return Route;
       case 'ollama': return HardDrive;
       case 'lmstudio': return Laptop;
-      default: return Server;
+      default: return provider.isLocal ? Laptop : Server;
     }
   };
 

@@ -338,6 +338,21 @@ const PROVIDERS = {
     keyPlaceholder: 'Não requer chave (Local)',
     popularModels: ['local-model'],
   },
+  omnirouter: {
+    id: 'omnirouter',
+    name: 'OmniRouter (Local)',
+    baseUrl: 'http://localhost:20128/v1',
+    modelsUrl: 'http://localhost:20128/v1/models',
+    envVar: 'OMNIROUTER_API_KEY',
+    defaultModel: '',
+    description: 'Gateway inteligente de IA e multi-provedor auto-hospedado (http://localhost:20128)',
+    icon: 'Route',
+    isLocal: true,
+    requiresApiKey: false,
+    keyPlaceholder: 'Não requer chave (ou chave do gateway)',
+    keyUrl: 'http://localhost:20128',
+    popularModels: [],
+  },
   custom: {
     id: 'custom',
     name: 'Personalizado (OpenAI-compatible)',
@@ -361,6 +376,10 @@ function getKnownApiKeyUrl(id = '', baseUrl = '', name = '') {
   const normId = (id || '').toLowerCase();
   const normUrl = (baseUrl || '').toLowerCase();
   const normName = (name || '').toLowerCase();
+
+  if (normId.includes('omnirouter') || normId.includes('omniroute') || normUrl.includes('20128') || normName.includes('omnirouter') || normName.includes('omniroute')) {
+    return 'http://localhost:20128';
+  }
 
   if (normId.includes('groq') || normUrl.includes('groq.com') || normName.includes('groq')) {
     return 'https://console.groq.com/keys';

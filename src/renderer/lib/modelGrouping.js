@@ -30,6 +30,8 @@ const KNOWN_NAMESPACE_MAP = {
   nvidia: 'NVIDIA',
   ollama: 'Ollama',
   lmstudio: 'LM Studio',
+  omnirouter: 'OmniRouter',
+  omniroute: 'OmniRouter',
   novita: 'Novita AI',
   ai21: 'AI21 Labs',
 };
