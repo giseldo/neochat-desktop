@@ -30,7 +30,7 @@ function printHelp() {
 \x1b[1mComandos:\x1b[0m
   \x1b[32mapp\x1b[0m (padrão)     Inicia a aplicação desktop NeoChat (Electron)
   \x1b[32mweb\x1b[0m             Inicia o servidor web local e abre o navegador
-  \x1b[32minstall\x1b[0m         Baixa e executa o instalador oficial mais recente
+  \x1b[32minstall [versão]\x1b[0m Baixa e executa o instalador oficial (mais recente ou versão específica)
   \x1b[32m--version, -v\x1b[0m   Exibe a versão instalada
   \x1b[32m--help, -h\x1b[0m      Exibe esta mensagem de ajuda
 
@@ -38,6 +38,7 @@ function printHelp() {
   npx neochat-desktop
   npx neochat-desktop web
   npx neochat-desktop install
+  npx neochat-desktop install v0.0.10
 `);
 }
 
@@ -126,20 +127,62 @@ function installApp() {
     return;
   }
 
-  const installerUrl = 'https://github.com/giseldo/neochat-desktop/releases/latest/download/NeoChat-Desktop-Setup.exe';
+  const requestedVersion = args[1] && !args[1].startsWith('-') ? args[1] : null;
+  const tag = requestedVersion ? (requestedVersion.startsWith('v') ? requestedVersion : `v${requestedVersion}`) : null;
+  const installerUrl = tag
+    ? `https://github.com/giseldo/neochat-desktop/releases/download/${tag}/NeoChat-Desktop-Setup.exe`
+    : 'https://github.com/giseldo/neochat-desktop/releases/latest/download/NeoChat-Desktop-Setup.exe';
   const tmpFile = path.join(process.env.TEMP || '.', 'NeoChat-Desktop-Setup.exe');
 
-  console.log('⬇️  Baixando instalador mais recente do NeoChat Desktop...');
+  console.log('🔍 Identificando versão do instalador...');
+
+  let detectedVersion = tag || '';
 
   function download(url, dest, cb) {
     https.get(url, (response) => {
       if (response.statusCode === 302 || response.statusCode === 301) {
-        return download(response.headers.location, dest, cb);
+        const loc = response.headers.location;
+        const vMatch = loc && loc.match(/\/releases\/download\/([^/]+)\//);
+        if (vMatch && !detectedVersion) {
+          detectedVersion = vMatch[1];
+        }
+        return download(loc, dest, cb);
       }
+
+      if (response.statusCode !== 200) {
+        console.error(`\x1b[31m[Erro no download]\x1b[0m Servidor retornou status HTTP ${response.statusCode}`);
+        return;
+      }
+
+      const totalBytes = parseInt(response.headers['content-length'] || '0', 10);
+      let downloadedBytes = 0;
+      let lastPrintedPercent = -1;
+
+      console.log(`⬇️  Baixando instalador do NeoChat Desktop ${detectedVersion ? `(\x1b[36m${detectedVersion}\x1b[0m)` : ''}...`);
+
       const file = fs.createWriteStream(dest);
+      response.on('data', (chunk) => {
+        downloadedBytes += chunk.length;
+        if (totalBytes > 0) {
+          const percent = Math.floor((downloadedBytes / totalBytes) * 100);
+          if (percent !== lastPrintedPercent && percent % 5 === 0) {
+            lastPrintedPercent = percent;
+            const currentMB = (downloadedBytes / (1024 * 1024)).toFixed(1);
+            const totalMB = (totalBytes / (1024 * 1024)).toFixed(1);
+            const barLength = 25;
+            const filled = Math.round((percent / 100) * barLength);
+            const bar = '█'.repeat(filled) + '-'.repeat(barLength - filled);
+            process.stdout.write(`\r   [${bar}] ${percent}% (${currentMB}MB / ${totalMB}MB)`);
+          }
+        }
+      });
+
       response.pipe(file);
       file.on('finish', () => {
-        file.close(cb);
+        file.close(() => {
+          if (totalBytes > 0) process.stdout.write('\n');
+          cb(detectedVersion);
+        });
       });
     }).on('error', (err) => {
       fs.unlink(dest, () => {});
@@ -147,8 +190,8 @@ function installApp() {
     });
   }
 
-  download(installerUrl, tmpFile, () => {
-    console.log('🚀 Executando instalador...');
+  download(installerUrl, tmpFile, (version) => {
+    console.log(`🚀 Executando instalador ${version ? `(${version})` : ''}...`);
     const child = spawn(tmpFile, [], { detached: true, stdio: 'ignore' });
     child.unref();
     console.log('✅ Instalador iniciado! Você já pode fechar este terminal.');
