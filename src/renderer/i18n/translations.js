@@ -175,7 +175,7 @@ export const translations = {
       noBotsDesc: 'Crie um bot personalizado clicando em + acima.',
       activeBotBadge: 'Ativo',
       chatWithBot: 'Conversar com este bot',
-      thoughtTitle: 'Thought',
+      thoughtTitle: 'Pensamento',
     },
     projects: {
       title: 'Projetos',
@@ -398,9 +398,11 @@ export const translations = {
       noSnippet: 'Sem descrição disponível.',
     },
     message: {
+      thoughtTitle: 'Pensamento',
       thinking: 'Pensando...',
       thoughtFor: 'Pensou por {duration}s',
       viewReasoning: 'Ver raciocínio',
+      ranTool: 'Executou {name}',
       executedTools: 'Ferramentas executadas [{count}]',
       executing: '• executando',
       completed: '• concluído',
@@ -2155,9 +2157,11 @@ export const translations = {
       noSnippet: 'No description available.',
     },
     message: {
+      thoughtTitle: 'Thought',
       thinking: 'Thinking...',
       thoughtFor: 'Thought for {duration}s',
       viewReasoning: 'View reasoning',
+      ranTool: 'Ran {name}',
       executedTools: 'Executed tools [{count}]',
       executing: '• executing',
       completed: '• completed',

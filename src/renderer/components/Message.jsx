@@ -362,7 +362,7 @@ function Message({
                   onClick={toggleReasoning}
                   className="flex items-center gap-1 text-xs text-muted-foreground/80 hover:text-foreground transition-colors py-0.5 px-1.5 rounded hover:bg-muted/60 cursor-pointer select-none font-medium"
                 >
-                  <span className="font-semibold">{t('sidebar.thoughtTitle') || 'Thought'}</span>
+                  <span className="font-semibold">{t('message.thoughtTitle') || t('sidebar.thoughtTitle') || 'Thought'}</span>
                   <svg 
                     xmlns="http://www.w3.org/2000/svg" 
                     className={`h-3 w-3 transition-transform duration-200 ${showReasoning ? 'rotate-90' : ''}`} 
@@ -404,7 +404,7 @@ function Message({
                     {currentTools.map((tool, index) => (
                       <div key={`tool-summary-${index}`} className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
                         <Terminal className="w-3 h-3 text-primary shrink-0" />
-                        <span className="font-semibold text-foreground/90">Ran {tool.name || tool.type || 'tool'}</span>
+                        <span className="font-semibold text-foreground/90">{t('message.ranTool', { name: tool.name || tool.type || 'tool' }) || `Ran ${tool.name || tool.type || 'tool'}`}</span>
                         {tool.arguments && (
                           <span className="truncate opacity-75 max-w-[300px]">
                             {typeof tool.arguments === 'string' ? tool.arguments : JSON.stringify(tool.arguments)}
