@@ -30,6 +30,7 @@ const tests = [
   'test-skills.js',
   'test-system-prompt-extensions.js',
   'test-terminal-and-tasks.js',
+  'test-mermaid.js',
   'test-default-model-empty.js'
 ];
 
