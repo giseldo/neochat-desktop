@@ -265,6 +265,7 @@ function loadSettings() {
     settings.autoUpdate = { ...defaultSettings.autoUpdate, ...(settings.autoUpdate || {}) };
     settings.observability = { ...defaultSettings.observability, ...(settings.observability || {}), defaultRate: { ...defaultSettings.observability.defaultRate, ...(settings.observability?.defaultRate || {}) } };
     settings.gitIntegration = { ...defaultSettings.gitIntegration, ...(settings.gitIntegration || {}) };
+    settings.relatedQuestions = { ...defaultSettings.relatedQuestions, ...(settings.relatedQuestions || {}) };
 
             settings.mcpServers = settings.mcpServers || defaultSettings.mcpServers;
             settings.disabledMcpServers = settings.disabledMcpServers || defaultSettings.disabledMcpServers;

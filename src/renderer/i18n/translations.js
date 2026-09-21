@@ -1076,6 +1076,11 @@ export const translations = {
       welcomeSuggestionsLabel: 'Exibir Atalhos de Prompts Rápidos',
       welcomeSuggestionsHelp: 'Mostra botões de sugestões rápidas de prompts (ex: Explicar conceito, Debugar código, Redigir e-mail) ao iniciar uma nova conversa (desativado por padrão).',
 
+      relatedQuestionsTitle: 'Perguntas relacionadas',
+      relatedQuestionsDesc: 'Sugira possíveis perguntas para continuar a conversa após cada resposta.',
+      relatedQuestionsLabel: 'Gerar perguntas relacionadas',
+      relatedQuestionsHelp: 'Usa o modelo selecionado para criar de 3 a 5 sugestões clicáveis.',
+
       // Button Labels Card
       buttonLabelsTitle: 'Rótulos dos Botões (Labels)',
       buttonLabelsDesc: 'Exibir ou ocultar os textos descritivos ao lado dos ícones nos botões da barra inferior e cabeçalho.',
@@ -2827,6 +2832,11 @@ export const translations = {
       welcomeSuggestionsDesc: 'Show or hide the quick prompt suggestion chips on the welcome screen.',
       welcomeSuggestionsLabel: 'Show Quick Prompt Suggestions',
       welcomeSuggestionsHelp: 'Displays quick inspiration buttons for common prompts (e.g. Explain concept, Debug code, Draft email) on the welcome screen (disabled by default).',
+
+      relatedQuestionsTitle: 'Related questions',
+      relatedQuestionsDesc: 'Suggest possible questions to continue the conversation after each response.',
+      relatedQuestionsLabel: 'Generate related questions',
+      relatedQuestionsHelp: 'Uses the selected model to create 3 to 5 clickable suggestions.',
 
       // Button Labels Card
       buttonLabelsTitle: 'Button Text Labels',

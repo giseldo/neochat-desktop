@@ -350,6 +350,7 @@ function Settings() {
     showWelcomeTips: false,
     showWelcomeSuggestions: false,
     showButtonLabels: false,
+    relatedQuestions: { enabled: true },
     apiKeys: {},
     temperature: 0.7,
     top_p: 0.95,
@@ -759,6 +760,14 @@ function Settings() {
       isPowerOnly: false
     },
     {
+      id: 'relatedQuestions',
+      category: 'features',
+      title: t('settings.relatedQuestionsTitle'),
+      desc: t('settings.relatedQuestionsDesc'),
+      keywords: 'perguntas relacionadas sugestoes follow up questions prompts conversa chat habilitar desabilitar',
+      isPowerOnly: false
+    },
+    {
       id: 'tts',
       category: 'features',
       title: t('settings.ttsTitle') || 'Leitura em voz alta',
@@ -1101,6 +1110,9 @@ function Settings() {
         if (settingsData.showButtonLabels === undefined) {
             settingsData.showButtonLabels = false;
         }
+        settingsData.relatedQuestions = {
+            enabled: settingsData.relatedQuestions?.enabled !== false
+        };
         if (settingsData.enableThinkingSummaries === undefined) {
             settingsData.enableThinkingSummaries = settingsData.disableThinkingSummaries !== undefined
                 ? !settingsData.disableThinkingSummaries
@@ -1191,6 +1203,7 @@ function Settings() {
             showWelcomeTips: false,
             showWelcomeSuggestions: false,
             showButtonLabels: false,
+            relatedQuestions: { enabled: true },
             enableThinkingSummaries: true,
             useResponsesApi: false,
             logApiRequests: false,
@@ -3561,6 +3574,7 @@ function Settings() {
 
   const renderFeaturesSection = () => {
     const hasVisible =
+      visibleCardIds.has('relatedQuestions') ||
       visibleCardIds.has('voiceInput') ||
       visibleCardIds.has('imageGeneration') ||
       visibleCardIds.has('tts') ||
@@ -3582,6 +3596,43 @@ function Settings() {
               <p className="text-xs text-muted-foreground">Controle de voz Whisper, leitura TTS, busca web, ferramentas e atalhos</p>
             </div>
           </div>
+        )}
+
+        {visibleCardIds.has('relatedQuestions') && (
+          <Card layout="row">
+            <CardHeader>
+              <CardTitle className="flex items-center space-x-2">
+                <HelpCircle className="h-5 w-5 text-primary" />
+                <span>{t('settings.relatedQuestionsTitle')}</span>
+              </CardTitle>
+              <CardDescription>{t('settings.relatedQuestionsDesc')}</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center justify-between">
+                <div className="space-y-0.5">
+                  <Label htmlFor="related-questions-toggle" className="font-medium">
+                    {t('settings.relatedQuestionsLabel')}
+                  </Label>
+                  <p className="text-xs text-muted-foreground">{t('settings.relatedQuestionsHelp')}</p>
+                </div>
+                <Switch
+                  id="related-questions-toggle"
+                  checked={settings.relatedQuestions?.enabled !== false}
+                  onChange={(event) => {
+                    const updatedSettings = {
+                      ...settings,
+                      relatedQuestions: {
+                        ...(settings.relatedQuestions || {}),
+                        enabled: event.target.checked
+                      }
+                    };
+                    setSettings(updatedSettings);
+                    saveSettings(updatedSettings);
+                  }}
+                />
+              </div>
+            </CardContent>
+          </Card>
         )}
 
         {visibleCardIds.has('voiceInput') && (() => {

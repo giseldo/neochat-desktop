@@ -12,8 +12,11 @@ assert.equal(parseQuestions(JSON.stringify(Array.from({ length: 8 }, (_, index) 
 
 const messageList = fs.readFileSync(path.join(__dirname, '..', 'src', 'renderer', 'components', 'MessageList.jsx'), 'utf8');
 const app = fs.readFileSync(path.join(__dirname, '..', 'src', 'renderer', 'App.jsx'), 'utf8');
+const settings = fs.readFileSync(path.join(__dirname, '..', 'src', 'renderer', 'pages', 'Settings.jsx'), 'utf8');
 assert(messageList.includes('<FollowUpQuestions'), 'follow-up questions must render after the last assistant message');
 assert(app.includes('relatedQuestions.generate'), 'follow-up generation must run after a completed response');
 assert(app.includes('onSuggestionClick'), 'clicking a suggestion must send it as the next user question');
+assert(settings.includes('related-questions-toggle'), 'settings must expose a related questions toggle');
+assert(settings.includes('settings.relatedQuestions?.enabled !== false'), 'the related questions toggle must default to enabled');
 
 console.log('Related follow-up question tests passed.');
