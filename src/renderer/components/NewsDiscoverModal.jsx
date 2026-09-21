@@ -393,9 +393,9 @@ export function NewsDiscoverModal({
                   variant="ghost"
                   size="icon"
                   className="h-8 w-8 rounded-lg text-muted-foreground hover:text-foreground"
-                  onClick={fetchFeed}
+                  onClick={() => fetchFeed(true)}
                   disabled={loading}
-                  title="Atualizar feed"
+                  title={lastUpdated ? `Última atualização: ${formatDateTime(lastUpdated)} (Clique para sincronizar agora)` : "Atualizar feed"}
                 >
                   <RefreshCw className={cn("w-4 h-4", loading && "animate-spin text-sky-500")} />
                 </Button>
@@ -639,6 +639,16 @@ export function NewsDiscoverModal({
                   </div>
                   <p className="text-sm font-medium text-foreground">Nenhuma notícia encontrada</p>
                   <p className="text-xs text-muted-foreground">Tente buscar por outro termo ou selecione uma categoria diferente.</p>
+                </div>
+              )}
+
+              {/* Timestamp footer indicator */}
+              {lastUpdated && displayedItems.length > 0 && (
+                <div className="pt-8 pb-4 text-center border-t border-border/40">
+                  <p className="text-xs text-muted-foreground flex items-center justify-center gap-1.5">
+                    <Clock className="w-3.5 h-3.5 text-sky-500" />
+                    <span>Feed sincronizado em tempo real • Última atualização: <strong className="text-foreground font-medium">{new Date(lastUpdated).toLocaleString('pt-BR')}</strong></span>
+                  </p>
                 </div>
               )}
             </div>
