@@ -1,7 +1,7 @@
 const assert = require('assert');
 const fs = require('fs');
 const path = require('path');
-const { parseQuestions } = require('../electron/relatedQuestionsManager');
+const { parseQuestions, resolveRelatedQuestionsModel } = require('../electron/relatedQuestionsManager');
 
 assert.deepEqual(
   parseQuestions('```json\n["Como funciona?", "Quais são os limites?", "Como funciona?"]\n```'),
@@ -9,6 +9,12 @@ assert.deepEqual(
 );
 assert.deepEqual(parseQuestions('1. Primeira?\n- Segunda?'), ['Primeira?', 'Segunda?']);
 assert.equal(parseQuestions(JSON.stringify(Array.from({ length: 8 }, (_, index) => `Q${index}?`))).length, 5);
+assert.deepEqual(
+  resolveRelatedQuestionsModel('deepseek::deepseek-flash', { provider: 'ollama' }, {
+    'deepseek::deepseek-flash': { provider: 'deepseek', rawModelId: 'deepseek-flash' }
+  }),
+  { provider: 'deepseek', model: 'deepseek-flash' }
+);
 
 const messageList = fs.readFileSync(path.join(__dirname, '..', 'src', 'renderer', 'components', 'MessageList.jsx'), 'utf8');
 const app = fs.readFileSync(path.join(__dirname, '..', 'src', 'renderer', 'App.jsx'), 'utf8');

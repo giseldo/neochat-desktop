@@ -2198,7 +2198,8 @@ function App() {
         userMessage: userMessage.content,
         assistantMessage: lastCompletedAssistantMessage.content,
         model: selectedModel
-      }).then(({ questions }) => {
+      }).then(({ questions, error }) => {
+        if (error) console.warn('Failed to generate related questions:', error);
         if (!Array.isArray(questions) || questions.length === 0) return;
         setMessages(current => current.map(item =>
           item.role === 'assistant' && item.timestamp === targetTimestamp

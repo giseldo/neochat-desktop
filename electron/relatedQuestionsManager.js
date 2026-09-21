@@ -23,9 +23,28 @@ function parseQuestions(raw) {
     .slice(0, 5);
 }
 
+function resolveRelatedQuestionsModel(model, settings = {}, modelConfigs = {}) {
+  const requested = model || settings.model;
+  const [prefixedProvider, prefixedModel] = typeof requested === 'string' && requested.includes('::')
+    ? requested.split('::', 2)
+    : [null, requested];
+  const directConfig = modelConfigs[requested];
+  const matchedConfig = directConfig || Object.values(modelConfigs).find(config =>
+    config &&
+    (config.modelKey === requested || config.rawModelId === prefixedModel || config.id === prefixedModel) &&
+    (!prefixedProvider || !config.provider || config.provider === prefixedProvider)
+  );
+
+  return {
+    provider: matchedConfig?.provider || prefixedProvider || settings.provider || 'groq',
+    model: matchedConfig?.rawModelId || matchedConfig?.id || prefixedModel
+  };
+}
+
 class RelatedQuestionsManager {
-  constructor(loadSettings) {
+  constructor(loadSettings, getModelConfigs = null) {
     this.loadSettings = loadSettings;
+    this.getModelConfigs = getModelConfigs;
     this.router = new ModelRouter();
   }
 
@@ -34,13 +53,13 @@ class RelatedQuestionsManager {
     const assistant = textContent(assistantMessage).trim().slice(0, 10000);
     if (!user || !assistant) return [];
     const settings = this.loadSettings();
-    let provider = settings.provider || 'groq';
-    let modelName = model || settings.model;
-    if (typeof modelName === 'string' && modelName.includes('::')) [provider, modelName] = modelName.split('::', 2);
-    const runtimeSettings = { ...settings, provider, model: modelName };
+    const modelConfigs = this.getModelConfigs ? await this.getModelConfigs(settings) : {};
+    const resolved = resolveRelatedQuestionsModel(model, settings, modelConfigs);
+    if (!resolved.model) return [];
+    const runtimeSettings = { ...settings, provider: resolved.provider, model: resolved.model };
     this.router.validateApiKey(runtimeSettings);
     const response = await this.router.createClient(runtimeSettings).chat.completions.create({
-      model: modelName,
+      model: resolved.model,
       stream: false,
       temperature: 0.35,
       max_tokens: 300,
@@ -49,7 +68,8 @@ class RelatedQuestionsManager {
         { role: 'user', content: `User:\n${user}\n\nAssistant:\n${assistant}` }
       ]
     });
-    return parseQuestions(response.choices?.[0]?.message?.content);
+    const responseMessage = response.choices?.[0]?.message;
+    return parseQuestions(responseMessage?.content || responseMessage?.reasoning_content || responseMessage?.reasoning);
   }
 
   registerIpcHandlers(ipcMain) {
@@ -63,4 +83,4 @@ class RelatedQuestionsManager {
   }
 }
 
-module.exports = { RelatedQuestionsManager, parseQuestions };
+module.exports = { RelatedQuestionsManager, parseQuestions, resolveRelatedQuestionsModel };

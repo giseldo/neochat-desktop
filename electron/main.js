@@ -511,7 +511,7 @@ app.whenReady().then(async () => {
   console.log("[Main Init] Initializing Skill Manager...");
   skillManager.initialize(app, { loadSettings, saveSettings });
   assistantManager.registerIpcHandlers(ipcMain);
-  new RelatedQuestionsManager(loadSettings).registerIpcHandlers(ipcMain);
+  new RelatedQuestionsManager(loadSettings, getMergedModelConfigs).registerIpcHandlers(ipcMain);
 
   // Register AI Skills IPC Handlers
   ipcMain.handle('skills:list', async (_event, workspaceRoot) => {
