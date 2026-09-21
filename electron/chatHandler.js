@@ -9,6 +9,7 @@ const googleOAuthManager = require('./googleOAuthManager');
 const { getWebSearchToolDefinition } = require('./webSearchService');
 const { getRagToolDefinitions } = require('./ragService');
 const { getActiveCanvasDocument } = require('./canvasManager');
+const { appendSystemPromptExtensions } = require('./systemPromptExtensions');
 
 // Track active streams to allow cancellation
 const activeStreams = new Map();
@@ -486,8 +487,9 @@ function buildApiParams(prunedMessages, modelToUse, settings, tools, modelContex
     let systemPrompt = (settings.customSystemPrompt && settings.customSystemPrompt.trim())
         ? settings.customSystemPrompt.trim()
         : (tools.length > 0
-            ? `You are a helpful assistant capable of using tools. Use tools only when necessary and relevant to the user's request. Format responses using Markdown.\n\nCurrent date and time: ${dateTimeString}`
+            ? `You are a helpful assistant capable of using tools. Use tools only when necessary and relevant to the user's request. Format responses using Markdown.`
             : `You are a helpful assistant. Format responses using Markdown.`);
+    systemPrompt = appendSystemPromptExtensions(systemPrompt, settings, { dateTimeString });
     
     if (webSearchEnabled && !hasReachedSearchLimit) {
         systemPrompt += `\n\n- Web Search: You have access to the 'web_search' tool. When answering questions that require current information, recent facts, live news, documentation, or when the user asks to search the web, execute 'web_search' with clear, natural keywords (e.g. "notícias tecnologia hoje"). Once you receive search results, synthesize a complete, informative and well-structured response immediately without unnecessary repeated searches. Always cite consulted sources in your response using markdown links with the actual URL (e.g. [Source Title](URL)) or citation markers [1], [2] referencing the search results. Avoid unlinked raw tags like 【...†source】.`;
@@ -2365,6 +2367,7 @@ async function runSingleStreamForCompare(event, messages, model, settings, model
         if (settings.customSystemPrompt && settings.customSystemPrompt.trim()) {
             systemPrompt = settings.customSystemPrompt.trim();
         }
+        systemPrompt = appendSystemPromptExtensions(systemPrompt, settings);
         if (customSystemMessages.length > 0) {
             const customPromptText = customSystemMessages
                 .map(m => (typeof m.content === 'string' ? m.content : JSON.stringify(m.content)))

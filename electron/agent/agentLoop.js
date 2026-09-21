@@ -8,6 +8,7 @@ const { toolExecutor } = require('./toolExecutor');
 const { workspaceManager } = require('./workspaceManager');
 const { compactionManager } = require('./compactionManager');
 const { PERMISSION_DECISION } = require('./permissionEngine');
+const { appendSystemPromptExtensions } = require('../systemPromptExtensions');
 
 class AgentLoop {
   /**
@@ -63,11 +64,12 @@ class AgentLoop {
       console.warn('[AgentLoop] Failed to build skills prompt:', err.message);
     }
 
-    const workspaceContext = [
+    const baseWorkspaceContext = [
       await workspaceManager.buildWorkspaceContextString(root),
       typeof settings.agentSystemPrompt === 'string' ? settings.agentSystemPrompt.trim() : '',
       skillsContext
     ].filter(Boolean).join('\n\n');
+    const workspaceContext = appendSystemPromptExtensions(baseWorkspaceContext, settings);
     
     // Assemble tools based on mode and settings
     const formattedTools = toolRegistry.getFormattedTools({

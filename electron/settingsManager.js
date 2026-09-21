@@ -73,6 +73,10 @@ function loadSettings() {
             disabledMcpServers: [],
             toolPermissions: { defaultPolicy: 'prompt', tools: {}, allowAll: false },
             customSystemPrompt: DEFAULT_SYSTEM_PROMPT,
+            enableDiagramPrompt: true,
+            enableImagePrompt: true,
+            enableHtmlVisualPrompt: true,
+            enableCurrentDateTimePrompt: true,
             popupEnabled: true,
             popupShortcut: 'CommandOrControl+Shift+Space',
             customCompletionUrl: '',
@@ -156,6 +160,10 @@ function loadSettings() {
         disabledMcpServers: [],
         toolPermissions: { defaultPolicy: 'prompt', tools: {}, allowAll: false },
         customSystemPrompt: DEFAULT_SYSTEM_PROMPT,
+        enableDiagramPrompt: true,
+        enableImagePrompt: true,
+        enableHtmlVisualPrompt: true,
+        enableCurrentDateTimePrompt: true,
         popupEnabled: true,
         popupShortcut: 'CommandOrControl+Shift+Space',
         customCompletionUrl: '',
@@ -260,6 +268,10 @@ function loadSettings() {
             settings.disabledMcpServers = settings.disabledMcpServers || defaultSettings.disabledMcpServers;
             settings.toolPermissions = settings.toolPermissions || defaultSettings.toolPermissions;
             settings.customSystemPrompt = settings.customSystemPrompt || defaultSettings.customSystemPrompt;
+            settings.enableDiagramPrompt = settings.enableDiagramPrompt ?? defaultSettings.enableDiagramPrompt;
+            settings.enableImagePrompt = settings.enableImagePrompt ?? defaultSettings.enableImagePrompt;
+            settings.enableHtmlVisualPrompt = settings.enableHtmlVisualPrompt ?? defaultSettings.enableHtmlVisualPrompt;
+            settings.enableCurrentDateTimePrompt = settings.enableCurrentDateTimePrompt ?? defaultSettings.enableCurrentDateTimePrompt;
             settings.popupEnabled = settings.popupEnabled ?? defaultSettings.popupEnabled;
             settings.popupShortcut = settings.popupShortcut || defaultSettings.popupShortcut;
 

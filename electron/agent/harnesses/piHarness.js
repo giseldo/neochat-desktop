@@ -3,6 +3,7 @@ const { toolExecutor } = require('../toolExecutor');
 const { workspaceManager } = require('../workspaceManager');
 const { compactionManager } = require('../compactionManager');
 const { PERMISSION_DECISION } = require('../permissionEngine');
+const { appendSystemPromptExtensions } = require('../../systemPromptExtensions');
 const {
   getApiKeyForProvider,
   getBaseUrlForProvider,
@@ -247,10 +248,11 @@ class PiHarnessAdapter {
     const { Agent, streamSimple } = await this.moduleLoader();
     const resolved = resolvePiModel(model, settings);
     const root = workspaceRoot || workspaceManager.getWorkspace(sessionId);
-    const workspaceContext = [
+    const baseWorkspaceContext = [
       await workspaceManager.buildWorkspaceContextString(root),
       typeof settings.agentSystemPrompt === 'string' ? settings.agentSystemPrompt.trim() : ''
     ].filter(Boolean).join('\n\n');
+    const workspaceContext = appendSystemPromptExtensions(baseWorkspaceContext, settings);
     const formattedTools = toolRegistry.getFormattedTools({
       mode: 'code',
       agentMode: true,

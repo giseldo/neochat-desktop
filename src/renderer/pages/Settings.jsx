@@ -357,6 +357,10 @@ function Settings() {
     mcpServers: {},
     disabledMcpServers: [],
     customSystemPrompt: DEFAULT_SYSTEM_PROMPT,
+    enableDiagramPrompt: true,
+    enableImagePrompt: true,
+    enableHtmlVisualPrompt: true,
+    enableCurrentDateTimePrompt: true,
     popupEnabled: true,
     popupShortcut: 'CommandOrControl+Shift+Space',
     customCompletionUrl: '',
@@ -1167,6 +1171,10 @@ function Settings() {
             mcpServers: {},
             disabledMcpServers: [],
             customSystemPrompt: DEFAULT_SYSTEM_PROMPT,
+            enableDiagramPrompt: true,
+            enableImagePrompt: true,
+            enableHtmlVisualPrompt: true,
+            enableCurrentDateTimePrompt: true,
             popupEnabled: true,
             customCompletionUrl: '',
             toolOutputLimit: 8000,
@@ -1298,6 +1306,12 @@ function Settings() {
   const handleChange = (e) => {
     const { name, value } = e.target;
     const updatedSettings = { ...settings, [name]: value };
+    setSettings(updatedSettings);
+    saveSettings(updatedSettings);
+  };
+
+  const handleSystemPromptOption = (name, checked) => {
+    const updatedSettings = { ...settings, [name]: checked };
     setSettings(updatedSettings);
     saveSettings(updatedSettings);
   };
@@ -4741,6 +4755,31 @@ function Settings() {
                   <p className="text-[11px] text-muted-foreground">
                     {t('settings.systemPromptDefaultHint')}
                   </p>
+                </div>
+                <div className="divide-y divide-border/60 rounded-xl border border-border/70">
+                  {[
+                    ['enableDiagramPrompt', 'systemPromptDiagramTitle', 'systemPromptDiagramDesc'],
+                    ['enableImagePrompt', 'systemPromptImageTitle', 'systemPromptImageDesc'],
+                    ['enableHtmlVisualPrompt', 'systemPromptHtmlTitle', 'systemPromptHtmlDesc'],
+                    ['enableCurrentDateTimePrompt', 'systemPromptDateTimeTitle', 'systemPromptDateTimeDesc']
+                  ].map(([name, titleKey, descKey]) => (
+                    <div key={name} className="flex items-center justify-between gap-4 px-3 py-3">
+                      <div className="min-w-0 space-y-0.5">
+                        <Label htmlFor={name} className="text-xs font-medium cursor-pointer">
+                          {t(`settings.${titleKey}`)}
+                        </Label>
+                        <p className="text-[11px] leading-relaxed text-muted-foreground">
+                          {t(`settings.${descKey}`)}
+                        </p>
+                      </div>
+                      <Switch
+                        id={name}
+                        checked={settings[name] !== false}
+                        onCheckedChange={checked => handleSystemPromptOption(name, checked)}
+                        aria-label={t(`settings.${titleKey}`)}
+                      />
+                    </div>
+                  ))}
                 </div>
               </CardContent>
             </Card>

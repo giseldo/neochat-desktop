@@ -1132,6 +1132,14 @@ export const translations = {
       systemPromptPlaceholder: 'Digite o prompt de sistema...',
       systemPromptResetDefault: 'Restaurar Padrão',
       systemPromptDefaultHint: 'Prompt padrão: "You are a helpful assistant. Format responses using Markdown."',
+      systemPromptDiagramTitle: 'Diagramas e Gráficos',
+      systemPromptDiagramDesc: 'Orienta o modelo a usar Mermaid, mapas mentais e gráficos quando melhorarem a clareza.',
+      systemPromptImageTitle: 'Citação de Imagens',
+      systemPromptImageDesc: 'Permite incluir URLs confiáveis de imagens disponíveis no contexto quando forem úteis.',
+      systemPromptHtmlTitle: 'Formatação Visual HTML',
+      systemPromptHtmlDesc: 'Orienta o uso de HTML inline seguro para callouts, comparações e resumos visuais.',
+      systemPromptDateTimeTitle: 'Data e Hora Atuais',
+      systemPromptDateTimeDesc: 'Inclui a data e hora atuais no prompt de sistema enviado ao modelo.',
 
       // MCP Servers Card (Local)
       mcpServersTitle: 'Servidores MCP Locais',
@@ -2873,6 +2881,14 @@ export const translations = {
       systemPromptPlaceholder: 'Enter system prompt instructions...',
       systemPromptResetDefault: 'Restore Default',
       systemPromptDefaultHint: 'Default prompt: "You are a helpful assistant. Format responses using Markdown."',
+      systemPromptDiagramTitle: 'Diagrams and Charts',
+      systemPromptDiagramDesc: 'Guides the model to use Mermaid, mind maps, and charts when they improve clarity.',
+      systemPromptImageTitle: 'Image Citations',
+      systemPromptImageDesc: 'Allows trustworthy image URLs from the available context to be included when useful.',
+      systemPromptHtmlTitle: 'HTML Visual Formatting',
+      systemPromptHtmlDesc: 'Guides the use of safe inline HTML for callouts, comparisons, and visual summaries.',
+      systemPromptDateTimeTitle: 'Current Date and Time',
+      systemPromptDateTimeDesc: 'Includes the current date and time in the system prompt sent to the model.',
 
       // MCP Servers Card (Local)
       mcpServersTitle: 'Local MCP Servers',
