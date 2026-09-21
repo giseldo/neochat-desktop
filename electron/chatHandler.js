@@ -298,10 +298,21 @@ function prepareTools(discoveredTools, isResponsesApi = false, settings = {}) {
     // Add enabled OpenAPI plugins imported from neo-chat. Tool names are
     // namespaced by plugin ID to prevent collisions between manifests.
     const { externalPluginManager } = require('./externalPluginManager');
+    const allowedPluginIds = settings.assistantProfile?.capabilities?.pluginIds;
+    const pluginPrefixes = Array.isArray(allowedPluginIds) && allowedPluginIds.length > 0
+        ? allowedPluginIds.map(id => `${String(id).replace(/[^a-zA-Z0-9_]/g, '_')}__`)
+        : null;
     for (const pluginTool of externalPluginManager.getToolDefinitions(isResponsesApi)) {
         const pluginToolName = isResponsesApi ? pluginTool.name : pluginTool.function?.name;
+        if (pluginPrefixes && !pluginPrefixes.some(prefix => pluginToolName.startsWith(prefix))) continue;
         const hasAlready = tools.some(t => t.name === pluginToolName || t.function?.name === pluginToolName);
         if (!hasAlready) tools.push(pluginTool);
+    }
+
+    const allowedToolIds = settings.assistantProfile?.capabilities?.toolIds;
+    if (Array.isArray(allowedToolIds) && allowedToolIds.length > 0) {
+        const allowlist = new Set(allowedToolIds);
+        return tools.filter(tool => allowlist.has(tool.name || tool.function?.name));
     }
 
     return tools;
@@ -549,9 +560,13 @@ Always prioritize creating and editing files directly on disk using 'write_file'
     // Inject Active AI Skills System Prompt
     try {
         const { skillManager } = require('./skillManager');
+        const skillPolicies = settings.assistantProfile?.capabilities?.skillPolicies;
+        const profileSkills = Array.isArray(skillPolicies) && skillPolicies.length > 0
+            ? skillManager.getActiveSkills().filter(skill => skillPolicies.some(policy => policy?.skillId === skill.id && policy.mode !== 'disabled'))
+            : null;
         const activeSkillsPrompt = (settings.skillsPrompt && typeof settings.skillsPrompt === 'string' && settings.skillsPrompt.trim())
             ? settings.skillsPrompt.trim()
-            : skillManager.buildSkillsPrompt(settings.activeSkills || null, settings.invokedSkillId || null);
+            : skillManager.buildSkillsPrompt(profileSkills || settings.activeSkills || null, settings.invokedSkillId || null);
 
         if (activeSkillsPrompt) {
             systemPrompt += `\n\n${activeSkillsPrompt}`;

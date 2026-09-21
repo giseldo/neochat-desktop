@@ -51,6 +51,7 @@ const { autoUpdater } = require('electron-updater');
 const { initializeUpdateManager } = require('./updateManager');
 const { pluginManager } = require('./pluginManager');
 const { skillManager } = require('./skillManager');
+const { assistantManager } = require('./assistantManager');
 const imageGenerationManager = require('./imageGenerationManager');
 
 // Import context capture system
@@ -508,6 +509,7 @@ app.whenReady().then(async () => {
   // --- Initialize AI Skills System --- //
   console.log("[Main Init] Initializing Skill Manager...");
   skillManager.initialize(app, { loadSettings, saveSettings });
+  assistantManager.registerIpcHandlers(ipcMain);
 
   // Register AI Skills IPC Handlers
   ipcMain.handle('skills:list', async (_event, workspaceRoot) => {

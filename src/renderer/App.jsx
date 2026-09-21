@@ -1392,17 +1392,23 @@ function App() {
         setMessages(prev => [...prev, assistantPlaceholder]);
 
         // Start streaming chat with active runtime context (Canvas, Project, Workspace, etc.)
+        const assistantRuntime = activePersona?.profile?.runtime || {};
+        const assistantAgentMode = assistantRuntime.agentEnabled === true || harnessMode === 'code';
+        const assistantModel = assistantRuntime.preferredModel || selectedModel;
         const streamOptions = {
             isCanvasOpen: Boolean(isCanvasOpen),
             canvasDoc: isCanvasOpen && canvasDoc ? canvasDoc : null,
             canvasEnabled: harnessMode === 'code' ? true : Boolean(isCanvasOpen),
             selectedCanvasText: isCanvasOpen ? selectedText : '',
             activeProject: activeProject ? { id: activeProject.id, name: activeProject.name, folders: activeProject.folders } : null,
-            agentModeActive: harnessMode === 'code',
-            mode: harnessMode,
+            agentModeActive: assistantAgentMode,
+            mode: assistantAgentMode ? 'code' : harnessMode,
+            webSearchActive: typeof assistantRuntime.searchEnabled === 'boolean' ? assistantRuntime.searchEnabled : undefined,
+            temperature: activePersona?.temperature,
+            assistantProfile: activePersona?.profile || null,
             workspaceRoot: workspacePath || undefined
         };
-        const streamHandler = window.electron.startChatStream(messagesToSend, selectedModel, streamOptions);
+        const streamHandler = window.electron.startChatStream(messagesToSend, assistantModel, streamOptions);
 
         // Collect the final message data
         let finalAssistantData = {

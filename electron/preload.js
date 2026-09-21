@@ -146,6 +146,10 @@ contextBridge.exposeInMainWorld('electron', {
     install: (params) => ipcRenderer.invoke('mcp-hub:install', params),
     installCustom: (params) => ipcRenderer.invoke('mcp-hub:install-custom', params)
   },
+  assistants: {
+    list: (locale, forceRefresh = false) => ipcRenderer.invoke('assistants:list', { locale, forceRefresh }),
+    detail: (identifier, locale) => ipcRenderer.invoke('assistants:detail', { identifier, locale }),
+  },
   // Computer Vision API
   vision: {
     captureScreen: (displayId) => ipcRenderer.invoke('vision:capture-screen', displayId),

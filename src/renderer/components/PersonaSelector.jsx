@@ -3,10 +3,38 @@ import { createPortal } from 'react-dom';
 import { 
   Bot, BotOff, Check, Plus, Edit2, Trash2, Sparkles, Code2, ShieldAlert, 
   Languages, Database, Feather, X, Sliders, CheckCircle2, Droplets, 
-  Compass, Inbox, Terminal, Cpu, Zap, Copy
+  Compass, Inbox, Terminal, Cpu, Zap, Copy, Store
 } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
 import { cn } from '../lib/utils';
+import AssistantMarketModal from './AssistantMarketModal';
+
+const IMPORTED_ASSISTANTS = [
+  {
+    id: 'taxbot', name: 'TaxBot', icon: 'CheckCircle2', color: '#16a34a',
+    description: 'Orientação geral sobre impostos e organização fiscal',
+    systemPrompt: 'Você é o TaxBot, um assistente cuidadoso de educação fiscal. Explique conceitos tributários de forma simples, peça país e contexto quando necessário, diferencie informação geral de aconselhamento profissional e nunca invente alíquotas, prazos ou regras. Recomende confirmar decisões relevantes com um contador ou advogado tributarista.',
+    temperature: 0.2,
+  },
+  {
+    id: 'soccer', name: 'Soccer Guru AI', icon: 'Zap', color: '#16a34a',
+    description: 'Especialista em futebol, tática, história e análise de partidas',
+    systemPrompt: 'Você é o Soccer Guru AI, especialista em futebol mundial. Responda com conhecimento tático e histórico, separe fatos de opinião e deixe claro quando dados atuais, escalações ou resultados precisarem de verificação ao vivo.',
+    temperature: 0.6,
+  },
+  {
+    id: 'review', name: 'Colleague Review Helper', icon: 'Feather', color: '#7c3aed',
+    description: 'Ajuda a escrever feedback profissional, específico e construtivo',
+    systemPrompt: 'Você ajuda a redigir avaliações de colegas. Transforme observações em feedback respeitoso, específico, acionável e equilibrado, preservando a voz do usuário. Evite inferências sobre características pessoais e peça exemplos concretos quando faltarem evidências.',
+    temperature: 0.5,
+  },
+  {
+    id: 'cloze', name: 'Cloze Test Generator', icon: 'Languages', color: '#ea580c',
+    description: 'Cria exercícios de preenchimento de lacunas com gabarito',
+    systemPrompt: 'Você cria testes cloze claros e adequados ao nível informado. Preserve contexto suficiente para cada lacuna, varie vocabulário e gramática, numere as questões e forneça um gabarito separado com explicações breves quando útil.',
+    temperature: 0.4,
+  },
+];
 
 export const DEFAULT_PERSONAS = [
   {
@@ -89,6 +117,7 @@ export const DEFAULT_PERSONAS = [
     systemPrompt: 'Você é um Administrador de Banco de Dados (DBA) e Especialista em SQL. Escreva consultas SQL otimizadas, índices adequados, schemas relacionais elegantes e forneça planos de execução e dicas de escalabilidade.',
     temperature: 0.2,
   },
+  ...IMPORTED_ASSISTANTS,
 ];
 
 export const getDefaultPersonas = (t) => [
@@ -172,6 +201,7 @@ export const getDefaultPersonas = (t) => [
     systemPrompt: t ? (t('personas.pDatabasePrompt') || 'Você é um Administrador de Banco de Dados...') : 'Você é um Administrador de Banco de Dados...',
     temperature: 0.2,
   },
+  ...IMPORTED_ASSISTANTS,
 ];
 
 export const PERSONAS_STORAGE_KEY = 'neochat_custom_personas';
@@ -295,6 +325,7 @@ export function saveCustomPersona(personaData) {
     updated = currentCustom.map(p => p.id === personaData.id ? { ...p, ...personaData } : p);
   } else {
     const created = {
+      ...personaData,
       id: personaData.id || `custom_${Date.now()}`,
       name: personaData.name?.trim() || 'New agent',
       description: personaData.description?.trim() || 'Custom bot',
@@ -329,6 +360,7 @@ export function PersonaSelector({ activePersona, onSelectPersona, className }) {
   const { t } = useLanguage();
   const [isOpen, setIsOpen] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isMarketOpen, setIsMarketOpen] = useState(false);
   const [editingPersona, setEditingPersona] = useState(null);
   const [customPersonas, setCustomPersonas] = useState(getStoredCustomPersonas);
   const [personaOverrides, setPersonaOverrides] = useState(getStoredPersonaOverrides);
@@ -379,6 +411,31 @@ export function PersonaSelector({ activePersona, onSelectPersona, className }) {
     });
     setIsOpen(false);
     setIsModalOpen(true);
+  };
+
+  const handleInstallAssistant = async (assistant) => {
+    const persona = {
+      id: `market_${assistant.identifier}`,
+      name: assistant.meta.title,
+      description: assistant.meta.description || 'Assistant comunitário',
+      systemPrompt: assistant.meta.systemRole || '',
+      temperature: 0.7,
+      icon: 'Bot',
+      color: '#2563eb',
+      avatar: assistant.meta.avatar,
+      tags: assistant.meta.tags,
+      category: assistant.meta.category,
+      author: assistant.author,
+      homepage: assistant.homepage,
+      profile: assistant.profile,
+      marketIdentifier: assistant.identifier,
+      isCustom: true,
+      isMarketAssistant: true,
+    };
+    const updated = saveCustomPersona(persona);
+    setCustomPersonas(updated);
+    onSelectPersona(persona);
+    localStorage.setItem(ACTIVE_PERSONA_STORAGE_KEY, persona.id);
   };
 
   const handleOpenEdit = (e, p) => {
@@ -595,6 +652,13 @@ export function PersonaSelector({ activePersona, onSelectPersona, className }) {
                   <X className="w-3 h-3" /> {t('personas.deactivateButton')}
                 </button>
               )}
+              <button
+                type="button"
+                onClick={() => { setIsOpen(false); setIsMarketOpen(true); }}
+                className="text-primary hover:underline flex items-center gap-0.5 font-medium cursor-pointer"
+              >
+                <Store className="w-3 h-3" /> Assistants
+              </button>
               <button
                 type="button"
                 onClick={handleOpenCreate}
@@ -814,6 +878,13 @@ export function PersonaSelector({ activePersona, onSelectPersona, className }) {
         </div>,
         document.body
       )}
+
+      <AssistantMarketModal
+        isOpen={isMarketOpen}
+        onClose={() => setIsMarketOpen(false)}
+        onInstall={handleInstallAssistant}
+        installedIds={customPersonas.map(persona => persona.id)}
+      />
     </div>
   );
 }

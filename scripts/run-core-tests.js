@@ -25,6 +25,7 @@ const tests = [
   'test-plugin-manager.js',
   'test-external-plugins.js',
   'test-mcp-registry.js',
+  'test-assistants.js',
   'test-terminal-and-tasks.js',
   'test-default-model-empty.js'
 ];
