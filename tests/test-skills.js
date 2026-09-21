@@ -23,7 +23,14 @@ async function runTests() {
 
   // 1. Check Catalog
   const catalog = manager.getCatalog();
-  assert(catalog.length >= 12, 'Catalog must contain at least 12 curated skills');
+  assert(catalog.length >= 74, 'Catalog must contain all 63 imported skills plus native skills');
+  assert(catalog.some(skill => skill.id === 'action-items-extraction'), 'Imported action-items skill must exist');
+  assert(catalog.some(skill => skill.id === 'workspace-document-builder'), 'Imported workspace document skill must exist');
+  assert(catalog.some(skill => skill.id === 'execution-verifier'), 'Imported execution verifier skill must exist');
+  assert(
+    catalog.find(skill => skill.id === 'action-items-extraction').instructions.includes('# Action Items Extraction'),
+    'Imported skills must include their complete instructions'
+  );
   console.log(`✅ Curated catalog loaded with ${catalog.length} skills.`);
 
   // 2. Check default bootstrapped skills

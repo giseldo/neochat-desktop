@@ -5,7 +5,7 @@ const fetch = require('node-fetch');
 /**
  * Curated Built-in Catalog of AI Skills
  */
-const CURATED_CATALOG = [
+const NATIVE_CURATED_CATALOG = [
   {
     id: 'deep-research',
     name: 'Deep Research & Web Synthesis',
@@ -254,6 +254,56 @@ Diretrizes para Git:
 3. Forneça o código otimizado com benchmarks estimados e explicações detalhadas das melhorias de CPU/Memória.`
   }
 ];
+
+const BUNDLED_SKILLS_DIR = path.join(__dirname, 'skills', 'catalog');
+
+/**
+ * Load the declarative text-skill catalog bundled with the application.
+ *
+ * These definitions originate from neo-chat's public skills dataset. Keeping
+ * them as individual JSON files makes the catalog easy to update without
+ * growing this manager into a large generated source file.
+ */
+function loadBundledCatalog(catalogDir = BUNDLED_SKILLS_DIR) {
+  const metadataPath = path.join(catalogDir, 'skills.metadata.json');
+  if (!fs.existsSync(metadataPath)) return [];
+
+  try {
+    const metadata = JSON.parse(fs.readFileSync(metadataPath, 'utf8'));
+    if (!Array.isArray(metadata.skills)) return [];
+
+    return metadata.skills.map((entry) => {
+      const definitionPath = path.join(catalogDir, entry.file || `${entry.id}.json`);
+      const definition = fs.existsSync(definitionPath)
+        ? JSON.parse(fs.readFileSync(definitionPath, 'utf8'))
+        : entry;
+
+      return {
+        ...entry,
+        ...definition,
+        name: definition.title || entry.title || definition.name || entry.name || entry.id,
+        displayName: definition.title || entry.title || definition.name || entry.name || entry.id,
+        instructions: definition.content || definition.instructions || '',
+        slashCommand: definition.slashCommand || definition.command || entry.id,
+        icon: definition.icon || 'Sparkles',
+        version: definition.version || metadata.schemaVersion || '1.0.0',
+        author: definition.author || 'NeoChat Skills Catalog',
+        parameters: Array.isArray(definition.parameters) ? definition.parameters : []
+      };
+    }).filter((skill) => skill.id && skill.name && skill.instructions);
+  } catch (error) {
+    console.error('[SkillManager] Failed to load bundled skills catalog:', error.message);
+    return [];
+  }
+}
+
+// Bundled definitions win on duplicate IDs so every imported neo-chat skill
+// retains its complete, current instructions. NeoChat Desktop native entries
+// remain available when they do not exist in the imported dataset.
+const CURATED_CATALOG = Array.from(new Map([
+  ...NATIVE_CURATED_CATALOG,
+  ...loadBundledCatalog()
+].map((skill) => [skill.id, skill])).values());
 
 class SkillManager {
   constructor() {
