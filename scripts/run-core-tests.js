@@ -18,6 +18,7 @@ const tests = [
   'test-workflows.js',
   'test-scheduler.js',
   'test-rag-incremental.js',
+  'test-rag-hybrid.js',
   'test-git-manager.js',
   'test-config-dir.js',
   'test-canvas.js',

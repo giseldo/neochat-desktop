@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { 
   BookOpen, 
@@ -8,12 +8,10 @@ import {
   Trash2, 
   ExternalLink, 
   Search, 
-  FileCode, 
   CheckCircle2, 
   AlertCircle, 
   X, 
-  Loader2,
-  FileText
+  Loader2
 } from 'lucide-react';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
@@ -29,7 +27,7 @@ export default function KnowledgeBaseModal({ isOpen, onClose, projectId = null, 
   const currentProjectName = projectName || activeProject?.name || 'Projeto Atual';
 
   const [stats, setStats] = useState({ hasIndex: false, totalFiles: 0, totalChunks: 0, folders: [] });
-  const [isLoadingStats, setIsLoadingStats] = useState(false);
+  const [, setIsLoadingStats] = useState(false);
   const [isIndexing, setIsIndexing] = useState(false);
   const [indexingProgress, setIndexingProgress] = useState(null);
   const [statusMessage, setStatusMessage] = useState(null);
@@ -291,7 +289,7 @@ export default function KnowledgeBaseModal({ isOpen, onClose, projectId = null, 
               <div className="text-lg font-bold text-primary">
                 {stats.totalChunks || 0}
               </div>
-              <div className="text-[11px] text-muted-foreground">Chunks BM25</div>
+              <div className="text-[11px] text-muted-foreground">Chunks híbridos</div>
             </div>
           </div>
 
@@ -402,7 +400,7 @@ export default function KnowledgeBaseModal({ isOpen, onClose, projectId = null, 
           {stats.folders && stats.folders.length > 0 && (
             <div className="pt-3 border-t border-border/60 space-y-3">
               <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                Testar Busca RAG (BM25)
+                Testar Busca RAG híbrida
               </h3>
 
               <form onSubmit={handleTestSearch} className="flex gap-2">
@@ -450,7 +448,7 @@ export default function KnowledgeBaseModal({ isOpen, onClose, projectId = null, 
                             📄 {res.relativePath}
                           </span>
                           <span className="text-muted-foreground shrink-0 text-[10px]">
-                            L{res.startLine}-{res.endLine} (Score: {(res.score * 10).toFixed(1)})
+                            L{res.startLine}-{res.endLine} · {res.retrieval === 'both' ? 'híbrida' : res.retrieval || 'lexical'} · score {(res.score * 10).toFixed(1)}
                           </span>
                         </div>
                         <pre className="p-2 rounded bg-background/80 text-[10.5px] font-mono text-muted-foreground overflow-x-auto max-h-24">

@@ -5,6 +5,7 @@ const { dialog, shell } = require('electron');
 const { OfficeParser } = require('officeparser');
 
 let appInstance = null;
+const semanticFeatureCache = new Map();
 
 /**
  * Ignored folder names for recursive scanning
@@ -140,10 +141,10 @@ function tokenizeText(text) {
   if (!text || typeof text !== 'string') return [];
 
   // Split on camelCase (e.g. getUserById -> getUserById, get, User, By, Id)
-  const expandedText = text.replace(/([a-z])([A-Z])/g, '$1 $2');
+  const expandedText = text.replace(/([a-z])([A-Z])/g, '$1 $2').normalize('NFKD').replace(/[\u0300-\u036f]/g, '');
 
-  // Tokenize alphanumeric words (including underscores and hyphens)
-  const rawTokens = expandedText.toLowerCase().match(/[a-z0-9_]{2,}/g) || [];
+  // Tokenize Unicode words so Portuguese and other languages are first-class.
+  const rawTokens = expandedText.toLowerCase().match(/[\p{L}\p{N}_-]{2,}/gu) || [];
   
   // Filter out pure single digits and common stop words
   const stopWords = new Set([
@@ -152,6 +153,44 @@ function tokenizeText(text) {
   ]);
 
   return rawTokens.filter(t => !stopWords.has(t) && t.length >= 2);
+}
+
+function getHeadingPath(lines, endIndex) {
+  const headings = [];
+  for (let index = 0; index <= endIndex; index++) {
+    const match = lines[index]?.match(/^\s{0,3}(#{1,6})\s+(.+?)\s*#*\s*$/);
+    if (!match) continue;
+    const level = match[1].length;
+    headings.length = level - 1;
+    headings[level - 1] = match[2].trim();
+  }
+  return headings.filter(Boolean);
+}
+
+function buildSemanticFeatures(text) {
+  const tokens = tokenizeText(String(text || '').slice(0, 30000));
+  const features = new Map();
+  const add = (feature, weight = 1) => features.set(feature, (features.get(feature) || 0) + weight);
+  tokens.forEach((token, index) => {
+    add(`w:${token}`, 1.5);
+    if (index < tokens.length - 1) add(`b:${token}_${tokens[index + 1]}`, 1);
+    if (token.length >= 4) {
+      for (let offset = 0; offset <= token.length - 3; offset++) add(`g:${token.slice(offset, offset + 3)}`, 0.25);
+    }
+  });
+  return features;
+}
+
+function cosineSimilarity(left, right) {
+  if (!left.size || !right.size) return 0;
+  let dot = 0;
+  let leftNorm = 0;
+  let rightNorm = 0;
+  for (const value of left.values()) leftNorm += value * value;
+  for (const value of right.values()) rightNorm += value * value;
+  const [small, large] = left.size <= right.size ? [left, right] : [right, left];
+  for (const [key, value] of small) dot += value * (large.get(key) || 0);
+  return dot / (Math.sqrt(leftNorm) * Math.sqrt(rightNorm) || 1);
 }
 
 /**
@@ -188,7 +227,8 @@ function chunkFileContent(fileContent, relativePath, fullPath) {
       endLine: totalLines,
       content: fileContent,
       characterCount: fileContent.length,
-      language: getLanguageFromExt(path.extname(fullPath))
+      language: getLanguageFromExt(path.extname(fullPath)),
+      headingPath: getHeadingPath(lines, 0)
     });
     return chunks;
   }
@@ -213,7 +253,8 @@ function chunkFileContent(fileContent, relativePath, fullPath) {
         endLine,
         content: chunkText,
         characterCount: chunkText.length,
-        language: getLanguageFromExt(path.extname(fullPath))
+        language: getLanguageFromExt(path.extname(fullPath)),
+        headingPath: getHeadingPath(lines, i)
       });
     }
 
@@ -315,6 +356,7 @@ function saveProjectIndex(projectId = 'global', indexData) {
   const indexPath = getProjectIndexPath(projectId);
   try {
     fs.writeFileSync(indexPath, JSON.stringify(indexData), 'utf8');
+    semanticFeatureCache.delete(String(projectId || 'global'));
     console.log(`[RAG] Saved index cache for project ${projectId} (${indexData.chunks?.length || 0} chunks) at ${indexPath}`);
   } catch (err) {
     console.error(`[RAG] Error saving index cache for project ${projectId}:`, err);
@@ -398,6 +440,7 @@ async function indexFolder(folderPath, projectId = 'global', onProgress = null) 
   const fullIndexData = {
     projectId,
     updatedAt: new Date().toISOString(),
+    retrieval: { mode: 'hybrid-local', fusion: 'rrf', semanticFeatures: 'word-bigram-trigram' },
     folders: existing.folders,
     totalFiles: Object.values(existing.folders).reduce((acc, f) => acc + (f.fileCount || 0), 0),
     totalChunks: mergedChunks.length,
@@ -549,10 +592,47 @@ function queryKnowledge(query, options = {}) {
     scores[chunkId] = rawScore * boost;
   }
 
-  // Sort chunks by score descending
-  const sortedIds = Object.keys(scores)
+  const lexicalIds = Object.keys(scores)
     .filter(id => scores[id] >= minScore)
     .sort((a, b) => scores[b] - scores[a])
+    .slice(0, Math.max(maxResults * 4, 20));
+
+  // Local dense-style retrieval provides the vector side of hybrid search
+  // without sending private project files to a remote embedding service.
+  const queryFeatures = buildSemanticFeatures(cleanQuery);
+  const semanticScores = {};
+  const semanticCacheKey = String(projectId || 'global');
+  let cachedSemantic = semanticFeatureCache.get(semanticCacheKey);
+  if (!cachedSemantic || cachedSemantic.updatedAt !== indexData.updatedAt) {
+    cachedSemantic = {
+      updatedAt: indexData.updatedAt,
+      features: new Map(indexData.chunks.map(chunk => [chunk.id, buildSemanticFeatures(`${chunk.relativePath} ${chunk.content}`)]))
+    };
+    semanticFeatureCache.set(semanticCacheKey, cachedSemantic);
+  }
+  const semanticIds = indexData.chunks
+    .map(chunk => {
+      const score = cosineSimilarity(queryFeatures, cachedSemantic.features.get(chunk.id) || new Map());
+      semanticScores[chunk.id] = score;
+      return chunk.id;
+    })
+    .filter(id => semanticScores[id] >= 0.005)
+    .sort((a, b) => semanticScores[b] - semanticScores[a])
+    .slice(0, Math.max(maxResults * 4, 20));
+
+  // Reciprocal Rank Fusion mirrors neo-chat's vector + keyword retrieval and
+  // avoids incomparable raw score scales dominating each other.
+  const fused = new Map();
+  const retrievalKinds = new Map();
+  for (const [kind, ids] of [['keyword', lexicalIds], ['semantic', semanticIds]]) {
+    ids.forEach((id, rank) => {
+      fused.set(id, (fused.get(id) || 0) + 1 / (60 + rank + 1));
+      if (!retrievalKinds.has(id)) retrievalKinds.set(id, new Set());
+      retrievalKinds.get(id).add(kind);
+    });
+  }
+  const sortedIds = [...fused.keys()]
+    .sort((a, b) => fused.get(b) - fused.get(a))
     .slice(0, maxResults);
 
   const results = sortedIds.map(id => {
@@ -566,7 +646,10 @@ function queryKnowledge(query, options = {}) {
       endLine: chunk.endLine,
       content: chunk.content,
       language: chunk.language,
-      score: parseFloat(scores[id].toFixed(4))
+      headingPath: chunk.headingPath || [],
+      retrieval: retrievalKinds.get(id)?.size > 1 ? 'both' : [...(retrievalKinds.get(id) || ['keyword'])][0],
+      score: parseFloat(Math.max(scores[id] || 0, semanticScores[id] || 0).toFixed(4)),
+      fusionScore: parseFloat((fused.get(id) || 0).toFixed(6))
     };
   });
 
@@ -633,6 +716,7 @@ function getProjectKnowledgeStats(projectId = 'global') {
     hasIndex: true,
     projectId,
     updatedAt: indexData.updatedAt,
+    retrieval: indexData.retrieval || { mode: 'hybrid-local', fusion: 'rrf' },
     totalFiles: indexData.totalFiles || 0,
     totalChunks: indexData.totalChunks || 0,
     folders: Object.values(indexData.folders || {})
@@ -648,7 +732,7 @@ function getRagToolDefinitions() {
       type: 'function',
       function: {
         name: 'query_project_knowledge',
-        description: 'Search local indexed project files, code, and documentation using BM25 hybrid ranking. Returns the most relevant code and text snippets with exact file paths and line numbers.',
+        description: 'Search local indexed project files, code, and documentation using hybrid semantic + BM25 retrieval with reciprocal-rank fusion. Returns relevant snippets with exact file paths, headings, and line numbers.',
         parameters: {
           type: 'object',
           properties: {
@@ -705,5 +789,8 @@ module.exports = {
   getRagToolDefinitions,
   tokenizeText,
   collectIndexableFiles,
-  extractFileText
+  extractFileText,
+  chunkFileContent,
+  buildSemanticFeatures,
+  cosineSimilarity
 };

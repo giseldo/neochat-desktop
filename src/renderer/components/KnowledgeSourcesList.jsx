@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { BookOpen, ChevronDown, ChevronUp, Copy, Check, ExternalLink, FileCode, Folder } from 'lucide-react';
+import { useState } from 'react';
+import { BookOpen, ChevronDown, Copy, Check, ExternalLink, FileCode } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { useLanguage } from '../context/LanguageContext';
 
@@ -70,11 +70,16 @@ export default function KnowledgeSourcesList({ sources = [] }) {
                     <span className="shrink-0 text-[10px] px-1.5 py-0.2 rounded bg-primary/10 text-primary font-mono font-medium">
                       L{startLine}-{endLine}
                     </span>
+                    {item.retrieval && (
+                      <span className="shrink-0 text-[9px] px-1.5 py-0.5 rounded bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 font-medium">
+                        {item.retrieval === 'both' ? 'híbrida' : item.retrieval}
+                      </span>
+                    )}
                   </div>
 
                   <div className="flex items-center gap-1.5 shrink-0 ml-2">
                     {item.score && (
-                      <span className="text-[10px] text-muted-foreground hidden sm:inline" title="BM25 Relevance Score">
+                      <span className="text-[10px] text-muted-foreground hidden sm:inline" title="Hybrid relevance score">
                         {t('rag.scoreLabel')} {(item.score * 10).toFixed(1)}
                       </span>
                     )}
