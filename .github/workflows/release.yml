@@ -57,6 +57,8 @@ jobs:
 
       - name: Build Release Binaries
         run: ${{ matrix.run_cmd }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Upload Platform Artifacts
         uses: actions/upload-artifact@v4
@@ -89,7 +91,11 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           PKG_VERSION=$(node -p "require('./package.json').version")
-          TAG_NAME="${GITHUB_REF_NAME:-v$PKG_VERSION}"
+          if [[ "${GITHUB_REF_NAME}" =~ ^v[0-9] ]]; then
+            TAG_NAME="${GITHUB_REF_NAME}"
+          else
+            TAG_NAME="v${PKG_VERSION}"
+          fi
           TITLE="NeoChat Desktop ${TAG_NAME}"
           
           mkdir -p release-files

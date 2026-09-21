@@ -4,6 +4,14 @@ const acceptedUnpatchedAdvisories = new Map([
   [
     'GHSA-jmr9-qjv8-65gv',
     'extract-zip is used only by Electron during dependency installation; the advisory has no patched npm release.'
+  ],
+  [
+    'GHSA-7pqw-9j4j-h8q3',
+    'extract-zip is used only by Electron during dependency installation; the advisory has no patched npm release.'
+  ],
+  [
+    'GHSA-r5fr-rjxr-66jc',
+    'lodash-es is used client-side for diagram layout/rendering with no untrusted template/object injection.'
   ]
 ]);
 
