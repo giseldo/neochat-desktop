@@ -18,6 +18,10 @@ assert.deepEqual(
   ['Primeira pergunta?', 'Segunda pergunta?']
 );
 assert.deepEqual(
+  parseQuestions('We need infer the language and provide examples.\nNeed no extra text.\nPor que essa piada funciona?\nVocê conhece outra piada?'),
+  ['Por que essa piada funciona?', 'Você conhece outra piada?']
+);
+assert.deepEqual(
   resolveRelatedQuestionsModel('deepseek::deepseek-flash', { provider: 'ollama' }, {
     'deepseek::deepseek-flash': { provider: 'deepseek', rawModelId: 'deepseek-flash' }
   }),

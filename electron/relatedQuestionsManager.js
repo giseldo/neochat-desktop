@@ -9,6 +9,7 @@ function textContent(content) {
 function parseQuestions(raw) {
   const value = String(raw || '').trim().replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '');
   let candidates;
+  let requireQuestionMark = false;
   try {
     candidates = JSON.parse(value);
   } catch {
@@ -30,7 +31,10 @@ function parseQuestions(raw) {
       });
     }
 
-    if (!Array.isArray(candidates)) candidates = value.split('\n');
+    if (!Array.isArray(candidates)) {
+      candidates = value.split('\n');
+      requireQuestionMark = true;
+    }
   }
   if (!Array.isArray(candidates)) return [];
   const seen = new Set();
@@ -38,7 +42,7 @@ function parseQuestions(raw) {
     .map(item => String(item || '').replace(/^\s*(?:[-*•]|\d+[.)])\s*/, '').replace(/^['"]|['"],?$/g, '').trim().slice(0, 240))
     .filter(item => {
       const key = item.toLocaleLowerCase();
-      if (!item || item === '[' || item === ']' || seen.has(key)) return false;
+      if (!item || item === '[' || item === ']' || (requireQuestionMark && !/[?？]$/.test(item)) || seen.has(key)) return false;
       seen.add(key);
       return true;
     })
@@ -78,7 +82,7 @@ class RelatedQuestionsManager {
     const modelConfigs = this.getModelConfigs ? await this.getModelConfigs(settings) : {};
     const resolved = resolveRelatedQuestionsModel(model, settings, modelConfigs);
     if (!resolved.model) return [];
-    const runtimeSettings = { ...settings, provider: resolved.provider, model: resolved.model, temperature: 0.35, maxTokens: 300 };
+    const runtimeSettings = { ...settings, provider: resolved.provider, model: resolved.model, temperature: 0.35, maxTokens: 1000 };
     const result = await this.router.streamCompletion({
       model: resolved.model,
       settings: runtimeSettings,
