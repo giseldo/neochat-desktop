@@ -1,0 +1,24 @@
+# yaml-language-server: $schema=https://aka.ms/winget-manifest.defaultLocale.1.6.0.schema.json
+
+PackageIdentifier: giseldo.NeoChat
+PackageVersion: 0.0.10
+PackageLocale: en-US
+Publisher: Neo
+PublisherUrl: https://github.com/giseldo/neochat-desktop
+PublisherSupportUrl: https://github.com/giseldo/neochat-desktop/issues
+Author: Neo
+PackageName: NeoChat Desktop
+PackageUrl: https://github.com/giseldo/neochat-desktop
+License: ISC
+LicenseUrl: https://github.com/giseldo/neochat-desktop/blob/main/LICENSE
+Copyright: Copyright © 2026 Neo
+ShortDescription: NeoChat Desktop AI Workspace & Chat
+Description: Electron + React desktop AI workspace & chat app with universal multi-provider support, local RAG, image input, and local/remote MCP servers.
+Tags:
+  - ai
+  - chat
+  - groq
+  - mcp
+  - workspace
+ManifestType: defaultLocale
+ManifestVersion: 1.6.0
