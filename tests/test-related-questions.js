@@ -10,6 +10,14 @@ assert.deepEqual(
 assert.deepEqual(parseQuestions('1. Primeira?\n- Segunda?'), ['Primeira?', 'Segunda?']);
 assert.equal(parseQuestions(JSON.stringify(Array.from({ length: 8 }, (_, index) => `Q${index}?`))).length, 5);
 assert.deepEqual(
+  parseQuestions('We need answer with JSON array in Portuguese.\n[\n  "Me conta outra piada curta?",\n  "Você tem mais piadas de bar?"\n]'),
+  ['Me conta outra piada curta?', 'Você tem mais piadas de bar?']
+);
+assert.deepEqual(
+  parseQuestions('Internal reasoning that must not be shown.\n[\n  "Primeira pergunta?",\n  "Segunda pergunta?",'),
+  ['Primeira pergunta?', 'Segunda pergunta?']
+);
+assert.deepEqual(
   resolveRelatedQuestionsModel('deepseek::deepseek-flash', { provider: 'ollama' }, {
     'deepseek::deepseek-flash': { provider: 'deepseek', rawModelId: 'deepseek-flash' }
   }),

@@ -9,14 +9,36 @@ function textContent(content) {
 function parseQuestions(raw) {
   const value = String(raw || '').trim().replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '');
   let candidates;
-  try { candidates = JSON.parse(value); } catch { candidates = value.split('\n'); }
+  try {
+    candidates = JSON.parse(value);
+  } catch {
+    const arrayStart = value.indexOf('[');
+    const arrayEnd = value.lastIndexOf(']');
+    const arrayText = arrayStart >= 0
+      ? value.slice(arrayStart, arrayEnd > arrayStart ? arrayEnd + 1 : undefined)
+      : '';
+
+    try {
+      candidates = arrayText ? JSON.parse(arrayText) : null;
+    } catch {
+      candidates = null;
+    }
+
+    if (!Array.isArray(candidates) && arrayText) {
+      candidates = [...arrayText.matchAll(/"((?:\\.|[^"\\])*)"/g)].map(match => {
+        try { return JSON.parse(`"${match[1]}"`); } catch { return match[1]; }
+      });
+    }
+
+    if (!Array.isArray(candidates)) candidates = value.split('\n');
+  }
   if (!Array.isArray(candidates)) return [];
   const seen = new Set();
   return candidates
-    .map(item => String(item || '').replace(/^\s*(?:[-*•]|\d+[.)])\s*/, '').replace(/^['"]|['"]$/g, '').trim().slice(0, 240))
+    .map(item => String(item || '').replace(/^\s*(?:[-*•]|\d+[.)])\s*/, '').replace(/^['"]|['"],?$/g, '').trim().slice(0, 240))
     .filter(item => {
       const key = item.toLocaleLowerCase();
-      if (!item || seen.has(key)) return false;
+      if (!item || item === '[' || item === ']' || seen.has(key)) return false;
       seen.add(key);
       return true;
     })
