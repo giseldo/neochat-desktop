@@ -219,11 +219,110 @@ const INITIAL_NEWS_ITEMS = [
   }
 ];
 
+const CATEGORY_FEEDS = {
+  ai: 'https://news.google.com/rss/search?q=Artificial+Intelligence&hl=en-US&gl=US&ceid=US:en',
+  tech: 'https://news.google.com/rss/search?q=Technology&hl=en-US&gl=US&ceid=US:en',
+  science: 'https://news.google.com/rss/search?q=Science&hl=en-US&gl=US&ceid=US:en',
+  business: 'https://news.google.com/rss/search?q=Business+Technology&hl=en-US&gl=US&ceid=US:en'
+};
+
+function decodeHtmlEntities(str) {
+  if (!str) return '';
+  return str
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&amp;/g, '&')
+    .replace(/&nbsp;/g, ' ')
+    .replace(/<[^>]*>/g, '')
+    .trim();
+}
+
+function parseRssXml(xml, category) {
+  const items = [];
+  const itemRegex = /<item>([\s\S]*?)<\/item>/gi;
+  let match;
+  let count = 0;
+  while ((match = itemRegex.exec(xml)) !== null && count < 10) {
+    count++;
+    const itemBlock = match[1];
+    const getTag = (tag) => {
+      const tagMatch = new RegExp('<' + tag + '[^>]*>(?:<\\!\\[CDATA\\[([\\s\\S]*?)\\]\\]>|([\\s\\S]*?))<\\/' + tag + '>', 'i').exec(itemBlock);
+      return tagMatch ? (tagMatch[1] || tagMatch[2] || '').trim() : '';
+    };
+
+    const rawTitle = decodeHtmlEntities(getTag('title'));
+    const link = getTag('link') || '';
+    const pubDateStr = getTag('pubDate');
+    const rawDesc = decodeHtmlEntities(getTag('description'));
+    const sourceTag = decodeHtmlEntities(getTag('source'));
+
+    let title = rawTitle;
+    let sourceName = sourceTag || 'Google News';
+    const lastDash = rawTitle.lastIndexOf(' - ');
+    if (lastDash > 10) {
+      title = rawTitle.slice(0, lastDash).trim();
+      sourceName = rawTitle.slice(lastDash + 3).trim();
+    }
+
+    if (!title) continue;
+
+    const pubDate = pubDateStr ? new Date(pubDateStr) : new Date();
+    const diffMinutes = Math.max(1, Math.round((Date.now() - pubDate.getTime()) / (1000 * 60)));
+    const diffHours = Math.round(diffMinutes / 60);
+    const relativeTime = diffMinutes < 60
+      ? `Publicado há ${diffMinutes} min`
+      : diffHours === 1
+      ? 'Publicado há 1 hora'
+      : `Publicado há ${diffHours} horas`;
+
+    const domain = sourceName.toLowerCase().replace(/[^a-z0-9]/g, '') + '.com';
+
+    items.push({
+      id: `news-${category}-${Buffer.from(title.slice(0, 30)).toString('hex').slice(0, 16)}`,
+      category,
+      title,
+      lead: rawDesc || title,
+      publishedAt: pubDate.toISOString(),
+      relativeTime,
+      readTime: '3 min',
+      imageUrl: category === 'ai'
+        ? 'https://images.unsplash.com/photo-1677442136019-21780efad99a?auto=format&fit=crop&w=1200&q=80'
+        : category === 'science'
+        ? 'https://images.unsplash.com/photo-1635070041078-e363dbe005cb?auto=format&fit=crop&w=800&q=80'
+        : category === 'business'
+        ? 'https://images.unsplash.com/photo-1541872703-74c5e44368f9?auto=format&fit=crop&w=800&q=80'
+        : 'https://images.unsplash.com/photo-1518770660439-4636190af475?auto=format&fit=crop&w=800&q=80',
+      imageCredit: domain,
+      sourcesCount: Math.floor(Math.random() * 15) + 5,
+      sources: [
+        { name: sourceName, domain, url: link, icon: '📰' },
+        { name: 'Google News', domain: 'news.google.com', url: link, icon: '🌐' }
+      ],
+      sections: [
+        {
+          heading: 'Síntese da Notícia',
+          content: rawDesc ? `${rawDesc}. Acompanhe os principais desdobramentos desta cobertura no cenário global.` : title,
+          citation: { label: `${sourceName.toLowerCase()} +1`, sourceIndex: 0 }
+        }
+      ],
+      keyTakeaways: [
+        `Reportado por ${sourceName}.`,
+        `Impacto relevante no setor de ${category === 'ai' ? 'Inteligência Artificial' : category.toUpperCase()}.`
+      ],
+      trending: items.length < 3,
+      featured: items.length === 0
+    });
+  }
+  return items;
+}
+
 class NewsEngine {
   constructor() {
     this.newsCache = new Map();
     this.favorites = new Set();
-    this.lastFetched = null;
+    this.lastFetched = new Date().toISOString();
     this._initializeSeedData();
   }
 
@@ -233,7 +332,58 @@ class NewsEngine {
     });
   }
 
-  async getFeed({ category = 'for-you', search = '', settings = {} } = {}) {
+  async fetchLiveRssNews() {
+    try {
+      const fetchFn = global.fetch || require('node-fetch');
+      const fetchPromises = Object.entries(CATEGORY_FEEDS).map(async ([cat, url]) => {
+        try {
+          const res = await fetchFn(url, {
+            headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) NeoChat/1.0' }
+          });
+          if (!res.ok) return [];
+          const xml = await res.text();
+          return parseRssXml(xml, cat);
+        } catch (err) {
+          console.warn(`[NewsEngine] Failed to fetch RSS for category ${cat}:`, err.message);
+          return [];
+        }
+      });
+
+      const results = await Promise.all(fetchPromises);
+      const liveItems = results.flat();
+
+      if (liveItems.length > 0) {
+        // Clear non-favorite old cached items and merge live items
+        const currentFavorites = new Set(this.favorites);
+        const preservedFavorites = Array.from(this.newsCache.values()).filter(item => currentFavorites.has(item.id));
+
+        this.newsCache.clear();
+
+        // Add live items
+        liveItems.forEach(item => {
+          this.newsCache.set(item.id, item);
+        });
+
+        // Re-add any preserved favorite items not already in cache
+        preservedFavorites.forEach(item => {
+          if (!this.newsCache.has(item.id)) {
+            this.newsCache.set(item.id, item);
+          }
+        });
+
+        this.lastFetched = new Date().toISOString();
+        console.log(`[NewsEngine] Successfully updated feed with ${liveItems.length} live items at ${this.lastFetched}`);
+      }
+    } catch (err) {
+      console.warn('[NewsEngine] Error fetching live RSS feeds:', err.message);
+    }
+  }
+
+  async getFeed({ category = 'for-you', search = '', refresh = false, settings = {} } = {}) {
+    if (refresh || !this.lastFetched) {
+      await this.fetchLiveRssNews();
+    }
+
     let items = Array.from(this.newsCache.values());
 
     // Filter by category
@@ -254,10 +404,15 @@ class NewsEngine {
     }
 
     // Attach favorite status
-    return items.map(item => ({
+    const mappedItems = items.map(item => ({
       ...item,
       isFavorite: this.favorites.has(item.id)
     }));
+
+    return {
+      items: mappedItems,
+      lastUpdated: this.lastFetched || new Date().toISOString()
+    };
   }
 
   async getArticle(articleId) {
@@ -380,11 +535,9 @@ Sua missão:
   /**
    * Refreshes the feed dynamically from external RSS feeds / web synthesis
    */
-  async refreshFeed({ settings = {} } = {}) {
-    // In future iterations, fetch external RSS (Hacker News, TechCrunch RSS, Google News RSS)
-    // and re-synthesize through the LLM. For now, timestamp-update our curated cluster cache.
-    this.lastFetched = new Date().toISOString();
-    return await this.getFeed({ category: 'for-you', settings });
+  async refreshFeed({ category = 'for-you', settings = {} } = {}) {
+    await this.fetchLiveRssNews();
+    return await this.getFeed({ category, refresh: false, settings });
   }
 }
 

@@ -2194,9 +2194,11 @@ function App() {
 
     if (relatedQuestionsEnabled && conversationStatus === 'completed_no_tools' && lastCompletedAssistantMessage?.content && window.electron?.relatedQuestions?.generate) {
       const targetTimestamp = lastCompletedAssistantMessage.timestamp;
+      const userText = typeof userMessage?.content === 'string' ? userMessage.content : JSON.stringify(userMessage?.content || '');
+      const assistantText = typeof lastCompletedAssistantMessage?.content === 'string' ? lastCompletedAssistantMessage.content : JSON.stringify(lastCompletedAssistantMessage?.content || '');
       window.electron.relatedQuestions.generate({
-        userMessage: userMessage.content,
-        assistantMessage: lastCompletedAssistantMessage.content,
+        userMessage: userText,
+        assistantMessage: assistantText,
         model: selectedModel
       }).then(({ questions, error }) => {
         if (error) console.warn('Failed to generate related questions:', error);

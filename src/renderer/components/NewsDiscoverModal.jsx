@@ -49,6 +49,7 @@ export function NewsDiscoverModal({
   const [loading, setLoading] = useState(false);
   const [selectedArticle, setSelectedArticle] = useState(null);
   const [onlyFavorites, setOnlyFavorites] = useState(false);
+  const [lastUpdated, setLastUpdated] = useState(null);
 
   // Follow-up Q&A State
   const [followUpQuestion, setFollowUpQuestion] = useState('');
@@ -59,17 +60,46 @@ export function NewsDiscoverModal({
   const topicDropdownRef = useRef(null);
   const chatBottomRef = useRef(null);
 
+  const formatDateTime = (dateVal) => {
+    if (!dateVal) return '';
+    try {
+      const d = new Date(dateVal);
+      if (isNaN(d.getTime())) return '';
+      return d.toLocaleString('pt-BR', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+    } catch {
+      return '';
+    }
+  };
+
   // Fetch news feed
-  const fetchFeed = async () => {
+  const fetchFeed = async (forceRefresh = false) => {
     setLoading(true);
     try {
-      if (window.electron?.news?.getFeed) {
+      if (window.electron?.news) {
         const category = activeTab === 'top' ? 'top' : (activeTab === 'topic' ? selectedTopic : 'for-you');
-        const data = await window.electron.news.getFeed({
-          category,
-          search: searchQuery
-        });
-        setNewsItems(data || []);
+        const data = forceRefresh && window.electron.news.refresh
+          ? await window.electron.news.refresh({ category })
+          : await window.electron.news.getFeed({
+              category,
+              search: searchQuery,
+              refresh: forceRefresh
+            });
+
+        if (data && typeof data === 'object' && Array.isArray(data.items)) {
+          setNewsItems(data.items);
+          if (data.lastUpdated) {
+            setLastUpdated(data.lastUpdated);
+          }
+        } else if (Array.isArray(data)) {
+          setNewsItems(data);
+          setLastUpdated(new Date().toISOString());
+        }
       }
     } catch (err) {
       console.error('Failed to load news feed:', err);
@@ -80,7 +110,7 @@ export function NewsDiscoverModal({
 
   useEffect(() => {
     if (isOpen) {
-      fetchFeed();
+      fetchFeed(false);
     }
   }, [isOpen, activeTab, selectedTopic, searchQuery]);
 
@@ -211,12 +241,30 @@ export function NewsDiscoverModal({
                   <Compass className="w-5 h-5" />
                 </div>
                 <div>
-                  <h2 className="text-sm font-semibold tracking-tight leading-none text-foreground">
-                    Descoberta & Notícias IA
-                  </h2>
-                  <p className="text-[11px] text-muted-foreground mt-0.5">
-                    Síntese multi-fonte em tempo real
-                  </p>
+                  <div className="flex items-center gap-2">
+                    <h2 className="text-sm font-semibold tracking-tight leading-none text-foreground">
+                      Descoberta & Notícias IA
+                    </h2>
+                    {lastUpdated && (
+                      <span 
+                        className="hidden sm:inline-flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded-md bg-muted/80 text-muted-foreground border border-border/50"
+                        title={`Última sincronização em tempo real: ${new Date(lastUpdated).toLocaleString('pt-BR')}`}
+                      >
+                        <Clock className="w-2.5 h-2.5 text-sky-500" />
+                        <span>Atualizado: {formatDateTime(lastUpdated)}</span>
+                      </span>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-2 mt-1">
+                    <p className="text-[11px] text-muted-foreground">
+                      Síntese multi-fonte em tempo real
+                    </p>
+                    {lastUpdated && (
+                      <span className="sm:hidden text-[10px] text-muted-foreground">
+                        • Atualizado: {formatDateTime(lastUpdated)}
+                      </span>
+                    )}
+                  </div>
                 </div>
               </div>
             )}
