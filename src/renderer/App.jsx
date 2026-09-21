@@ -106,6 +106,7 @@ function App() {
   const [showWelcomeTips, setShowWelcomeTips] = useState(false);
   const [showWelcomeSuggestions, setShowWelcomeSuggestions] = useState(false);
   const [showButtonLabels, setShowButtonLabels] = useState(false);
+  const [relatedQuestionsEnabled, setRelatedQuestionsEnabled] = useState(true);
   const [interfaceMode, setInterfaceMode] = useState('user');
   const isPowerUser = interfaceMode === 'power';
   const [loading, setLoading] = useState(false);
@@ -658,6 +659,7 @@ function App() {
         setShowWelcomeTips(settings.showWelcomeTips === true);
         setShowWelcomeSuggestions(settings.showWelcomeSuggestions === true);
         setShowButtonLabels(settings.showButtonLabels === true);
+        setRelatedQuestionsEnabled(settings.relatedQuestions?.enabled !== false);
         setEnabledModels(settings.enabledModels || []);
         setDisabledModels(settings.disabledModels || []);
         setFavoriteModels(settings.favoriteModels || []);
@@ -756,6 +758,7 @@ function App() {
         setShowWelcomeTips(settings.showWelcomeTips === true);
         setShowWelcomeSuggestions(settings.showWelcomeSuggestions === true);
         setShowButtonLabels(settings.showButtonLabels === true);
+        setRelatedQuestionsEnabled(settings.relatedQuestions?.enabled !== false);
         setEnabledModels(settings.enabledModels || []);
         setDisabledModels(settings.disabledModels || []);
         setFavoriteModels(settings.favoriteModels || []);
@@ -2058,6 +2061,7 @@ function App() {
     let emptyResponseRetries = 0; // Track retries for empty responses
     const MAX_EMPTY_RETRIES = 3; // Maximum retries for empty responses
     let toolIterationsCount = 0;
+    let lastCompletedAssistantMessage = null;
     const MAX_TOOL_ITERATIONS = 12; // Chat mode safety limit; Agent Mode runs in the main-process runtime.
 
     if (isAgentModeActive) {
@@ -2078,6 +2082,7 @@ function App() {
             }
 
             const { status, assistantMessage, toolResponseMessages } = await executeChatTurn(currentApiMessages);
+            if (assistantMessage?.content) lastCompletedAssistantMessage = assistantMessage;
 
             conversationStatus = status; // Update status for loop condition
 
@@ -2185,6 +2190,22 @@ function App() {
         if (conversationStatus !== 'paused') {
             setLoading(false);
         }
+    }
+
+    if (relatedQuestionsEnabled && conversationStatus === 'completed_no_tools' && lastCompletedAssistantMessage?.content && window.electron?.relatedQuestions?.generate) {
+      const targetTimestamp = lastCompletedAssistantMessage.timestamp;
+      window.electron.relatedQuestions.generate({
+        userMessage: userMessage.content,
+        assistantMessage: lastCompletedAssistantMessage.content,
+        model: selectedModel
+      }).then(({ questions }) => {
+        if (!Array.isArray(questions) || questions.length === 0) return;
+        setMessages(current => current.map(item =>
+          item.role === 'assistant' && item.timestamp === targetTimestamp
+            ? { ...item, suggestedQuestions: questions }
+            : item
+        ));
+      }).catch(error => console.warn('Failed to generate related questions:', error));
     }
   };
 
@@ -3673,6 +3694,7 @@ function App() {
                       onRemoveLastMessage={handleRemoveLastMessage}
                       onReloadFromMessage={handleReloadFromMessage}
                       onBranchFromMessage={handleBranchFromMessage}
+                      onSuggestionClick={(question) => handleSendMessage(question)}
                       loading={loading}
                       onActionsVisible={scrollToBottom}
                       onPreviewArtifact={(art) => setActiveArtifact(art)}

@@ -150,6 +150,9 @@ contextBridge.exposeInMainWorld('electron', {
     list: (locale, forceRefresh = false) => ipcRenderer.invoke('assistants:list', { locale, forceRefresh }),
     detail: (identifier, locale) => ipcRenderer.invoke('assistants:detail', { identifier, locale }),
   },
+  relatedQuestions: {
+    generate: (payload) => ipcRenderer.invoke('related-questions:generate', payload),
+  },
   // Computer Vision API
   vision: {
     captureScreen: (displayId) => ipcRenderer.invoke('vision:capture-screen', displayId),

@@ -28,6 +28,7 @@ const tests = [
   'test-mcp-registry.js',
   'test-assistants.js',
   'test-skills.js',
+  'test-related-questions.js',
   'test-system-prompt-extensions.js',
   'test-terminal-and-tasks.js',
   'test-mermaid.js',

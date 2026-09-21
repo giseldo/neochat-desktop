@@ -118,7 +118,8 @@ function loadSettings() {
             userMemory: {
                 enabled: true,
                 autoExtract: true
-            }
+            },
+            relatedQuestions: { enabled: true }
         };
     }
     const userDataPath = appInstance.getPath('userData');
@@ -197,7 +198,8 @@ function loadSettings() {
         userMemory: {
             enabled: true,
             autoExtract: true
-        }
+        },
+        relatedQuestions: { enabled: true }
     };
 
     try {

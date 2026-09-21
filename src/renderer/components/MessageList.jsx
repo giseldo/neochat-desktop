@@ -8,6 +8,7 @@ import { NeoSymbol } from './NeoSymbol';
 import { useLanguage } from '../context/LanguageContext';
 import { extractThinking, extractWebSearchSources } from '../lib/messageUtils';
 import { cn } from '../lib/utils';
+import FollowUpQuestions from './FollowUpQuestions';
 
 function ImageGeneratingCard({ prompt, model, provider, timestamp }) {
   const { t } = useLanguage();
@@ -234,6 +235,7 @@ function MessageList({
   onRemoveLastMessage, 
   onReloadFromMessage, 
   onBranchFromMessage,
+  onSuggestionClick,
   loading, 
   onActionsVisible,
   onPreviewArtifact,
@@ -374,8 +376,8 @@ function MessageList({
           Boolean(prevMessage.tool_calls && prevMessage.tool_calls.length > 0);
         
         return (
+          <React.Fragment key={index}>
           <Message 
-            key={index} 
             message={message} 
             messageIndex={originalIndex}
             onToolCallExecute={onToolCallExecute}
@@ -448,7 +450,11 @@ function MessageList({
               />
             )
           ) : null}
-        </Message>
+          </Message>
+          {message.role === 'assistant' && index === displayMessages.length - 1 && !message.isStreaming && (
+            <FollowUpQuestions questions={message.suggestedQuestions || []} onClick={onSuggestionClick} disabled={loading} />
+          )}
+          </React.Fragment>
         );
       })}
 

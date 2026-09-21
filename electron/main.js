@@ -52,6 +52,7 @@ const { initializeUpdateManager } = require('./updateManager');
 const { pluginManager } = require('./pluginManager');
 const { skillManager } = require('./skillManager');
 const { assistantManager } = require('./assistantManager');
+const { RelatedQuestionsManager } = require('./relatedQuestionsManager');
 const imageGenerationManager = require('./imageGenerationManager');
 
 // Import context capture system
@@ -510,6 +511,7 @@ app.whenReady().then(async () => {
   console.log("[Main Init] Initializing Skill Manager...");
   skillManager.initialize(app, { loadSettings, saveSettings });
   assistantManager.registerIpcHandlers(ipcMain);
+  new RelatedQuestionsManager(loadSettings).registerIpcHandlers(ipcMain);
 
   // Register AI Skills IPC Handlers
   ipcMain.handle('skills:list', async (_event, workspaceRoot) => {
