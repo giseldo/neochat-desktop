@@ -675,23 +675,15 @@ function Settings() {
   const CATEGORIES = useMemo(() => [
     { id: 'all', label: t('settings.navAll') || 'Todas', icon: Sliders, desc: 'Todas as configurações do aplicativo' },
     { id: 'interface', label: t('settings.navInterface') || 'Interface & Aparência', icon: Palette, desc: 'Personalize o modo de uso, temas, cores, tipografia e abas da tela' },
-    { id: 'plugins', label: 'Módulos & Plugins', icon: Sparkles, desc: 'Gerenciamento de módulos e plugins com lazy-loading e zero overhead em repouso' },
     { id: 'features', label: t('settings.navFeatures') || 'Ativar/Desativar Recursos', icon: Zap, desc: 'Controle de voz Whisper, leitura TTS, busca web, ferramentas e atalhos' },
     { id: 'models', label: t('settings.navModels') || 'Modelos & Provedores', icon: Cpu, desc: 'Provedores de IA, chaves de API, parâmetros e catálogo de modelos' },
     { id: 'integrations', label: t('settings.navIntegrations') || 'Integrações & MCP', icon: Server, desc: 'Servidores MCP locais e remotos, conectores Google e permissões' },
     { id: 'system', label: t('settings.navSystem') || 'Sistema & Dados', icon: Folder, desc: 'Pasta de armazenamento, atualizações, backups e histórico' },
+    { id: 'plugins', label: t('settings.navPlugins') || 'Módulos & Plugins', icon: Sparkles, desc: 'Gerenciamento de módulos e plugins com lazy-loading e zero overhead em repouso' },
     { id: 'help', label: t('settings.navHelp') || 'Ajuda', icon: HelpCircle, desc: t('settings.helpCategoryDesc') || 'Informações da versão, direitos autorais, atalhos de teclado e documentação de suporte' },
   ], [t]);
 
   const CARDS_METADATA = useMemo(() => [
-    {
-      id: 'pluginsHub',
-      category: 'plugins',
-      title: 'Módulos & Extensões (Plugins Hub)',
-      desc: 'Ative ou desative módulos individuais para economizar recursos do sistema e RAM',
-      keywords: 'plugins modulos extensoes arena debate sandbox live preview podcast studio grafo conhecimento briefing vision extensões módulos',
-      isPowerOnly: false
-    },
     {
       id: 'interfaceMode',
       category: 'interface',
@@ -925,6 +917,14 @@ function Settings() {
       desc: t('settings.dataHistoryDesc') || 'Exportar/importar backup e apagar conversas',
       keywords: 'backup exportar importar conversas historico data apagar excluir resetar limpar tudo delete chats',
       isPowerOnly: true
+    },
+    {
+      id: 'pluginsHub',
+      category: 'plugins',
+      title: 'Módulos & Extensões (Plugins Hub)',
+      desc: 'Ative ou desative módulos individuais para economizar recursos do sistema e RAM',
+      keywords: 'plugins modulos extensoes arena debate sandbox live preview podcast studio grafo conhecimento briefing vision extensões módulos',
+      isPowerOnly: false
     },
     {
       id: 'aboutApp',
@@ -8104,11 +8104,11 @@ function Settings() {
 
             {/* Render sections according to active filter / category */}
             {(activeCategory === 'all' || activeCategory === 'interface') && renderInterfaceSection()}
-            {(activeCategory === 'all' || activeCategory === 'plugins') && renderPluginsSection()}
             {(activeCategory === 'all' || activeCategory === 'features') && renderFeaturesSection()}
             {(activeCategory === 'all' || activeCategory === 'models') && renderModelsSection()}
             {(activeCategory === 'all' || activeCategory === 'integrations') && renderIntegrationsSection()}
             {(activeCategory === 'all' || activeCategory === 'system') && renderSystemSection()}
+            {(activeCategory === 'all' || activeCategory === 'plugins') && renderPluginsSection()}
             {(activeCategory === 'all' || activeCategory === 'help') && renderHelpSection()}
           </div>
         </div>
