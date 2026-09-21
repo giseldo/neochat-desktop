@@ -17,6 +17,7 @@ import KeyboardShortcutsModal, { formatAccelerator, KeyCombo, KeyBadge } from '.
 import UserMemoryModal from '../components/UserMemoryModal';
 import { cn } from '../lib/utils';
 import { getModelGroup, getModelDisplayName, groupModels, parseBulkModelsInput } from '../lib/modelGrouping';
+import systemPromptExtensions from '../../../shared/system-prompt-extensions.json';
 
 const DEFAULT_SYSTEM_PROMPT = 'You are a helpful assistant. Format responses using Markdown.';
 
@@ -403,6 +404,7 @@ function Settings() {
   const [isRefreshingToken, setIsRefreshingToken] = useState(false);
   const [saveStatus, setSaveStatus] = useState(null);
   const [isSaving, setIsSaving] = useState(false);
+  const [expandedSystemPrompt, setExpandedSystemPrompt] = useState(null);
   const [showApiKey, setShowApiKey] = useState(false);
   const [showVoiceApiKey, setShowVoiceApiKey] = useState(false);
   const [showImageApiKey, setShowImageApiKey] = useState(false);
@@ -4758,26 +4760,48 @@ function Settings() {
                 </div>
                 <div className="divide-y divide-border/60 rounded-xl border border-border/70">
                   {[
-                    ['enableDiagramPrompt', 'systemPromptDiagramTitle', 'systemPromptDiagramDesc'],
-                    ['enableImagePrompt', 'systemPromptImageTitle', 'systemPromptImageDesc'],
-                    ['enableHtmlVisualPrompt', 'systemPromptHtmlTitle', 'systemPromptHtmlDesc'],
-                    ['enableCurrentDateTimePrompt', 'systemPromptDateTimeTitle', 'systemPromptDateTimeDesc']
-                  ].map(([name, titleKey, descKey]) => (
-                    <div key={name} className="flex items-center justify-between gap-4 px-3 py-3">
-                      <div className="min-w-0 space-y-0.5">
-                        <Label htmlFor={name} className="text-xs font-medium cursor-pointer">
-                          {t(`settings.${titleKey}`)}
-                        </Label>
-                        <p className="text-[11px] leading-relaxed text-muted-foreground">
-                          {t(`settings.${descKey}`)}
-                        </p>
+                    ['enableDiagramPrompt', 'systemPromptDiagramTitle', 'systemPromptDiagramDesc', 'diagram'],
+                    ['enableImagePrompt', 'systemPromptImageTitle', 'systemPromptImageDesc', 'image'],
+                    ['enableHtmlVisualPrompt', 'systemPromptHtmlTitle', 'systemPromptHtmlDesc', 'htmlVisual'],
+                    ['enableCurrentDateTimePrompt', 'systemPromptDateTimeTitle', 'systemPromptDateTimeDesc', 'currentDateTime']
+                  ].map(([name, titleKey, descKey, promptKey]) => (
+                    <div key={name} className="px-3 py-3">
+                      <div className="flex items-center justify-between gap-4">
+                        <div className="min-w-0 space-y-0.5">
+                          <Label htmlFor={name} className="text-xs font-medium cursor-pointer">
+                            {t(`settings.${titleKey}`)}
+                          </Label>
+                          <p className="text-[11px] leading-relaxed text-muted-foreground">
+                            {t(`settings.${descKey}`)}
+                          </p>
+                        </div>
+                        <div className="flex shrink-0 items-center gap-2">
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="h-8 gap-1 px-2 text-[11px] text-muted-foreground"
+                            aria-expanded={expandedSystemPrompt === name}
+                            onClick={() => setExpandedSystemPrompt(current => current === name ? null : name)}
+                          >
+                            {expandedSystemPrompt === name
+                              ? t('settings.systemPromptHidePrompt')
+                              : t('settings.systemPromptViewPrompt')}
+                            <ChevronDown className={cn('h-3.5 w-3.5 transition-transform', expandedSystemPrompt === name && 'rotate-180')} />
+                          </Button>
+                          <Switch
+                            id={name}
+                            checked={settings[name] !== false}
+                            onCheckedChange={checked => handleSystemPromptOption(name, checked)}
+                            aria-label={t(`settings.${titleKey}`)}
+                          />
+                        </div>
                       </div>
-                      <Switch
-                        id={name}
-                        checked={settings[name] !== false}
-                        onCheckedChange={checked => handleSystemPromptOption(name, checked)}
-                        aria-label={t(`settings.${titleKey}`)}
-                      />
+                      {expandedSystemPrompt === name && (
+                        <pre className="mt-3 max-h-72 overflow-auto whitespace-pre-wrap rounded-lg border border-border/70 bg-muted/40 p-3 text-[11px] leading-relaxed text-foreground">
+                          {systemPromptExtensions[promptKey]}
+                        </pre>
+                      )}
                     </div>
                   ))}
                 </div>

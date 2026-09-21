@@ -1141,6 +1141,8 @@ export const translations = {
       systemPromptHtmlDesc: 'Orienta o uso de HTML inline seguro para callouts, comparações e resumos visuais.',
       systemPromptDateTimeTitle: 'Data e Hora Atuais',
       systemPromptDateTimeDesc: 'Inclui a data e hora atuais no prompt de sistema enviado ao modelo.',
+      systemPromptViewPrompt: 'Ver prompt',
+      systemPromptHidePrompt: 'Ocultar prompt',
 
       // MCP Servers Card (Local)
       mcpServersTitle: 'Servidores MCP Locais',
@@ -2891,6 +2893,8 @@ export const translations = {
       systemPromptHtmlDesc: 'Guides the use of safe inline HTML for callouts, comparisons, and visual summaries.',
       systemPromptDateTimeTitle: 'Current Date and Time',
       systemPromptDateTimeDesc: 'Includes the current date and time in the system prompt sent to the model.',
+      systemPromptViewPrompt: 'View prompt',
+      systemPromptHidePrompt: 'Hide prompt',
 
       // MCP Servers Card (Local)
       mcpServersTitle: 'Local MCP Servers',
