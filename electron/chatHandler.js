@@ -295,6 +295,15 @@ function prepareTools(discoveredTools, isResponsesApi = false, settings = {}) {
         }
     }
 
+    // Add enabled OpenAPI plugins imported from neo-chat. Tool names are
+    // namespaced by plugin ID to prevent collisions between manifests.
+    const { externalPluginManager } = require('./externalPluginManager');
+    for (const pluginTool of externalPluginManager.getToolDefinitions(isResponsesApi)) {
+        const pluginToolName = isResponsesApi ? pluginTool.name : pluginTool.function?.name;
+        const hasAlready = tools.some(t => t.name === pluginToolName || t.function?.name === pluginToolName);
+        if (!hasAlready) tools.push(pluginTool);
+    }
+
     return tools;
 }
 

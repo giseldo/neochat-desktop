@@ -7,7 +7,10 @@ import {
   Zap,
   Sparkles,
   RefreshCw,
-  ChevronRight
+  ChevronRight,
+  Link,
+  Settings,
+  Trash2
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import Switch from './ui/Switch';
@@ -23,6 +26,9 @@ export function PluginsManagerModal({
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [togglingId, setTogglingId] = useState(null);
+  const [importUrl, setImportUrl] = useState('');
+  const [actionError, setActionError] = useState('');
+  const [installing, setInstalling] = useState(false);
 
   const fetchPlugins = async () => {
     if (window.electron?.plugins?.list) {
@@ -75,13 +81,47 @@ export function PluginsManagerModal({
     }
   };
 
+  const handleInstall = async () => {
+    if (!importUrl.trim() || !window.electron?.plugins?.installFromUrl) return;
+    setInstalling(true);
+    setActionError('');
+    try {
+      const result = await window.electron.plugins.installFromUrl(importUrl.trim());
+      if (!result?.success) throw new Error(result?.error || 'Falha ao instalar plugin.');
+      setImportUrl('');
+      await fetchPlugins();
+    } catch (error) {
+      setActionError(error.message);
+    } finally {
+      setInstalling(false);
+    }
+  };
+
+  const handleConfigure = async (plugin) => {
+    const baseUrl = window.prompt('URL base da API:', plugin.config?.baseUrl || plugin.baseUrl || '');
+    if (baseUrl === null) return;
+    let authValue;
+    if (plugin.auth?.type && plugin.auth.type !== 'none') {
+      authValue = window.prompt(`Credencial para ${plugin.auth.type} (deixe vazio para manter/remover):`, '');
+      if (authValue === null) return;
+    }
+    const result = await window.electron.plugins.configure(plugin.id, { baseUrl, authValue });
+    if (!result?.success) setActionError(result?.error || 'Falha ao configurar plugin.');
+    else await fetchPlugins();
+  };
+
+  const handleRemove = async (plugin) => {
+    if (!window.confirm(`Remover o plugin "${plugin.name}"?`)) return;
+    const result = await window.electron.plugins.remove(plugin.id);
+    if (!result?.success) setActionError(result?.error || 'Falha ao remover plugin.');
+    else await fetchPlugins();
+  };
+
   const categories = [
-    { id: 'all', label: 'Todos os Módulos' },
-    { id: 'intelligence', label: 'Inteligência & IA' },
-    { id: 'developer', label: 'Desenvolvimento' },
-    { id: 'productivity', label: 'Produtividade' },
-    { id: 'tools', label: 'Ferramentas' },
-    { id: 'automation', label: 'Automação' }
+    { id: 'all', label: 'Todos' },
+    ...Array.from(new Set(plugins.map(plugin => plugin.category).filter(Boolean)))
+      .sort()
+      .map(category => ({ id: category, label: category }))
   ];
 
   const filteredPlugins = plugins.filter(p => {
@@ -126,6 +166,31 @@ export function PluginsManagerModal({
           >
             <X className="w-5 h-5" />
           </button>
+        </div>
+
+        {/* OpenAPI plugin installation */}
+        <div className="px-6 py-3 border-b border-border bg-primary/5">
+          <div className="flex gap-2">
+            <div className="relative flex-1">
+              <Link className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+              <input
+                type="url"
+                value={importUrl}
+                onChange={event => setImportUrl(event.target.value)}
+                onKeyDown={event => { if (event.key === 'Enter') handleInstall(); }}
+                placeholder="URL de um manifesto ai-plugin.json ou especificação OpenAPI"
+                className="w-full pl-9 pr-3 py-2 bg-background border border-input rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-primary/40"
+              />
+            </div>
+            <button
+              onClick={handleInstall}
+              disabled={installing || !importUrl.trim()}
+              className="px-4 py-2 rounded-xl bg-primary text-primary-foreground text-xs font-semibold disabled:opacity-50"
+            >
+              {installing ? 'Instalando…' : 'Instalar OpenAPI'}
+            </button>
+          </div>
+          {actionError && <p className="mt-2 text-xs text-destructive">{actionError}</p>}
         </div>
 
         {/* Filters & Search */}
@@ -203,6 +268,11 @@ export function PluginsManagerModal({
                             <Badge variant="outline" className="text-[10px] px-1.5 py-0 border-border bg-muted text-muted-foreground">
                               v{plugin.version || '1.0'}
                             </Badge>
+                            {plugin.pluginType === 'api' && (
+                              <Badge variant="outline" className="text-[10px] px-1.5 py-0 border-sky-500/30 text-sky-600 dark:text-sky-400">
+                                API · {plugin.functions?.length || 0} ferramentas
+                              </Badge>
+                            )}
                           </div>
                           <p className="text-xs text-muted-foreground mt-1 line-clamp-2 leading-relaxed">
                             {plugin.description}
@@ -235,7 +305,24 @@ export function PluginsManagerModal({
                         <span className="text-[11px] text-muted-foreground capitalize">{plugin.category}</span>
                       </div>
 
-                      {isEnabled && onOpenPluginModal && (
+                      <div className="flex items-center gap-2">
+                      {plugin.pluginType === 'api' && (
+                        <button
+                          onClick={() => handleConfigure(plugin)}
+                          className="text-[11px] text-primary font-semibold flex items-center gap-1 hover:underline"
+                        >
+                          <Settings className="w-3 h-3" /> Configurar
+                        </button>
+                      )}
+                      {plugin.pluginType === 'api' && plugin.builtIn === false && (
+                        <button
+                          onClick={() => handleRemove(plugin)}
+                          className="text-[11px] text-destructive font-semibold flex items-center gap-1 hover:underline"
+                        >
+                          <Trash2 className="w-3 h-3" /> Remover
+                        </button>
+                      )}
+                      {isEnabled && plugin.pluginType !== 'api' && onOpenPluginModal && (
                         <button
                           onClick={() => {
                             onClose();
@@ -246,6 +333,7 @@ export function PluginsManagerModal({
                           Abrir <ChevronRight className="w-3 h-3" />
                         </button>
                       )}
+                      </div>
                     </div>
                   </div>
                 );
@@ -258,7 +346,7 @@ export function PluginsManagerModal({
         <div className="px-6 py-4 border-t border-border bg-muted/20 flex flex-wrap items-center justify-between gap-3 text-xs text-muted-foreground">
           <div className="flex items-center gap-2">
             <Sparkles className="w-4 h-4 text-amber-500 shrink-0" />
-            <span>Adicione novos arquivos em <code className="px-1.5 py-0.5 rounded bg-muted border border-border font-mono text-[11px] text-foreground">electron/plugins/</code> para expansão instantânea.</span>
+            <span>Plugins OpenAPI ativos viram ferramentas disponíveis ao modelo; credenciais são protegidas pelo cofre do sistema operacional.</span>
           </div>
           <button 
             onClick={onClose} 

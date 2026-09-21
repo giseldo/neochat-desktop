@@ -1,3 +1,5 @@
+const { externalPluginManager } = require('./externalPluginManager');
+
 /**
  * NeoChat Plugin System & Micro-Kernel Architecture
  * 
@@ -53,6 +55,7 @@ class PluginManager {
   async initialize(context) {
     this.context = context;
     this.initialized = true;
+    externalPluginManager.initialize(context);
 
     // Load enabled plugins configuration from settings if available
     let enabledPluginsMap = {};
@@ -201,7 +204,7 @@ class PluginManager {
         error: entry.error
       });
     }
-    return list;
+    return [...list, ...externalPluginManager.list()];
   }
 
   /**
@@ -241,7 +244,11 @@ class PluginManager {
     ipcMain.handle('plugins:toggle', async (_event, { pluginId, enabled }) => {
       const entry = this.plugins.get(pluginId);
       if (!entry) {
-        return { success: false, error: `Plugin ${pluginId} not found` };
+        try {
+          return externalPluginManager.toggle(pluginId, enabled);
+        } catch (error) {
+          return { success: false, error: error.message };
+        }
       }
 
       try {
@@ -264,6 +271,30 @@ class PluginManager {
         return { success: true, plugin: this.getPlugin(pluginId) };
       } catch (err) {
         return { success: false, error: err.message };
+      }
+    });
+
+    ipcMain.handle('plugins:install-url', async (_event, url) => {
+      try {
+        return await externalPluginManager.installFromUrl(url);
+      } catch (error) {
+        return { success: false, error: error.message };
+      }
+    });
+
+    ipcMain.handle('plugins:configure', async (_event, { pluginId, config }) => {
+      try {
+        return externalPluginManager.configure(pluginId, config);
+      } catch (error) {
+        return { success: false, error: error.message };
+      }
+    });
+
+    ipcMain.handle('plugins:remove', async (_event, pluginId) => {
+      try {
+        return externalPluginManager.remove(pluginId);
+      } catch (error) {
+        return { success: false, error: error.message };
       }
     });
   }
@@ -610,4 +641,3 @@ module.exports = {
   PluginManager,
   pluginManager
 };
-

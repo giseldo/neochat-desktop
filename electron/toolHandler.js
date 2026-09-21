@@ -4,6 +4,7 @@ const { queryKnowledge, readFileContent } = require('./ragService');
 const { handleCanvasToolCall } = require('./canvasManager');
 const { toolExecutor } = require('./agent/toolExecutor');
 const { addMemory, forgetMemoryByQuery } = require('./memoryService');
+const { externalPluginManager } = require('./externalPluginManager');
 
 /**
  * Handles the 'execute-tool-call' IPC event.
@@ -261,6 +262,25 @@ async function handleExecuteToolCall(event, toolCall, discoveredTools, mcpClient
     }
   }
 
+  // Handle enabled OpenAPI plugin tools before falling back to MCP.
+  try {
+    const pluginResult = await externalPluginManager.executeTool(toolName, args);
+    if (pluginResult !== null) {
+      return {
+        result: limitContentLength(
+          typeof pluginResult === 'string' ? pluginResult : JSON.stringify(pluginResult),
+          settings?.toolOutputLimit || 8000
+        ),
+        tool_call_id: toolCallId
+      };
+    }
+  } catch (pluginError) {
+    return {
+      error: limitContentLength(`Plugin execution error: ${pluginError.message}`, settings?.toolOutputLimit || 8000),
+      tool_call_id: toolCallId
+    };
+  }
+
   try {
     // Find the MCP tool configuration matching the requested tool name
     const mcpTool = discoveredTools.find(t => t.name === toolName);
@@ -366,4 +386,4 @@ async function handleExecuteToolCall(event, toolCall, discoveredTools, mcpClient
 
 module.exports = {
     handleExecuteToolCall
-}; 
+};

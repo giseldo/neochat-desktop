@@ -93,6 +93,9 @@ contextBridge.exposeInMainWorld('electron', {
   plugins: {
     list: () => ipcRenderer.invoke('plugins:list'),
     toggle: (pluginId, enabled) => ipcRenderer.invoke('plugins:toggle', { pluginId, enabled }),
+    installFromUrl: (url) => ipcRenderer.invoke('plugins:install-url', url),
+    configure: (pluginId, config) => ipcRenderer.invoke('plugins:configure', { pluginId, config }),
+    remove: (pluginId) => ipcRenderer.invoke('plugins:remove', pluginId),
   },
   // AI Skills System API (Catalog, Custom, Import/Export, Execution)
   skills: {

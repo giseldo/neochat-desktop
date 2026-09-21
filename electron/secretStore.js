@@ -33,6 +33,20 @@ function createSecretStore({ userDataPath, safeStorage }) {
             secrets.imageGenerationApiKey = publicSettings.imageGeneration.apiKey;
             delete publicSettings.imageGeneration.apiKey;
         }
+        if (publicSettings.externalPluginConfigs !== undefined) {
+            const pluginConfigs = publicSettings.externalPluginConfigs;
+            const publicPluginConfigs = {};
+            const pluginAuthValues = {};
+            for (const [pluginId, config] of Object.entries(pluginConfigs || {})) {
+                publicPluginConfigs[pluginId] = { ...(config || {}) };
+                if (publicPluginConfigs[pluginId].authValue !== undefined) {
+                    pluginAuthValues[pluginId] = publicPluginConfigs[pluginId].authValue;
+                    delete publicPluginConfigs[pluginId].authValue;
+                }
+            }
+            publicSettings.externalPluginConfigs = publicPluginConfigs;
+            if (Object.keys(pluginAuthValues).length > 0) secrets.externalPluginAuthValues = pluginAuthValues;
+        }
         return { publicSettings, secrets };
     }
 
@@ -63,6 +77,15 @@ function createSecretStore({ userDataPath, safeStorage }) {
             }
             if (secrets.imageGenerationApiKey !== undefined) {
                 hydrated.imageGeneration = { ...(hydrated.imageGeneration || {}), apiKey: secrets.imageGenerationApiKey };
+            }
+            if (secrets.externalPluginAuthValues !== undefined) {
+                hydrated.externalPluginConfigs = { ...(hydrated.externalPluginConfigs || {}) };
+                for (const [pluginId, authValue] of Object.entries(secrets.externalPluginAuthValues)) {
+                    hydrated.externalPluginConfigs[pluginId] = {
+                        ...(hydrated.externalPluginConfigs[pluginId] || {}),
+                        authValue
+                    };
+                }
             }
             return hydrated;
         } catch (error) {

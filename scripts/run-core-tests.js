@@ -23,6 +23,7 @@ const tests = [
   'test-canvas.js',
   'test-browser-panel.js',
   'test-plugin-manager.js',
+  'test-external-plugins.js',
   'test-terminal-and-tasks.js',
   'test-default-model-empty.js'
 ];
