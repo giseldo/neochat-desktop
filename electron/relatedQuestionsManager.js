@@ -56,20 +56,15 @@ class RelatedQuestionsManager {
     const modelConfigs = this.getModelConfigs ? await this.getModelConfigs(settings) : {};
     const resolved = resolveRelatedQuestionsModel(model, settings, modelConfigs);
     if (!resolved.model) return [];
-    const runtimeSettings = { ...settings, provider: resolved.provider, model: resolved.model };
-    this.router.validateApiKey(runtimeSettings);
-    const response = await this.router.createClient(runtimeSettings).chat.completions.create({
+    const runtimeSettings = { ...settings, provider: resolved.provider, model: resolved.model, temperature: 0.35, maxTokens: 300 };
+    const result = await this.router.streamCompletion({
       model: resolved.model,
-      stream: false,
-      temperature: 0.35,
-      max_tokens: 300,
-      messages: [
-        { role: 'system', content: 'Suggest 3 to 5 concise follow-up questions the user may want to ask next. Each question must have fewer than 24 words, use the same language as the user, and be directly related to the conversation. Return only a JSON array of strings.' },
-        { role: 'user', content: `User:\n${user}\n\nAssistant:\n${assistant}` }
-      ]
+      settings: runtimeSettings,
+      systemPrompt: 'Suggest 3 to 5 concise follow-up questions the user may want to ask next. Each question must have fewer than 24 words, use the same language as the user, and be directly related to the conversation. Return only a JSON array of strings.',
+      messages: [{ role: 'user', content: `User:\n${user}\n\nAssistant:\n${assistant}` }]
     });
-    const responseMessage = response.choices?.[0]?.message;
-    return parseQuestions(responseMessage?.content || responseMessage?.reasoning_content || responseMessage?.reasoning);
+    if (!result.success) throw new Error(result.error || 'Related question generation failed');
+    return parseQuestions(result.message?.content || result.message?.reasoning);
   }
 
   registerIpcHandlers(ipcMain) {
