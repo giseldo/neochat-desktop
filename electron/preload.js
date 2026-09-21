@@ -404,7 +404,7 @@ contextBridge.exposeInMainWorld('electron', {
     delete: (chatId) => ipcRenderer.invoke('chat-history-delete', chatId),
     deleteAll: () => ipcRenderer.invoke('chat-history-delete-all'),
     clearMessages: (chatId) => ipcRenderer.invoke('chat-history-clear-messages', chatId),
-    generateTitle: (userMessage) => ipcRenderer.invoke('chat-history-generate-title', userMessage),
+    generateTitle: (userMessage, model) => ipcRenderer.invoke('chat-history-generate-title', userMessage, model),
     searchContent: (query) => ipcRenderer.invoke('chat-history-search-content', query),
     togglePin: (chatId, isPinned) => ipcRenderer.invoke('chat-history-toggle-pin', chatId, isPinned),
     toggleArchive: (chatId, isArchived) => ipcRenderer.invoke('chat-history-toggle-archive', chatId, isArchived),

@@ -17,6 +17,7 @@ export const ChatProvider = ({ children }) => {
   // Track if we need to generate a title after first user message
   const needsTitleGeneration = useRef(false);
   const titleGenerationInProgress = useRef(false);
+  const attemptedTitleChatIds = useRef(new Set());
 
   // Keep ref in sync with state
   useEffect(() => {
@@ -43,9 +44,10 @@ export const ChatProvider = ({ children }) => {
   }, []);
 
   // Generate and update chat title automatically based on user message without prompting
-  const generateAndUpdateTitle = useCallback(async (chatId, userMessage) => {
-    if (!chatId || titleGenerationInProgress.current) return;
+  const generateAndUpdateTitle = useCallback(async (chatId, userMessage, model = null) => {
+    if (!chatId || attemptedTitleChatIds.current.has(chatId) || titleGenerationInProgress.current) return;
     
+    attemptedTitleChatIds.current.add(chatId);
     titleGenerationInProgress.current = true;
     needsTitleGeneration.current = false;
     
@@ -75,12 +77,15 @@ export const ChatProvider = ({ children }) => {
         ));
       }
       
-      const title = await window.electron.chatHistory.generateTitle(rawText);
+      const targetChat = chatList.find(c => c.id === chatId);
+      const effectiveModel = model || targetChat?.model;
+      const title = await window.electron.chatHistory.generateTitle(rawText, effectiveModel);
       
-      if (title && title !== 'New Chat') {
-        await window.electron.chatHistory.updateTitle(chatId, title);
+      const finalTitle = (title && title !== 'New Chat' && title !== 'Nova Conversa') ? title : instantExcerpt;
+      if (finalTitle) {
+        await window.electron.chatHistory.updateTitle(chatId, finalTitle);
         setChatList(prev => prev.map(chat =>
-          chat.id === chatId ? { ...chat, title: title } : chat
+          chat.id === chatId ? { ...chat, title: finalTitle } : chat
         ));
       }
     } catch (error) {
@@ -89,7 +94,7 @@ export const ChatProvider = ({ children }) => {
       titleGenerationInProgress.current = false;
       needsTitleGeneration.current = false;
     }
-  }, []);
+  }, [chatList]);
 
   // Create a new chat
   const createNewChat = useCallback(async (model, useResponsesApi = false, projectId = null, personaId = null) => {
@@ -263,7 +268,7 @@ export const ChatProvider = ({ children }) => {
       // Check if we need to generate a title automatically (first user message added)
       if (chatId) {
         const userMessages = newMessages.filter(m => m.role === 'user');
-        if (userMessages.length === 1 && (needsTitleGeneration.current || !chatList.find(c => c.id === chatId) || ['New Chat', 'Nova Conversa'].includes(chatList.find(c => c.id === chatId)?.title))) {
+        if (userMessages.length === 1 && !attemptedTitleChatIds.current.has(chatId) && (needsTitleGeneration.current || !chatList.find(c => c.id === chatId) || ['New Chat', 'Nova Conversa'].includes(chatList.find(c => c.id === chatId)?.title))) {
           needsTitleGeneration.current = false;
           generateAndUpdateTitle(chatId, userMessages[0].content);
         }

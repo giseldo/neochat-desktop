@@ -2,7 +2,7 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 const Groq = require('groq-sdk');
-const { getActiveApiKey, getProviderBaseUrl, getDefaultModel } = require('../shared/providers');
+const { getActiveApiKey, getProviderBaseUrl, getDefaultModel, getProviderCandidates } = require('../shared/providers');
 const { createGroqClient } = require('./chatHandler');
 
 let appInstance = null;
@@ -416,11 +416,12 @@ function extractFallbackTitle(textContent) {
 
 /**
  * Generate a title for a chat automatically based on the first user message
- * Uses the active provider's default model for fast title generation without asking the user
- * @param {string} userMessage - The first user message content
+ * Uses the active provider's default model or candidates for fast title generation without prompting
+ * @param {string|Array|Object} userMessage - The first user message content
+ * @param {string|null} [preferredModel=null] - Optional model identifier
  * @returns {Promise<string>} Generated title
  */
-async function generateChatTitle(userMessage) {
+async function generateChatTitle(userMessage, preferredModel = null) {
     // Extract text content if structured message
     let textContent = userMessage;
     if (typeof userMessage !== 'string') {
@@ -442,58 +443,91 @@ async function generateChatTitle(userMessage) {
         return fallbackTitle;
     }
     
-    const settings = settingsLoader();
-    const apiKey = getActiveApiKey(settings);
-    if (!apiKey || apiKey === '<replace me>') {
-        return fallbackTitle;
-    }
+    const baseSettings = settingsLoader() || {};
+    const requested = preferredModel || baseSettings.model;
+    let resolvedProvider = baseSettings.provider || 'groq';
+    let rawModel = null;
 
-    try {
-        const groq = createGroqClient(settings);
-        
-        // Limit the input to first 500 characters
-        const truncatedMessage = (textContent || '').slice(0, 500);
-        
-        // Prefer the user's selected model; strip any provider:: prefix and fall back to provider default
-        let rawModel = (settings.model && settings.model !== 'default') ? settings.model : getDefaultModel(settings);
-        if (typeof rawModel === 'string' && rawModel.includes('::')) {
-            rawModel = rawModel.split('::')[1];
+    if (requested && typeof requested === 'string' && requested !== 'default') {
+        if (requested.includes('::')) {
+            const [p, m] = requested.split('::');
+            resolvedProvider = p || resolvedProvider;
+            rawModel = m;
+        } else {
+            rawModel = requested;
         }
-        const titleModel = rawModel || getDefaultModel(settings);
-
-        const response = await groq.chat.completions.create({
-            messages: [
-                {
-                    role: 'system',
-                    content: 'You are an assistant that generates short, concise titles (3 to 6 words) for chat conversations. Always generate the title in the SAME language as the user message. Do NOT use quotes, do NOT add punctuation, do NOT include prefixes like "Title:" or "Título:". Just output the title text.'
-                },
-                {
-                    role: 'user',
-                    content: `Generate a concise title for a conversation starting with this message:\n\n${truncatedMessage}`
-                }
-            ],
-            model: titleModel,
-            temperature: 0.3,
-            max_tokens: 25,
-            stream: false
-        });
-        
-        let title = response.choices[0]?.message?.content?.trim() || '';
-        
-        // Clean up the title - remove quotes, prefixes and punctuation
-        title = title
-            .replace(/^["'`]|["'`]$/g, '') // Remove surrounding quotes
-            .replace(/^(Title|Título|Assunto):\s*/i, '') // Remove prefixes
-            .replace(/[.!?]+$/, '') // Remove trailing punctuation
-            .trim()
-            .slice(0, 50);
-            
-        return title || fallbackTitle;
-            
-    } catch (error) {
-        console.warn('[ChatHistoryManager] Non-critical error generating AI chat title, using fallback:', error?.message || error);
-        return fallbackTitle;
     }
+
+    const primarySettings = {
+        ...baseSettings,
+        provider: resolvedProvider,
+        model: rawModel || getDefaultModel({ provider: resolvedProvider })
+    };
+
+    const candidates = getProviderCandidates(primarySettings);
+    const truncatedMessage = (textContent || '').slice(0, 500);
+
+    for (const [idx, candidate] of candidates.entries()) {
+        const apiKey = getActiveApiKey(candidate);
+        const isLocal = candidate.provider === 'ollama' || candidate.provider === 'lmstudio' || candidate.provider === 'custom_local';
+        if (!isLocal && (!apiKey || apiKey === '<replace me>')) {
+            continue;
+        }
+
+        const candidateModel = (idx === 0 && rawModel)
+            ? rawModel
+            : (candidate.model || getDefaultModel(candidate));
+
+        const modelsToTry = [candidateModel];
+        const defaultMod = getDefaultModel(candidate);
+        if (defaultMod && defaultMod !== candidateModel) {
+            modelsToTry.push(defaultMod);
+        }
+
+        let providerSucceeded = false;
+        for (const titleModel of modelsToTry) {
+            try {
+                const client = createGroqClient(candidate);
+                const response = await client.chat.completions.create({
+                    messages: [
+                        {
+                            role: 'system',
+                            content: 'You are an assistant that generates short, concise titles (3 to 6 words) for chat conversations. Always generate the title in the SAME language as the user message. Do NOT use quotes, do NOT add punctuation, do NOT include prefixes like "Title:" or "Título:". Just output the title text.'
+                        },
+                        {
+                            role: 'user',
+                            content: `Generate a concise title for a conversation starting with this message:\n\n${truncatedMessage}`
+                        }
+                    ],
+                    model: titleModel,
+                    temperature: 0.3,
+                    max_tokens: 25,
+                    stream: false
+                });
+
+                let title = response.choices[0]?.message?.content?.trim() || '';
+                title = title
+                    .replace(/^["'`]|["'`]$/g, '') // Remove surrounding quotes
+                    .replace(/^(Title|Título|Assunto):\s*/i, '') // Remove prefixes
+                    .replace(/[.!?]+$/, '') // Remove trailing punctuation
+                    .trim()
+                    .slice(0, 50);
+
+                if (title) {
+                    return title;
+                }
+            } catch (error) {
+                const errMsg = error?.message || String(error);
+                const isNotFound = errMsg.includes('404') || errMsg.includes('not found') || errMsg.includes('does not exist') || errMsg.includes('model_not_found');
+                if (!isNotFound) {
+                    // Non-404 error (e.g. auth error, network), stop trying models for this candidate
+                    break;
+                }
+            }
+        }
+    }
+
+    return fallbackTitle;
 }
 
 /**
@@ -583,8 +617,8 @@ function initializeChatHistoryHandlers(ipcMain) {
     });
     
     // Generate a title for a chat
-    ipcMain.handle('chat-history-generate-title', async (event, userMessage) => {
-        return generateChatTitle(userMessage);
+    ipcMain.handle('chat-history-generate-title', async (event, userMessage, preferredModel) => {
+        return generateChatTitle(userMessage, preferredModel);
     });
 
     // Deep search in chat messages content
