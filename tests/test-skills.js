@@ -91,6 +91,13 @@ async function runTests() {
   assert(!manager.installedSkills.has('custom-seo-optimizer'), 'Deleted skill must not exist in map');
   console.log('✅ Deleted skill successfully');
 
+  // 10. Composer active-skill marker mirrors the neo-chat interaction.
+  const chatInputSource = fs.readFileSync(path.join(__dirname, '..', 'src', 'renderer', 'components', 'ChatInput.jsx'), 'utf8');
+  assert(chatInputSource.includes('Skills instaladas'), 'Composer must expose the installed skills popover');
+  assert(chatInputSource.includes('isSkillsPopoverOpen'), 'Composer must track the skills popover state');
+  assert(chatInputSource.includes("border-emerald-500 bg-emerald-500"), 'Active skills must have the green status marker');
+  console.log('✅ Composer active-skill marker is connected');
+
   // Clean up
   fs.rmSync(testDir, { recursive: true, force: true });
   console.log('\n🎉 ALL SKILL MANAGER TESTS PASSED SUCCESSFULLY!\n');

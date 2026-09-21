@@ -1,4 +1,4 @@
-import { ArrowRight, Loader2, ImagePlus, Hammer, Upload, Zap, ZapOff, Square, Mic, MicOff, Terminal, Globe, BookOpen, Camera, Bot, Layout, X, Code2, Briefcase, MessageSquare, RotateCcw, Plus, Check, Cpu, Blocks, Sparkles } from "lucide-react";
+import { ArrowRight, Loader2, ImagePlus, Hammer, Upload, Zap, ZapOff, Square, Mic, MicOff, Terminal, Globe, BookOpen, Camera, Bot, Layout, X, Code2, Briefcase, MessageSquare, RotateCcw, Plus, Check, Cpu, Blocks, Sparkles, ScrollText } from "lucide-react";
 import React, { useContext, useEffect, useRef, useState, useMemo } from "react";
 import { createPortal } from "react-dom";
 import TextAreaAutosize from "react-textarea-autosize";
@@ -99,6 +99,7 @@ function ChatInput({
 	const [imageMode, setImageMode] = useState(false);
 	const [isSnipModalOpen, setIsSnipModalOpen] = useState(false);
 	const [isPlusMenuOpen, setIsPlusMenuOpen] = useState(false);
+	const [isSkillsPopoverOpen, setIsSkillsPopoverOpen] = useState(false);
 	const plusMenuRef = useRef(null);
 	const agentModeActive = harnessMode === 'code';
 	const mediaRecorderRef = useRef(null);
@@ -114,15 +115,16 @@ function ChatInput({
 		const handleClickOutside = (e) => {
 			if (plusMenuRef.current && !plusMenuRef.current.contains(e.target)) {
 				setIsPlusMenuOpen(false);
+				setIsSkillsPopoverOpen(false);
 			}
 		};
-		if (isPlusMenuOpen) {
+		if (isPlusMenuOpen || isSkillsPopoverOpen) {
 			document.addEventListener("mousedown", handleClickOutside);
 		}
 		return () => {
 			document.removeEventListener("mousedown", handleClickOutside);
 		};
-	}, [isPlusMenuOpen]);
+	}, [isPlusMenuOpen, isSkillsPopoverOpen]);
 
 	useEffect(() => {
 		isRecordingRef.current = isRecording;
@@ -187,6 +189,21 @@ function ChatInput({
 		loadSkills();
 		return () => { isMounted = false; };
 	}, [focusSignal, workspaceInfo?.root]);
+
+	const activeSkills = useMemo(() => {
+		return installedSkills.filter(skill => skill.enabled !== false);
+	}, [installedSkills]);
+
+	const handleToggleSkill = async (skill) => {
+		if (!window.electron?.skills?.toggle) return;
+		const enabled = skill.enabled === false;
+		try {
+			await window.electron.skills.toggle(skill.id, enabled);
+			setInstalledSkills(current => current.map(item => item.id === skill.id ? { ...item, enabled } : item));
+		} catch (err) {
+			console.warn('Failed to toggle skill:', err);
+		}
+	};
 
 	// Sync web search and voice input states with settings
 	useEffect(() => {
@@ -1371,6 +1388,62 @@ function ChatInput({
 								</div>
 							)}
 						</div>
+
+						{/* Skills selector and active marker */}
+						{installedSkills.length > 0 && (
+							<div className="relative">
+								<Button
+									type="button"
+									variant="ghost"
+									size="icon"
+									onClick={() => {
+										setIsPlusMenuOpen(false);
+										setIsSkillsPopoverOpen(open => !open);
+									}}
+									disabled={loading}
+									aria-expanded={isSkillsPopoverOpen}
+									aria-label={activeSkills.length > 0 ? `${activeSkills.length} skills ativas` : 'Skills instaladas'}
+									className={cn(
+										'h-8 w-8 rounded-xl shrink-0 border transition-colors',
+										activeSkills.length > 0
+											? 'border-emerald-500/20 bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/20 dark:text-emerald-400'
+											: 'border-transparent text-muted-foreground hover:bg-muted/80 hover:text-foreground'
+									)}
+									title={activeSkills.length > 0 ? `${activeSkills.length} skills ativas` : 'Skills instaladas'}
+								>
+									<ScrollText className="w-4 h-4" />
+								</Button>
+
+								{isSkillsPopoverOpen && (
+									<div className="absolute bottom-full left-0 z-50 mb-2 max-h-64 w-64 overflow-y-auto rounded-2xl border border-border bg-popover p-2 text-popover-foreground shadow-2xl animate-in fade-in-0 zoom-in-95">
+										<div className="px-3 py-1.5 text-[10px] font-bold uppercase tracking-wide text-muted-foreground">
+											Skills instaladas
+										</div>
+										<div className="space-y-0.5">
+											{installedSkills.map(skill => {
+												const isActive = activeSkills.some(active => active.id === skill.id);
+												return (
+													<button
+														type="button"
+														key={skill.id}
+														onClick={() => handleToggleSkill(skill)}
+														className="flex w-full items-center justify-between gap-3 rounded-xl px-3 py-2 text-left text-xs text-foreground transition-colors hover:bg-muted/80"
+													>
+														<span className="truncate">{skill.displayName || skill.name}</span>
+														<span className={cn(
+															'flex h-3 w-3 shrink-0 items-center justify-center rounded-full border',
+															isActive ? 'border-emerald-500 bg-emerald-500' : 'border-border bg-muted'
+														)}>
+															{isActive && <span className="h-1.5 w-1.5 rounded-full bg-white" />}
+														</span>
+													</button>
+												);
+											})}
+										</div>
+									</div>
+								)}
+							</div>
+						)}
 
 
 						{onModeChange && (
