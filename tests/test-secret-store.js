@@ -23,7 +23,15 @@ async function run() {
             googleRefreshToken: 'refresh-secret',
             webSearch: { enabled: true, apiKey: 'search-secret' },
             voiceInput: { enabled: true, apiKey: 'voice-secret' },
-            externalPluginConfigs: { weather: { baseUrl: 'https://example.com', authValue: 'plugin-secret' } }
+            externalPluginConfigs: { weather: { baseUrl: 'https://example.com', authValue: 'plugin-secret' } },
+            mcpServers: {
+                remote: {
+                    transport: 'streamableHttp',
+                    url: 'https://mcp.example.com',
+                    headers: { Authorization: 'Bearer mcp-secret' },
+                    env: { SERVICE_TOKEN: 'mcp-env-secret' }
+                }
+            }
         }));
 
         initializeSettingsHandlers(ipcMain, { getPath: () => tempDir }, safeStorage);
@@ -33,6 +41,7 @@ async function run() {
         assert.strictEqual(loaded.webSearch.apiKey, 'search-secret');
         assert.strictEqual(loaded.voiceInput.apiKey, 'voice-secret');
         assert.strictEqual(loaded.externalPluginConfigs.weather.authValue, 'plugin-secret');
+        assert.strictEqual(loaded.mcpServers.remote.headers.Authorization, 'Bearer mcp-secret');
 
         const plaintext = fs.readFileSync(settingsPath, 'utf8');
         assert.ok(!plaintext.includes('gsk-secret'), 'API keys must leave settings.json');
@@ -40,12 +49,15 @@ async function run() {
         assert.ok(!plaintext.includes('search-secret'), 'search keys must leave settings.json');
         assert.ok(!plaintext.includes('voice-secret'), 'voice keys must leave settings.json');
         assert.ok(!plaintext.includes('plugin-secret'), 'plugin credentials must leave settings.json');
+        assert.ok(!plaintext.includes('mcp-secret'), 'MCP headers must leave settings.json');
+        assert.ok(!plaintext.includes('mcp-env-secret'), 'MCP environment values must leave settings.json');
         assert.ok(fs.existsSync(path.join(tempDir, 'secrets.vault')), 'encrypted vault must be created');
 
         const reloaded = loadSettings();
         assert.strictEqual(reloaded.apiKeys.openai, 'sk-secret', 'vault secrets must hydrate on reload');
         assert.strictEqual(reloaded.voiceInput.apiKey, 'voice-secret', 'voice secret must hydrate on reload');
         assert.strictEqual(reloaded.externalPluginConfigs.weather.authValue, 'plugin-secret', 'plugin secret must hydrate on reload');
+        assert.strictEqual(reloaded.mcpServers.remote.env.SERVICE_TOKEN, 'mcp-env-secret', 'MCP environment must hydrate on reload');
         console.log('Credential vault tests passed.');
     } finally {
         fs.rmSync(tempDir, { recursive: true, force: true });

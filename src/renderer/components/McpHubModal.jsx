@@ -17,7 +17,8 @@ import {
   Laptop,
   Folder,
   MessageSquare,
-  Plus
+  Plus,
+  RefreshCw
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { Button } from './ui/button';
@@ -34,17 +35,39 @@ export function McpHubModal({
   const [searchQuery, setSearchQuery] = useState('');
   const [installingId, setInstallingId] = useState(null);
   const [installedMap, setInstalledMap] = useState({});
+  const [nextCursor, setNextCursor] = useState('');
+  const [registryStatus, setRegistryStatus] = useState('loading');
+  const [loadingServers, setLoadingServers] = useState(false);
+  const [hubError, setHubError] = useState('');
+
+  const loadServers = async (options = {}, append = false) => {
+    if (!window.electron?.mcpHub) return;
+    setLoadingServers(true);
+    try {
+      const result = await window.electron.mcpHub.listServers({ limit: 50, ...options });
+      const page = Array.isArray(result) ? { servers: result } : (result || {});
+      setServers(previous => append ? [...previous, ...(page.servers || [])] : (page.servers || []));
+      setNextCursor(page.nextCursor || '');
+      setRegistryStatus(page.status || 'fresh');
+      setHubError(page.error || '');
+    } catch (error) {
+      setHubError(error.message);
+    } finally {
+      setLoadingServers(false);
+    }
+  };
 
   useEffect(() => {
     const loadHubData = async () => {
       if (window.electron?.mcpHub) {
         try {
-          const [serversList, recipesList] = await Promise.all([
-            window.electron.mcpHub.listServers(),
-            window.electron.mcpHub.listRecipes()
+          const [recipesList, settings] = await Promise.all([
+            window.electron.mcpHub.listRecipes(),
+            window.electron.getSettings()
           ]);
-          setServers(serversList || []);
           setRecipes(recipesList || []);
+          setInstalledMap(Object.fromEntries(Object.keys(settings?.mcpServers || {}).map(id => [id, true])));
+          await loadServers();
         } catch (err) {
           console.error('Failed to load MCP Hub data:', err);
         }
@@ -56,19 +79,49 @@ export function McpHubModal({
     }
   }, [isOpen]);
 
+  useEffect(() => {
+    if (!isOpen || activeTab !== 'servers') return;
+    const timer = setTimeout(() => loadServers({ search: searchQuery }), 350);
+    return () => clearTimeout(timer);
+  }, [searchQuery, isOpen, activeTab]);
+
   const handleInstall = async (server) => {
     setInstallingId(server.id);
     try {
       if (window.electron?.mcpHub?.install) {
-        const res = await window.electron.mcpHub.install({ serverId: server.id });
+        let bearerToken = '';
+        if (server.auth?.required) {
+          bearerToken = window.prompt(`Credencial necessária para ${server.name}:`, '') || '';
+          if (!bearerToken) return;
+        }
+        const res = await window.electron.mcpHub.install({ serverId: server.id, server, bearerToken });
         if (res && res.success) {
-          setInstalledMap(prev => ({ ...prev, [server.id]: true }));
+          setInstalledMap(prev => ({ ...prev, [res.serverId || server.id]: true, [server.id]: true }));
+          const connection = await window.electron.connectMcpServer({ id: res.serverId || server.id, ...res.server });
+          if (connection?.success === false) setHubError(`Servidor salvo, mas a conexão falhou: ${connection.error}`);
         }
       }
     } catch (err) {
       console.error(`Failed to install server ${server.id}:`, err);
     } finally {
       setInstallingId(null);
+    }
+  };
+
+  const handleAddCustom = async () => {
+    const url = window.prompt('URL do servidor MCP remoto (HTTP/S):', '');
+    if (!url) return;
+    const name = window.prompt('Nome do servidor:', 'Servidor MCP remoto');
+    if (name === null) return;
+    const bearerToken = window.prompt('Bearer token opcional:', '') || '';
+    try {
+      const result = await window.electron.mcpHub.installCustom({ name, url, transport: 'streamableHttp', bearerToken });
+      if (!result?.success) throw new Error(result?.error || 'Falha ao instalar servidor personalizado.');
+      setInstalledMap(prev => ({ ...prev, [result.serverId]: true }));
+      const connection = await window.electron.connectMcpServer({ id: result.serverId, ...result.server });
+      if (connection?.success === false) setHubError(`Servidor salvo, mas a conexão falhou: ${connection.error}`);
+    } catch (error) {
+      setHubError(error.message);
     }
   };
 
@@ -183,6 +236,15 @@ export function McpHubModal({
 
           {onOpenSettingsMcp && (
             <button
+              onClick={handleAddCustom}
+              className="text-xs text-primary font-semibold flex items-center gap-1 hover:underline"
+            >
+              <Plus className="w-3 h-3" /> Adicionar remoto
+            </button>
+          )}
+
+          {onOpenSettingsMcp && (
+            <button
               onClick={() => {
                 onClose();
                 onOpenSettingsMcp();
@@ -196,8 +258,23 @@ export function McpHubModal({
 
         {/* Content Body */}
         <div className="flex-1 overflow-y-auto p-6 space-y-4">
+          {activeTab === 'servers' && (
+            <div className="flex items-center justify-between text-[11px] text-muted-foreground">
+              <span>
+                Fonte: {registryStatus === 'fallback' ? 'catálogo offline' : 'MCP Registry oficial'}
+                {hubError ? ` · ${hubError}` : ''}
+              </span>
+              <button
+                onClick={() => loadServers({ search: searchQuery, forceRefresh: true })}
+                disabled={loadingServers}
+                className="flex items-center gap-1 text-primary font-semibold hover:underline disabled:opacity-50"
+              >
+                <RefreshCw className={cn('w-3 h-3', loadingServers && 'animate-spin')} /> Atualizar
+              </button>
+            </div>
+          )}
           {activeTab === 'servers' ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <><div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {filteredServers.map(server => {
                 const IconComponent = getIconComponent(server.icon);
                 const isInstalled = Boolean(installedMap[server.id]);
@@ -232,7 +309,7 @@ export function McpHubModal({
 
                     <div className="pt-2 border-t border-border/70 flex items-center justify-between text-xs">
                       <span className="text-[11px] text-muted-foreground font-mono truncate max-w-[160px]">
-                        {server.command} {server.args?.[0]}
+                        {server.url || `${server.command || ''} ${server.args?.[0] || ''}`}
                       </span>
 
                       <button
@@ -264,6 +341,17 @@ export function McpHubModal({
                 );
               })}
             </div>
+            {nextCursor && (
+              <div className="flex justify-center pt-2">
+                <button
+                  onClick={() => loadServers({ search: searchQuery, cursor: nextCursor }, true)}
+                  disabled={loadingServers}
+                  className="px-4 py-2 rounded-xl border border-border bg-muted text-xs font-semibold"
+                >
+                  {loadingServers ? 'Carregando…' : 'Carregar mais'}
+                </button>
+              </div>
+            )}</>
           ) : (
             /* Workflow Recipes Tab */
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

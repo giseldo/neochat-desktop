@@ -6,6 +6,8 @@
  * - Curated automation workflow recipes
  */
 
+const { fetchRegistryPage, safeHttpUrl } = require('../mcpRegistry');
+
 const CURATED_MCP_SERVERS = [
   {
     id: 'github',
@@ -118,26 +120,63 @@ const CURATED_RECIPES = [
 ];
 
 class McpHubEngine {
+  constructor() {
+    this.cache = new Map();
+    this.cacheTtlMs = 5 * 60 * 1000;
+  }
+
   listCuratedServers() {
     return CURATED_MCP_SERVERS;
+  }
+
+  async listServers(options = {}) {
+    const key = JSON.stringify({ search: options.search || '', cursor: options.cursor || '', limit: options.limit || 50 });
+    const cached = this.cache.get(key);
+    if (!options.forceRefresh && cached && Date.now() - cached.fetchedAt < this.cacheTtlMs) {
+      return { ...cached.data, status: 'cache' };
+    }
+    try {
+      const page = await fetchRegistryPage(options);
+      const data = { ...page, status: 'fresh', source: 'registry' };
+      this.cache.set(key, { data, fetchedAt: Date.now() });
+      return data;
+    } catch (error) {
+      if (cached) return { ...cached.data, status: 'stale', error: error.message };
+      const fallback = !options.cursor && !options.search ? CURATED_MCP_SERVERS : [];
+      return { servers: fallback, nextCursor: '', status: 'fallback', source: 'curated', error: error.message };
+    }
   }
 
   listCuratedRecipes() {
     return CURATED_RECIPES;
   }
 
-  async installMcpServer({ serverId, customArgs, customEnv, settings = {}, saveSettings }) {
-    const serverDef = CURATED_MCP_SERVERS.find(s => s.id === serverId);
+  async installMcpServer({ serverId, server, bearerToken, customArgs, customEnv, settings = {}, saveSettings }) {
+    const serverDef = server || CURATED_MCP_SERVERS.find(s => s.id === serverId);
     if (!serverDef) {
       throw new Error(`MCP Server ${serverId} não encontrado no catálogo`);
     }
 
-    const currentServers = settings.mcpServers || {};
-    currentServers[serverId] = {
+    const isRemote = serverDef.transport === 'sse' || serverDef.transport === 'streamableHttp';
+    if (isRemote && !safeHttpUrl(serverDef.url)) throw new Error('URL remota MCP inválida.');
+    if (!isRemote && !serverDef.command) throw new Error('Comando MCP ausente.');
+    const id = String(serverDef.id || serverId || '').replace(/[^a-zA-Z0-9._:-]/g, '-').slice(0, 120);
+    if (!id) throw new Error('ID do servidor MCP inválido.');
+    const headers = { ...(serverDef.headers || {}) };
+    if (bearerToken?.trim()) {
+      const headerName = serverDef.auth?.name || 'Authorization';
+      headers[headerName] = serverDef.auth?.type === 'apiKey' ? bearerToken.trim() : `Bearer ${bearerToken.trim()}`;
+    }
+
+    const currentServers = { ...(settings.mcpServers || {}) };
+    currentServers[id] = {
       name: serverDef.name,
-      command: serverDef.command,
-      args: customArgs || serverDef.args,
-      env: customEnv || serverDef.env || {},
+      ...(isRemote ? { transport: serverDef.transport, url: serverDef.url, headers } : {
+        command: serverDef.command,
+        args: customArgs || serverDef.args,
+        env: customEnv || serverDef.env || {}
+      }),
+      source: serverDef.source || 'curated',
       enabled: true
     };
 
@@ -147,9 +186,32 @@ class McpHubEngine {
 
     return {
       success: true,
-      server: currentServers[serverId],
+      serverId: id,
+      server: currentServers[id],
       message: `Servidor MCP ${serverDef.name} instalado e configurado com sucesso!`
     };
+  }
+
+  async installCustomServer({ name, url, transport = 'streamableHttp', bearerToken, headers = {}, settings = {}, saveSettings }) {
+    const normalizedUrl = safeHttpUrl(url);
+    if (!normalizedUrl) throw new Error('A URL deve usar HTTP ou HTTPS.');
+    if (!['streamableHttp', 'sse'].includes(transport)) throw new Error('Transporte MCP remoto inválido.');
+    const title = String(name || new URL(normalizedUrl).hostname).trim().slice(0, 100);
+    const slug = title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 60) || 'server';
+    return this.installMcpServer({
+      server: {
+        id: `custom-mcp-${slug}`,
+        name: title,
+        source: 'custom',
+        transport,
+        url: normalizedUrl,
+        headers,
+        auth: bearerToken ? { type: 'bearer', name: 'Authorization' } : { type: 'none' }
+      },
+      bearerToken,
+      settings,
+      saveSettings
+    });
   }
 }
 
@@ -163,8 +225,8 @@ module.exports = {
   lazy: true,
 
   init: async (ctx) => {
-    ctx.registerIpcHandler('mcp-hub:list-servers', async () => {
-      return mcpHubEngine.listCuratedServers();
+    ctx.registerIpcHandler('mcp-hub:list-servers', async (_event, options = {}) => {
+      return await mcpHubEngine.listServers(options);
     });
 
     ctx.registerIpcHandler('mcp-hub:list-recipes', async () => {
@@ -174,6 +236,15 @@ module.exports = {
     ctx.registerIpcHandler('mcp-hub:install', async (_event, params = {}) => {
       const currentSettings = ctx.loadSettings ? ctx.loadSettings() : {};
       return await mcpHubEngine.installMcpServer({
+        ...params,
+        settings: currentSettings,
+        saveSettings: ctx.saveSettings
+      });
+    });
+
+    ctx.registerIpcHandler('mcp-hub:install-custom', async (_event, params = {}) => {
+      const currentSettings = ctx.loadSettings ? ctx.loadSettings() : {};
+      return await mcpHubEngine.installCustomServer({
         ...params,
         settings: currentSettings,
         saveSettings: ctx.saveSettings
@@ -189,3 +260,6 @@ module.exports = {
     console.log('[McpHubPlugin] Deactivated.');
   }
 };
+
+module.exports.McpHubEngine = McpHubEngine;
+module.exports.CURATED_MCP_SERVERS = CURATED_MCP_SERVERS;

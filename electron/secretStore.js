@@ -47,6 +47,25 @@ function createSecretStore({ userDataPath, safeStorage }) {
             publicSettings.externalPluginConfigs = publicPluginConfigs;
             if (Object.keys(pluginAuthValues).length > 0) secrets.externalPluginAuthValues = pluginAuthValues;
         }
+        if (publicSettings.mcpServers !== undefined) {
+            const publicMcpServers = {};
+            const mcpServerSecrets = {};
+            for (const [serverId, config] of Object.entries(publicSettings.mcpServers || {})) {
+                publicMcpServers[serverId] = { ...(config || {}) };
+                const protectedFields = {};
+                if (publicMcpServers[serverId].env && Object.keys(publicMcpServers[serverId].env).length > 0) {
+                    protectedFields.env = publicMcpServers[serverId].env;
+                    delete publicMcpServers[serverId].env;
+                }
+                if (publicMcpServers[serverId].headers && Object.keys(publicMcpServers[serverId].headers).length > 0) {
+                    protectedFields.headers = publicMcpServers[serverId].headers;
+                    delete publicMcpServers[serverId].headers;
+                }
+                if (Object.keys(protectedFields).length > 0) mcpServerSecrets[serverId] = protectedFields;
+            }
+            publicSettings.mcpServers = publicMcpServers;
+            if (Object.keys(mcpServerSecrets).length > 0) secrets.mcpServerSecrets = mcpServerSecrets;
+        }
         return { publicSettings, secrets };
     }
 
@@ -84,6 +103,15 @@ function createSecretStore({ userDataPath, safeStorage }) {
                     hydrated.externalPluginConfigs[pluginId] = {
                         ...(hydrated.externalPluginConfigs[pluginId] || {}),
                         authValue
+                    };
+                }
+            }
+            if (secrets.mcpServerSecrets !== undefined) {
+                hydrated.mcpServers = { ...(hydrated.mcpServers || {}) };
+                for (const [serverId, protectedFields] of Object.entries(secrets.mcpServerSecrets)) {
+                    hydrated.mcpServers[serverId] = {
+                        ...(hydrated.mcpServers[serverId] || {}),
+                        ...(protectedFields || {})
                     };
                 }
             }

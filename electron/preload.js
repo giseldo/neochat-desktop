@@ -141,9 +141,10 @@ contextBridge.exposeInMainWorld('electron', {
   },
   // MCP Hub API
   mcpHub: {
-    listServers: () => ipcRenderer.invoke('mcp-hub:list-servers'),
+    listServers: (options) => ipcRenderer.invoke('mcp-hub:list-servers', options),
     listRecipes: () => ipcRenderer.invoke('mcp-hub:list-recipes'),
-    install: (params) => ipcRenderer.invoke('mcp-hub:install', params)
+    install: (params) => ipcRenderer.invoke('mcp-hub:install', params),
+    installCustom: (params) => ipcRenderer.invoke('mcp-hub:install-custom', params)
   },
   // Computer Vision API
   vision: {
