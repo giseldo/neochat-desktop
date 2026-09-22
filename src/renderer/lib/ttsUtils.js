@@ -270,13 +270,49 @@ function playNextChunk(session) {
   }
 }
 
+// Module-level state for neural audio playback
+let activeAudio = null;
+
+function playSystemSpeech(session, cleanText, language, voiceURI, rate, pitch) {
+  if (typeof window === 'undefined' || !window.speechSynthesis) {
+    if (session.onError) session.onError(new Error('SpeechSynthesis not supported'));
+    return;
+  }
+
+  const chunks = splitTextIntoChunks(cleanText, 200);
+  if (chunks.length === 0) {
+    if (session.onEnd) session.onEnd();
+    return;
+  }
+
+  const voices = window.speechSynthesis.getVoices() || [];
+  const selectedVoice = findBestVoice(voices, voiceURI, language);
+
+  session.chunks = chunks;
+  session.currentIndex = 0;
+  session.lang = language === 'pt' ? 'pt-BR' : 'en-US';
+  session.rate = Number(rate) || 1.05;
+  session.pitch = Number(pitch) || 1.0;
+  session.voice = selectedVoice;
+
+  setTimeout(() => {
+    if (activeSession === session && !session.isStopped) {
+      startKeepAlive();
+      playNextChunk(session);
+    }
+  }, 35);
+}
+
 /**
- * Starts speaking a given text with chunking, queue management, and GC protection.
+ * Starts speaking a given text with neural multi-engine support (Edge, Piper, Kokoro)
+ * or falls back to system speech synthesis.
  */
 export function playSpeech({
   text,
   language = 'pt',
   voiceURI = '',
+  engine = '',
+  voice = '',
   rate = 1.05,
   pitch = 1.0,
   onStart,
@@ -285,13 +321,7 @@ export function playSpeech({
   onPause,
   onResume
 }) {
-  if (typeof window === 'undefined' || !window.speechSynthesis) {
-    console.warn('[TTS] window.speechSynthesis is not available');
-    if (onError) onError(new Error('SpeechSynthesis not supported'));
-    return null;
-  }
-
-  // Stop any active session
+  // Stop any active session first
   stopSpeech();
 
   const cleanText = sanitizeTextForSpeech(text, language);
@@ -300,23 +330,8 @@ export function playSpeech({
     return null;
   }
 
-  const chunks = splitTextIntoChunks(cleanText, 200);
-  if (chunks.length === 0) {
-    if (onEnd) onEnd();
-    return null;
-  }
-
-  const voices = window.speechSynthesis.getVoices() || [];
-  const selectedVoice = findBestVoice(voices, voiceURI, language);
-
   const session = {
     id: Date.now() + Math.random(),
-    chunks,
-    currentIndex: 0,
-    lang: language === 'pt' ? 'pt-BR' : 'en-US',
-    rate: Number(rate) || 1.05,
-    pitch: Number(pitch) || 1.0,
-    voice: selectedVoice,
     isSpeaking: false,
     isPaused: false,
     isStopped: false,
@@ -326,17 +341,62 @@ export function playSpeech({
     onPause,
     onResume
   };
-
   activeSession = session;
 
-  // Short timeout to ensure previous cancel has settled in native OS dispatcher
-  setTimeout(() => {
-    if (activeSession === session && !session.isStopped) {
-      startKeepAlive();
-      playNextChunk(session);
-    }
-  }, 35);
+  const targetEngine = engine || (window.electron?.tts ? 'edge' : 'system');
 
+  // If neural engine requested and backend is available
+  if (targetEngine !== 'system' && window.electron?.tts?.synthesize) {
+    const effectiveVoice = voice || (targetEngine === 'piper' ? 'pt_BR-faber-medium' : (targetEngine === 'kokoro' ? 'af_heart' : 'pt-BR-FranciscaNeural'));
+
+    window.electron.tts.synthesize({
+      text: cleanText,
+      engine: targetEngine,
+      voice: effectiveVoice,
+      rate: Number(rate) || 1.05,
+      pitch: Number(pitch) || 1.0
+    }).then(({ audioUrl }) => {
+      if (activeSession !== session || session.isStopped) return;
+
+      const audio = new Audio(audioUrl);
+      activeAudio = audio;
+
+      audio.onplay = () => {
+        if (activeSession === session && !session.isStopped) {
+          session.isSpeaking = true;
+          if (session.onStart) session.onStart();
+        }
+      };
+
+      audio.onended = () => {
+        if (activeSession === session) {
+          session.isSpeaking = false;
+          activeAudio = null;
+          if (session.onEnd) session.onEnd();
+        }
+      };
+
+      audio.onerror = (err) => {
+        console.warn('[TTS] Audio playback error, falling back to system speech:', err);
+        activeAudio = null;
+        playSystemSpeech(session, cleanText, language, voiceURI, rate, pitch);
+      };
+
+      audio.play().catch((playErr) => {
+        console.warn('[TTS] Audio play error, falling back to system speech:', playErr);
+        activeAudio = null;
+        playSystemSpeech(session, cleanText, language, voiceURI, rate, pitch);
+      });
+    }).catch((synthErr) => {
+      console.warn('[TTS] Synthesis error, falling back to system speech:', synthErr);
+      playSystemSpeech(session, cleanText, language, voiceURI, rate, pitch);
+    });
+
+    return session;
+  }
+
+  // System fallback
+  playSystemSpeech(session, cleanText, language, voiceURI, rate, pitch);
   return session;
 }
 
@@ -345,6 +405,18 @@ export function playSpeech({
  */
 export function stopSpeech() {
   stopKeepAlive();
+  if (activeAudio) {
+    try {
+      activeAudio.pause();
+      activeAudio.currentTime = 0;
+    } catch (e) {
+      // Ignore audio stop error
+    }
+    activeAudio = null;
+  }
+  if (window.electron?.tts?.stop) {
+    window.electron.tts.stop().catch(() => {});
+  }
   if (activeSession) {
     activeSession.isStopped = true;
     activeSession = null;
@@ -363,8 +435,16 @@ export function stopSpeech() {
  * Pauses active speech playback
  */
 export function pauseSpeech() {
+  if (activeAudio) {
+    try {
+      activeAudio.pause();
+    } catch (e) {
+      console.warn('[TTS] Failed to pause audio element:', e);
+    }
+  }
   if (activeSession) {
     activeSession.isPaused = true;
+    if (activeSession.onPause) activeSession.onPause();
   }
   if (typeof window !== 'undefined' && window.speechSynthesis && window.speechSynthesis.speaking) {
     try {
@@ -379,8 +459,16 @@ export function pauseSpeech() {
  * Resumes active speech playback
  */
 export function resumeSpeech() {
+  if (activeAudio) {
+    try {
+      activeAudio.play();
+    } catch (e) {
+      console.warn('[TTS] Failed to resume audio element:', e);
+    }
+  }
   if (activeSession) {
     activeSession.isPaused = false;
+    if (activeSession.onResume) activeSession.onResume();
   }
   if (typeof window !== 'undefined' && window.speechSynthesis) {
     try {

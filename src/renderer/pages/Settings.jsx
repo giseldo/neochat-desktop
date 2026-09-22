@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { Link, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Search, Eye, EyeOff, Plus, Trash2, Edit3, Save, X, RefreshCw, Key, Settings as SettingsIcon, Zap, Cpu, Server, AlertCircle, CheckCircle, Sun, Moon, Laptop, Languages, Check, Terminal, Globe, Palette, Type, Sparkles, Sliders, ExternalLink, Route, User, Wrench, Download, UploadCloud, BarChart3, GitBranch, Mic, Volume2, Info, Keyboard, Folder, FolderOpen, RotateCcw, Lightbulb, Star, ChevronDown, ChevronUp, HardDrive, Brain, Flame, AlignJustify, Maximize2, Blocks, Bot, HelpCircle, Copy, Github, ImagePlus, Scissors } from 'lucide-react';
+import { ArrowLeft, Search, Eye, EyeOff, Plus, Trash2, Edit3, Save, X, RefreshCw, Key, Settings as SettingsIcon, Zap, Cpu, Server, AlertCircle, CheckCircle, Sun, Moon, Laptop, Languages, Check, Terminal, Globe, Palette, Type, Sparkles, Sliders, ExternalLink, Route, User, Wrench, Download, UploadCloud, BarChart3, GitBranch, Mic, Volume2, Info, Keyboard, Folder, FolderOpen, RotateCcw, Lightbulb, Star, ChevronDown, ChevronUp, HardDrive, Brain, Flame, AlignJustify, Maximize2, Blocks, Bot, HelpCircle, Copy, Github, ImagePlus, Scissors, Play, Square, Loader2 } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, SettingsRow, SettingsChoices, SettingsSelect } from '../components/settings/SettingsSection';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
@@ -18,6 +18,42 @@ import UserMemoryModal from '../components/UserMemoryModal';
 import { cn } from '../lib/utils';
 import { getModelGroup, getModelDisplayName, groupModels, parseBulkModelsInput } from '../lib/modelGrouping';
 import systemPromptExtensions from '../../../shared/system-prompt-extensions.json';
+import { playSpeech, stopSpeech } from '../lib/ttsUtils';
+
+const EDGE_VOICE_LIST = [
+  { id: 'pt-BR-FranciscaNeural', name: 'Francisca (Neural - Feminina, Suave e Natural)' },
+  { id: 'pt-BR-AntonioNeural', name: 'Antonio (Neural - Masculino, Expressivo)' },
+  { id: 'pt-BR-ThalitaNeural', name: 'Thalita (Neural - Feminina, Jovem)' },
+  { id: 'pt-BR-DonatoNeural', name: 'Donato (Neural - Masculino, Amigável)' },
+  { id: 'pt-BR-ElzaNeural', name: 'Elza (Neural - Feminina, Calma)' },
+  { id: 'pt-BR-FabioNeural', name: 'Fabio (Neural - Masculino, Profundo)' },
+  { id: 'pt-BR-GiovannaNeural', name: 'Giovanna (Neural - Feminina, Alegre)' },
+  { id: 'pt-BR-JulioNeural', name: 'Julio (Neural - Masculino, Firme)' },
+  { id: 'pt-BR-ManuelaNeural', name: 'Manuela (Neural - Feminina, Dinâmica)' },
+  { id: 'pt-BR-NicolauNeural', name: 'Nicolau (Neural - Masculino, Maduro)' },
+  { id: 'en-US-JennyNeural', name: 'Jenny (Neural - US English Female)' },
+  { id: 'en-US-GuyNeural', name: 'Guy (Neural - US English Male)' },
+  { id: 'en-US-AriaNeural', name: 'Aria (Neural - US English Expressive)' },
+  { id: 'es-ES-ElviraNeural', name: 'Elvira (Neural - Español)' }
+];
+
+const PIPER_VOICE_LIST = [
+  { id: 'pt_BR-faber-medium', name: 'Faber (PT-BR - Neural Local VITS ~60MB)' },
+  { id: 'pt_BR-edresson-low', name: 'Edresson (PT-BR - Ultraleve Rápido ~16MB)' },
+  { id: 'en_US-lessac-medium', name: 'Lessac (EN-US - Neural Local ~60MB)' }
+];
+
+const KOKORO_VOICE_LIST = [
+  { id: 'af_heart', name: 'Heart (Neural 82M - Feminino Estúdio)' },
+  { id: 'af_bella', name: 'Bella (Neural 82M - Feminino Suave)' },
+  { id: 'af_nicole', name: 'Nicole (Neural 82M - Feminino Sussurrado)' },
+  { id: 'af_sarah', name: 'Sarah (Neural 82M - Feminino Enérgico)' },
+  { id: 'af_sky', name: 'Sky (Neural 82M - Feminino Calmo)' },
+  { id: 'am_adam', name: 'Adam (Neural 82M - Masculino Firme)' },
+  { id: 'am_michael', name: 'Michael (Neural 82M - Masculino Sereno)' },
+  { id: 'bf_emma', name: 'Emma (Neural 82M - Britânica)' },
+  { id: 'bm_george', name: 'George (Neural 82M - Britânico)' }
+];
 
 const DEFAULT_SYSTEM_PROMPT = 'You are a helpful assistant. Format responses using Markdown.';
 
@@ -504,6 +540,8 @@ function Settings() {
   const [localAiStatus, setLocalAiStatus] = useState(null);
   const [isDetectingLocalAi, setIsDetectingLocalAi] = useState(false);
   const [speechVoices, setSpeechVoices] = useState([]);
+  const [isTestingTts, setIsTestingTts] = useState(false);
+  const testAudioRef = useRef(null);
   const [updateStatus, setUpdateStatus] = useState({ status: 'idle', percent: 0 });
   const [usageSummary, setUsageSummary] = useState(null);
   const [gitOutput, setGitOutput] = useState('');
@@ -3229,6 +3267,75 @@ function Settings() {
     const updatedSettings = { ...settings, tts: { ...(settings.tts || {}), ...updates } };
     setSettings(updatedSettings);
     saveSettings(updatedSettings);
+    window.dispatchEvent(new CustomEvent('neochat:settings-updated', { detail: updatedSettings }));
+  };
+
+  const handleTestTtsVoice = async () => {
+    if (isTestingTts) {
+      if (testAudioRef.current) {
+        try {
+          testAudioRef.current.pause();
+          testAudioRef.current.currentTime = 0;
+        } catch (e) {}
+        testAudioRef.current = null;
+      }
+      stopSpeech();
+      setIsTestingTts(false);
+      return;
+    }
+
+    setIsTestingTts(true);
+    const engine = settings.tts?.engine || 'edge';
+    const rate = Number(settings.tts?.rate) || 1.05;
+    const pitch = Number(settings.tts?.pitch) || 1.0;
+    const voice = engine === 'piper'
+      ? (settings.tts?.piperVoice || 'pt_BR-faber-medium')
+      : (engine === 'kokoro'
+        ? (settings.tts?.kokoroVoice || 'af_heart')
+        : (settings.tts?.edgeVoice || 'pt-BR-FranciscaNeural'));
+
+    if (engine === 'system') {
+      playSpeech({
+        text: t('settings.ttsTestPhrase') || 'Olá! Esta é uma demonstração da síntese neural no NeoChat.',
+        language: 'pt',
+        voiceURI: settings.tts?.voiceURI || '',
+        rate,
+        pitch,
+        engine: 'system',
+        onStart: () => setIsTestingTts(true),
+        onEnd: () => setIsTestingTts(false),
+        onError: () => setIsTestingTts(false)
+      });
+      return;
+    }
+
+    try {
+      const res = await window.electron?.tts?.testVoice({
+        engine,
+        voice,
+        rate,
+        pitch
+      });
+
+      if (res?.audioUrl) {
+        const audio = new Audio(res.audioUrl);
+        testAudioRef.current = audio;
+        audio.onended = () => {
+          setIsTestingTts(false);
+          testAudioRef.current = null;
+        };
+        audio.onerror = () => {
+          setIsTestingTts(false);
+          testAudioRef.current = null;
+        };
+        await audio.play();
+      } else {
+        setIsTestingTts(false);
+      }
+    } catch (err) {
+      console.warn('[Settings] TTS Test failed:', err);
+      setIsTestingTts(false);
+    }
   };
 
   const updateVoiceInput = (updates) => {
@@ -4163,16 +4270,125 @@ function Settings() {
               <CardContent className="space-y-4">
                 <div className="flex items-center justify-between"><Label>{t('settings.ttsEnabled')}</Label><Switch checked={settings.tts?.enabled !== false} onChange={event => updateTts({ enabled: event.target.checked })} /></div>
                 <div className="flex items-center justify-between"><Label>{t('settings.ttsAutoSpeak')}</Label><Switch checked={settings.tts?.autoSpeak === true} onChange={event => updateTts({ autoSpeak: event.target.checked })} /></div>
+                
+                {/* Motor de Síntese (TTS Engine) */}
                 <div className="space-y-2">
-                  <Label>{t('settings.ttsVoice')}</Label>
-                  <select className="w-full h-10 rounded-md border border-input bg-background px-3 text-sm" value={settings.tts?.voiceURI || ''} onChange={event => updateTts({ voiceURI: event.target.value })}>
-                    <option value="">{t('settings.ttsSystemVoice')}</option>
-                    {speechVoices.map(voice => <option key={voice.voiceURI} value={voice.voiceURI}>{voice.name} ({voice.lang})</option>)}
+                  <div className="flex items-center justify-between">
+                    <Label className="font-medium">{t('settings.ttsEngine')}</Label>
+                    <span className="text-xs text-muted-foreground">{t('settings.ttsEngineDesc')}</span>
+                  </div>
+                  <select 
+                    className="w-full h-10 rounded-md border border-input bg-background px-3 text-sm font-medium" 
+                    value={settings.tts?.engine || 'edge'} 
+                    onChange={event => updateTts({ engine: event.target.value })}
+                  >
+                    <option value="edge">🌐 {t('settings.ttsEngineEdge')}</option>
+                    <option value="piper">⚡ {t('settings.ttsEnginePiper')}</option>
+                    <option value="kokoro">🧠 {t('settings.ttsEngineKokoro')}</option>
+                    <option value="system">💻 {t('settings.ttsEngineSystem')}</option>
                   </select>
                 </div>
+
+                {/* Voz do Motor Selecionado */}
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <Label className="font-medium">{t('settings.ttsVoice')}</Label>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={handleTestTtsVoice}
+                      className="h-8 px-3 text-xs gap-1.5"
+                    >
+                      {isTestingTts ? (
+                        <>
+                          <Square className="h-3.5 w-3.5 fill-current text-destructive" />
+                          <span>{t('settings.ttsStopTest')}</span>
+                        </>
+                      ) : (
+                        <>
+                          <Volume2 className="h-3.5 w-3.5 text-primary" />
+                          <span>{t('settings.ttsTestVoice')}</span>
+                        </>
+                      )}
+                    </Button>
+                  </div>
+
+                  {(!settings.tts?.engine || settings.tts?.engine === 'edge') && (
+                    <select 
+                      className="w-full h-10 rounded-md border border-input bg-background px-3 text-sm" 
+                      value={settings.tts?.edgeVoice || 'pt-BR-FranciscaNeural'} 
+                      onChange={event => updateTts({ edgeVoice: event.target.value })}
+                    >
+                      {EDGE_VOICE_LIST.map(v => (
+                        <option key={v.id} value={v.id}>{v.name}</option>
+                      ))}
+                    </select>
+                  )}
+
+                  {settings.tts?.engine === 'piper' && (
+                    <select 
+                      className="w-full h-10 rounded-md border border-input bg-background px-3 text-sm" 
+                      value={settings.tts?.piperVoice || 'pt_BR-faber-medium'} 
+                      onChange={event => updateTts({ piperVoice: event.target.value })}
+                    >
+                      {PIPER_VOICE_LIST.map(v => (
+                        <option key={v.id} value={v.id}>{v.name}</option>
+                      ))}
+                    </select>
+                  )}
+
+                  {settings.tts?.engine === 'kokoro' && (
+                    <select 
+                      className="w-full h-10 rounded-md border border-input bg-background px-3 text-sm" 
+                      value={settings.tts?.kokoroVoice || 'af_heart'} 
+                      onChange={event => updateTts({ kokoroVoice: event.target.value })}
+                    >
+                      {KOKORO_VOICE_LIST.map(v => (
+                        <option key={v.id} value={v.id}>{v.name}</option>
+                      ))}
+                    </select>
+                  )}
+
+                  {settings.tts?.engine === 'system' && (
+                    <select 
+                      className="w-full h-10 rounded-md border border-input bg-background px-3 text-sm" 
+                      value={settings.tts?.voiceURI || ''} 
+                      onChange={event => updateTts({ voiceURI: event.target.value })}
+                    >
+                      <option value="">{t('settings.ttsSystemVoice')}</option>
+                      {speechVoices.map(voice => (
+                        <option key={voice.voiceURI} value={voice.voiceURI}>{voice.name} ({voice.lang})</option>
+                      ))}
+                    </select>
+                  )}
+                </div>
+
                 <div className="grid sm:grid-cols-2 gap-4">
-                  <div className="space-y-2"><Label>{t('settings.ttsRate')}: {settings.tts?.rate || 1.05}</Label><input className="w-full" type="range" min="0.5" max="2" step="0.05" value={settings.tts?.rate || 1.05} onChange={event => updateTts({ rate: Number(event.target.value) })} /></div>
-                  <div className="space-y-2"><Label>{t('settings.ttsPitch')}: {settings.tts?.pitch || 1}</Label><input className="w-full" type="range" min="0.5" max="2" step="0.05" value={settings.tts?.pitch || 1} onChange={event => updateTts({ pitch: Number(event.target.value) })} /></div>
+                  <div className="space-y-2">
+                    <Label>{t('settings.ttsRate')}: {settings.tts?.rate || 1.05}</Label>
+                    <input 
+                      className="w-full" 
+                      type="range" 
+                      min="0.5" 
+                      max="2" 
+                      step="0.05" 
+                      value={settings.tts?.rate || 1.05} 
+                      onChange={event => updateTts({ rate: Number(event.target.value) })} 
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>{t('settings.ttsPitch')}: {settings.tts?.pitch || 1}</Label>
+                    <input 
+                      className="w-full" 
+                      type="range" 
+                      min="0.5" 
+                      max="2" 
+                      step="0.05" 
+                      value={settings.tts?.pitch || 1} 
+                      onChange={event => updateTts({ pitch: Number(event.target.value) })} 
+                    />
+                  </div>
                 </div>
               </CardContent>
             </Card>

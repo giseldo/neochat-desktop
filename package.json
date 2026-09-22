@@ -50,6 +50,7 @@
     "test:rag-incremental": "node tests/test-rag-incremental.js",
     "test:provider-fallback": "node tests/test-provider-fallback.js",
     "test:tts-settings": "node tests/test-tts-settings.js",
+    "test:tts-manager": "node tests/test-tts-manager.js",
     "test:update-manager": "node tests/test-update-manager.js",
     "test:observability": "node tests/test-observability-manager.js",
     "test:git-manager": "node tests/test-git-manager.js",

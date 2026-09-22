@@ -181,6 +181,8 @@ export function CanvasPanel({ onSendPrompt, className }) {
   const [ttsRate, setTtsRate] = useState(1.05);
   const [ttsPitch, setTtsPitch] = useState(1.0);
   const [ttsVoiceURI, setTtsVoiceURI] = useState('');
+  const [ttsEngine, setTtsEngine] = useState('edge');
+  const [ttsVoice, setTtsVoice] = useState('pt-BR-FranciscaNeural');
   const [isTtsSpeedMenuOpen, setIsTtsSpeedMenuOpen] = useState(false);
 
   // Click outside listener for all popovers
@@ -276,6 +278,10 @@ export function CanvasPanel({ onSendPrompt, className }) {
         if (settings.tts.rate) setTtsRate(Number(settings.tts.rate) || 1.05);
         if (settings.tts.pitch) setTtsPitch(Number(settings.tts.pitch) || 1.0);
         if (settings.tts.voiceURI) setTtsVoiceURI(settings.tts.voiceURI);
+        const eng = settings.tts.engine || 'edge';
+        setTtsEngine(eng);
+        const v = eng === 'piper' ? settings.tts.piperVoice : (eng === 'kokoro' ? settings.tts.kokoroVoice : settings.tts.edgeVoice);
+        if (v) setTtsVoice(v);
       }
     }).catch(() => {});
   }, []);
@@ -369,6 +375,8 @@ export function CanvasPanel({ onSendPrompt, className }) {
       playSpeech({
         text: textToSpeak,
         language: appLanguage === 'en' ? 'en' : 'pt',
+        engine: ttsEngine,
+        voice: ttsVoice,
         voiceURI: ttsVoiceURI,
         rate: ttsRate,
         pitch: ttsPitch,

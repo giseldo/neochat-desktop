@@ -11,10 +11,19 @@ const DEFAULT_SYSTEM_PROMPT = 'You are a helpful assistant. Format responses usi
 
 function normalizeTts(value = {}) {
     const clamp = (number, fallback) => Math.min(2, Math.max(0.5, Number.isFinite(Number(number)) ? Number(number) : fallback));
+    const validEngines = ['edge', 'piper', 'kokoro', 'system'];
+    const engine = typeof value.engine === 'string' && validEngines.includes(value.engine.toLowerCase())
+        ? value.engine.toLowerCase()
+        : 'edge';
+
     return {
         enabled: value.enabled !== false,
         autoSpeak: value.autoSpeak === true,
+        engine,
         voiceURI: typeof value.voiceURI === 'string' ? value.voiceURI : '',
+        edgeVoice: typeof value.edgeVoice === 'string' && value.edgeVoice ? value.edgeVoice : 'pt-BR-FranciscaNeural',
+        piperVoice: typeof value.piperVoice === 'string' && value.piperVoice ? value.piperVoice : 'pt_BR-faber-medium',
+        kokoroVoice: typeof value.kokoroVoice === 'string' && value.kokoroVoice ? value.kokoroVoice : 'af_heart',
         rate: clamp(value.rate, 1.05),
         pitch: clamp(value.pitch, 1)
     };
@@ -138,7 +147,7 @@ function loadSettings() {
         customProviders: [],
         fallbackProviders: [],
         fallbackModels: {},
-        tts: { enabled: true, autoSpeak: false, voiceURI: '', rate: 1.05, pitch: 1 },
+        tts: { enabled: true, autoSpeak: false, engine: 'edge', voiceURI: '', edgeVoice: 'pt-BR-FranciscaNeural', piperVoice: 'pt_BR-faber-medium', kokoroVoice: 'af_heart', rate: 1.05, pitch: 1 },
         voiceInput: { enabled: true, apiKey: '' },
         imageGeneration: {
             enabled: true,

@@ -55,6 +55,7 @@ const { skillManager } = require('./skillManager');
 const { assistantManager } = require('./assistantManager');
 const { RelatedQuestionsManager } = require('./relatedQuestionsManager');
 const imageGenerationManager = require('./imageGenerationManager');
+const { ttsManager } = require('./ttsManager');
 
 // Import context capture system
 const ContextCapture = require('./contextCapture');
@@ -940,6 +941,24 @@ app.whenReady().then(async () => {
 
   ipcMain.handle('save-image', async (_event, { dataUrl, defaultName }) => {
     return await imageGenerationManager.saveImageToFile(dataUrl, defaultName, mainWindow);
+  });
+
+  // --- Text-to-Speech (TTS) Multi-Engine Handlers ---
+  ipcMain.handle('tts:synthesize', async (_event, options) => {
+    return await ttsManager.synthesize(options);
+  });
+
+  ipcMain.handle('tts:get-voices', async (_event, engine) => {
+    return ttsManager.getVoices(engine);
+  });
+
+  ipcMain.handle('tts:test-voice', async (_event, options) => {
+    return await ttsManager.testVoice(options);
+  });
+
+  ipcMain.handle('tts:stop', async () => {
+    ttsManager.stop();
+    return { ok: true };
   });
 
   // --- Post-initialization Tasks --- //

@@ -582,6 +582,14 @@ contextBridge.exposeInMainWorld('electron', {
     getZoomFactor: () => webFrame.getZoomFactor(),
     setZoomFactor: (factor) => webFrame.setZoomFactor(factor),
   },
+
+  // Text-to-Speech (TTS) Multi-Engine APIs
+  tts: {
+    synthesize: (payload) => ipcRenderer.invoke('tts:synthesize', payload),
+    getVoices: (engine) => ipcRenderer.invoke('tts:get-voices', engine),
+    testVoice: (payload) => ipcRenderer.invoke('tts:test-voice', payload),
+    stop: () => ipcRenderer.invoke('tts:stop'),
+  },
 });
 
 // Restore saved zoom level on startup

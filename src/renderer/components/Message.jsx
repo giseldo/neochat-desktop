@@ -292,9 +292,15 @@ function Message({
 
       if (!rawText.trim()) return;
 
+      const effectiveVoice = ttsSettings.engine === 'piper' 
+        ? ttsSettings.piperVoice 
+        : (ttsSettings.engine === 'kokoro' ? ttsSettings.kokoroVoice : ttsSettings.edgeVoice);
+
       playSpeech({
         text: rawText,
         language: language === 'pt' ? 'pt' : 'en',
+        engine: ttsSettings.engine,
+        voice: effectiveVoice,
         voiceURI: ttsSettings.voiceURI,
         rate: Number(ttsSettings.rate) || 1.05,
         pitch: Number(ttsSettings.pitch) || 1,

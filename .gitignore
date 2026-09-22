@@ -43,3 +43,6 @@ local-test-scripts/
 # VitePress
 docs/.vitepress/cache/
 docs/.vitepress/dist/
+
+# Local TTS Cache
+.neochat-tts/
