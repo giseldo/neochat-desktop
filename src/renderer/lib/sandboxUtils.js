@@ -2,6 +2,7 @@
  * Utilities to build isolated and interactive Live Sandboxes
  * for HTML, CSS, JavaScript, React/JSX, Mermaid, and SVG artifacts.
  */
+import { sanitizeMermaid } from './mermaidSanitizer';
 
 /**
  * Check if the code is a React / JSX component
@@ -246,7 +247,7 @@ export function buildReactSandboxDoc(code = '', isDark = true) {
  * Build Live Mermaid Diagram document
  */
 export function buildMermaidDoc(mermaidCode = '', isDark = true) {
-  const cleanCode = mermaidCode.trim();
+  const cleanCode = sanitizeMermaid(mermaidCode.trim());
 
   return `<!DOCTYPE html>
 <html>

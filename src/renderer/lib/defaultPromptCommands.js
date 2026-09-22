@@ -72,8 +72,8 @@ export const BUILT_IN_SLASH_COMMANDS = [
     icon: 'GitBranch',
     titleKey: 'slashCommands.defaultDiagram',
     descKey: 'slashCommands.defaultDiagramDesc',
-    templatePt: 'Crie um diagrama Mermaid limpo e bem formatado para representar visualmente a arquitetura, estrutura ou fluxo do seguinte tema:\n\n```mermaid\n{{input}}\n```',
-    templateEn: 'Create a clean, well-formatted Mermaid diagram visually representing the architecture, data structure, or flow of the following topic:\n\n```mermaid\n{{input}}\n```',
+    templatePt: 'Crie um diagrama Mermaid limpo e bem formatado para representar visualmente a arquitetura, estrutura ou fluxo do seguinte tema. Regra de sintaxe: sempre use aspas duplas nos rótulos de nós que contenham parênteses, colchetes ou pontuação (ex: A["Texto (com detalhes)"]).\n\n```mermaid\n{{input}}\n```',
+    templateEn: 'Create a clean, well-formatted Mermaid diagram visually representing the architecture, data structure, or flow of the following topic. Syntax rule: always wrap node labels containing parentheses, brackets, or punctuation in double quotes (e.g. A["Text (with details)"]).\n\n```mermaid\n{{input}}\n```',
     isBuiltIn: true
   },
   {

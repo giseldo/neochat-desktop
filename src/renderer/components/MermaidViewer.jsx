@@ -17,6 +17,7 @@ import {
 import { useTheme } from '../context/ThemeContext';
 import { useLanguage } from '../context/LanguageContext';
 import { cn } from '../lib/utils';
+import { sanitizeMermaid } from '../lib/mermaidSanitizer';
 
 // Keep track of unique diagram IDs
 let mermaidCounter = 0;
@@ -44,8 +45,8 @@ export function MermaidViewer({ code, className, onSwitchToCode }) {
     let isMounted = true;
 
     const renderDiagram = async () => {
-      const cleanCode = (code || '').trim();
-      if (!cleanCode) {
+      const rawCode = (code || '').trim();
+      if (!rawCode) {
         if (isMounted) {
           setSvgHtml('');
           setError(null);
@@ -57,9 +58,12 @@ export function MermaidViewer({ code, className, onSwitchToCode }) {
       setLoading(true);
       setError(null);
 
+      // Proactively sanitize and auto-repair common syntax issues (unquoted parens, etc.)
+      const cleanCode = sanitizeMermaid(rawCode);
+
       // Unique element id for mermaid render
       mermaidCounter += 1;
-      const id = `mermaid-chart-${Date.now()}-${mermaidCounter}`;
+      let id = `mermaid-chart-${Date.now()}-${mermaidCounter}`;
 
       try {
         mermaid.initialize({
@@ -115,11 +119,30 @@ export function MermaidViewer({ code, className, onSwitchToCode }) {
           suppressErrorRendering: true,
         });
 
-        const { svg, bindFunctions } = await mermaid.render(id, cleanCode);
+        let renderResult;
+        try {
+          renderResult = await mermaid.render(id, cleanCode);
+        } catch (firstErr) {
+          // If cleanCode differed from rawCode, retry with rawCode as fallback, or vice versa
+          if (cleanCode !== rawCode) {
+            const stray1 = document.getElementById(`d${id}`);
+            if (stray1) stray1.remove();
+            document.querySelectorAll('[id^="dmermaid-chart-"]').forEach(el => el.remove());
+
+            mermaidCounter += 1;
+            id = `mermaid-chart-${Date.now()}-${mermaidCounter}`;
+            renderResult = await mermaid.render(id, rawCode);
+          } else {
+            throw firstErr;
+          }
+        }
+
+        const { svg, bindFunctions } = renderResult;
 
         // Remove any stray error DOM nodes injected by mermaid
         const strayError = document.getElementById(`d${id}`);
         if (strayError) strayError.remove();
+        document.querySelectorAll('[id^="dmermaid-chart-"]').forEach(el => el.remove());
 
         if (isMounted) {
           setSvgHtml(svg);
@@ -371,6 +394,9 @@ export function MermaidViewer({ code, className, onSwitchToCode }) {
             <p className="text-muted-foreground font-mono text-[11px] leading-tight line-clamp-3">
               {error}
             </p>
+            <div className="text-[11px] text-muted-foreground bg-muted/50 rounded-md p-2 text-left border border-border/50 w-full mt-1">
+              <span className="font-semibold text-foreground">Dica:</span> Se o rótulo tiver parênteses, colchetes ou pontuação, envolva-o em aspas duplas: <code className="font-mono text-primary text-[10.5px]">A["Texto (detalhes)"]</code>.
+            </div>
             {onSwitchToCode && (
               <button
                 type="button"
