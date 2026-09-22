@@ -61,7 +61,7 @@ function resolveEffectiveModel(model) {
  * @param {string|null} projectId - Optional project ID to associate with this chat
  * @returns {Object} The new chat object
  */
-function createChat(model = null, useResponsesApi = false, projectId = null, personaId = null) {
+function createChat(model = null, useResponsesApi = false, projectId = null, personaId = null, botId = null) {
     const effectiveModel = resolveEffectiveModel(model);
     const now = new Date().toISOString();
     const chat = {
@@ -73,6 +73,7 @@ function createChat(model = null, useResponsesApi = false, projectId = null, per
         useResponsesApi: useResponsesApi,
         projectId: projectId || null,
         personaId: personaId || null,
+        botId: botId || null,
         pinned: false,
         pinnedAt: null,
         archived: false,
@@ -207,6 +208,7 @@ function listChats() {
                         useResponsesApi: chat.useResponsesApi || false,
                         projectId: chat.projectId || null,
                         personaId: chat.personaId || null,
+                        botId: chat.botId || null,
                         lastMessagePreview: (chat.messages && chat.messages.length > 0)
                             ? (typeof chat.messages[chat.messages.length - 1].content === 'string'
                                 ? chat.messages[chat.messages.length - 1].content.slice(0, 120)
@@ -302,6 +304,24 @@ function updateChatPersona(chatId, personaId) {
     }
     
     chat.personaId = personaId || null;
+    saveChat(chat);
+    return chat;
+}
+
+/**
+ * Update a chat's associated bot ID
+ * @param {string} chatId - The chat ID
+ * @param {string|null} botId - The new bot ID (or null to unassign)
+ * @returns {Object|null} The updated chat object
+ */
+function updateChatBot(chatId, botId) {
+    const chat = loadChat(chatId);
+    if (!chat) {
+        console.error(`Chat ${chatId} not found for bot update`);
+        return null;
+    }
+    
+    chat.botId = botId || null;
     saveChat(chat);
     return chat;
 }
@@ -545,9 +565,9 @@ function initializeChatHistoryHandlers(ipcMain) {
         return loadChat(chatId);
     });
     
-    // Create a new chat (with optional projectId and personaId)
-    ipcMain.handle('chat-history-create', async (event, model, useResponsesApi, projectId, personaId) => {
-        return createChat(model, useResponsesApi, projectId, personaId);
+    // Create a new chat (with optional projectId, personaId, and botId)
+    ipcMain.handle('chat-history-create', async (event, model, useResponsesApi, projectId, personaId, botId) => {
+        return createChat(model, useResponsesApi, projectId, personaId, botId);
     });
 
     ipcMain.handle('chat-history-branch', async (_event, chatId, messageIndex) => {
@@ -579,9 +599,14 @@ function initializeChatHistoryHandlers(ipcMain) {
         return updateChatProject(chatId, projectId);
     });
 
-    // Update chat persona / bot
+    // Update chat persona
     ipcMain.handle('chat-history-update-persona', async (event, chatId, personaId) => {
         return updateChatPersona(chatId, personaId);
+    });
+
+    // Update chat bot
+    ipcMain.handle('chat-history-update-bot', async (event, chatId, botId) => {
+        return updateChatBot(chatId, botId);
     });
 
     // Update chat canvas document
@@ -822,6 +847,7 @@ module.exports = {
     updateChatTitle,
     updateChatProject,
     updateChatPersona,
+    updateChatBot,
     updateChatCanvasDoc,
     unassignProjectFromChats,
     generateChatTitle,

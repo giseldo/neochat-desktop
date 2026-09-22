@@ -192,7 +192,7 @@ contextBridge.exposeInMainWorld('electron', {
     }
   },
   // Chat API - streaming only
-  executeToolCall: (toolCall) => ipcRenderer.invoke('execute-tool-call', toolCall),
+  executeToolCall: (toolCall, options = {}) => ipcRenderer.invoke('execute-tool-call', toolCall, options),
   testWebSearch: (query, options) => ipcRenderer.invoke('test-web-search', query, options),
   generateImage: (options) => ipcRenderer.invoke('generate-image', options),
   saveImage: (options) => ipcRenderer.invoke('save-image', options),
@@ -392,7 +392,7 @@ contextBridge.exposeInMainWorld('electron', {
   chatHistory: {
     list: () => ipcRenderer.invoke('chat-history-list'),
     load: (chatId) => ipcRenderer.invoke('chat-history-load', chatId),
-    create: (model, useResponsesApi, projectId, personaId) => ipcRenderer.invoke('chat-history-create', model, useResponsesApi, projectId, personaId),
+    create: (model, useResponsesApi, projectId, personaId, botId) => ipcRenderer.invoke('chat-history-create', model, useResponsesApi, projectId, personaId, botId),
     branch: (chatId, messageIndex) => ipcRenderer.invoke('chat-history-branch', chatId, messageIndex),
     save: (chat) => ipcRenderer.invoke('chat-history-save', chat),
     updateMessages: (chatId, messages) => ipcRenderer.invoke('chat-history-update-messages', chatId, messages),
@@ -400,6 +400,7 @@ contextBridge.exposeInMainWorld('electron', {
     updateTitle: (chatId, title) => ipcRenderer.invoke('chat-history-update-title', chatId, title),
     updateProject: (chatId, projectId) => ipcRenderer.invoke('chat-history-update-project', chatId, projectId),
     updatePersona: (chatId, personaId) => ipcRenderer.invoke('chat-history-update-persona', chatId, personaId),
+    updateBot: (chatId, botId) => ipcRenderer.invoke('chat-history-update-bot', chatId, botId),
     updateCanvas: (chatId, canvasDoc) => ipcRenderer.invoke('chat-history-update-canvas', chatId, canvasDoc),
     delete: (chatId) => ipcRenderer.invoke('chat-history-delete', chatId),
     deleteAll: () => ipcRenderer.invoke('chat-history-delete-all'),
@@ -468,9 +469,9 @@ contextBridge.exposeInMainWorld('electron', {
 
   // --- User Persistent Long-Term Memory ---
   memory: {
-    getAll: () => ipcRenderer.invoke('memory-get-all'),
-    getStats: () => ipcRenderer.invoke('memory-get-stats'),
-    add: (content, category, source) => ipcRenderer.invoke('memory-add', content, category, source),
+    getAll: (filter) => ipcRenderer.invoke('memory-get-all', filter),
+    getStats: (botId) => ipcRenderer.invoke('memory-get-stats', botId),
+    add: (content, category, source, botId) => ipcRenderer.invoke('memory-add', content, category, source, botId),
     update: (id, updates) => ipcRenderer.invoke('memory-update', id, updates),
     delete: (id) => ipcRenderer.invoke('memory-delete', id),
     clear: () => ipcRenderer.invoke('memory-clear'),
@@ -481,6 +482,16 @@ contextBridge.exposeInMainWorld('electron', {
       ipcRenderer.on('memory-updated', listener);
       return () => ipcRenderer.removeListener('memory-updated', listener);
     }
+  },
+
+  // --- Persistent Autonomous Bots (Hermes Agents) ---
+  bots: {
+    list: () => ipcRenderer.invoke('bots-list'),
+    get: (id) => ipcRenderer.invoke('bots-get', id),
+    save: (botData) => ipcRenderer.invoke('bots-save', botData),
+    delete: (id) => ipcRenderer.invoke('bots-delete', id),
+    getMemories: (botId) => ipcRenderer.invoke('bots-get-memories', botId),
+    clearMemories: (botId) => ipcRenderer.invoke('bots-clear-memories', botId)
   },
 
   // Generic IPC renderer access (kept for backward compatibility)

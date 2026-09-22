@@ -634,10 +634,11 @@ app.whenReady().then(async () => {
 
   // Tool execution (use module object)
   console.log("[Main Init] Registering execute-tool-call...");
-  ipcMain.handle('execute-tool-call', async (event, toolCall) => {
+  ipcMain.handle('execute-tool-call', async (event, toolCall, options = {}) => {
     const currentSettings = loadSettings();
+    const mergedSettings = { ...currentSettings, ...(options || {}) };
     const { discoveredTools, mcpClients } = mcpManager.getMcpState(); // Use module object
-    return toolHandler.handleExecuteToolCall(event, toolCall, discoveredTools, mcpClients, currentSettings);
+    return toolHandler.handleExecuteToolCall(event, toolCall, discoveredTools, mcpClients, mergedSettings);
   });
   console.log("[Main Init] execute-tool-call registered successfully");
 
@@ -671,18 +672,18 @@ app.whenReady().then(async () => {
   const memoryService = require('./memoryService');
   memoryService.initialize(app);
 
-  ipcMain.handle('memory-get-all', async () => {
-    return memoryService.getMemories();
+  ipcMain.handle('memory-get-all', async (event, filter) => {
+    return memoryService.getMemories(filter);
   });
-  ipcMain.handle('memory-get-stats', async () => {
-    return memoryService.getMemoryStats();
+  ipcMain.handle('memory-get-stats', async (event, botId) => {
+    return memoryService.getMemoryStats(botId);
   });
-  ipcMain.handle('memory-add', async (event, content, category, source) => {
+  ipcMain.handle('memory-add', async (event, content, category, source, botId = null) => {
     const currentSettings = loadSettings();
-    if (currentSettings.userMemory?.enabled === false) {
+    if (currentSettings.userMemory?.enabled === false && !botId) {
       return { success: false, error: 'O uso da memória geral está desativado nas configurações.' };
     }
-    return memoryService.addMemory(content, category, source);
+    return memoryService.addMemory(content, category, source, botId);
   });
   ipcMain.handle('memory-update', async (event, id, updates) => {
     return memoryService.updateMemory(id, updates);
@@ -759,6 +760,29 @@ app.whenReady().then(async () => {
       console.error('[Memory] Error importing memories:', err);
       return { success: false, error: err.message };
     }
+  });
+
+  // --- Persistent Autonomous Bots (Hermes Agents) IPC Handlers ---
+  const botManager = require('./botManager');
+  botManager.initialize(app);
+
+  ipcMain.handle('bots-list', async () => {
+    return botManager.listBots();
+  });
+  ipcMain.handle('bots-get', async (event, id) => {
+    return botManager.getBot(id);
+  });
+  ipcMain.handle('bots-save', async (event, botData) => {
+    return botManager.saveBot(botData);
+  });
+  ipcMain.handle('bots-delete', async (event, id) => {
+    return botManager.deleteBot(id);
+  });
+  ipcMain.handle('bots-get-memories', async (event, botId) => {
+    return memoryService.getBotMemories(botId);
+  });
+  ipcMain.handle('bots-clear-memories', async (event, botId) => {
+    return memoryService.clearMemories(botId);
   });
 
   // --- Neo Agent Runtime IPC Handlers ---

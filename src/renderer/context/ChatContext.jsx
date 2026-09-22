@@ -97,9 +97,9 @@ export const ChatProvider = ({ children }) => {
   }, [chatList]);
 
   // Create a new chat
-  const createNewChat = useCallback(async (model, useResponsesApi = false, projectId = null, personaId = null) => {
+  const createNewChat = useCallback(async (model, useResponsesApi = false, projectId = null, personaId = null, botId = null) => {
     try {
-      const chat = await window.electron.chatHistory.create(model, useResponsesApi, projectId, personaId);
+      const chat = await window.electron.chatHistory.create(model, useResponsesApi, projectId, personaId, botId);
       if (chat) {
         // Update both state and ref immediately
         currentChatIdRef.current = chat.id;
@@ -108,7 +108,7 @@ export const ChatProvider = ({ children }) => {
         needsTitleGeneration.current = true;
         // Refresh the chat list
         await loadChatList();
-        console.log('[ChatContext] Created new chat:', chat.id, 'useResponsesApi:', useResponsesApi, 'projectId:', projectId, 'personaId:', personaId);
+        console.log('[ChatContext] Created new chat:', chat.id, 'useResponsesApi:', useResponsesApi, 'projectId:', projectId, 'personaId:', personaId, 'botId:', botId);
         return chat;
       }
     } catch (error) {
@@ -117,7 +117,7 @@ export const ChatProvider = ({ children }) => {
     return null;
   }, [loadChatList]);
 
-  // Update persona/bot assigned to a chat
+  // Update persona assigned to a chat
   const updateChatPersonaLocally = useCallback((chatId, personaId) => {
     setChatList(prev => prev.map(chat =>
       chat.id === chatId ? { ...chat, personaId } : chat
@@ -125,6 +125,18 @@ export const ChatProvider = ({ children }) => {
     if (window.electron?.chatHistory?.updatePersona) {
       window.electron.chatHistory.updatePersona(chatId, personaId).catch(err => {
         console.error('Error updating chat persona:', err);
+      });
+    }
+  }, []);
+
+  // Update bot assigned to a chat
+  const updateChatBotLocally = useCallback((chatId, botId) => {
+    setChatList(prev => prev.map(chat =>
+      chat.id === chatId ? { ...chat, botId } : chat
+    ));
+    if (window.electron?.chatHistory?.updateBot) {
+      window.electron.chatHistory.updateBot(chatId, botId).catch(err => {
+        console.error('Error updating chat bot:', err);
       });
     }
   }, []);
@@ -377,6 +389,7 @@ export const ChatProvider = ({ children }) => {
     clearCurrentChat,
     updateChatProject,
     updateChatPersonaLocally,
+    updateChatBotLocally,
     renameChat,
     togglePinChat,
     toggleArchiveChat,

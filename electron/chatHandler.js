@@ -484,11 +484,31 @@ function buildApiParams(prunedMessages, modelToUse, settings, tools, modelContex
         ? (isCanvasExplicitlyOpen || settings.canvasEnabled !== false)
         : (isCanvasExplicitlyOpen && settings.canvasEnabled !== false);
     
-    let systemPrompt = (settings.customSystemPrompt && settings.customSystemPrompt.trim())
-        ? settings.customSystemPrompt.trim()
-        : (tools.length > 0
+    // Resolve Active Bot (Hermes Agent) if provided
+    let activeBot = settings.activeBot || null;
+    if (!activeBot && settings.botId) {
+        try {
+            const { getBot } = require('./botManager');
+            activeBot = getBot(settings.botId);
+        } catch (e) {}
+    }
+    if (activeBot) {
+        settings.activeBotId = activeBot.id;
+    }
+
+    let systemPrompt = '';
+    if (activeBot && activeBot.systemPrompt && activeBot.systemPrompt.trim()) {
+        systemPrompt = activeBot.systemPrompt.trim();
+        if (settings.customSystemPrompt && settings.customSystemPrompt.trim()) {
+            systemPrompt += `\n\n${settings.customSystemPrompt.trim()}`;
+        }
+    } else if (settings.customSystemPrompt && settings.customSystemPrompt.trim()) {
+        systemPrompt = settings.customSystemPrompt.trim();
+    } else {
+        systemPrompt = (tools.length > 0
             ? `You are a helpful assistant capable of using tools. Use tools only when necessary and relevant to the user's request. Format responses using Markdown.`
             : `You are a helpful assistant. Format responses using Markdown.`);
+    }
     systemPrompt = appendSystemPromptExtensions(systemPrompt, settings, { dateTimeString });
     
     if (webSearchEnabled && !hasReachedSearchLimit) {
@@ -550,13 +570,11 @@ Always prioritize creating and editing files directly on disk using 'write_file'
         systemPrompt += `\n\n- AUTONOMOUS AGENT MODE: You are currently executing in Autonomous Multi-Step Agent Mode. Break down complex requests into logical sequential steps. Proactively invoke the necessary tools (web search, project knowledge, code execution, MCP tools) one after another to research, implement, and verify the user's objective without stopping prematurely. Once all steps are completed, provide a concise, high-quality final summary of your actions and findings.`;
     }
 
-    // Inject User Long-Term Memory & Profile Prompt
-    if (settings.userMemory?.enabled !== false) {
-        const { getFormattedMemoryPrompt } = require('./memoryService');
-        const memoryPrompt = getFormattedMemoryPrompt(settings);
-        if (memoryPrompt) {
-            systemPrompt += `\n\n${memoryPrompt}`;
-        }
+    // Inject User Long-Term Memory & Profile Prompt (and Bot Learned Lessons)
+    const { getFormattedMemoryPrompt } = require('./memoryService');
+    const memoryPrompt = getFormattedMemoryPrompt(settings, activeBot);
+    if (memoryPrompt) {
+        systemPrompt += `\n\n${memoryPrompt}`;
     }
 
     // Inject Active AI Skills System Prompt

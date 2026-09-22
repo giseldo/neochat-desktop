@@ -39,7 +39,8 @@ import {
   Compass,
   Inbox
 } from 'lucide-react';
-import { BotAvatar, getStoredPersonas, saveCustomPersona, deleteCustomPersona, getPersonaIcon } from './PersonaSelector';
+import { BotAvatar, getPersonaIcon } from './PersonaSelector';
+import BotConfigModal from './BotConfigModal';
 import { cn } from '../lib/utils';
 
 // LocalStorage keys
@@ -236,6 +237,7 @@ function ChatHistorySidebar({
   onChatLoaded, 
   loading,
   activePersona = null,
+  activeBot = null,
   onSelectPersona = null,
   onSelectBotChat = null,
   onOpenNewsDiscover = null,
@@ -298,37 +300,62 @@ function ChatHistorySidebar({
     } catch (e) {}
   };
 
-  // Bot search & state
+  // Bot search & state (Decoupled from Personas)
   const [botSearchQuery, setBotSearchQuery] = useState('');
-  const [personasVersion, setPersonasVersion] = useState(0);
   const [isBotModalOpen, setIsBotModalOpen] = useState(false);
   const [editingBot, setEditingBot] = useState(null);
-  const [botFormData, setBotFormData] = useState({
-    name: '',
-    description: '',
-    systemPrompt: '',
-    temperature: 0.7,
-    color: '#8b5cf6',
-    icon: 'Bot'
-  });
+  const [botsList, setBotsList] = useState([]);
+  const [botMemoriesCounts, setBotMemoriesCounts] = useState({});
 
-  const allPersonas = useMemo(() => {
-    return getStoredPersonas(t);
-  }, [t, personasVersion]);
+  const loadBots = useCallback(async () => {
+    if (window.electron?.bots?.list) {
+      try {
+        const list = await window.electron.bots.list();
+        const safeList = Array.isArray(list) ? list : [];
+        setBotsList(safeList);
+
+        // Fetch memory counts for each bot
+        const counts = {};
+        for (const b of safeList) {
+          if (window.electron?.bots?.getMemories) {
+            const mems = await window.electron.bots.getMemories(b.id);
+            counts[b.id] = Array.isArray(mems) ? mems.length : 0;
+          }
+        }
+        setBotMemoriesCounts(counts);
+      } catch (err) {
+        console.error('Error loading bots in sidebar:', err);
+      }
+    }
+  }, []);
+
+  useEffect(() => {
+    loadBots();
+  }, [loadBots]);
+
+  // Refresh bot memory count when memories update
+  useEffect(() => {
+    if (window.electron?.memory?.onMemoryUpdated) {
+      return window.electron.memory.onMemoryUpdated(() => {
+        loadBots();
+      });
+    }
+  }, [loadBots]);
 
   const filteredBots = useMemo(() => {
-    if (!botSearchQuery.trim()) return allPersonas;
+    if (!botSearchQuery.trim()) return botsList;
     const q = botSearchQuery.toLowerCase();
-    return allPersonas.filter(p => 
-      (p.name && p.name.toLowerCase().includes(q)) || 
-      (p.description && p.description.toLowerCase().includes(q))
+    return botsList.filter(b => 
+      (b.name && b.name.toLowerCase().includes(q)) || 
+      (b.description && b.description.toLowerCase().includes(q)) ||
+      (b.preferredModel && b.preferredModel.toLowerCase().includes(q))
     );
-  }, [allPersonas, botSearchQuery]);
+  }, [botsList, botSearchQuery]);
 
   const botLastInteractionMap = useMemo(() => {
     const map = new Map();
     (chatList || []).forEach(chat => {
-      const bId = chat.personaId || chat.botId;
+      const bId = chat.botId;
       if (bId) {
         const existing = map.get(bId);
         const chatDate = new Date(chat.updatedAt || chat.createdAt || 0).getTime();
@@ -352,9 +379,6 @@ function ChatHistorySidebar({
       await onSelectBotChat(bot, { forceNew });
       return;
     }
-    if (onSelectPersona) {
-      onSelectPersona(bot);
-    }
     if (!forceNew) {
       const interaction = botLastInteractionMap.get(bot.id);
       if (interaction && interaction.chatId) {
@@ -367,53 +391,26 @@ function ChatHistorySidebar({
 
   const handleOpenCreateBot = () => {
     setEditingBot(null);
-    setBotFormData({
-      name: '',
-      description: '',
-      systemPrompt: '',
-      temperature: 0.7,
-      color: '#8b5cf6',
-      icon: 'Bot'
-    });
     setIsBotModalOpen(true);
   };
 
   const handleOpenEditBot = (e, bot) => {
     if (e) e.stopPropagation();
     setEditingBot(bot);
-    setBotFormData({
-      name: bot.name,
-      description: bot.description || '',
-      systemPrompt: bot.systemPrompt || '',
-      temperature: bot.temperature ?? 0.7,
-      color: bot.color || '#8b5cf6',
-      icon: bot.icon || 'Bot'
-    });
     setIsBotModalOpen(true);
   };
 
-  const handleSaveBot = (e) => {
-    e.preventDefault();
-    if (!botFormData.name.trim()) return;
-    saveCustomPersona({
-      id: editingBot?.id,
-      name: botFormData.name.trim(),
-      description: botFormData.description.trim(),
-      systemPrompt: botFormData.systemPrompt.trim(),
-      temperature: Number(botFormData.temperature) || 0.7,
-      color: botFormData.color || '#8b5cf6',
-      icon: botFormData.icon || 'Bot',
-    });
-    setPersonasVersion(v => v + 1);
+  const handleBotSaved = () => {
+    loadBots();
     setIsBotModalOpen(false);
   };
 
-  const handleDeleteBot = (e, botId) => {
+  const handleDeleteBot = async (e, botId) => {
     if (e) e.stopPropagation();
-    deleteCustomPersona(botId);
-    setPersonasVersion(v => v + 1);
-    if (activePersona?.id === botId && onSelectPersona) {
-      onSelectPersona(null);
+    if (!confirm(t('bots.confirmDelete') || 'Tem certeza de que deseja excluir este Bot?')) return;
+    if (window.electron?.bots?.delete) {
+      await window.electron.bots.delete(botId);
+      loadBots();
     }
   };
 
@@ -1598,7 +1595,7 @@ function ChatHistorySidebar({
               "text-[10px] px-1.5 py-0.2 rounded-full font-mono font-semibold",
               sidebarNavTab === 'bots' ? "bg-primary/20 text-primary" : "bg-muted text-muted-foreground"
             )}>
-              {allPersonas.length}
+              {botsList.length}
             </span>
           </button>
         </div>
@@ -1655,9 +1652,9 @@ function ChatHistorySidebar({
               </div>
             ) : (
               filteredBots.map((bot) => {
-                const isSelected = activePersona?.id === bot.id;
+                const isSelected = activeBot?.id === bot.id;
                 const interaction = botLastInteractionMap.get(bot.id);
-                const subtitle = interaction?.preview || bot.description || '';
+                const subtitle = bot.description || interaction?.preview || '';
                 const timeDisplay = interaction?.dateString ? formatCompactTime(interaction.dateString) : '';
 
                 return (
@@ -1682,15 +1679,32 @@ function ChatHistorySidebar({
                         )}>
                           {bot.name}
                         </span>
-                        {timeDisplay && (
-                          <span className="text-[10px] text-muted-foreground/70 shrink-0 font-mono">
-                            {timeDisplay}
+                        <div className="flex items-center gap-1 shrink-0">
+                          {botMemoriesCounts[bot.id] > 0 && (
+                            <span 
+                              className="text-[9px] px-1.5 py-0.2 bg-purple-500/15 text-purple-600 dark:text-purple-400 rounded-full font-mono flex items-center gap-0.5" 
+                              title={`${botMemoriesCounts[bot.id]} notas aprendidas`}
+                            >
+                              🧠 {botMemoriesCounts[bot.id]}
+                            </span>
+                          )}
+                          {timeDisplay && (
+                            <span className="text-[10px] text-muted-foreground/70 font-mono">
+                              {timeDisplay}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-1.5 mt-0.5">
+                        {bot.preferredModel && (
+                          <span className="text-[9px] px-1 py-0.2 bg-muted/80 text-muted-foreground rounded font-mono truncate max-w-[85px]">
+                            {bot.preferredModel}
                           </span>
                         )}
+                        <p className="text-[11px] text-muted-foreground truncate leading-tight flex-1">
+                          {subtitle}
+                        </p>
                       </div>
-                      <p className="text-[11px] text-muted-foreground truncate leading-tight mt-0.5">
-                        {subtitle}
-                      </p>
                     </div>
 
                     {/* Actions on hover */}
@@ -1714,7 +1728,7 @@ function ChatHistorySidebar({
                       >
                         <Edit2 className="w-3 h-3" />
                       </button>
-                      {bot.isCustom && (
+                      {!bot.isBuiltIn && (
                         <button
                           type="button"
                           onClick={(e) => handleDeleteBot(e, bot.id)}
@@ -2187,127 +2201,13 @@ function ChatHistorySidebar({
         document.body
       )}
 
-      {/* Bot / Persona Create & Edit Modal */}
-      {isBotModalOpen && typeof document !== 'undefined' && createPortal(
-        <div
-          className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center z-[9999] p-4 animate-in fade-in-0"
-          onClick={(e) => {
-            if (e.target === e.currentTarget) setIsBotModalOpen(false);
-          }}
-        >
-          <div className="bg-card border border-border rounded-2xl w-full max-w-md max-h-[90vh] overflow-y-auto p-5 shadow-2xl animate-in zoom-in-95 flex flex-col space-y-4">
-            <div className="flex items-center justify-between pb-3 border-b border-border">
-              <div className="flex items-center gap-2">
-                <BotAvatar persona={{ icon: botFormData.icon, color: botFormData.color }} className="w-8 h-8 rounded-lg" iconClassName="w-4 h-4" />
-                <h3 className="font-semibold text-sm text-foreground">
-                  {editingBot ? (t('personas.editModalTitle') || 'Editar Bot / Agente') : (t('personas.modalTitle') || 'Criar Novo Bot / Agente')}
-                </h3>
-              </div>
-              <button
-                type="button"
-                onClick={() => setIsBotModalOpen(false)}
-                className="p-1 rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-
-            <form onSubmit={handleSaveBot} className="space-y-3.5">
-              <div>
-                <label className="text-xs font-medium text-foreground block mb-1">{t('personas.nameLabel') || 'Nome do Agente'}</label>
-                <input
-                  type="text"
-                  required
-                  placeholder="ex: Chief, Mr Tester, Developer, Talent Scout..."
-                  value={botFormData.name}
-                  onChange={e => setBotFormData({ ...botFormData, name: e.target.value })}
-                  className="w-full px-3 py-2 text-xs rounded-lg border border-input bg-background text-foreground focus:ring-1 focus:ring-primary focus:outline-none"
-                />
-              </div>
-
-              <div>
-                <label className="text-xs font-medium text-foreground block mb-1">{t('personas.descLabel') || 'Descrição / Papel'}</label>
-                <input
-                  type="text"
-                  placeholder="ex: Coordenador de pipeline e tarefas..."
-                  value={botFormData.description}
-                  onChange={e => setBotFormData({ ...botFormData, description: e.target.value })}
-                  className="w-full px-3 py-2 text-xs rounded-lg border border-input bg-background text-foreground focus:ring-1 focus:ring-primary focus:outline-none"
-                />
-              </div>
-
-              {/* Icon & Color Selector */}
-              <div>
-                <label className="text-xs font-medium text-foreground block mb-1.5">Cor do Avatar</label>
-                <div className="flex items-center gap-2 flex-wrap">
-                  {['#f97316', '#10b981', '#8b5cf6', '#0ea5e9', '#f43f5e', '#6366f1', '#f59e0b', '#059669', '#64748b'].map((c) => (
-                    <button
-                      key={c}
-                      type="button"
-                      onClick={() => setBotFormData({ ...botFormData, color: c })}
-                      className={cn(
-                        "w-6 h-6 rounded-full border-2 transition-transform cursor-pointer",
-                        botFormData.color === c ? "scale-110 border-primary shadow-xs" : "border-transparent opacity-80 hover:opacity-100"
-                      )}
-                      style={{ backgroundColor: c }}
-                    />
-                  ))}
-                </div>
-              </div>
-
-              <div>
-                <label className="text-xs font-medium text-foreground block mb-1">{t('personas.promptLabel') || 'Instruções de Sistema'}</label>
-                <textarea
-                  rows={4}
-                  placeholder="Defina a personalidade, objetivo, tom e conhecimentos especializados deste agente..."
-                  value={botFormData.systemPrompt}
-                  onChange={e => setBotFormData({ ...botFormData, systemPrompt: e.target.value })}
-                  className="w-full px-3 py-2 text-xs rounded-lg border border-input bg-background text-foreground focus:ring-1 focus:ring-primary focus:outline-none font-mono"
-                />
-              </div>
-
-              {/* Temperature Slider */}
-              <div className="pt-1">
-                <div className="flex items-center justify-between text-xs mb-1.5">
-                  <label className="font-medium text-foreground flex items-center gap-1.5">
-                    <Sliders className="w-3.5 h-3.5 text-primary" />
-                    {t('personas.tempLabel') || 'Temperatura / Criatividade'}
-                  </label>
-                  <span className="font-mono font-semibold text-primary bg-primary/10 px-1.5 py-0.5 rounded text-[11px]">
-                    {Number(botFormData.temperature).toFixed(2)}
-                  </span>
-                </div>
-                <input
-                  type="range"
-                  min="0"
-                  max="1"
-                  step="0.05"
-                  value={botFormData.temperature}
-                  onChange={e => setBotFormData({ ...botFormData, temperature: parseFloat(e.target.value) })}
-                  className="w-full h-1.5 bg-muted rounded-lg appearance-none cursor-pointer accent-primary"
-                />
-              </div>
-
-              <div className="flex items-center justify-end gap-2 pt-3 border-t border-border mt-4">
-                <button
-                  type="button"
-                  onClick={() => setIsBotModalOpen(false)}
-                  className="px-3.5 py-1.5 rounded-lg text-xs font-medium text-muted-foreground hover:bg-muted transition-colors"
-                >
-                  {t('common.cancel')}
-                </button>
-                <button
-                  type="submit"
-                  className="px-4 py-1.5 rounded-lg text-xs font-semibold bg-primary text-primary-foreground hover:bg-primary/90 transition-colors shadow-xs"
-                >
-                  {editingBot ? t('common.save') : t('personas.createButton')}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>,
-        document.body
-      )}
+      {/* Persistent Bot Config Modal */}
+      <BotConfigModal
+        isOpen={isBotModalOpen}
+        onClose={() => setIsBotModalOpen(false)}
+        bot={editingBot}
+        onSave={handleBotSaved}
+      />
     </div>
   );
 }

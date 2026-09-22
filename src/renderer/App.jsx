@@ -11,7 +11,7 @@ import { useCanvas } from './context/CanvasContext';
 import { useProjects } from './context/ProjectContext';
 import { useLanguage } from './context/LanguageContext';
 import { useTheme } from './context/ThemeContext';
-import { Settings, PanelLeftClose, PanelLeft, Radio, MessagesSquare, Sparkles, Store, Columns2, X, FolderKanban, BookOpen, Scale, Bot, Workflow, ChevronDown, Keyboard, Key, AlertCircle, PenSquare, Terminal, Briefcase, MessageSquare, Globe, Clock, Activity, LayoutGrid, MoreHorizontal, Brain, FolderTree, Compass } from 'lucide-react';
+import { Settings, PanelLeftClose, PanelLeft, Radio, MessagesSquare, Sparkles, Store, Columns2, X, FolderKanban, BookOpen, Scale, Bot, Workflow, ChevronDown, Keyboard, Key, AlertCircle, PenSquare, Terminal, Briefcase, MessageSquare, Globe, Clock, Activity, LayoutGrid, MoreHorizontal, Brain, FolderTree, Compass, Sliders } from 'lucide-react';
 import { Button } from './components/ui/button';
 import { SearchableSelect } from './components/ui/SearchableSelect';
 import { cn } from './lib/utils';
@@ -58,6 +58,7 @@ const ComputerVisionModal = lazy(() => import('./components/ComputerVisionModal'
 const UserMemoryModal = lazy(() => import('./components/UserMemoryModal'));
 const SkillsModal = lazy(() => import('./components/SkillsModal'));
 const ModelParametersModal = lazy(() => import('./components/ModelParametersModal'));
+const BotConfigModal = lazy(() => import('./components/BotConfigModal'));
 
 function App() {
   // const [messages, setMessages] = useState([]); // Remove local state
@@ -75,7 +76,8 @@ function App() {
     toggleSidebar,
     collapseSidebar,
     needsTitleGeneration,
-    updateChatPersonaLocally
+    updateChatPersonaLocally,
+    updateChatBotLocally
   } = useChat(); // Use context state
   const {
     canvasDoc,
@@ -159,6 +161,9 @@ function App() {
 
   // --- Persona, Artifacts & Catalog State ---
   const [activePersona, setActivePersona] = useState(() => getStoredActivePersona());
+  const [activeBot, setActiveBot] = useState(null);
+  const [isBotConfigModalOpen, setIsBotConfigModalOpen] = useState(false);
+  const [botModalTab, setBotModalTab] = useState('identity');
   const [activeArtifact, setActiveArtifact] = useState(null);
   const [isMcpCatalogOpen, setIsMcpCatalogOpen] = useState(false);
   const [isWorkflowsOpen, setIsWorkflowsOpen] = useState(false);
@@ -1096,7 +1101,7 @@ function App() {
   const executeToolCall = async (toolCall) => {
     const startTime = Date.now();
     try {
-      const response = await window.electron.executeToolCall(toolCall);
+      const response = await window.electron.executeToolCall(toolCall, { activeBotId: activeBot?.id, botId: activeBot?.id });
       const durationMs = Date.now() - startTime;
       
       // If a canvas document was created or updated, synchronize CanvasContext and open panel
@@ -1400,8 +1405,9 @@ function App() {
 
         // Start streaming chat with active runtime context (Canvas, Project, Workspace, etc.)
         const assistantRuntime = activePersona?.profile?.runtime || {};
-        const assistantAgentMode = assistantRuntime.agentEnabled === true || harnessMode === 'code';
-        const assistantModel = assistantRuntime.preferredModel || selectedModel;
+        const assistantAgentMode = activeBot?.agentEnabled === true || assistantRuntime.agentEnabled === true || harnessMode === 'code';
+        const effectiveModel = activeBot?.preferredModel || assistantRuntime.preferredModel || selectedModel;
+        const effectiveTemperature = typeof activeBot?.temperature === 'number' ? activeBot.temperature : activePersona?.temperature;
         const streamOptions = {
             isCanvasOpen: Boolean(isCanvasOpen),
             canvasDoc: isCanvasOpen && canvasDoc ? canvasDoc : null,
@@ -1410,12 +1416,16 @@ function App() {
             activeProject: activeProject ? { id: activeProject.id, name: activeProject.name, folders: activeProject.folders } : null,
             agentModeActive: assistantAgentMode,
             mode: assistantAgentMode ? 'code' : harnessMode,
-            webSearchActive: typeof assistantRuntime.searchEnabled === 'boolean' ? assistantRuntime.searchEnabled : undefined,
-            temperature: activePersona?.temperature,
+            webSearchActive: typeof activeBot?.searchEnabled === 'boolean' 
+                ? activeBot.searchEnabled 
+                : (typeof assistantRuntime.searchEnabled === 'boolean' ? assistantRuntime.searchEnabled : undefined),
+            temperature: effectiveTemperature,
             assistantProfile: activePersona?.profile || null,
+            activeBot: activeBot || null,
+            botId: activeBot?.id || null,
             workspaceRoot: workspacePath || undefined
         };
-        const streamHandler = window.electron.startChatStream(messagesToSend, assistantModel, streamOptions);
+        const streamHandler = window.electron.startChatStream(messagesToSend, effectiveModel, streamOptions);
 
         // Collect the final message data
         let finalAssistantData = {
@@ -2784,6 +2794,22 @@ function App() {
       setActiveProjectId(null);
     }
 
+    // Sync activeBot with chat's botId
+    if (chat.botId) {
+      if (window.electron?.bots?.get) {
+        try {
+          const b = await window.electron.bots.get(chat.botId);
+          setActiveBot(b || null);
+        } catch (e) {
+          setActiveBot(null);
+        }
+      } else {
+        setActiveBot(null);
+      }
+    } else {
+      setActiveBot(null);
+    }
+
     // Sync activePersona with chat's personaId
     if (chat.personaId) {
       const allBots = getStoredPersonas(t);
@@ -2820,8 +2846,8 @@ function App() {
   const handleSelectBotChat = useCallback(async (bot, options = { forceNew: false }) => {
     if (!bot) return;
 
-    // Set this bot as the active persona
-    setActivePersona(bot);
+    // Set this bot as the active bot
+    setActiveBot(bot);
 
     if (loading) {
       window.electron.stopChatStream();
@@ -2837,7 +2863,7 @@ function App() {
 
     // If not forcing a new chat, try to find the most recent conversation with this bot
     if (!options?.forceNew) {
-      const existingBotChat = (chatList || []).find(c => c.personaId === bot.id && !c.archived);
+      const existingBotChat = (chatList || []).find(c => c.botId === bot.id && !c.archived);
       if (existingBotChat) {
         const fullChat = await loadChat(existingBotChat.id);
         if (fullChat) {
@@ -2849,7 +2875,8 @@ function App() {
     }
 
     // If no existing chat or forceNew requested, create a brand new chat dedicated to this bot
-    await createNewChat(selectedModel, useResponsesApi, activeProjectId, bot.id);
+    const botModel = bot.preferredModel || selectedModel;
+    await createNewChat(botModel, useResponsesApi, activeProjectId, null, bot.id);
     setChatFocusSignal(s => s + 1);
   }, [loading, clearCanvas, closeCanvas, chatList, loadChat, handleChatLoaded, createNewChat, selectedModel, useResponsesApi, activeProjectId]);
 
@@ -2876,6 +2903,7 @@ function App() {
         loading={loading}
 
         activePersona={activePersona}
+        activeBot={activeBot}
         onSelectPersona={setActivePersona}
         onSelectBotChat={handleSelectBotChat}
         onOpenNewsDiscover={() => setIsNewsDiscoverOpen(true)}
@@ -3695,34 +3723,90 @@ function App() {
                     </div>
                   )}
 
-                  {/* Active Bot / Agent Conversation Banner (Hermes & Grok style) */}
-                  {activePersona && activePersona.id !== 'none' && activePersona.id !== 'disabled' && (
-                    <div className="mb-2 px-3.5 py-1.5 rounded-xl bg-card/80 backdrop-blur-xs border border-border/60 shadow-2xs flex items-center justify-between gap-3 shrink-0 animate-in fade-in duration-200">
+                  {/* Active Bot Conversation Banner (Hermes Agent Style) */}
+                  {activeBot && (
+                    <div className="mb-2 px-3.5 py-2 rounded-xl bg-card/90 backdrop-blur-md border border-primary/30 shadow-xs flex items-center justify-between gap-3 shrink-0 animate-in fade-in duration-200">
                       <div className="flex items-center gap-2.5 min-w-0">
-                        <BotAvatar persona={activePersona} className="w-7 h-7 rounded-lg shadow-2xs" iconClassName="w-3.5 h-3.5" />
+                        <BotAvatar persona={activeBot} className="w-8 h-8 rounded-xl shadow-2xs" iconClassName="w-4 h-4" />
                         <div className="min-w-0">
-                          <div className="flex items-center gap-1.5">
-                            <span className="text-xs font-bold text-foreground truncate">{activePersona.name}</span>
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <span className="text-xs font-bold text-foreground truncate">{activeBot.name}</span>
                             <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" title="Online" />
+                            <span className="text-[10px] px-1.5 py-0.2 rounded-full font-mono bg-primary/10 text-primary border border-primary/20">
+                              Hermes Agent
+                            </span>
+                            {activeBot.preferredModel && (
+                              <span className="text-[10px] px-1.5 py-0.2 rounded-md font-mono bg-muted text-muted-foreground truncate max-w-[120px]">
+                                {activeBot.preferredModel}
+                              </span>
+                            )}
                           </div>
-                          <p className="text-[10px] text-muted-foreground truncate">{activePersona.description}</p>
+                          <p className="text-[11px] text-muted-foreground truncate mt-0.5">{activeBot.description}</p>
                         </div>
                       </div>
-                      <div className="flex items-center gap-1 shrink-0">
+                      <div className="flex items-center gap-1.5 shrink-0">
                         <button
                           type="button"
                           onClick={() => {
-                            setActivePersona(null);
+                            setBotModalTab('memories');
+                            setIsBotConfigModalOpen(true);
+                          }}
+                          className="px-2.5 py-1 rounded-lg text-xs font-medium bg-purple-500/10 hover:bg-purple-500/20 text-purple-600 dark:text-purple-400 transition-colors flex items-center gap-1.5 cursor-pointer border border-purple-500/20"
+                          title="Ver aprendizados e memórias deste Bot"
+                        >
+                          <Brain className="w-3.5 h-3.5" />
+                          <span>Aprendizados</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setBotModalTab('identity');
+                            setIsBotConfigModalOpen(true);
+                          }}
+                          className="px-2.5 py-1 rounded-lg text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted transition-colors flex items-center gap-1 cursor-pointer"
+                          title="Configurar este Bot"
+                        >
+                          <Sliders className="w-3.5 h-3.5" />
+                          <span>Configurar</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setActiveBot(null);
                             if (currentChatId) {
-                              updateChatPersonaLocally(currentChatId, null);
+                              updateChatBotLocally(currentChatId, null);
                             }
                           }}
-                          className="px-2 py-0.5 rounded text-[10px] text-muted-foreground hover:text-foreground hover:bg-muted transition-colors cursor-pointer"
-                          title={t('personas.deactivateTitle') || "Desativar bot"}
+                          className="p-1 rounded-lg text-xs text-muted-foreground hover:text-foreground hover:bg-muted transition-colors cursor-pointer"
+                          title="Desvincular bot desta conversa"
                         >
                           ✕
                         </button>
                       </div>
+                    </div>
+                  )}
+
+                  {/* Active Persona Banner (Style / Tone Modifier) */}
+                  {activePersona && activePersona.id !== 'none' && activePersona.id !== 'disabled' && (
+                    <div className="mb-2 px-3 py-1.5 rounded-xl bg-card/60 backdrop-blur-xs border border-border/50 shadow-2xs flex items-center justify-between gap-3 shrink-0 animate-in fade-in duration-200">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <span className="text-[11px] font-semibold text-muted-foreground">🎭 Persona:</span>
+                        <span className="text-xs font-bold text-foreground truncate">{activePersona.name}</span>
+                        <p className="text-[10px] text-muted-foreground truncate max-w-sm hidden sm:block">({activePersona.description})</p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setActivePersona(null);
+                          if (currentChatId) {
+                            updateChatPersonaLocally(currentChatId, null);
+                          }
+                        }}
+                        className="px-2 py-0.5 rounded text-[10px] text-muted-foreground hover:text-foreground hover:bg-muted transition-colors cursor-pointer"
+                        title={t('personas.deactivateTitle') || "Desativar persona"}
+                      >
+                        ✕
+                      </button>
                     </div>
                   )}
 
@@ -4108,6 +4192,19 @@ function App() {
           selectedModel={selectedModel}
           modelConfigs={modelConfigs}
           onModelConfigUpdated={handleModelConfigUpdated}
+        />
+
+        {/* Persistent Bot Config Modal (Hermes Agent) */}
+        <BotConfigModal
+          isOpen={isBotConfigModalOpen}
+          onClose={() => setIsBotConfigModalOpen(false)}
+          bot={activeBot}
+          initialTab={botModalTab}
+          availableModels={models}
+          onSave={(savedBot) => {
+            setActiveBot(savedBot);
+            setIsBotConfigModalOpen(false);
+          }}
         />
       </Suspense>
 

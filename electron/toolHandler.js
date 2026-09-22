@@ -179,14 +179,17 @@ async function handleExecuteToolCall(event, toolCall, discoveredTools, mcpClient
 
   // Handle Native Built-in User Memory Tools (save_user_memory, forget_user_memory)
   if (toolName === 'save_user_memory') {
-    if (settings?.userMemory?.enabled === false) {
+    const activeBotId = settings?.activeBotId || settings?.botId || null;
+    const isBotMemory = Boolean(activeBotId);
+
+    if (settings?.userMemory?.enabled === false && !isBotMemory) {
       return {
-        error: 'O uso da memória geral está desativado nas configurações. Não é permitido salvar novas memórias.',
+        error: 'O uso da memória geral está desativado nas configurações.',
         tool_call_id: toolCallId
       };
     }
 
-    const memoryContent = args.memory || args.content || args.fact || args.preference;
+    const memoryContent = args.memory || args.content || args.preference || args.fact;
     if (!memoryContent) {
       return {
         error: 'Missing required argument "memory" for save_user_memory.',
@@ -196,21 +199,23 @@ async function handleExecuteToolCall(event, toolCall, discoveredTools, mcpClient
 
     try {
       const category = args.category || 'preference';
-      const result = addMemory(memoryContent, category, 'ai_extracted');
+      const result = addMemory(memoryContent, category, 'ai_extracted', activeBotId);
       
       // Notify renderer window about new learned memory
       if (event && event.sender && !event.sender.isDestroyed()) {
         event.sender.send('memory-updated', {
           action: 'added',
           memory: result.memory,
-          isNew: result.isNew
+          isNew: result.isNew,
+          botId: activeBotId
         });
       }
 
+      const scopeLabel = isBotMemory ? 'no perfil do Bot' : 'no perfil do usuário';
       return {
         result: JSON.stringify({
           success: true,
-          message: `Memória salva com sucesso no perfil do usuário: "${result.memory.content}" [Categoria: ${result.memory.category}]`,
+          message: `Memória salva com sucesso ${scopeLabel}: "${result.memory.content}" [Categoria: ${result.memory.category}]`,
           memory: result.memory
         }),
         tool_call_id: toolCallId
@@ -225,7 +230,10 @@ async function handleExecuteToolCall(event, toolCall, discoveredTools, mcpClient
   }
 
   if (toolName === 'forget_user_memory') {
-    if (settings?.userMemory?.enabled === false) {
+    const activeBotId = settings?.activeBotId || settings?.botId || null;
+    const isBotMemory = Boolean(activeBotId);
+
+    if (settings?.userMemory?.enabled === false && !isBotMemory) {
       return {
         error: 'O uso da memória geral está desativado nas configurações.',
         tool_call_id: toolCallId
@@ -241,11 +249,12 @@ async function handleExecuteToolCall(event, toolCall, discoveredTools, mcpClient
     }
 
     try {
-      const result = forgetMemoryByQuery(query);
+      const result = forgetMemoryByQuery(query, activeBotId);
       if (result.success && event && event.sender && !event.sender.isDestroyed()) {
         event.sender.send('memory-updated', {
           action: 'deleted',
-          forgottenMemory: result.forgottenMemory
+          forgottenMemory: result.forgottenMemory,
+          botId: activeBotId
         });
       }
 

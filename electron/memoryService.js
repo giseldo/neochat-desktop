@@ -63,17 +63,39 @@ function saveMemories(memories) {
 }
 
 /**
- * Get all stored user memories
+ * Get all stored user memories, optionally filtered by botId
+ * @param {string|object} filter - botId string or filter object { botId, includeGlobal }
  */
-function getMemories() {
-  return loadMemories();
+function getMemories(filter = null) {
+  const all = loadMemories();
+  if (!filter) return all;
+
+  const botId = typeof filter === 'string' ? filter : filter.botId;
+  const includeGlobal = typeof filter === 'object' && filter.includeGlobal !== undefined ? filter.includeGlobal : true;
+
+  if (!botId) return all;
+
+  return all.filter(m => {
+    if (m.botId === botId) return true;
+    if (includeGlobal && !m.botId) return true;
+    return false;
+  });
+}
+
+/**
+ * Get memories belonging strictly to a specific bot
+ */
+function getBotMemories(botId) {
+  if (!botId) return [];
+  return loadMemories().filter(m => m.botId === botId);
 }
 
 /**
  * Get only active/enabled memories
  */
-function getActiveMemories() {
-  return loadMemories().filter(m => m.enabled !== false);
+function getActiveMemories(botId = null) {
+  const list = getMemories(botId);
+  return list.filter(m => m.enabled !== false);
 }
 
 /**
@@ -81,8 +103,9 @@ function getActiveMemories() {
  * @param {string} content - The memory fact/preference
  * @param {string} category - 'preference' | 'fact' | 'rule' | 'context'
  * @param {string} source - 'manual' | 'ai_extracted'
+ * @param {string|null} botId - Optional bot ID to associate memory with
  */
-function addMemory(content, category = 'preference', source = 'manual') {
+function addMemory(content, category = 'preference', source = 'manual', botId = null) {
   if (!content || typeof content !== 'string' || !content.trim()) {
     throw new Error('Memory content cannot be empty.');
   }
@@ -93,8 +116,12 @@ function addMemory(content, category = 'preference', source = 'manual') {
 
   const memories = loadMemories();
 
-  // Avoid exact duplicates
-  const existingIndex = memories.findIndex(m => m.content.toLowerCase() === cleanContent.toLowerCase());
+  // Avoid exact duplicates in the same scope
+  const existingIndex = memories.findIndex(m => 
+    m.content.toLowerCase() === cleanContent.toLowerCase() &&
+    (botId ? m.botId === botId : !m.botId)
+  );
+
   if (existingIndex !== -1) {
     memories[existingIndex].updatedAt = new Date().toISOString();
     memories[existingIndex].category = validCategory;
@@ -109,6 +136,7 @@ function addMemory(content, category = 'preference', source = 'manual') {
     category: validCategory,
     enabled: true,
     source: source || 'manual',
+    botId: botId || null,
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString()
   };
@@ -141,6 +169,9 @@ function updateMemory(id, updates = {}) {
   if (typeof updates.enabled === 'boolean') {
     current.enabled = updates.enabled;
   }
+  if (updates.botId !== undefined) {
+    current.botId = updates.botId || null;
+  }
   current.updatedAt = new Date().toISOString();
 
   saveMemories(memories);
@@ -166,7 +197,7 @@ function deleteMemory(id) {
 /**
  * Forget/delete memory matching content query (for AI tool calls)
  */
-function forgetMemoryByQuery(query) {
+function forgetMemoryByQuery(query, botId = null) {
   if (!query || typeof query !== 'string') {
     return { success: false, error: 'Query required' };
   }
@@ -174,12 +205,25 @@ function forgetMemoryByQuery(query) {
   const memories = loadMemories();
   const cleanQuery = query.toLowerCase().trim();
 
-  // Find best match
-  const matchIndex = memories.findIndex(m => 
-    m.id === query || 
-    m.content.toLowerCase().includes(cleanQuery) || 
-    cleanQuery.includes(m.content.toLowerCase())
-  );
+  // Find best match, prioritizing current bot if botId specified
+  let matchIndex = -1;
+  if (botId) {
+    matchIndex = memories.findIndex(m => 
+      m.botId === botId && (
+        m.id === query || 
+        m.content.toLowerCase().includes(cleanQuery) || 
+        cleanQuery.includes(m.content.toLowerCase())
+      )
+    );
+  }
+
+  if (matchIndex === -1) {
+    matchIndex = memories.findIndex(m => 
+      m.id === query || 
+      m.content.toLowerCase().includes(cleanQuery) || 
+      cleanQuery.includes(m.content.toLowerCase())
+    );
+  }
 
   if (matchIndex === -1) {
     return { success: false, message: `Nenhuma memória correspondente encontrada para "${query}".` };
@@ -196,18 +240,24 @@ function forgetMemoryByQuery(query) {
 }
 
 /**
- * Clear all memories
+ * Clear all memories, optionally only for a specific bot
  */
-function clearMemories() {
-  saveMemories([]);
-  return { success: true, count: 0 };
+function clearMemories(botId = null) {
+  if (!botId) {
+    saveMemories([]);
+    return { success: true, count: 0 };
+  }
+  const memories = loadMemories();
+  const remaining = memories.filter(m => m.botId !== botId);
+  saveMemories(remaining);
+  return { success: true, count: remaining.length };
 }
 
 /**
  * Get memory stats
  */
-function getMemoryStats() {
-  const memories = loadMemories();
+function getMemoryStats(botId = null) {
+  const memories = botId ? loadMemories().filter(m => m.botId === botId) : loadMemories();
   return {
     total: memories.length,
     active: memories.filter(m => m.enabled !== false).length,
@@ -221,41 +271,64 @@ function getMemoryStats() {
 }
 
 /**
- * Formats active memories into a compact block for system prompt injection
+ * Formats active memories into a compact block for system prompt injection.
+ * Supports activeBot with dedicated persistent learnings and Hermes style.
  */
-function getFormattedMemoryPrompt(settings = {}) {
-  if (settings.userMemory?.enabled === false) {
+function getFormattedMemoryPrompt(settings = {}, activeBot = null) {
+  const isGlobalEnabled = settings.userMemory?.enabled !== false;
+  const isBotMemoryEnabled = activeBot ? activeBot.memoryEnabled !== false : false;
+
+  if (!isGlobalEnabled && !isBotMemoryEnabled) {
     return '';
   }
 
-  const activeMemories = getActiveMemories();
-  const memoryLines = activeMemories.length > 0
-    ? [
-        'Verified preferences, facts, and rules learned about the user across past sessions:',
-        ...activeMemories.map(m => `• [${m.category}] ${m.content}`),
-        ''
-      ]
-    : [
-        'No persistent user memories are stored yet.',
-        ''
-      ];
+  const sections = [];
 
-  return [
-    '=== USER GENERAL MEMORY & PROFILE (Persistent Long-Term Memory) ===',
-    'General memory is ENABLED. You can save, update, and recall user facts and preferences.',
-    '',
-    ...memoryLines,
+  // Bot-specific knowledge & learnings
+  if (activeBot && isBotMemoryEnabled) {
+    const botMemories = getBotMemories(activeBot.id).filter(m => m.enabled !== false);
+    const botMemoryLines = botMemories.length > 0
+      ? botMemories.map(m => `• [${m.category}] ${m.content}`)
+      : ['(No persistent lessons learned yet for this bot. Use `save_user_memory` when learning user preferences or key facts.)'];
+
+    sections.push(
+      `=== BOT LEARNED KNOWLEDGE & LESSONS (${activeBot.name || 'Hermes Agent'}) ===`,
+      `Continuous Learning is ACTIVE for this Bot. You remember what you learn across sessions with the user:`,
+      ...botMemoryLines,
+      ''
+    );
+  }
+
+  // General user profile & preferences
+  if (isGlobalEnabled) {
+    const globalMemories = loadMemories().filter(m => !m.botId && m.enabled !== false);
+    if (globalMemories.length > 0) {
+      sections.push(
+        '=== USER GENERAL MEMORY & PROFILE ===',
+        ...globalMemories.map(m => `• [${m.category}] ${m.content}`),
+        ''
+      );
+    }
+  }
+
+  if (sections.length === 0) {
+    return '';
+  }
+
+  sections.push(
     'Available Memory Commands / Tools:',
-    '- `save_user_memory`: Use this command when the user tells you to remember something ("lembre-se de...", "remember that..."), declares coding/communication preferences, or shares persistent context. Arguments: `memory` (string description of the fact/rule), `category` ("preference", "fact", "rule", or "context").',
+    '- `save_user_memory`: Use this command when the user tells you to remember something ("lembre-se de...", "remember that..."), declares coding/communication preferences, or shares persistent project/task context. Arguments: `memory` (string description of the fact/rule), `category` ("preference", "fact", "rule", or "context").',
     '- `forget_user_memory`: Use this command when the user asks to forget or remove a remembered fact or preference. Argument: `query` (search phrase of what to forget).',
     '',
     'Instructions:',
     '1. Apply verified preferences naturally to tailor your answers, code style, and explanations.',
     '2. Do not explicitly recite this raw memory block unless the user asks what you remember.',
-    '3. Whenever a new persistent preference or fact is shared by the user, proactively call `save_user_memory`.',
+    '3. Whenever a new persistent preference, lesson, or fact is shared by the user, proactively call `save_user_memory`.',
     '4. When the user asks you to forget a preference or fact, use `forget_user_memory`.',
     '==================================================================='
-  ].join('\n');
+  );
+
+  return sections.join('\n');
 }
 
 /**
@@ -463,6 +536,7 @@ function importMemories(data, options = { merge: true }) {
 module.exports = {
   initialize,
   getMemories,
+  getBotMemories,
   getActiveMemories,
   addMemory,
   updateMemory,
