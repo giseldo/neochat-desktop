@@ -1,13 +1,17 @@
 const path = require('path');
+const { closeSplashScreen, armSafetyFallback, isSplashActive } = require('./splashManager');
 
 let mainWindow; // Store the main window instance
 
-function createWindow(screen, BrowserWindow) {
+function createWindow(screen, BrowserWindow, options = {}) {
+  const shouldShow = options.show !== undefined ? options.show : !isSplashActive();
+
   mainWindow = new BrowserWindow({
     width: 1200,
     height: 800,
     minWidth: 900,
     minHeight: 600,
+    show: shouldShow,
     maximized: true,
     webPreferences: {
       nodeIntegration: false,
@@ -16,6 +20,22 @@ function createWindow(screen, BrowserWindow) {
       preload: path.join(__dirname, 'preload.js') // Assumes preload.js is in the same directory
     }
   });
+
+  // If hidden behind splash screen, transition when ready
+  if (!shouldShow) {
+    armSafetyFallback(mainWindow, 10000);
+
+    const onReady = () => {
+      closeSplashScreen(mainWindow);
+    };
+
+    mainWindow.once('ready-to-show', onReady);
+    mainWindow.webContents.once('did-finish-load', () => {
+      if (isSplashActive()) {
+        closeSplashScreen(mainWindow);
+      }
+    });
+  }
 
   // Determine URL based on environment
   const startUrl = process.env.NODE_ENV === 'development'

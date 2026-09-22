@@ -32,7 +32,8 @@ const tests = [
   'test-system-prompt-extensions.js',
   'test-terminal-and-tasks.js',
   'test-mermaid.js',
-  'test-default-model-empty.js'
+  'test-default-model-empty.js',
+  'test-splash-screen.js'
 ];
 
 for (const test of tests) {

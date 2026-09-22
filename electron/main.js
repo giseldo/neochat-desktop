@@ -45,6 +45,7 @@ const { initializeSettingsHandlers, loadSettings, saveSettings } = require('./se
 const { initializeCommandResolver } = require('./commandResolver');
 const mcpManager = require('./mcpManager');
 const { initializeWindowManager } = require('./windowManager');
+const { createSplashScreen } = require('./splashManager');
 const googleOAuthManager = require('./googleOAuthManager');
 const { initializeToolPermissionHandlers } = require('./toolPermissionManager');
 const { autoUpdater } = require('electron-updater');
@@ -245,6 +246,12 @@ app.on('open-url', (event, url) => {
 // App initialization sequence
 app.whenReady().then(async () => {
   console.log("App Ready. Initializing...");
+
+  try {
+    createSplashScreen(BrowserWindow, app);
+  } catch (splashErr) {
+    console.warn('[main] Could not initialize splash screen:', splashErr.message);
+  }
 
   neoAgentRuntime.configurePersistence(path.join(app.getPath('userData'), 'agent-runtime'));
 
@@ -670,7 +677,7 @@ app.whenReady().then(async () => {
     return memoryService.getMemoryStats();
   });
   ipcMain.handle('memory-add', async (event, content, category, source) => {
-    const currentSettings = settingsManager.getSettings();
+    const currentSettings = loadSettings();
     if (currentSettings.userMemory?.enabled === false) {
       return { success: false, error: 'O uso da memória geral está desativado nas configurações.' };
     }
