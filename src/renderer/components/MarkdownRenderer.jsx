@@ -3,6 +3,7 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import remarkMath from 'remark-math';
 import rehypeKatex from 'rehype-katex';
+import rehypeRaw from 'rehype-raw';
 import "katex/dist/katex.min.css";
 import CodeBlock from './CodeBlock';
 import { extractThinking, preprocessCitations } from '../lib/messageUtils';
@@ -72,9 +73,29 @@ function MarkdownRenderer({ content = '', sources = [], disableMath = false, onP
 
   // Remark & Rehype plugins
   const remarkPlugins = disableMath ? [remarkGfm] : [remarkGfm, [remarkMath, { singleDollarTextMath: true }]];
-  const rehypePlugins = disableMath ? [] : [[rehypeKatex, { throwOnError: false, strict: 'ignore' }]];
+  const rehypePlugins = disableMath ? [rehypeRaw] : [rehypeRaw, [rehypeKatex, { throwOnError: false, strict: 'ignore' }]];
 
   const components = {
+    sup: ({ node, children, ...props }) => (
+      <sup className="text-[75%] leading-none align-super font-normal" {...props}>
+        {children}
+      </sup>
+    ),
+    sub: ({ node, children, ...props }) => (
+      <sub className="text-[75%] leading-none align-sub font-normal" {...props}>
+        {children}
+      </sub>
+    ),
+    kbd: ({ node, children, ...props }) => (
+      <kbd className="px-1.5 py-0.5 text-xs font-mono bg-muted text-foreground rounded border border-border/80 shadow-2xs" {...props}>
+        {children}
+      </kbd>
+    ),
+    mark: ({ node, children, ...props }) => (
+      <mark className="bg-yellow-200/50 dark:bg-yellow-500/30 text-inherit px-1 rounded" {...props}>
+        {children}
+      </mark>
+    ),
     span: ({ node, children, ...props }) => {
       // Apply word-wrap styles to KaTeX elements to prevent overflow
       if (props.className && props.className.includes('katex')) {

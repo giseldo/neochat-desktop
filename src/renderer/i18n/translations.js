@@ -399,7 +399,9 @@ export const translations = {
     },
     message: {
       thoughtTitle: 'Pensamento',
-      thinking: 'Pensando...',
+      thinking: 'Pensando',
+      processingThoughts: 'Processando pensamentos',
+      analyzingReasoning: 'Analisando raciocínio',
       thoughtFor: 'Pensou por {duration}s',
       viewReasoning: 'Ver raciocínio',
       ranTool: 'Executou {name}',
@@ -2158,7 +2160,9 @@ export const translations = {
     },
     message: {
       thoughtTitle: 'Thought',
-      thinking: 'Thinking...',
+      thinking: 'Thinking',
+      processingThoughts: 'Processing thoughts',
+      analyzingReasoning: 'Analyzing reasoning',
       thoughtFor: 'Thought for {duration}s',
       viewReasoning: 'View reasoning',
       ranTool: 'Ran {name}',

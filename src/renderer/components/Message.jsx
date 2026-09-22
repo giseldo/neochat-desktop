@@ -346,10 +346,18 @@ function Message({
                 <div className="flex flex-col gap-1.5 w-full mb-2">
                   {(() => {
                     const latestSummary = reasoningSummaries[reasoningSummaries.length - 1];
+                    let summaryText = latestSummary?.summary || '';
+                    if (latestSummary?.isPlaceholder || summaryText === 'Thinking' || summaryText === 'Thinking...') {
+                      summaryText = t('message.thinking') || 'Pensando';
+                    } else if (summaryText === 'Processing thoughts') {
+                      summaryText = t('message.processingThoughts') || 'Processando pensamentos';
+                    } else if (summaryText === 'Analyzing reasoning') {
+                      summaryText = t('message.analyzingReasoning') || 'Analisando raciocínio';
+                    }
                     return (
                       <div key={latestSummary.index} className="flex items-center text-sm">
                         <TextShimmer as="span" duration={2.5} spread={3} className="text-sm font-medium text-foreground">
-                          {latestSummary.summary}
+                          {summaryText}
                         </TextShimmer>
                       </div>
                     );

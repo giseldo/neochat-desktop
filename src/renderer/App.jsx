@@ -1501,7 +1501,7 @@ function App() {
                 
                 // Add initial "Thinking" placeholder if no summaries yet
                 if (finalAssistantData.reasoningSummaries.length === 0) {
-                    finalAssistantData.reasoningSummaries.push({ index: 0, summary: 'Thinking', isPlaceholder: true });
+                    finalAssistantData.reasoningSummaries.push({ index: 0, summary: t('message.thinking') || 'Thinking', isPlaceholder: true });
                 }
             }
             

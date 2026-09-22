@@ -1,4 +1,4 @@
-﻿const React = require('react');
+const React = require('react');
 const ReactDOMServer = require('react-dom/server');
 
 (async () => {
@@ -8,6 +8,7 @@ const ReactDOMServer = require('react-dom/server');
   const remarkMath = (await import('remark-math')).default;
   const rehypeKatex = (await import('rehype-katex')).default;
   const remarkGfm = (await import('remark-gfm')).default;
+  const rehypeRaw = (await import('rehype-raw')).default;
 
   function preprocessMarkdownMath(content) {
     if (!content) return '';
@@ -35,11 +36,13 @@ const ReactDOMServer = require('react-dom/server');
     return ReactDOMServer.renderToStaticMarkup(
       React.createElement(ReactMarkdown, {
         remarkPlugins: [remarkGfm, [remarkMath, { singleDollarTextMath: true }]],
-        rehypePlugins: [[rehypeKatex, { throwOnError: false, strict: 'ignore' }]],
+        rehypePlugins: [rehypeRaw, [rehypeKatex, { throwOnError: false, strict: 'ignore' }]],
         components: {
           code({ className, children }) {
             return React.createElement('code', { className }, children);
-          }
+          },
+          sup: ({ children }) => React.createElement('sup', { className: 'text-[75%] leading-none align-super font-normal' }, children),
+          sub: ({ children }) => React.createElement('sub', { className: 'text-[75%] leading-none align-sub font-normal' }, children),
         },
         children: processed
       })
@@ -79,6 +82,17 @@ const ReactDOMServer = require('react-dom/server');
   const currency = 'Preço: $50 e desconto de $10.';
   const html4 = render(currency);
   assert(html4.includes('$50') && html4.includes('$10'), 'Currency dollar amounts are preserved');
+
+  // Test 5: Formulas with <sup> and <sub> tags (common LLM formatting in tables)
+  const activationTable = '| Função | Fórmula |\n|---|---|\n| Sigmoide | σ(z) = 1/(1+e<sup>-z</sup>) |\n| tanh | f(z) = (e<sup>z</sup> - e<sup>-z</sup>)/(e<sup>z</sup> + e<sup>-z</sup>) |';
+  const html5 = render(activationTable);
+  assert(html5.includes('<sup') && html5.includes('-z</sup>') && !html5.includes('&lt;sup&gt;'), 'Superscript tags <sup> in formulas are parsed and rendered as HTML');
+  assert(html5.includes('σ(z)') && html5.includes('tanh'), 'Table content with Greek letters and formula expressions is preserved');
+
+  // Test 6: Chemical formula with subscript
+  const chemFormula = 'Água é H<sub>2</sub>O e glicose é C<sub>6</sub>H<sub>12</sub>O<sub>6</sub>.';
+  const html6 = render(chemFormula);
+  assert(html6.includes('<sub') && html6.includes('2</sub>') && !html6.includes('&lt;sub&gt;'), 'Subscript tags <sub> in formulas are parsed and rendered as HTML');
 
   console.log(`\nResults: ${passed} passed, ${failed} failed`);
   if (failed > 0) {
