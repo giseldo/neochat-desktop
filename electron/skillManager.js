@@ -418,20 +418,11 @@ class SkillManager {
   }
 
   /**
-   * If user has no skills installed, install top recommended skills automatically (disabled by default).
+   * No-op by default: on first installation, no skills are installed automatically.
+   * Users can browse and install curated skills on demand via the Skills Catalog.
    */
   _bootstrapDefaultSkills() {
-    if (this.installedSkills.size === 0) {
-      console.log('[SkillManager] Bootstrapping default curated skills (disabled initially)...');
-      // Install first 4 core skills by default, all disabled on first use
-      const defaultSkillIds = ['code-reviewer', 'deep-research', 'git-workflow', 'ui-designer'];
-      for (const id of defaultSkillIds) {
-        const catalogItem = CURATED_CATALOG.find(s => s.id === id);
-        if (catalogItem) {
-          this.installSkill({ ...catalogItem, enabled: false });
-        }
-      }
-    }
+    // Intentionally left blank: do not install any skills by default on clean installation.
   }
 
   /**
