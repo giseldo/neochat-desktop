@@ -102,6 +102,10 @@ function App() {
   const { chatWidth } = useTheme();
 
   const navigate = useNavigate();
+  const isMac = useMemo(() => {
+    return typeof navigator !== 'undefined' && /Mac|iPhone|iPod|iPad/.test(navigator.platform);
+  }, []);
+  const modKey = isMac ? '⌘' : 'Ctrl';
   const [activeTab, setActiveTab] = useState('chat'); // 'chat' | 'trajectory'
   const [showWelcomeTips, setShowWelcomeTips] = useState(false);
   const [showWelcomeSuggestions, setShowWelcomeSuggestions] = useState(false);
@@ -2990,7 +2994,7 @@ function App() {
 
                   {/* Dropdown Menu */}
                   {isToolsDropdownOpen && (
-                    <div className="absolute right-0 mt-2 w-80 max-h-[calc(100vh-5rem)] overflow-y-auto overscroll-contain custom-scrollbar p-1.5 rounded-2xl bg-popover border border-border text-popover-foreground shadow-2xl z-50 animate-in fade-in-0 zoom-in-95 space-y-0.5 text-xs">
+                    <div className="absolute right-0 mt-2 w-80 sm:w-88 max-h-[calc(100vh-5rem)] overflow-y-auto overscroll-contain custom-scrollbar p-1.5 rounded-2xl bg-popover border border-border text-popover-foreground shadow-2xl z-50 animate-in fade-in-0 zoom-in-95 space-y-0.5 text-xs">
                       
                       {/* Trajectory */}
                       <button
@@ -3011,7 +3015,7 @@ function App() {
                           <div className="font-semibold flex items-center justify-between gap-1">
                             <span>{t('trajectory.trajectoryTab') || 'Trajetória'}</span>
                             <div className="flex items-center gap-1.5 shrink-0">
-                              <kbd className="px-1.5 py-0.5 rounded bg-muted/80 text-[10px] font-mono font-medium border border-border/60 text-muted-foreground">Ctrl+T</kbd>
+                              <kbd className="px-1.5 py-0.5 rounded bg-muted/80 text-[10px] font-mono font-medium border border-border/60 text-muted-foreground">{modKey}+T</kbd>
                               {activeTab === 'trajectory' && <span className="px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-[10px] font-mono font-semibold">Aberto</span>}
                             </div>
                           </div>
@@ -3038,7 +3042,7 @@ function App() {
                           <div className="font-semibold flex items-center justify-between gap-1">
                             <span>{t('header.compareModels') || 'Comparar Modelos'}</span>
                             <div className="flex items-center gap-1.5 shrink-0">
-                              <kbd className="px-1.5 py-0.5 rounded bg-muted/80 text-[10px] font-mono font-medium border border-border/60 text-muted-foreground">Ctrl+M</kbd>
+                              <kbd className="px-1.5 py-0.5 rounded bg-muted/80 text-[10px] font-mono font-medium border border-border/60 text-muted-foreground">{modKey}+M</kbd>
                               {isCompareMode && <span className="px-1.5 py-0.5 rounded bg-purple-500/20 text-purple-600 dark:text-purple-400 text-[10px] font-mono font-semibold">Aberto</span>}
                             </div>
                           </div>
@@ -3059,11 +3063,14 @@ function App() {
                       >
                         <Terminal className="w-4 h-4 text-emerald-500 shrink-0" />
                         <div className="flex-1 min-w-0">
-                          <div className="font-semibold text-foreground flex items-center justify-between">
+                          <div className="font-semibold text-foreground flex items-center justify-between gap-1">
                             <span>Terminal Shell</span>
-                            {isTerminalOpen && <span className="px-1.5 py-0.2 rounded bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-[10px] font-mono">Aberto</span>}
+                            <div className="flex items-center gap-1.5 shrink-0">
+                              <kbd className="px-1.5 py-0.5 rounded bg-muted/80 text-[10px] font-mono font-medium border border-border/60 text-muted-foreground">{modKey}+`</kbd>
+                              {isTerminalOpen && <span className="px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-[10px] font-mono font-semibold">Aberto</span>}
+                            </div>
                           </div>
-                          <div className="text-[10px] text-muted-foreground truncate">PowerShell & comandos (Ctrl+`)</div>
+                          <div className="text-[10px] text-muted-foreground truncate">PowerShell & comandos</div>
                         </div>
                       </button>
 
@@ -3080,11 +3087,14 @@ function App() {
                       >
                         <FolderTree className="w-4 h-4 text-amber-500 shrink-0" />
                         <div className="flex-1 min-w-0">
-                          <div className="font-semibold text-foreground flex items-center justify-between">
+                          <div className="font-semibold text-foreground flex items-center justify-between gap-1">
                             <span>{t('header.workspaceExplorer') || 'Explorador de Arquivos'}</span>
-                            {isExplorerOpen && <span className="px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-600 dark:text-amber-400 text-[10px] font-mono">Aberto</span>}
+                            <div className="flex items-center gap-1.5 shrink-0">
+                              <kbd className="px-1.5 py-0.5 rounded bg-muted/80 text-[10px] font-mono font-medium border border-border/60 text-muted-foreground">{modKey}+Shift+E</kbd>
+                              {isExplorerOpen && <span className="px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-600 dark:text-amber-400 text-[10px] font-mono font-semibold">Aberto</span>}
+                            </div>
                           </div>
-                          <div className="text-[10px] text-muted-foreground truncate">{t('header.workspaceExplorerSubtitle') || 'Estrutura de pastas e arquivos (Ctrl+Shift+E)'}</div>
+                          <div className="text-[10px] text-muted-foreground truncate">{t('header.workspaceExplorerSubtitle') || 'Estrutura de pastas e arquivos'}</div>
                         </div>
                       </button>
 
@@ -3099,11 +3109,14 @@ function App() {
                       >
                         <PenSquare className="w-4 h-4 text-primary shrink-0" />
                         <div className="flex-1 min-w-0">
-                          <div className="font-semibold text-foreground flex items-center justify-between">
+                          <div className="font-semibold text-foreground flex items-center justify-between gap-1">
                             <span>Espaço Canvas</span>
-                            {isCanvasOpen && <span className="px-1.5 py-0.2 rounded bg-primary/20 text-primary text-[10px] font-mono">Aberto</span>}
+                            <div className="flex items-center gap-1.5 shrink-0">
+                              <kbd className="px-1.5 py-0.5 rounded bg-muted/80 text-[10px] font-mono font-medium border border-border/60 text-muted-foreground">{modKey}+Shift+C</kbd>
+                              {isCanvasOpen && <span className="px-1.5 py-0.5 rounded bg-primary/20 text-primary text-[10px] font-mono font-semibold">Aberto</span>}
+                            </div>
                           </div>
-                          <div className="text-[10px] text-muted-foreground truncate">Editor lado a lado (Ctrl+Shift+C)</div>
+                          <div className="text-[10px] text-muted-foreground truncate">Editor lado a lado</div>
                         </div>
                       </button>
 
@@ -3118,11 +3131,14 @@ function App() {
                       >
                         <Globe className="w-4 h-4 text-blue-500 shrink-0" />
                         <div className="flex-1 min-w-0">
-                          <div className="font-semibold text-foreground flex items-center justify-between">
+                          <div className="font-semibold text-foreground flex items-center justify-between gap-1">
                             <span>Navegador Web</span>
-                            {isBrowserOpen && <span className="px-1.5 py-0.2 rounded bg-blue-500/20 text-blue-600 dark:text-blue-400 text-[10px] font-mono">Aberto</span>}
+                            <div className="flex items-center gap-1.5 shrink-0">
+                              <kbd className="px-1.5 py-0.5 rounded bg-muted/80 text-[10px] font-mono font-medium border border-border/60 text-muted-foreground">{modKey}+Shift+B</kbd>
+                              {isBrowserOpen && <span className="px-1.5 py-0.5 rounded bg-blue-500/20 text-blue-600 dark:text-blue-400 text-[10px] font-mono font-semibold">Aberto</span>}
+                            </div>
                           </div>
-                          <div className="text-[10px] text-muted-foreground truncate">Painel embutido (Ctrl+Shift+B)</div>
+                          <div className="text-[10px] text-muted-foreground truncate">Painel embutido</div>
                         </div>
                       </button>
 
@@ -3137,16 +3153,17 @@ function App() {
                       >
                         <Clock className="w-4 h-4 text-cyan-500 shrink-0" />
                         <div className="flex-1 min-w-0">
-                          <div className="font-semibold text-foreground flex items-center justify-between">
+                          <div className="font-semibold text-foreground flex items-center justify-between gap-1">
                             <span>Tarefas em Segundo Plano</span>
-                            <div className="flex items-center gap-1.5">
+                            <div className="flex items-center gap-1.5 shrink-0">
                               {runningTasksCount > 0 && (
-                                <span className="px-1.5 py-0.2 rounded-full bg-blue-500 text-white text-[9px] font-bold">
+                                <span className="px-1.5 py-0.5 rounded-full bg-blue-500 text-white text-[9px] font-bold">
                                   {runningTasksCount}
                                 </span>
                               )}
+                              <kbd className="px-1.5 py-0.5 rounded bg-muted/80 text-[10px] font-mono font-medium border border-border/60 text-muted-foreground">{modKey}+Shift+T</kbd>
                               {isTasksOpen && (
-                                <span className="px-1.5 py-0.2 rounded bg-cyan-500/20 text-cyan-600 dark:text-cyan-400 text-[10px] font-mono">Aberto</span>
+                                <span className="px-1.5 py-0.5 rounded bg-cyan-500/20 text-cyan-600 dark:text-cyan-400 text-[10px] font-mono font-semibold">Aberto</span>
                               )}
                             </div>
                           </div>
@@ -3165,9 +3182,12 @@ function App() {
                       >
                         <Terminal className="w-4 h-4 text-violet-500 shrink-0" />
                         <div className="flex-1 min-w-0">
-                          <div className="font-semibold text-foreground flex items-center justify-between">
+                          <div className="font-semibold text-foreground flex items-center justify-between gap-1">
                             <span>{t('header.codeInterpreter') || 'Interpretador de Código'}</span>
-                            {activeArtifact && <span className="px-1.5 py-0.2 rounded bg-violet-500/20 text-violet-600 dark:text-violet-400 text-[10px] font-mono">Aberto</span>}
+                            <div className="flex items-center gap-1.5 shrink-0">
+                              <kbd className="px-1.5 py-0.5 rounded bg-muted/80 text-[10px] font-mono font-medium border border-border/60 text-muted-foreground">{modKey}+Shift+X</kbd>
+                              {activeArtifact && <span className="px-1.5 py-0.5 rounded bg-violet-500/20 text-violet-600 dark:text-violet-400 text-[10px] font-mono font-semibold">Aberto</span>}
+                            </div>
                           </div>
                           <div className="text-[10px] text-muted-foreground truncate">Python & JavaScript interativo</div>
                         </div>
@@ -3186,9 +3206,11 @@ function App() {
                       >
                         <Store className="w-4 h-4 text-amber-500 shrink-0" />
                         <div className="flex-1 min-w-0">
-                          <div className="font-semibold text-foreground flex items-center justify-between">
+                          <div className="font-semibold text-foreground flex items-center justify-between gap-1">
                             <span>{t('mcpCatalog.title') || 'Loja MCP'}</span>
-                            {isMcpCatalogOpen && <span className="px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-600 dark:text-amber-400 text-[10px] font-mono">Aberto</span>}
+                            <div className="flex items-center gap-1.5 shrink-0">
+                              {isMcpCatalogOpen && <span className="px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-600 dark:text-amber-400 text-[10px] font-mono font-semibold">Aberto</span>}
+                            </div>
                           </div>
                           <div className="text-[10px] text-muted-foreground truncate">Servidores de ferramentas e integrações</div>
                         </div>
@@ -3210,9 +3232,11 @@ function App() {
                       >
                         <Brain className="w-4 h-4 text-purple-600 dark:text-purple-400 shrink-0" />
                         <div className="flex-1 min-w-0">
-                          <div className="font-semibold text-foreground flex items-center justify-between">
+                          <div className="font-semibold text-foreground flex items-center justify-between gap-1">
                             <span>{t('memory.title') || 'Memória Persistente'}</span>
-                            {isUserMemoryModalOpen && <span className="px-1.5 py-0.2 rounded bg-purple-500/20 text-purple-600 dark:text-purple-400 text-[10px] font-mono">Aberto</span>}
+                            <div className="flex items-center gap-1.5 shrink-0">
+                              {isUserMemoryModalOpen && <span className="px-1.5 py-0.5 rounded bg-purple-500/20 text-purple-600 dark:text-purple-400 text-[10px] font-mono font-semibold">Aberto</span>}
+                            </div>
                           </div>
                           <div className="text-[10px] text-muted-foreground truncate">Preferências e fatos lembrados pela IA</div>
                         </div>
@@ -3231,9 +3255,11 @@ function App() {
                       >
                         <Bot className="w-4 h-4 text-indigo-500 shrink-0" />
                         <div className="flex-1 min-w-0">
-                          <div className="font-semibold text-foreground flex items-center justify-between">
+                          <div className="font-semibold text-foreground flex items-center justify-between gap-1">
                             <span>Equipe Swarm</span>
-                            {isSwarmModalOpen && <span className="px-1.5 py-0.2 rounded bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 text-[10px] font-mono">Aberto</span>}
+                            <div className="flex items-center gap-1.5 shrink-0">
+                              {isSwarmModalOpen && <span className="px-1.5 py-0.5 rounded bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 text-[10px] font-mono font-semibold">Aberto</span>}
+                            </div>
                           </div>
                           <div className="text-[10px] text-muted-foreground truncate">Multi-agentes autônomos</div>
                         </div>
@@ -3252,9 +3278,11 @@ function App() {
                       >
                         <Workflow className="w-4 h-4 text-teal-500 shrink-0" />
                         <div className="flex-1 min-w-0">
-                          <div className="font-semibold text-foreground flex items-center justify-between">
+                          <div className="font-semibold text-foreground flex items-center justify-between gap-1">
                             <span>{t('workflows.title') || 'Workflows'}</span>
-                            {isWorkflowsOpen && <span className="px-1.5 py-0.2 rounded bg-teal-500/20 text-teal-600 dark:text-teal-400 text-[10px] font-mono">Aberto</span>}
+                            <div className="flex items-center gap-1.5 shrink-0">
+                              {isWorkflowsOpen && <span className="px-1.5 py-0.5 rounded bg-teal-500/20 text-teal-600 dark:text-teal-400 text-[10px] font-mono font-semibold">Aberto</span>}
+                            </div>
                           </div>
                           <div className="text-[10px] text-muted-foreground truncate">Fluxos de trabalho automatizados</div>
                         </div>
@@ -3273,9 +3301,11 @@ function App() {
                       >
                         <Bot className="w-4 h-4 text-orange-400 shrink-0" />
                         <div className="flex-1 min-w-0">
-                          <div className="font-semibold text-foreground flex items-center justify-between">
+                          <div className="font-semibold text-foreground flex items-center justify-between gap-1">
                             <span>AI Arena & Debate</span>
-                            {isArenaModalOpen && <span className="px-1.5 py-0.2 rounded bg-orange-500/20 text-orange-600 dark:text-orange-400 text-[10px] font-mono">Aberto</span>}
+                            <div className="flex items-center gap-1.5 shrink-0">
+                              {isArenaModalOpen && <span className="px-1.5 py-0.5 rounded bg-orange-500/20 text-orange-600 dark:text-orange-400 text-[10px] font-mono font-semibold">Aberto</span>}
+                            </div>
                           </div>
                           <div className="text-[10px] text-muted-foreground truncate">Debate em rodadas & consenso</div>
                         </div>
@@ -3292,9 +3322,11 @@ function App() {
                       >
                         <LayoutGrid className="w-4 h-4 text-emerald-400 shrink-0" />
                         <div className="flex-1 min-w-0">
-                          <div className="font-semibold text-foreground flex items-center justify-between">
+                          <div className="font-semibold text-foreground flex items-center justify-between gap-1">
                             <span>Live Dev Sandbox</span>
-                            {isLiveSandboxOpen && <span className="px-1.5 py-0.2 rounded bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-[10px] font-mono">Aberto</span>}
+                            <div className="flex items-center gap-1.5 shrink-0">
+                              {isLiveSandboxOpen && <span className="px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-[10px] font-mono font-semibold">Aberto</span>}
+                            </div>
                           </div>
                           <div className="text-[10px] text-muted-foreground truncate">Preview HTML/Tailwind/React</div>
                         </div>
@@ -3311,9 +3343,11 @@ function App() {
                       >
                         <Radio className="w-4 h-4 text-purple-400 shrink-0" />
                         <div className="flex-1 min-w-0">
-                          <div className="font-semibold text-foreground flex items-center justify-between">
+                          <div className="font-semibold text-foreground flex items-center justify-between gap-1">
                             <span>Podcast & Audio Studio</span>
-                            {isPodcastStudioOpen && <span className="px-1.5 py-0.2 rounded bg-purple-500/20 text-purple-600 dark:text-purple-400 text-[10px] font-mono">Aberto</span>}
+                            <div className="flex items-center gap-1.5 shrink-0">
+                              {isPodcastStudioOpen && <span className="px-1.5 py-0.5 rounded bg-purple-500/20 text-purple-600 dark:text-purple-400 text-[10px] font-mono font-semibold">Aberto</span>}
+                            </div>
                           </div>
                           <div className="text-[10px] text-muted-foreground truncate">NotebookLM style 2-hosts TTS</div>
                         </div>
@@ -3330,9 +3364,11 @@ function App() {
                       >
                         <BookOpen className="w-4 h-4 text-blue-400 shrink-0" />
                         <div className="flex-1 min-w-0">
-                          <div className="font-semibold text-foreground flex items-center justify-between">
+                          <div className="font-semibold text-foreground flex items-center justify-between gap-1">
                             <span>Grafo & Data Studio</span>
-                            {isKnowledgeGraphOpen && <span className="px-1.5 py-0.2 rounded bg-blue-500/20 text-blue-600 dark:text-blue-400 text-[10px] font-mono">Aberto</span>}
+                            <div className="flex items-center gap-1.5 shrink-0">
+                              {isKnowledgeGraphOpen && <span className="px-1.5 py-0.5 rounded bg-blue-500/20 text-blue-600 dark:text-blue-400 text-[10px] font-mono font-semibold">Aberto</span>}
+                            </div>
                           </div>
                           <div className="text-[10px] text-muted-foreground truncate">Grafo 2D do RAG & gráficos</div>
                         </div>
@@ -3349,9 +3385,11 @@ function App() {
                       >
                         <Clock className="w-4 h-4 text-amber-400 shrink-0" />
                         <div className="flex-1 min-w-0">
-                          <div className="font-semibold text-foreground flex items-center justify-between">
+                          <div className="font-semibold text-foreground flex items-center justify-between gap-1">
                             <span>Proactive Daily Briefing</span>
-                            {isDailyBriefingOpen && <span className="px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-600 dark:text-amber-400 text-[10px] font-mono">Aberto</span>}
+                            <div className="flex items-center gap-1.5 shrink-0">
+                              {isDailyBriefingOpen && <span className="px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-600 dark:text-amber-400 text-[10px] font-mono font-semibold">Aberto</span>}
+                            </div>
                           </div>
                           <div className="text-[10px] text-muted-foreground truncate">Resumo matinal inteligente</div>
                         </div>
@@ -3368,9 +3406,11 @@ function App() {
                       >
                         <Compass className="w-4 h-4 text-sky-400 shrink-0" />
                         <div className="flex-1 min-w-0">
-                          <div className="font-semibold text-foreground flex items-center justify-between">
+                          <div className="font-semibold text-foreground flex items-center justify-between gap-1">
                             <span>Descoberta & Notícias IA</span>
-                            {isNewsDiscoverOpen && <span className="px-1.5 py-0.2 rounded bg-sky-500/20 text-sky-600 dark:text-sky-400 text-[10px] font-mono">Aberto</span>}
+                            <div className="flex items-center gap-1.5 shrink-0">
+                              {isNewsDiscoverOpen && <span className="px-1.5 py-0.5 rounded bg-sky-500/20 text-sky-600 dark:text-sky-400 text-[10px] font-mono font-semibold">Aberto</span>}
+                            </div>
                           </div>
                           <div className="text-[10px] text-muted-foreground truncate">Síntese multi-fonte e citações</div>
                         </div>
@@ -3387,11 +3427,11 @@ function App() {
                       >
                         <Sparkles className="w-4 h-4 text-indigo-400 shrink-0" />
                         <div className="flex-1 min-w-0">
-                          <div className="font-semibold text-foreground flex items-center justify-between">
+                          <div className="font-semibold text-foreground flex items-center justify-between gap-1">
                             <span>Módulos & Extensões</span>
-                            <div className="flex items-center gap-1.5">
-                              <span className="px-1.5 py-0.2 rounded bg-indigo-500/20 text-indigo-400 text-[9px] font-semibold">Hub</span>
-                              {isPluginsManagerOpen && <span className="px-1.5 py-0.2 rounded bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 text-[10px] font-mono">Aberto</span>}
+                            <div className="flex items-center gap-1.5 shrink-0">
+                              <span className="px-1.5 py-0.5 rounded bg-indigo-500/20 text-indigo-400 text-[9px] font-semibold">Hub</span>
+                              {isPluginsManagerOpen && <span className="px-1.5 py-0.5 rounded bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 text-[10px] font-mono font-semibold">Aberto</span>}
                             </div>
                           </div>
                           <div className="text-[10px] text-muted-foreground truncate">Ativar/desativar módulos (0MB idle)</div>
@@ -3413,7 +3453,7 @@ function App() {
                           <Keyboard className="w-3.5 h-3.5 text-muted-foreground" />
                           <span className="font-medium">Paleta de Comandos</span>
                         </div>
-                        <kbd className="px-1.5 py-0.5 text-[10px] font-mono bg-muted border border-border/80 rounded text-muted-foreground">Ctrl+Shift+P</kbd>
+                        <kbd className="px-1.5 py-0.5 rounded bg-muted/80 text-[10px] font-mono font-medium border border-border/60 text-muted-foreground">{modKey}+Shift+P</kbd>
                       </button>
 
                       {/* Keyboard Shortcuts */}
@@ -3429,7 +3469,7 @@ function App() {
                           <Keyboard className="w-3.5 h-3.5 text-muted-foreground" />
                           <span className="font-medium">{t('header.keyboardShortcuts') || 'Atalhos de Teclado'}</span>
                         </div>
-                        <kbd className="px-1.5 py-0.5 text-[10px] font-mono bg-muted border border-border/80 rounded text-muted-foreground">?</kbd>
+                        <kbd className="px-1.5 py-0.5 rounded bg-muted/80 text-[10px] font-mono font-medium border border-border/60 text-muted-foreground">{modKey}+/</kbd>
                       </button>
                     </div>
                   )}
