@@ -252,6 +252,35 @@ Diretrizes para Git:
 1. Analise o código fornecido calculando a complexidade assintótica de Tempo e Espaço (Big-O).
 2. Proponha estruturas de dados mais eficientes (HashMaps, Heaps, Sets, Bitwise, Tries) se aplicável.
 3. Forneça o código otimizado com benchmarks estimados e explicações detalhadas das melhorias de CPU/Memória.`
+  },
+  {
+    id: 'humanizer',
+    name: 'Humanizer: Remove AI Writing Patterns',
+    displayName: 'Humanizer (Remover Padrões de IA)',
+    description: 'Reescreve textos com estilo artificial ou gerado por IA para soarem naturais e humanos, preservando o tom do autor e todos os fatos sem inventar dados.',
+    category: 'writing',
+    tags: ['humanizer', 'redação', 'texto', 'edição', 'ai-tells', 'reescrita'],
+    icon: 'FileText',
+    version: '3.0.0',
+    author: 'blader',
+    slashCommand: 'humanizer',
+    parameters: [
+      { name: 'text', type: 'string', description: 'Texto a ser humanizado ou caminho do arquivo', required: true }
+    ],
+    instructions: `# Humanizer: remove AI writing patterns
+
+Rewrite AI-sounding text so it reads like the writer, not a chatbot. Keep what it says. Do not make anything up.
+
+## Principles & Rules
+1. Every sentence kept must add something the reader did not already have.
+2. Mark and remove structural habits and AI tells:
+   - Not X but Y contrasts (e.g., "It's not just X, it's Y")
+   - Staged openers and formulaic one-line closers repeating the point
+   - Forced triads, rhythm-by-rule, excessive dashes everywhere
+   - Inflated claims, stock AI buzzwords, and sales/promotional language
+   - Formatting by rule: bold labels and title case applied to every list item
+3. Never invent facts, numbers, dates, quotes, or citations. Keep all substance, nuance, and meaning intact.
+4. If a writing sample is provided, match its sentence length, word choice, rhythm, and voice.`
   }
 ];
 
