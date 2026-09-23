@@ -505,14 +505,14 @@ export function SkillsModal({
 
           {/* Search bar (visible in installed & catalog tabs) */}
           {(activeTab === 'installed' || activeTab === 'catalog') && (
-            <div className="relative w-full sm:w-64">
-              <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+            <div className="relative w-full sm:w-80 md:w-96">
+              <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
               <input
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder={t('skills.searchPlaceholder')}
-                className="w-full pl-8.5 pr-3 py-1.5 bg-background border border-border rounded-lg text-xs focus:outline-hidden focus:ring-1 focus:ring-primary text-foreground placeholder:text-muted-foreground"
+                className="w-full pl-9 pr-7 py-1.5 bg-background border border-border rounded-lg text-xs focus:outline-hidden focus:ring-1 focus:ring-primary text-foreground placeholder:text-muted-foreground"
               />
               {searchQuery && (
                 <button
