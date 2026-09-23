@@ -56,7 +56,7 @@ function normalizeAssistant(value, forcedIdentifier) {
   return {
     identifier,
     meta: {
-      avatar: String(meta.avatar || '🤖').slice(0, 200),
+      avatar: String(meta.avatar || '🤖').slice(0, 2048),
       title: String(meta.title || identifier).trim().slice(0, 200),
       description: String(meta.description || '').trim().slice(0, 1000),
       tags: stringList(meta.tags, 20),

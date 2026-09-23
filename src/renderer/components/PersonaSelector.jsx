@@ -295,6 +295,7 @@ export function BotAvatar({ persona, className = "w-8 h-8", iconClassName = "w-4
     );
   }
 
+  const [imageError, setImageError] = useState(false);
   const IconComp = getPersonaIcon(persona.icon);
   const color = persona.color || (
     persona.id === 'developer' ? '#8b5cf6' :
@@ -306,6 +307,38 @@ export function BotAvatar({ persona, className = "w-8 h-8", iconClassName = "w-4
     persona.id === 'database' ? '#059669' :
     persona.id === 'default' ? '#64748b' : '#f97316'
   );
+
+  const avatar = persona.avatar;
+  const isUrl = typeof avatar === 'string' && (avatar.startsWith('http://') || avatar.startsWith('https://') || avatar.startsWith('data:image/'));
+
+  if (avatar) {
+    if (isUrl && !imageError) {
+      return (
+        <div 
+          className={cn("rounded-xl flex items-center justify-center shrink-0 shadow-2xs overflow-hidden select-none bg-primary/10", className)}
+          title={persona.name}
+        >
+          <img 
+            src={avatar} 
+            alt={persona.name || ''} 
+            className="w-full h-full object-cover" 
+            onError={() => setImageError(true)} 
+          />
+        </div>
+      );
+    }
+    if (!isUrl) {
+      return (
+        <div 
+          className={cn("rounded-xl flex items-center justify-center shrink-0 shadow-2xs select-none", className)}
+          style={{ backgroundColor: color }}
+          title={persona.name}
+        >
+          <span className="leading-none text-base select-none">{avatar}</span>
+        </div>
+      );
+    }
+  }
 
   return (
     <div 
@@ -620,7 +653,15 @@ export function PersonaSelector({ activePersona, onSelectPersona, className }) {
         )}
         title={!isDeactivated ? `${currentPersona?.name} • ${t('personas.clickToDeactivate') || 'Clique para desativar'}` : t('personas.buttonTitle')}
       >
-        <IconComponent className={cn("w-3.5 h-3.5 shrink-0", !isDeactivated ? "text-primary" : "text-muted-foreground")} />
+        {!isDeactivated && currentPersona?.avatar ? (
+          typeof currentPersona.avatar === 'string' && (currentPersona.avatar.startsWith('http://') || currentPersona.avatar.startsWith('https://') || currentPersona.avatar.startsWith('data:image/')) ? (
+            <img src={currentPersona.avatar} alt="" className="w-3.5 h-3.5 rounded object-cover shrink-0" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
+          ) : (
+            <span className="text-xs leading-none shrink-0 select-none">{currentPersona.avatar}</span>
+          )
+        ) : (
+          <IconComponent className={cn("w-3.5 h-3.5 shrink-0", !isDeactivated ? "text-primary" : "text-muted-foreground")} />
+        )}
         <span className="max-w-[120px] truncate">
           {!isDeactivated ? currentPersona?.name : (t('personas.deactivated') || 'Desativado')}
         </span>
@@ -708,7 +749,15 @@ export function PersonaSelector({ activePersona, onSelectPersona, className }) {
                   )}
                 >
                   <div className="flex items-start gap-2 min-w-0 pr-2">
-                    <ItemIcon className="w-4 h-4 mt-0.5 text-primary flex-shrink-0" />
+                    {p.avatar ? (
+                      typeof p.avatar === 'string' && (p.avatar.startsWith('http://') || p.avatar.startsWith('https://') || p.avatar.startsWith('data:image/')) ? (
+                        <img src={p.avatar} alt="" className="w-4 h-4 mt-0.5 rounded object-cover flex-shrink-0" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
+                      ) : (
+                        <span className="w-4 h-4 mt-0.5 flex-shrink-0 text-center text-xs leading-none select-none">{p.avatar}</span>
+                      )
+                    ) : (
+                      <ItemIcon className="w-4 h-4 mt-0.5 text-primary flex-shrink-0" />
+                    )}
                     <div className="min-w-0">
                       <div className="text-xs truncate">{p.name}</div>
                       <div className="text-[10px] text-muted-foreground truncate">{p.description}</div>

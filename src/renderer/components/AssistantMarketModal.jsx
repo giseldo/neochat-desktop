@@ -4,6 +4,35 @@ import { Bot, Check, Download, RefreshCw, Search, Store, X } from 'lucide-react'
 import { useLanguage } from '../context/LanguageContext';
 import { cn } from '../lib/utils';
 
+function MarketAssistantAvatar({ avatar, title }) {
+  const [imageError, setImageError] = useState(false);
+  const isUrl = typeof avatar === 'string' && (avatar.startsWith('http://') || avatar.startsWith('https://') || avatar.startsWith('data:image/'));
+
+  if (isUrl && !imageError) {
+    return (
+      <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-primary/10">
+        <img
+          src={avatar}
+          alt={title || ''}
+          className="h-full w-full object-cover select-none"
+          loading="lazy"
+          onError={() => setImageError(true)}
+        />
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-primary/10 text-xl select-none">
+      {avatar && !isUrl ? (
+        <span className="leading-none">{avatar}</span>
+      ) : (
+        <Bot className="h-5 w-5 text-primary" />
+      )}
+    </div>
+  );
+}
+
 export default function AssistantMarketModal({ isOpen, onClose, onInstall, installedIds = [] }) {
   const { language } = useLanguage();
   const [assistants, setAssistants] = useState([]);
@@ -107,7 +136,7 @@ export default function AssistantMarketModal({ isOpen, onClose, onInstall, insta
                 const isInstalled = installed.has(`market_${assistant.identifier}`);
                 return <div key={assistant.identifier} className="flex flex-col justify-between gap-3 rounded-xl border border-border bg-background p-4">
                   <div className="flex gap-3">
-                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-xl">{assistant.meta.avatar || <Bot className="h-5 w-5" />}</div>
+                    <MarketAssistantAvatar avatar={assistant.meta.avatar} title={assistant.meta.title} />
                     <div className="min-w-0">
                       <h3 className="truncate text-sm font-semibold">{assistant.meta.title}</h3>
                       <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">{assistant.meta.description}</p>
