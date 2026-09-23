@@ -4,7 +4,7 @@ import MessageList from './components/MessageList';
 import ChatInput from './components/ChatInput';
 import ChatHistorySidebar from './components/ChatHistorySidebar';
 import ThemeToggle from './components/ThemeToggle';
-import { DEFAULT_PERSONAS, getStoredActivePersona, getStoredPersonas, ACTIVE_PERSONA_STORAGE_KEY, BotAvatar } from './components/PersonaSelector';
+import PersonaSelector, { DEFAULT_PERSONAS, getStoredActivePersona, getStoredPersonas, ACTIVE_PERSONA_STORAGE_KEY, BotAvatar } from './components/PersonaSelector';
 import WelcomeScreen from './components/WelcomeScreen';
 import { useChat } from './context/ChatContext';
 import { useCanvas } from './context/CanvasContext';
@@ -2966,6 +2966,12 @@ function App() {
                   </Suspense>
                 </div>
               )}
+
+              {/* Persona Selector (Style & Tone Profile) */}
+              <PersonaSelector
+                activePersona={activePersona}
+                onSelectPersona={setActivePersona}
+              />
 
               {/* Active Project Badge */}
               {isPowerUser && activeProject && (
