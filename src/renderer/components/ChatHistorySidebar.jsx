@@ -39,7 +39,7 @@ import {
   Compass,
   Inbox
 } from 'lucide-react';
-import { BotAvatar, getPersonaIcon } from './PersonaSelector';
+import { BotAvatar, getPersonaIcon, getStoredPersonas } from './PersonaSelector';
 import BotConfigModal from './BotConfigModal';
 import { cn } from '../lib/utils';
 
@@ -342,6 +342,10 @@ function ChatHistorySidebar({
     }
   }, [loadBots]);
 
+  const allPersonas = useMemo(() => {
+    return getStoredPersonas(t);
+  }, [t]);
+
   const filteredBots = useMemo(() => {
     if (!botSearchQuery.trim()) return botsList;
     const q = botSearchQuery.toLowerCase();
@@ -355,7 +359,7 @@ function ChatHistorySidebar({
   const botLastInteractionMap = useMemo(() => {
     const map = new Map();
     (chatList || []).forEach(chat => {
-      const bId = chat.botId;
+      const bId = chat.botId || chat.personaId;
       if (bId) {
         const existing = map.get(bId);
         const chatDate = new Date(chat.updatedAt || chat.createdAt || 0).getTime();
@@ -908,7 +912,10 @@ function ChatHistorySidebar({
     const isEditing = editingChatId === chat.id;
     const isPinned = Boolean(chat.pinned);
     const isArchived = Boolean(chat.archived);
-    const matchedBot = chat.personaId ? allPersonas.find(p => p.id === chat.personaId) : null;
+    const targetBotId = chat.personaId || chat.botId;
+    const matchedBot = targetBotId
+      ? ((botsList || []).find(b => b.id === targetBotId) || (allPersonas || []).find(p => p.id === targetBotId) || null)
+      : null;
 
     return (
       <div
