@@ -24,10 +24,20 @@ import {
   Monitor,
   ExternalLink,
   AlignLeft,
-  FileCode
+  FileCode,
+  ChevronDown,
+  ChevronLeft,
+  ChevronRight,
+  Search,
+  LayoutGrid,
+  Globe,
+  Image as ImageIcon,
+  Workflow
 } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
 import { useTheme } from '../context/ThemeContext';
+import { useArtifacts } from '../context/ArtifactsContext';
+import { formatBytes, LANGUAGE_LABEL_MAP } from '../lib/artifactUtils';
 import { cn } from '../lib/utils';
 import { runJavaScript } from '../lib/codeRunners/jsRunner';
 import { runPythonWithPyodide } from '../lib/codeRunners/pyodideRunner';
@@ -75,9 +85,80 @@ const ARTIFACTS_WIDTH_KEY = 'neochat_artifacts_panel_width';
 const DEFAULT_ARTIFACTS_WIDTH = 580;
 const MIN_ARTIFACTS_WIDTH = 360;
 
-export function ArtifactsPanel({ artifact, onClose, className }) {
+export function ArtifactsPanel({ 
+  artifact, 
+  onClose, 
+  className,
+  artifacts: propArtifacts,
+  onSelectArtifact,
+  onOpenGallery
+}) {
   const { t } = useLanguage();
   const { isDark } = useTheme();
+
+  // Try consuming context if available
+  let artifactsCtx = null;
+  try {
+    artifactsCtx = useArtifacts();
+  } catch {
+    // context not available
+  }
+
+  const allArtifacts = propArtifacts || artifactsCtx?.artifacts || [];
+  const selectArtifact = onSelectArtifact || artifactsCtx?.openArtifact;
+  const openGalleryModal = onOpenGallery || artifactsCtx?.openGallery;
+  const nextArt = artifactsCtx?.nextArtifact;
+  const prevArt = artifactsCtx?.prevArtifact;
+
+  const [isArtifactsListOpen, setIsArtifactsListOpen] = useState(false);
+  const [searchArtifactsQuery, setSearchArtifactsQuery] = useState('');
+  const dropdownRef = useRef(null);
+
+  // Close dropdown on click outside
+  useEffect(() => {
+    if (!isArtifactsListOpen) return;
+    const handleClickOutside = (e) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
+        setIsArtifactsListOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [isArtifactsListOpen]);
+
+  const currentIndex = useMemo(() => {
+    if (!artifact) return -1;
+    return allArtifacts.findIndex(
+      (a) => a.id === artifact.id || a.identifier === artifact.identifier || (a.code === artifact.code && a.title === artifact.title)
+    );
+  }, [artifact, allArtifacts]);
+
+  const filteredDropdownArtifacts = useMemo(() => {
+    if (!searchArtifactsQuery.trim()) return allArtifacts;
+    const q = searchArtifactsQuery.toLowerCase();
+    return allArtifacts.filter(a => 
+      (a.title || '').toLowerCase().includes(q) || 
+      (a.type || '').toLowerCase().includes(q)
+    );
+  }, [allArtifacts, searchArtifactsQuery]);
+
+  const handlePrevArtifact = useCallback(() => {
+    if (prevArt) {
+      prevArt();
+    } else if (allArtifacts.length > 0 && selectArtifact) {
+      const prevIdx = currentIndex <= 0 ? allArtifacts.length - 1 : currentIndex - 1;
+      selectArtifact(allArtifacts[prevIdx]);
+    }
+  }, [prevArt, allArtifacts, selectArtifact, currentIndex]);
+
+  const handleNextArtifact = useCallback(() => {
+    if (nextArt) {
+      nextArt();
+    } else if (allArtifacts.length > 0 && selectArtifact) {
+      const nextIdx = (currentIndex === -1 || currentIndex >= allArtifacts.length - 1) ? 0 : currentIndex + 1;
+      selectArtifact(allArtifacts[nextIdx]);
+    }
+  }, [nextArt, allArtifacts, selectArtifact, currentIndex]);
 
   // Width & Resize state
   const [panelWidth, setPanelWidth] = useState(() => {
@@ -449,13 +530,26 @@ export function ArtifactsPanel({ artifact, onClose, className }) {
       </div>
 
       {/* Header Bar */}
-      <div className="flex items-center justify-between px-4 py-2.5 border-b border-border bg-muted/30 gap-2 select-none">
-        <div className="flex items-center gap-2 min-w-0">
+      <div className="flex items-center justify-between px-3.5 py-2 border-b border-border bg-muted/30 gap-2 select-none">
+        <div className="flex items-center gap-2 min-w-0 flex-1">
           <div className="p-1.5 rounded-lg bg-primary/10 text-primary shrink-0">
-            {hasReact ? <FileCode className="w-4 h-4 text-cyan-500" /> : isExecutable ? <Terminal className="w-4 h-4" /> : <Sparkles className="w-4 h-4" />}
+            {hasReact ? <FileCode className="w-4 h-4 text-cyan-500" /> : isExecutable ? <Terminal className="w-4 h-4 text-emerald-500" /> : isHtml ? <Globe className="w-4 h-4 text-orange-500" /> : <Sparkles className="w-4 h-4" />}
           </div>
-          <div className="min-w-0">
-            <h3 className="font-semibold text-xs text-foreground truncate">{title}</h3>
+          
+          {/* Artifact selector & dropdown */}
+          <div className="relative min-w-0 flex-1" ref={dropdownRef}>
+            <button
+              type="button"
+              onClick={() => setIsArtifactsListOpen(!isArtifactsListOpen)}
+              className="flex items-center gap-1.5 hover:bg-muted/80 px-1.5 py-0.5 -mx-1.5 rounded-md transition-colors text-left max-w-full group/title cursor-pointer"
+              title={t('artifacts.switchArtifactTooltip') || 'Clique para ver todos os artefatos criados'}
+            >
+              <h3 className="font-semibold text-xs text-foreground truncate max-w-[160px] sm:max-w-[220px]">{title}</h3>
+              {allArtifacts.length > 1 && (
+                <ChevronDown className={cn("w-3.5 h-3.5 text-muted-foreground group-hover/title:text-foreground transition-transform shrink-0", isArtifactsListOpen && "rotate-180")} />
+              )}
+            </button>
+
             <div className="flex items-center gap-1.5 mt-0.5">
               <span className="text-[10px] text-muted-foreground uppercase font-mono">{hasReact ? 'React (JSX)' : (isHtml ? (rawType === 'svg' ? 'SVG' : 'HTML') : rawType)}</span>
               {isVisual && (
@@ -463,8 +557,152 @@ export function ArtifactsPanel({ artifact, onClose, className }) {
                   Live Sandbox
                 </span>
               )}
+              {allArtifacts.length > 1 && (
+                <span className="text-[9px] px-1.5 py-0.2 rounded-full bg-muted font-mono text-muted-foreground font-semibold">
+                  {currentIndex >= 0 ? `${currentIndex + 1}/${allArtifacts.length}` : `${allArtifacts.length} artefatos`}
+                </span>
+              )}
             </div>
+
+            {/* Dropdown Menu listing all created artifacts */}
+            {isArtifactsListOpen && (
+              <div className="absolute top-full left-0 mt-2 w-80 max-h-96 bg-popover border border-border rounded-xl shadow-2xl z-50 overflow-hidden flex flex-col animate-in fade-in-0 zoom-in-95 duration-150">
+                <div className="p-2 border-b border-border bg-muted/30 flex items-center justify-between">
+                  <span className="font-semibold text-xs text-foreground flex items-center gap-1.5">
+                    <Sparkles className="w-3.5 h-3.5 text-primary" />
+                    <span>{t('artifacts.createdCount', { count: allArtifacts.length }) || `Artefatos Criados (${allArtifacts.length})`}</span>
+                  </span>
+                  {openGalleryModal && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsArtifactsListOpen(false);
+                        openGalleryModal();
+                      }}
+                      className="text-[11px] text-primary hover:underline font-medium"
+                    >
+                      {t('artifacts.viewGallery') || 'Ver Galeria'}
+                    </button>
+                  )}
+                </div>
+
+                {allArtifacts.length > 3 && (
+                  <div className="p-1.5 border-b border-border/60 bg-muted/10">
+                    <div className="relative">
+                      <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+                      <input
+                        type="text"
+                        value={searchArtifactsQuery}
+                        onChange={(e) => setSearchArtifactsQuery(e.target.value)}
+                        placeholder={t('artifacts.filterPlaceholder') || 'Filtrar artefatos...'}
+                        className="w-full pl-7 pr-2.5 py-1 text-xs rounded-lg bg-background border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+                        onClick={(e) => e.stopPropagation()}
+                      />
+                    </div>
+                  </div>
+                )}
+
+                <div className="overflow-y-auto max-h-64 p-1 custom-scrollbar divide-y divide-border/30">
+                  {filteredDropdownArtifacts.length === 0 ? (
+                    <div className="p-3 text-center text-xs text-muted-foreground">
+                      {t('artifacts.noArtifactsFound') || 'Nenhum artefato encontrado'}
+                    </div>
+                  ) : (
+                    filteredDropdownArtifacts.map((art, idx) => {
+                      const artType = (art.type || art.language || '').toLowerCase();
+                      const isArtReact = ['jsx', 'tsx', 'react'].includes(artType);
+                      const isArtHtml = artType === 'html' || artType === 'htm';
+                      const isArtSvg = artType === 'svg';
+                      const isArtMermaid = artType === 'mermaid';
+                      const isArtExec = ['py', 'python', 'js', 'javascript', 'ts', 'typescript'].includes(artType);
+                      const isSelected = art.id === artifact?.id || art.identifier === artifact?.identifier || art.code === artifact?.code;
+                      const lines = art.lines || (art.code ? art.code.split('\n').length : 0);
+
+                      return (
+                        <button
+                          key={art.id || idx}
+                          type="button"
+                          onClick={() => {
+                            if (selectArtifact) {
+                              selectArtifact(art);
+                            }
+                            setIsArtifactsListOpen(false);
+                          }}
+                          className={cn(
+                            "w-full flex items-center justify-between p-2 rounded-lg text-left text-xs transition-colors group/item cursor-pointer",
+                            isSelected ? "bg-primary/10 text-primary font-medium" : "hover:bg-muted text-foreground"
+                          )}
+                        >
+                          <div className="flex items-center gap-2 min-w-0">
+                            <div className="shrink-0 p-1 rounded bg-background border border-border/60">
+                              {isArtReact ? <FileCode className="w-3.5 h-3.5 text-cyan-500" /> :
+                               isArtHtml ? <Globe className="w-3.5 h-3.5 text-orange-500" /> :
+                               isArtSvg ? <ImageIcon className="w-3.5 h-3.5 text-pink-500" /> :
+                               isArtMermaid ? <Workflow className="w-3.5 h-3.5 text-teal-500" /> :
+                               isArtExec ? <Terminal className="w-3.5 h-3.5 text-emerald-500" /> :
+                               <Sparkles className="w-3.5 h-3.5 text-primary" />}
+                            </div>
+                            <div className="min-w-0">
+                              <div className="font-semibold truncate max-w-[170px] text-xs">
+                                {art.title || `Artefato #${idx + 1}`}
+                              </div>
+                              <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground font-mono mt-0.5">
+                                <span className="uppercase">{LANGUAGE_LABEL_MAP[artType] || artType}</span>
+                                <span>•</span>
+                                <span>{lines} lin</span>
+                              </div>
+                            </div>
+                          </div>
+
+                          {isSelected && (
+                            <Check className="w-4 h-4 text-primary shrink-0 ml-1.5" />
+                          )}
+                        </button>
+                      );
+                    })
+                  )}
+                </div>
+
+                {openGalleryModal && (
+                  <div className="p-1.5 border-t border-border bg-muted/20">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsArtifactsListOpen(false);
+                        openGalleryModal();
+                      }}
+                      className="w-full flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-xs font-semibold bg-muted hover:bg-muted/80 text-foreground transition-colors cursor-pointer"
+                    >
+                      <LayoutGrid className="w-3.5 h-3.5 text-primary" />
+                      <span>{t('artifacts.viewAllInGallery') || 'Ver Todos na Galeria'}</span>
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
+
+          {/* Quick Prev / Next arrows */}
+          {allArtifacts.length > 1 && (
+            <div className="flex items-center gap-0.5 shrink-0 bg-muted/60 p-0.5 rounded-lg border border-border/50">
+              <button
+                type="button"
+                onClick={handlePrevArtifact}
+                className="p-1 rounded hover:bg-background text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+                title={t('artifacts.prevArtifact') || 'Artefato anterior'}
+              >
+                <ChevronLeft className="w-3.5 h-3.5" />
+              </button>
+              <button
+                type="button"
+                onClick={handleNextArtifact}
+                className="p-1 rounded hover:bg-background text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+                title={t('artifacts.nextArtifact') || 'Próximo artefato'}
+              >
+                <ChevronRight className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Action buttons & tabs */}
@@ -574,6 +812,17 @@ export function ArtifactsPanel({ artifact, onClose, className }) {
           >
             <Download className="w-4 h-4" />
           </button>
+
+          {/* Open Gallery Modal */}
+          {openGalleryModal && (
+            <button
+              onClick={openGalleryModal}
+              className="p-1.5 rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
+              title={t('artifacts.galleryTitle') || 'Galeria de artefatos'}
+            >
+              <LayoutGrid className="w-4 h-4" />
+            </button>
+          )}
 
           {/* Close Panel */}
           <button

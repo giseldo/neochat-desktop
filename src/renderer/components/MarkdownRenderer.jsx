@@ -6,7 +6,9 @@ import rehypeKatex from 'rehype-katex';
 import rehypeRaw from 'rehype-raw';
 import "katex/dist/katex.min.css";
 import CodeBlock from './CodeBlock';
+import { ArtifactCard } from './ArtifactCard';
 import { extractThinking, preprocessCitations } from '../lib/messageUtils';
+import { preprocessArtifactTags } from '../lib/artifactUtils';
 import { useTheme } from '../context/ThemeContext';
 import { cn } from '../lib/utils';
 
@@ -62,6 +64,9 @@ function MarkdownRenderer({ content = '', sources = [], disableMath = false, onP
     // If rendering reasoning content, strip raw think tags wrappers
     processedContent = processedContent.replace(/<\/?\s*(think|thought|thinking)(?:\s[^>]*)?>/gi, '');
   }
+
+  // Preprocess explicit <antArtifact> / <artifact> tags into safe markdown code blocks
+  processedContent = preprocessArtifactTags(processedContent);
 
   // Preprocess citation markers (e.g. 【3†source】, [3†source], [1], [2]) into clickable markdown links
   processedContent = preprocessCitations(processedContent, sources);
@@ -119,6 +124,29 @@ function MarkdownRenderer({ content = '', sources = [], disableMath = false, onP
     code({ node, inline, className, children, ...props }) {
       const match = /language-(\w+)/.exec(className || '');
       const codeString = String(children || '');
+
+      // Check if this is an explicit artifact block
+      if (match && match[1] === 'artifact') {
+        try {
+          const parts = codeString.split('\n---ARTIFACT_CODE---\n');
+          const metaJson = parts[0] || '{}';
+          const innerCode = parts[1] || '';
+          const meta = JSON.parse(metaJson);
+
+          return (
+            <ArtifactCard
+              identifier={meta.identifier}
+              type={meta.type}
+              title={meta.title}
+              language={meta.language}
+              code={innerCode}
+              onPreviewArtifact={onPreviewArtifact}
+            />
+          );
+        } catch (e) {
+          console.warn('Failed to parse artifact code block:', e);
+        }
+      }
 
       // If inline or no newline and short, render as inline code badge
       if (inline || (!match && !codeString.includes('\n') && codeString.length < 80)) {

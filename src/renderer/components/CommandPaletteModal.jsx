@@ -45,6 +45,7 @@ import {
 import { useLanguage } from '../context/LanguageContext';
 import { useChat } from '../context/ChatContext';
 import { useCanvas } from '../context/CanvasContext';
+import { useArtifacts } from '../context/ArtifactsContext';
 import { useProjects } from '../context/ProjectContext';
 import { Badge } from './ui/badge';
 import { Button } from './ui/button';
@@ -117,6 +118,7 @@ export function CommandPaletteModal({
   const { t } = useLanguage();
   const { currentChatId, chatList, createNewChat, loadChat } = useChat();
   const { openCanvas, createNewDocument } = useCanvas();
+  const artifactsCtx = useArtifacts();
   const { projects } = useProjects();
 
   const [query, setQuery] = useState('');
@@ -282,12 +284,23 @@ export function CommandPaletteModal({
         id: 'nav_canvas',
         category: 'nav',
         categoryLabel: 'Navegação',
-        title: 'Abrir Canvas / Artifacts Panel',
-        subtitle: 'Editor de código, diff e sandbox interativo',
+        title: 'Abrir Canvas',
+        subtitle: 'Editor de documentos e workspace side-by-side',
         icon: Columns2,
         shortcut: `${modKey}+Shift+C`,
-        keywords: ['canvas', 'artifacts', 'artefatos', 'editor', 'diff', 'sandbox', 'painel', 'codigo'],
+        keywords: ['canvas', 'editor', 'diff', 'painel', 'documento'],
         action: () => { onClose(); openCanvas?.(); }
+      },
+      {
+        id: 'nav_artifacts',
+        category: 'nav',
+        categoryLabel: 'Navegação',
+        title: 'Ver Artefatos Criados (Galeria & Painel)',
+        subtitle: 'Explorar componentes React, páginas HTML, scripts e diagramas gerados',
+        icon: Sparkles,
+        shortcut: `${modKey}+Shift+A`,
+        keywords: ['artifacts', 'artefatos', 'galeria', 'componentes', 'react', 'html', 'python', 'preview', 'sandbox', 'codigo'],
+        action: () => { onClose(); artifactsCtx?.openGallery ? artifactsCtx.openGallery() : artifactsCtx?.toggleArtifactsPanel?.(); }
       },
       {
         id: 'nav_terminal',

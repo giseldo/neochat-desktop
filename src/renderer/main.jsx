@@ -4,6 +4,7 @@ import { createHashRouter, RouterProvider } from 'react-router-dom';
 import './index.css';
 import { ChatProvider } from './context/ChatContext';
 import { CanvasProvider } from './context/CanvasContext';
+import { ArtifactsProvider } from './context/ArtifactsContext';
 import { ProjectProvider } from './context/ProjectContext';
 import { ThemeProvider } from './context/ThemeContext';
 import { LanguageProvider } from './context/LanguageContext';
@@ -57,7 +58,9 @@ ReactDOM.createRoot(document.getElementById('root')).render(
           <ProjectProvider>
             <ChatProvider>
               <CanvasProvider>
-                <RouterProvider router={router} />
+                <ArtifactsProvider>
+                  <RouterProvider router={router} />
+                </ArtifactsProvider>
               </CanvasProvider>
             </ChatProvider>
           </ProjectProvider>

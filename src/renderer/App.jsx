@@ -8,6 +8,7 @@ import PersonaSelector, { DEFAULT_PERSONAS, getStoredActivePersona, getStoredPer
 import WelcomeScreen from './components/WelcomeScreen';
 import { useChat } from './context/ChatContext';
 import { useCanvas } from './context/CanvasContext';
+import { useArtifacts } from './context/ArtifactsContext';
 import { useProjects } from './context/ProjectContext';
 import { useLanguage } from './context/LanguageContext';
 import { useTheme } from './context/ThemeContext';
@@ -29,6 +30,7 @@ import { filterModels } from './utils/modelFilters';
 const ToolsPanel = lazy(() => import('./components/ToolsPanel'));
 const ToolApprovalModal = lazy(() => import('./components/ToolApprovalModal'));
 const ArtifactsPanel = lazy(() => import('./components/ArtifactsPanel'));
+const ArtifactsGalleryModal = lazy(() => import('./components/ArtifactsGalleryModal'));
 const CanvasPanel = lazy(() => import('./components/CanvasPanel'));
 const WorkspaceExplorerPanel = lazy(() => import('./components/WorkspaceExplorerPanel'));
 const McpCatalogModal = lazy(() => import('./components/McpCatalogModal'));
@@ -164,7 +166,17 @@ function App() {
   const [activeBot, setActiveBot] = useState(null);
   const [isBotConfigModalOpen, setIsBotConfigModalOpen] = useState(false);
   const [botModalTab, setBotModalTab] = useState('identity');
-  const [activeArtifact, setActiveArtifact] = useState(null);
+  const {
+    artifacts,
+    activeArtifact,
+    setActiveArtifact,
+    openArtifact,
+    closeArtifact,
+    toggleArtifactsPanel,
+    isGalleryOpen,
+    openGallery,
+    closeGallery
+  } = useArtifacts();
   const [isMcpCatalogOpen, setIsMcpCatalogOpen] = useState(false);
   const [isWorkflowsOpen, setIsWorkflowsOpen] = useState(false);
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
@@ -208,7 +220,7 @@ function App() {
       closeCanvas();
     } else {
       if (activeArtifact) {
-        setActiveArtifact(null);
+        closeArtifact();
       }
       if (canvasDoc) {
         openCanvas();
@@ -221,11 +233,11 @@ function App() {
         });
       }
     }
-  }, [isCanvasOpen, canvasDoc, closeCanvas, openCanvas, createNewDocument, activeArtifact, t]);
+  }, [isCanvasOpen, canvasDoc, closeCanvas, openCanvas, createNewDocument, activeArtifact, closeArtifact, t]);
 
   const handleToggleCodeInterpreter = useCallback(() => {
     if (activeArtifact) {
-      setActiveArtifact(null);
+      closeArtifact();
     } else {
       if (isCanvasOpen) {
         closeCanvas();
@@ -237,7 +249,14 @@ function App() {
         code: `# Interpretador de Código Python & JS\n# Pressione Ctrl+Enter ou clique em Executar para rodar\n\nprint("Hello, World!")\n`
       });
     }
-  }, [activeArtifact, isCanvasOpen, closeCanvas, t]);
+  }, [activeArtifact, isCanvasOpen, closeCanvas, closeArtifact, setActiveArtifact, t]);
+
+  const handleToggleArtifacts = useCallback(() => {
+    if (isCanvasOpen) {
+      closeCanvas();
+    }
+    toggleArtifactsPanel();
+  }, [isCanvasOpen, closeCanvas, toggleArtifactsPanel]);
 
   useEffect(() => {
     if (activePersona?.id) {
@@ -2747,6 +2766,13 @@ function App() {
         return;
       }
 
+      // Ctrl/Cmd + Shift + A: Toggle Artifacts Panel / View Artifacts
+      if (isModifier && e.shiftKey && e.key.toLowerCase() === 'a') {
+        e.preventDefault();
+        handleToggleArtifacts();
+        return;
+      }
+
       // Ctrl/Cmd + Shift + U or Ctrl/Cmd + Alt + U: Toggle Interface Mode (User / Power)
       if (isModifier && (e.shiftKey || e.altKey) && e.key.toLowerCase() === 'u') {
         e.preventDefault();
@@ -2768,7 +2794,7 @@ function App() {
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
     };
-  }, [handleNewChat, toggleSidebar, collapseSidebar, handleToggleCanvas, handleToggleCodeInterpreter, navigate, interfaceMode, handleInterfaceModeChange]);
+  }, [handleNewChat, toggleSidebar, collapseSidebar, handleToggleCanvas, handleToggleCodeInterpreter, handleToggleArtifacts, navigate, interfaceMode, handleInterfaceModeChange]);
 
   // Handle when a chat is loaded from history - switch API mode and sync active project if needed
   const handleChatLoaded = useCallback(async (chat) => {
@@ -3004,6 +3030,30 @@ function App() {
             </div>
 
             <div className="flex items-center space-x-1.5 sm:space-x-2">
+              {/* Artifacts Header Indicator & Toggle Button */}
+              {(artifacts.length > 0 || Boolean(activeArtifact)) && (
+                <Button
+                  variant={Boolean(activeArtifact) ? "default" : "outline"}
+                  size="sm"
+                  onClick={handleToggleArtifacts}
+                  className={cn(
+                    "h-8 gap-1.5 px-2.5 rounded-xl font-medium text-xs transition-all shadow-2xs cursor-pointer",
+                    Boolean(activeArtifact)
+                      ? "bg-primary text-primary-foreground shadow-xs"
+                      : "text-foreground hover:bg-muted border-border/80"
+                  )}
+                  title={t('artifacts.headerButtonTooltip', { count: artifacts.length }) || `Ver artefatos criados (${artifacts.length})`}
+                >
+                  <Sparkles className="h-3.5 w-3.5 text-primary shrink-0" />
+                  <span className="hidden md:inline font-semibold">{t('artifacts.buttonTitle') || 'Artefatos'}</span>
+                  {artifacts.length > 0 && (
+                    <span className="px-1.5 py-0.2 rounded-full bg-primary/20 text-primary text-[10px] font-mono font-bold">
+                      {artifacts.length}
+                    </span>
+                  )}
+                </Button>
+              )}
+
               {/* Consolidated Tools Menu Popover */}
               {isPowerUser && (
                 <div className="relative" ref={toolsDropdownRef}>
@@ -3220,10 +3270,37 @@ function App() {
                             <span>{t('header.codeInterpreter') || 'Interpretador de Código'}</span>
                             <div className="flex items-center gap-1.5 shrink-0">
                               <kbd className="px-1.5 py-0.5 rounded bg-muted/80 text-[10px] font-mono font-medium border border-border/60 text-muted-foreground">{modKey}+Shift+X</kbd>
-                              {activeArtifact && <span className="px-1.5 py-0.5 rounded bg-violet-500/20 text-violet-600 dark:text-violet-400 text-[10px] font-mono font-semibold">Aberto</span>}
+                              {activeArtifact && activeArtifact.id === 'code_interpreter' && <span className="px-1.5 py-0.5 rounded bg-violet-500/20 text-violet-600 dark:text-violet-400 text-[10px] font-mono font-semibold">Aberto</span>}
                             </div>
                           </div>
                           <div className="text-[10px] text-muted-foreground truncate">Python & JavaScript interativo</div>
+                        </div>
+                      </button>
+
+                      {/* Created Artifacts */}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsToolsDropdownOpen(false);
+                          handleToggleArtifacts();
+                        }}
+                        className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-muted/80 text-foreground transition-colors text-left cursor-pointer"
+                      >
+                        <Sparkles className="w-4 h-4 text-violet-500 shrink-0" />
+                        <div className="flex-1 min-w-0">
+                          <div className="font-semibold text-foreground flex items-center justify-between gap-1">
+                            <span>{t('artifacts.toolsMenuTitle') || 'Artefatos Criados'}</span>
+                            <div className="flex items-center gap-1.5 shrink-0">
+                              {artifacts.length > 0 && (
+                                <span className="px-1.5 py-0.5 rounded-full bg-violet-500 text-white text-[9px] font-bold">
+                                  {artifacts.length}
+                                </span>
+                              )}
+                              <kbd className="px-1.5 py-0.5 rounded bg-muted/80 text-[10px] font-mono font-medium border border-border/60 text-muted-foreground">{modKey}+Shift+A</kbd>
+                              {activeArtifact && <span className="px-1.5 py-0.5 rounded bg-violet-500/20 text-violet-600 dark:text-violet-400 text-[10px] font-mono font-semibold">Aberto</span>}
+                            </div>
+                          </div>
+                          <div className="text-[10px] text-muted-foreground truncate">{artifacts.length > 0 ? `${artifacts.length} artefato(s) nesta conversa` : (t('artifacts.emptyGallery') || 'Nenhum artefato criado')}</div>
                         </div>
                       </button>
 
@@ -3894,6 +3971,9 @@ function App() {
             <ArtifactsPanel
               artifact={activeArtifact}
               onClose={() => setActiveArtifact(null)}
+              artifacts={artifacts}
+              onSelectArtifact={setActiveArtifact}
+              onOpenGallery={openGallery}
             />
           </Suspense>
         )}
@@ -3974,6 +4054,16 @@ function App() {
             toolCall={pendingApprovalCall}
             onApprove={handleToolApproval}
           />
+        )}
+
+        {/* Artifacts Gallery Modal */}
+        {isGalleryOpen && (
+          <Suspense fallback={null}>
+            <ArtifactsGalleryModal
+              isOpen={isGalleryOpen}
+              onClose={closeGallery}
+            />
+          </Suspense>
         )}
 
         {isMcpCatalogOpen && (
