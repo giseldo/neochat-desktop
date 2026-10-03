@@ -5,7 +5,7 @@
  */
 
 // Supported visual formats
-export const VISUAL_TYPES = ['html', 'htm', 'svg', 'jsx', 'tsx', 'react', 'mermaid'];
+export const VISUAL_TYPES = ['html', 'htm', 'svg', 'jsx', 'tsx', 'react', 'mermaid', 'mindmap'];
 
 // Supported executable formats
 export const EXECUTABLE_TYPES = ['js', 'javascript', 'ts', 'typescript', 'py', 'python'];
@@ -40,6 +40,7 @@ export const LANGUAGE_LABEL_MAP = {
   md: 'Markdown',
   markdown: 'Markdown',
   mermaid: 'Mermaid',
+  mindmap: 'Mapa Mental',
   svg: 'SVG Vector',
   xml: 'XML'
 };
@@ -75,6 +76,7 @@ export function getArtifactExtension(type = '') {
     markdown: 'md',
     svg: 'svg',
     mermaid: 'mmd',
+    mindmap: 'mmd',
     xml: 'xml'
   };
   return map[t] || 'txt';
@@ -98,7 +100,7 @@ export function normalizeArtifactType(rawType = '', code = '') {
   if (t === 'application/vnd.ant.react' || t === 'react' || t === 'jsx') return 'jsx';
   if (t === 'text/html' || t === 'html' || t === 'htm') return 'html';
   if (t === 'image/svg+xml' || t === 'svg') return 'svg';
-  if (t === 'application/vnd.ant.mermaid' || t === 'mermaid') return 'mermaid';
+  if (t === 'application/vnd.ant.mermaid' || t === 'mermaid' || t === 'mindmap') return 'mermaid';
   if (t === 'application/vnd.ant.markdown' || t === 'markdown' || t === 'md') return 'markdown';
   if (t === 'application/vnd.ant.code' || t === 'code') {
     if (code.includes('import React') || code.includes('export default function')) return 'jsx';
@@ -135,13 +137,13 @@ function inferTitleFromCode(code, lang, index) {
     return htmlTitleMatch[1].trim();
   }
 
-  // Mermaid diagram title
-  if (lang === 'mermaid') {
-    const titleMatch = code.match(/title\s+([^\n]+)/i);
+  // Mermaid or Mindmap diagram title
+  if (lang === 'mermaid' || lang === 'mindmap') {
+    const titleMatch = code.match(/(?:title|#)\s+([^\n]+)/i);
     if (titleMatch && titleMatch[1]) {
       return titleMatch[1].trim();
     }
-    return `Diagrama Mermaid ${index + 1}`;
+    return lang === 'mindmap' ? `Mapa Mental ${index + 1}` : `Diagrama Mermaid ${index + 1}`;
   }
 
   const langLabel = LANGUAGE_LABEL_MAP[lang.toLowerCase()] || lang.toUpperCase();

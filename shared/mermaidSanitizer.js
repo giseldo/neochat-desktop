@@ -7,6 +7,103 @@
  */
 
 /**
+ * Sanitizes mindmaps, converting pseudo-mindmaps (markdown bullets, indentation trees)
+ * into valid Mermaid mindmap syntax and stripping invalid bullets or unquoted special chars.
+ * @param {string} code - Mindmap source code
+ * @returns {string} - Clean Mermaid mindmap code
+ */
+function sanitizeMindmap(code) {
+  let lines = code.trim().split(/\r?\n/);
+  const firstNonEmpty = lines.find(l => l.trim() && !l.trim().startsWith('%%') && !l.trim().startsWith('#'));
+  const hasMindmapKeyword = Boolean(firstNonEmpty && firstNonEmpty.trim().startsWith('mindmap'));
+
+  let title = '';
+  let rootAdded = false;
+  const resultLines = ['mindmap'];
+
+  for (let rawLine of lines) {
+    const trimmed = rawLine.trim();
+    if (!trimmed) continue;
+
+    // Skip the 'mindmap' keyword line if present
+    if (trimmed === 'mindmap' || trimmed.startsWith('mindmap ')) {
+      continue;
+    }
+
+    // Markdown title header: # Title
+    if (trimmed.startsWith('#')) {
+      title = trimmed.replace(/^#+\s*/, '').trim();
+      continue;
+    }
+
+    // Check for root declaration: (root) Text, root((Text)), root: Text, [root] Text
+    const rootMatch = trimmed.match(/^[\(\[]?root[\)\]]?[:\s]+(.*)$/i);
+    if (rootMatch && !rootAdded) {
+      const rootText = rootMatch[1].trim().replace(/^[\(\[]+|[\)\]]+$/g, '').trim();
+      resultLines.push(`  root(("${rootText || title || 'Mapa Mental'}"))`);
+      rootAdded = true;
+      continue;
+    }
+
+    // If it's already a Mermaid root declaration like `root((Text))` or `root[Text]`
+    const mermaidRootMatch = trimmed.match(/^root(\(\(.*?\)\)|\[.*?\]|\(.*?\)|{{.*?}}|\)\).*?\(\(|\).*?\()/i);
+    if (mermaidRootMatch && !rootAdded) {
+      resultLines.push(`  ${trimmed}`);
+      rootAdded = true;
+      continue;
+    }
+
+    // If we haven't encountered a root yet and this is the first content line
+    if (!rootAdded) {
+      if (title) {
+        resultLines.push(`  root(("${title}"))`);
+        rootAdded = true;
+      } else {
+        const cleanFirst = trimmed.replace(/^[-*•]\s+/, '').replace(/^[\(\[]+|[\)\]]+$/g, '').trim();
+        resultLines.push(`  root(("${cleanFirst}"))`);
+        rootAdded = true;
+        continue;
+      }
+    }
+
+    // For child nodes: preserve relative indentation
+    const indentMatch = rawLine.match(/^(\s*)/);
+    const rawIndentLen = indentMatch ? indentMatch[1].length : 0;
+
+    // Strip leading bullets: - , * , •
+    let cleanText = trimmed.replace(/^[-*•]\s+/, '').trim();
+    if (!cleanText) continue;
+
+    // Check if user/model wrapped whole node in parentheses e.g. (Esquerda) -> Esquerda
+    const simpleParenMatch = cleanText.match(/^\(([^()]+)\)$/);
+    if (simpleParenMatch) {
+      cleanText = simpleParenMatch[1].trim();
+    }
+
+    // Determine target indentation (minimum 4 spaces for direct children of root)
+    let targetSpaces = hasMindmapKeyword ? Math.max(4, rawIndentLen) : Math.max(4, rawIndentLen + 2);
+    if (targetSpaces % 2 !== 0) targetSpaces += 1;
+    const targetIndent = ' '.repeat(targetSpaces);
+
+    // If already safely wrapped in quotes or shape delimiters e.g. ["..."], (("...")), leave it
+    if (/^(\(\(.*\)\)|\[".*"\]|\[.*\]|\(.*\)|{{.*}}|\)\).*?\(\(|\).*?\()$/.test(cleanText)) {
+      resultLines.push(`${targetIndent}${cleanText}`);
+    } else if (/[\(\)\[\]\{\}:;,/#"\\-]/.test(cleanText)) {
+      const escaped = cleanText.replace(/"/g, '#quot;');
+      resultLines.push(`${targetIndent}["${escaped}"]`);
+    } else {
+      resultLines.push(`${targetIndent}${cleanText}`);
+    }
+  }
+
+  if (!rootAdded) {
+    resultLines.push(`  root(("${title || 'Mapa Mental'}"))`);
+  }
+
+  return resultLines.join('\n');
+}
+
+/**
  * Sanitizes and repairs common Mermaid syntax issues.
  * @param {string} code - Raw Mermaid diagram source code
  * @returns {string} - Cleaned and repaired Mermaid code ready for rendering
@@ -16,8 +113,18 @@ function sanitizeMermaid(code) {
 
   let sanitized = code.trim();
 
-  // Strip wrapping markdown code fences if accidentally included (e.g. ```mermaid ... ```)
-  sanitized = sanitized.replace(/^```(?:mermaid)?\s*\n?/i, '').replace(/\n?```\s*$/i, '').trim();
+  // Strip wrapping markdown code fences if accidentally included (e.g. ```mermaid ... ``` or ```mindmap ... ```)
+  sanitized = sanitized.replace(/^```(?:mermaid|mindmap)?\s*\n?/i, '').replace(/\n?```\s*$/i, '').trim();
+
+  // Check if diagram is a mindmap or pseudo-mindmap
+  const cleanStart = sanitized.replace(/^(?:%%[^\r\n]*\r?\n|\s+)+/, '');
+  const isMindmap = /^\s*mindmap\b/i.test(cleanStart) ||
+    (!/^\s*(flowchart|graph|sequenceDiagram|classDiagram|stateDiagram|erDiagram|gantt|pie|gitGraph|journey|timeline|quadrantChart|sankey|xychart|architecture|block-beta|packet-beta|kanban)\b/i.test(cleanStart) &&
+     (/[\(\[]?root[\)\]]?[:\s]+/i.test(cleanStart) || /^\s*#\s+.*\n\s*[\(\[]?root[\)\]]?/i.test(cleanStart)));
+
+  if (isMindmap) {
+    return sanitizeMindmap(sanitized);
+  }
 
   const lines = sanitized.split(/\r?\n/);
   const processedLines = lines.map(line => {

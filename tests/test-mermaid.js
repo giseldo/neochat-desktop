@@ -19,7 +19,13 @@ const sampleDiagrams = {
     class Dog {
       +bark()
     }
-    Animal <|-- Dog`
+    Animal <|-- Dog`,
+  mindmap: `mindmap
+  root((Diferenças políticas no Brasil))
+    Esquerda
+      Estado forte e intervencionista
+    Direita
+      Estado mínimo`
 };
 
 console.log('--- [Test Suite] Mermaid Diagram Support & Validation ---');
@@ -27,7 +33,7 @@ console.log('--- [Test Suite] Mermaid Diagram Support & Validation ---');
 // Test 1: Validate diagram definitions are non-empty and well-formed
 Object.entries(sampleDiagrams).forEach(([name, code]) => {
   assert.ok(code.trim().length > 0, `Diagram ${name} should have content`);
-  assert.match(code, /^(flowchart|sequenceDiagram|classDiagram)/, `Diagram ${name} should start with valid mermaid keyword`);
+  assert.match(code, /^(flowchart|sequenceDiagram|classDiagram|mindmap)/, `Diagram ${name} should start with valid mermaid keyword`);
   console.log(`   ✓ Sample ${name} diagram syntax verified`);
 });
 
@@ -90,5 +96,49 @@ assert.ok(sanitizedShapes.includes('G{"Node (rhombus)?"}'), 'Rhombus shape quote
 assert.ok(sanitizedShapes.includes('H{{"Node (hexagon)"}}'), 'Hexagon shape quoted');
 assert.ok(sanitizedShapes.includes('|"Opção (1)"|'), 'Edge label quoted');
 console.log('   ✓ All 8 diagram shapes and edge labels with parentheses auto-repaired');
+
+// Test 3.5: User's exact pseudo-mindmap from bug report
+const userMindmapInput = `# Diferenças entre Direita e Esquerda no Brasil
+(root) Diferenças políticas no Brasil
+  (Esquerda)
+    - Estado forte e intervencionista
+    - Redução de desigualdades
+    - Progressismo social
+    - Apoio a políticas identitárias
+    - Crítica ao livre mercado
+  (Direita)
+    - Estado mínimo
+    - Livre mercado e meritocracia
+    - Conservadorismo social
+    - Enfase na segurança e ordem
+    - Crítica ao intervencionismo`;
+
+const sanitizedUserMindmap = sanitizeMermaid(userMindmapInput);
+assert.ok(sanitizedUserMindmap.startsWith('mindmap'), 'Should start with mindmap keyword');
+assert.ok(sanitizedUserMindmap.includes('root(("Diferenças políticas no Brasil"))'), 'Root node should be correctly defined');
+assert.ok(sanitizedUserMindmap.includes('Esquerda'), 'Branch Esquerda preserved');
+assert.ok(sanitizedUserMindmap.includes('Estado forte e intervencionista'), 'Child items preserved');
+assert.ok(sanitizedUserMindmap.includes('Direita'), 'Branch Direita preserved');
+assert.ok(!sanitizedUserMindmap.includes('- Estado'), 'Hyphen bullets should be stripped from mindmap');
+console.log('   ✓ User reported pseudo-mindmap auto-repaired into valid Mermaid mindmap');
+
+// Test 3.6: Fenced mindmap block with ```mindmap
+const fencedMindmap = '```mindmap\n# Tema\n(root) Central\n  Item 1\n```';
+const unfencedMindmap = sanitizeMermaid(fencedMindmap);
+assert.ok(!unfencedMindmap.startsWith('```'), 'Markdown code fence should be stripped');
+assert.ok(unfencedMindmap.startsWith('mindmap'), 'Should start with mindmap keyword');
+assert.ok(unfencedMindmap.includes('root(("Central"))'), 'Central root preserved');
+console.log('   ✓ Fenced ```mindmap code block auto-converted');
+
+// Test 3.7: Mindmap with bullet items and parentheses in items
+const mindmapWithBullets = `mindmap
+  root((Tema Central))
+    - Subtópico 1 (detalhes)
+    - Subtópico 2`;
+const sanitizedBullets = sanitizeMermaid(mindmapWithBullets);
+assert.ok(sanitizedBullets.startsWith('mindmap'), 'Should preserve mindmap keyword');
+assert.ok(!sanitizedBullets.includes('- Subtópico'), 'Bullet hyphens should be stripped');
+assert.ok(sanitizedBullets.includes('Subtópico 1 (detalhes)') || sanitizedBullets.includes('Subtópico 1'), 'Item content preserved');
+console.log('   ✓ Mindmap with bullet points and details auto-repaired');
 
 console.log('\n🎉 ALL MERMAID DIAGRAM TESTS PASSED!\n');

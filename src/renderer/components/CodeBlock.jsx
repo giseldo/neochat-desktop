@@ -44,6 +44,7 @@ const formatLanguage = (lang) => {
     php: 'PHP',
     dockerfile: 'Dockerfile',
     mermaid: 'Mermaid Diagram',
+    mindmap: 'Mapa Mental',
     svg: 'SVG Image',
     latex: 'LaTeX',
     tex: 'TeX',
@@ -86,7 +87,8 @@ export function CodeBlock({ language, code, onPreviewArtifact, className }) {
   const cleanCode = String(code || '').replace(/\n$/, '');
   const lang = (language || '').toLowerCase().trim();
 
-  const hasInlinePreview = ['mermaid', 'svg'].includes(lang);
+  const isMermaid = lang === 'mermaid' || lang === 'mindmap';
+  const hasInlinePreview = isMermaid || lang === 'svg';
   const [activeTab, setActiveTab] = useState(hasInlinePreview ? 'preview' : 'code');
 
   const handleCopy = async () => {
@@ -134,14 +136,14 @@ export function CodeBlock({ language, code, onPreviewArtifact, className }) {
                     ? "bg-primary text-primary-foreground shadow-xs font-semibold"
                     : "text-muted-foreground hover:text-foreground"
                 )}
-                title={lang === 'mermaid' ? "Visualizar diagrama renderizado" : "Visualizar imagem"}
+                title={isMermaid ? (lang === 'mindmap' ? "Visualizar mapa mental renderizado" : "Visualizar diagrama renderizado") : "Visualizar imagem"}
               >
-                {lang === 'mermaid' ? (
+                {isMermaid ? (
                   <Workflow className="w-3.5 h-3.5" />
                 ) : (
                   <ImageIcon className="w-3.5 h-3.5" />
                 )}
-                <span>{lang === 'mermaid' ? 'Diagrama' : 'Visualizar'}</span>
+                <span>{isMermaid ? (lang === 'mindmap' ? 'Mapa Mental' : 'Diagrama') : 'Visualizar'}</span>
               </button>
               <button
                 type="button"
@@ -236,7 +238,7 @@ export function CodeBlock({ language, code, onPreviewArtifact, className }) {
 
       {/* Body content: Preview Tab or Code Tab */}
       {hasInlinePreview && activeTab === 'preview' ? (
-        lang === 'mermaid' ? (
+        isMermaid ? (
           <MermaidViewer 
             code={cleanCode} 
             onSwitchToCode={() => setActiveTab('code')} 

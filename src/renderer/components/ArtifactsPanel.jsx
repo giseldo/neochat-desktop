@@ -76,7 +76,8 @@ function getMonacoLanguage(type = '') {
     ps1: 'powershell',
     xml: 'xml',
     svg: 'xml',
-    mermaid: 'markdown'
+    mermaid: 'markdown',
+    mindmap: 'markdown'
   };
   return map[t] || 'plaintext';
 }
@@ -241,7 +242,7 @@ export function ArtifactsPanel({
       const rawType = (artifact.type || '').toLowerCase();
       const isHtml = rawType === 'html' || rawType === 'htm' || rawType === 'svg' || /<!DOCTYPE html|<html[\s>]/i.test(code);
       const hasReact = !isHtml && (['jsx', 'tsx', 'react'].includes(rawType) || isReactCode(code));
-      const isVisual = ['html', 'htm', 'svg', 'mermaid', 'markdown', 'md', 'jsx', 'tsx', 'react'].includes(rawType) || isHtml || hasReact;
+      const isVisual = ['html', 'htm', 'svg', 'mermaid', 'mindmap', 'markdown', 'md', 'jsx', 'tsx', 'react'].includes(rawType) || isHtml || hasReact;
       const isExecutableType = ['js', 'javascript', 'ts', 'typescript', 'py', 'python'].includes(rawType) && !hasReact;
 
       if (isVisual) {
@@ -303,12 +304,12 @@ export function ArtifactsPanel({
   const isPython = rawType === 'py' || rawType === 'python';
   const isJS = (rawType === 'js' || rawType === 'javascript' || rawType === 'ts' || rawType === 'typescript') && !hasReact;
   const isExecutable = isPython || isJS;
-  const isVisual = ['html', 'htm', 'svg', 'mermaid', 'markdown', 'md', 'jsx', 'tsx', 'react'].includes(rawType) || isHtml || hasReact;
+  const isVisual = ['html', 'htm', 'svg', 'mermaid', 'mindmap', 'markdown', 'md', 'jsx', 'tsx', 'react'].includes(rawType) || isHtml || hasReact;
 
   // Build live sandbox iframe doc
   const sandboxDoc = useMemo(() => {
     if (!artifact) return '';
-    if (rawType === 'mermaid') {
+    if (rawType === 'mermaid' || rawType === 'mindmap') {
       return buildMermaidDoc(currentCode, isDark);
     }
     if (hasReact) {
@@ -335,6 +336,7 @@ export function ArtifactsPanel({
       html: 'html',
       svg: 'svg',
       mermaid: 'mmd',
+      mindmap: 'mmd',
       python: 'py',
       py: 'py',
       javascript: 'js',
@@ -613,7 +615,7 @@ export function ArtifactsPanel({
                       const isArtReact = ['jsx', 'tsx', 'react'].includes(artType);
                       const isArtHtml = artType === 'html' || artType === 'htm';
                       const isArtSvg = artType === 'svg';
-                      const isArtMermaid = artType === 'mermaid';
+                      const isArtMermaid = artType === 'mermaid' || artType === 'mindmap';
                       const isArtExec = ['py', 'python', 'js', 'javascript', 'ts', 'typescript'].includes(artType);
                       const isSelected = art.id === artifact?.id || art.identifier === artifact?.identifier || art.code === artifact?.code;
                       const lines = art.lines || (art.code ? art.code.split('\n').length : 0);
