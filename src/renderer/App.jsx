@@ -3054,32 +3054,33 @@ function App() {
                 </Button>
               )}
 
-              {/* Consolidated Tools Menu Popover */}
-              {isPowerUser && (
-                <div className="relative" ref={toolsDropdownRef}>
-                  <Button
-                    variant={isToolsDropdownOpen ? "default" : "ghost"}
-                    size="icon"
-                    onClick={() => setIsToolsDropdownOpen(!isToolsDropdownOpen)}
-                    className={cn(
-                      "h-8 w-8 rounded-xl relative transition-all",
-                      isToolsDropdownOpen
-                        ? "bg-primary text-primary-foreground shadow-xs"
-                        : "text-muted-foreground hover:text-foreground hover:bg-muted"
-                    )}
-                    title={t('header.toolsMenu') || 'Ferramentas e Recursos'}
-                    aria-label={t('header.toolsMenu') || 'Ferramentas e Recursos'}
-                  >
-                    <LayoutGrid className="h-4 w-4" />
-                    {(runningTasksCount > 0 || isTerminalOpen || isCanvasOpen || isExplorerOpen || isBrowserOpen || isTasksOpen || Boolean(activeArtifact) || isCompareMode || activeTab === 'trajectory') && (
-                      <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-primary animate-pulse" />
-                    )}
-                  </Button>
+              {/* Consolidated Tools & Apps Menu Popover */}
+              <div className="relative" ref={toolsDropdownRef}>
+                <Button
+                  variant={isToolsDropdownOpen ? "default" : "ghost"}
+                  size="icon"
+                  onClick={() => setIsToolsDropdownOpen(!isToolsDropdownOpen)}
+                  className={cn(
+                    "h-8 w-8 rounded-xl relative transition-all",
+                    isToolsDropdownOpen
+                      ? "bg-primary text-primary-foreground shadow-xs"
+                      : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                  )}
+                  title={t('header.toolsMenu') || 'Ferramentas e Recursos'}
+                  aria-label={t('header.toolsMenu') || 'Ferramentas e Recursos'}
+                >
+                  <LayoutGrid className="h-4 w-4" />
+                  {(runningTasksCount > 0 || isTerminalOpen || isCanvasOpen || isExplorerOpen || isBrowserOpen || isTasksOpen || Boolean(activeArtifact) || isCompareMode || activeTab === 'trajectory') && (
+                    <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-primary animate-pulse" />
+                  )}
+                </Button>
 
-                  {/* Dropdown Menu */}
-                  {isToolsDropdownOpen && (
-                    <div className="absolute right-0 mt-2 w-80 sm:w-88 max-h-[calc(100vh-5rem)] overflow-y-auto overscroll-contain custom-scrollbar p-1.5 rounded-2xl bg-popover border border-border text-popover-foreground shadow-2xl z-50 animate-in fade-in-0 zoom-in-95 space-y-0.5 text-xs">
-                      
+                {/* Dropdown Menu */}
+                {isToolsDropdownOpen && (
+                  <div className="absolute right-0 mt-2 w-80 sm:w-88 max-h-[calc(100vh-5rem)] overflow-y-auto overscroll-contain custom-scrollbar p-1.5 rounded-2xl bg-popover border border-border text-popover-foreground shadow-2xl z-50 animate-in fade-in-0 zoom-in-95 space-y-0.5 text-xs">
+                    
+                    {isPowerUser && (
+                      <>
                       {/* Trajectory */}
                       <button
                         type="button"
@@ -3548,44 +3549,61 @@ function App() {
                           <div className="text-[10px] text-muted-foreground truncate">Ativar/desativar módulos (0MB idle)</div>
                         </div>
                       </button>
+                      </>
+                    )}
 
-                      <div className="my-1 border-t border-border/60" />
+                    {isPowerUser && <div className="my-1 border-t border-border/60" />}
 
-                      {/* Command Palette */}
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setIsToolsDropdownOpen(false);
-                          setIsCommandPaletteOpen(true);
-                        }}
-                        className="w-full flex items-center justify-between px-3 py-1.5 rounded-xl hover:bg-muted/80 text-foreground transition-colors text-left text-[11px]"
-                      >
-                        <div className="flex items-center gap-2">
-                          <Keyboard className="w-3.5 h-3.5 text-muted-foreground" />
-                          <span className="font-medium">Paleta de Comandos</span>
+                    {/* Settings / Configurações */}
+                    <Link
+                      to="/settings"
+                      onClick={() => setIsToolsDropdownOpen(false)}
+                      className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-muted/80 text-foreground transition-colors text-left group"
+                    >
+                      <Settings className="w-4 h-4 text-primary shrink-0 transition-transform duration-300 group-hover:rotate-45" />
+                      <div className="flex-1 min-w-0">
+                        <div className="font-semibold text-foreground flex items-center justify-between gap-1">
+                          <span>{t('header.settings') || 'Configurações'}</span>
+                          <kbd className="px-1.5 py-0.5 rounded bg-muted/80 text-[10px] font-mono font-medium border border-border/60 text-muted-foreground">{modKey}+,</kbd>
                         </div>
-                        <kbd className="px-1.5 py-0.5 rounded bg-muted/80 text-[10px] font-mono font-medium border border-border/60 text-muted-foreground">{modKey}+Shift+P</kbd>
-                      </button>
+                        <div className="text-[10px] text-muted-foreground truncate">{t('header.settingsSubtitle') || 'Preferências, provedores, chaves e sistema'}</div>
+                      </div>
+                    </Link>
 
-                      {/* Keyboard Shortcuts */}
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setIsToolsDropdownOpen(false);
-                          setIsShortcutsModalOpen(true);
-                        }}
-                        className="w-full flex items-center justify-between px-3 py-1.5 rounded-xl hover:bg-muted/80 text-foreground transition-colors text-left text-[11px]"
-                      >
-                        <div className="flex items-center gap-2">
-                          <Keyboard className="w-3.5 h-3.5 text-muted-foreground" />
-                          <span className="font-medium">{t('header.keyboardShortcuts') || 'Atalhos de Teclado'}</span>
-                        </div>
-                        <kbd className="px-1.5 py-0.5 rounded bg-muted/80 text-[10px] font-mono font-medium border border-border/60 text-muted-foreground">{modKey}+/</kbd>
-                      </button>
-                    </div>
-                  )}
-                </div>
-              )}
+                    {/* Command Palette */}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsToolsDropdownOpen(false);
+                        setIsCommandPaletteOpen(true);
+                      }}
+                      className="w-full flex items-center justify-between px-3 py-1.5 rounded-xl hover:bg-muted/80 text-foreground transition-colors text-left text-[11px]"
+                    >
+                      <div className="flex items-center gap-2">
+                        <Keyboard className="w-3.5 h-3.5 text-muted-foreground" />
+                        <span className="font-medium">Paleta de Comandos</span>
+                      </div>
+                      <kbd className="px-1.5 py-0.5 rounded bg-muted/80 text-[10px] font-mono font-medium border border-border/60 text-muted-foreground">{modKey}+Shift+P</kbd>
+                    </button>
+
+                    {/* Keyboard Shortcuts */}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsToolsDropdownOpen(false);
+                        setIsShortcutsModalOpen(true);
+                      }}
+                      className="w-full flex items-center justify-between px-3 py-1.5 rounded-xl hover:bg-muted/80 text-foreground transition-colors text-left text-[11px]"
+                    >
+                      <div className="flex items-center gap-2">
+                        <Keyboard className="w-3.5 h-3.5 text-muted-foreground" />
+                        <span className="font-medium">{t('header.keyboardShortcuts') || 'Atalhos de Teclado'}</span>
+                      </div>
+                      <kbd className="px-1.5 py-0.5 rounded bg-muted/80 text-[10px] font-mono font-medium border border-border/60 text-muted-foreground">{modKey}+/</kbd>
+                    </button>
+                  </div>
+                )}
+              </div>
 
               {/* Theme & Quick Appearance / Mode Toggle */}
               {isPowerUser && (
@@ -3594,12 +3612,6 @@ function App() {
                   onInterfaceModeChange={handleInterfaceModeChange}
                 />
               )}
-
-              <Link to="/settings">
-                <Button variant="ghost" size="icon" className="h-8 w-8 text-foreground hover:bg-muted rounded-xl" title={t('header.settings')}>
-                  <Settings className="h-4 w-4" />
-                </Button>
-              </Link>
             </div>
           </div>
         </header>
