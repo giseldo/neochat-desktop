@@ -4,6 +4,8 @@
 
 O NeoChat Desktop é um espaço de trabalho e cliente de chat de IA para desktop, independente e universal. Conecte modelos locais (**Ollama, LM Studio, vLLM**) para ter 100% de privacidade e custo zero, ou use suas próprias chaves de API com provedores remotos (**Groq, OpenAI, Anthropic, DeepSeek, OpenRouter**), incluindo suporte a qualquer endpoint compatível com OpenAI. Disponível para Windows, macOS e Linux!
 
+<img width="1910" height="1018" alt="image" src="https://github.com/user-attachments/assets/06ec5b4e-d867-4bff-bb8b-035b78b7911f" />
+
 
 ## Recursos
 
