@@ -7,7 +7,7 @@ import rehypeRaw from 'rehype-raw';
 import "katex/dist/katex.min.css";
 import CodeBlock from './CodeBlock';
 import { ArtifactCard } from './ArtifactCard';
-import { extractThinking, preprocessCitations } from '../lib/messageUtils';
+import { extractThinking, preprocessCitations, isEmojiBulletItem, preprocessEmojiLists } from '../lib/messageUtils';
 import { preprocessArtifactTags } from '../lib/artifactUtils';
 import { useTheme } from '../context/ThemeContext';
 import { cn } from '../lib/utils';
@@ -75,6 +75,9 @@ function MarkdownRenderer({ content = '', sources = [], disableMath = false, onP
   if (!disableMath) {
     processedContent = preprocessMarkdownMath(processedContent);
   }
+
+  // Format emoji bullet items (e.g. ✅, ❌) so lines break into proper lists
+  processedContent = preprocessEmojiLists(processedContent);
 
   // Remark & Rehype plugins
   const remarkPlugins = disableMath ? [remarkGfm] : [remarkGfm, [remarkMath, { singleDollarTextMath: true }]];
@@ -228,11 +231,23 @@ function MarkdownRenderer({ content = '', sources = [], disableMath = false, onP
         {children}
       </ol>
     ),
-    ul: ({ node: _, children, ...props }) => (
-      <ul className="ml-5 mb-3 list-disc space-y-1 text-foreground" {...props}>
-        {children}
-      </ul>
-    ),
+    ul: ({ node: _, children, ...props }) => {
+      const styledChildren = React.Children.map(children, child => {
+        if (!React.isValidElement(child)) return child;
+        if (isEmojiBulletItem(child.props?.children)) {
+          const currentClass = child.props?.className || '';
+          return React.cloneElement(child, {
+            className: cn(currentClass.replace('pl-1', '').trim(), 'list-none pl-0')
+          });
+        }
+        return child;
+      });
+      return (
+        <ul className="ml-5 mb-3 list-disc space-y-1 text-foreground" {...props}>
+          {styledChildren}
+        </ul>
+      );
+    },
     li: ({ node: _, ...props }) => <li className="pl-1" {...props} />,
     p({ children, ...props }) {
       return (

@@ -70,7 +70,8 @@
     "test:plugins": "node tests/test-plugin-manager.js",
     "test:context-indicator": "node tests/test-context-indicator.js",
     "test:auto-prune": "node tests/test-auto-prune.js",
-    "test:image-generation": "node tests/test-image-generation.js"
+    "test:image-generation": "node tests/test-image-generation.js",
+    "test:emoji-list": "node tests/test-emoji-list.js"
   },
   "keywords": [
     "electron",

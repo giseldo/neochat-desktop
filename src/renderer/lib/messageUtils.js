@@ -309,3 +309,123 @@ export function preprocessCitations(content, sources = []) {
     .join('');
 }
 
+const emojiBulletChars = '[✅❌✔️✖️☑️❎🟢🔴🟡🔵⚪⚫🔹🔷🔸🔶🔺🔻▪▫▶👉⚡💡📌⭐🌟✓✗✘]';
+const emojiBulletPattern = '(?:' + emojiBulletChars + '\\uFE0F?)';
+const emojiBulletRegex = new RegExp('^' + emojiBulletPattern, 'u');
+
+/**
+ * Checks whether a React element/node or string in a list item begins with an emoji bullet.
+ * Recursively inspects string, array, and element children (e.g. bold, italics, p tags).
+ *
+ * @param {any} node
+ * @returns {boolean}
+ */
+export function isEmojiBulletItem(node) {
+  if (!node) return false;
+  if (typeof node === 'string') {
+    return emojiBulletRegex.test(node.trimStart());
+  }
+  if (Array.isArray(node)) {
+    for (const item of node) {
+      if (typeof item === 'string' && !item.trim()) continue;
+      return isEmojiBulletItem(item);
+    }
+    return false;
+  }
+  if (typeof node === 'object' && node.props) {
+    return isEmojiBulletItem(node.props.children);
+  }
+  return false;
+}
+
+/**
+ * Preprocesses markdown content so that emoji bullets (such as ✅, ❌, etc.)
+ * that are placed on new lines or inline after sentences break into proper markdown list items.
+ * Preserves code blocks, inline code, tables, headings, and blockquotes untouched.
+ *
+ * @param {string} content
+ * @returns {string}
+ */
+export function preprocessEmojiLists(content) {
+  if (!content || typeof content !== 'string') return '';
+
+  // Split content by code blocks and inline code to preserve them unchanged
+  const parts = content.split(/(```[\s\S]*?```|`[^`\n]*?`)/g);
+
+  return parts
+    .map((part, index) => {
+      // Odd indices are code blocks or inline code snippets
+      if (index % 2 === 1) return part;
+
+      const lines = part.split(/\r?\n/);
+      const processedLines = [];
+
+      for (let i = 0; i < lines.length; i++) {
+        let line = lines[i];
+        const trimmed = line.trim();
+
+        // Preserve table rows unchanged
+        if (trimmed.startsWith('|') && trimmed.endsWith('|')) {
+          processedLines.push(line);
+          continue;
+        }
+
+        // Preserve markdown headings unchanged
+        if (/^#{1,6}\s/.test(trimmed)) {
+          processedLines.push(line);
+          continue;
+        }
+
+        // Preserve blockquotes, hr, etc.
+        if (/^(?:>|---|\*\*\*|___)/.test(trimmed)) {
+          processedLines.push(line);
+          continue;
+        }
+
+        // If line is already a list item (- or * or + or 1.), don't break after list prefix
+        // We only break inline emoji bullets if preceded by text/punctuation, not immediately after list marker
+        let prefix = '';
+        let restOfLine = line;
+        const listMarkerMatch = /^(\s*(?:[-*+]|\d+\.)\s+)(.*)$/.exec(line);
+        if (listMarkerMatch) {
+          prefix = listMarkerMatch[1];
+          restOfLine = listMarkerMatch[2];
+        }
+
+        // If line contains emoji bullets following punctuation or bold ending (e.g. 'texto). ✅ ' or 'Vantagens: ✅ ')
+        // Break them into separate lines, avoiding numbered list prefixes (like '1.')
+        const inlineEmojiRegex = new RegExp('(?<!^\\s*\\d+)([.!?:;\\u2026)]|\\*\\*)[ \\t]*(' + emojiBulletPattern + '(?:[ \\t]+|(?=[*#_`\\[])))', 'gu');
+        restOfLine = restOfLine.replace(inlineEmojiRegex, '$1\n$2');
+        line = prefix + restOfLine;
+
+        const sublines = line.split('\n');
+        for (let j = 0; j < sublines.length; j++) {
+          const sLine = sublines[j];
+
+          // If already a standard markdown list item (- or * or + or 1.)
+          if (/^\s*([-*+]|\d+\.)\s+/.test(sLine)) {
+            processedLines.push(sLine);
+            continue;
+          }
+
+          // Check if line starts with an emoji bullet
+          const emojiStartRegex = new RegExp('^(\\s*)(' + emojiBulletPattern + ')(?:\\s+|(?=[*#_`\\[]))(.+)', 'u');
+          const match = emojiStartRegex.exec(sLine);
+
+          if (match) {
+            const indent = match[1];
+            const emoji = match[2];
+            const rest = match[3];
+            processedLines.push(`${indent}- ${emoji} ${rest.trimStart()}`);
+          } else {
+            processedLines.push(sLine);
+          }
+        }
+      }
+
+      return processedLines.join('\n');
+    })
+    .join('');
+}
+
+
