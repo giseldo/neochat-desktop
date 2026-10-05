@@ -341,7 +341,8 @@ class ToolExecutor {
           maxOutputBytes: outputLimit,
           networkAccess: args.network_access === true,
           allowSystemCommands: settings.agentAllowSystemCommands === true,
-          envAllowlist: Array.isArray(settings.agentEnvironmentAllowlist) ? settings.agentEnvironmentAllowlist : []
+          envAllowlist: Array.isArray(settings.agentEnvironmentAllowlist) ? settings.agentEnvironmentAllowlist : [],
+          customEnv: settings.customEnv || {}
         });
         return {
           result: limitContentLength(JSON.stringify(shellResult, null, 2), outputLimit),

@@ -20,7 +20,11 @@ import {
   MessageSquare,
   Zap,
   CheckCircle2,
-  FolderCode
+  FolderCode,
+  FolderOpen,
+  RotateCcw,
+  HardDrive,
+  Server
 } from 'lucide-react';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
@@ -79,6 +83,16 @@ export default function BotConfigModal({
   const [codeToolsEnabled, setCodeToolsEnabled] = useState(true);
   const [memoryEnabled, setMemoryEnabled] = useState(true);
 
+  // Dedicated Bot Virtual Machine state
+  const [vmEnabled, setVmEnabled] = useState(true);
+  const [vmType, setVmType] = useState('sandbox');
+  const [vmIsolation, setVmIsolation] = useState('isolated');
+  const [vmMemoryLimit, setVmMemoryLimit] = useState(2048);
+  const [vmEnvString, setVmEnvString] = useState('');
+  const [vmInfo, setVmInfo] = useState(null);
+  const [loadingVmInfo, setLoadingVmInfo] = useState(false);
+  const [resettingVm, setResettingVm] = useState(false);
+
   // Bot-specific memories state
   const [botMemories, setBotMemories] = useState([]);
   const [loadingMemories, setLoadingMemories] = useState(false);
@@ -106,15 +120,25 @@ export default function BotConfigModal({
       setSearchEnabled(bot.searchEnabled !== false);
       setMemoryEnabled(bot.memoryEnabled !== false);
 
+      // Dedicated VM configuration
+      const botVm = bot.vmConfig || {};
+      setVmEnabled(botVm.enabled !== false);
+      setVmType(botVm.type || 'sandbox');
+      setVmIsolation(botVm.isolation || 'isolated');
+      setVmMemoryLimit(botVm.memoryLimitMb || 2048);
+      const envLines = botVm.env ? Object.entries(botVm.env).map(([k, v]) => `${k}=${v}`).join('\n') : '';
+      setVmEnvString(envLines);
+
       const hasCode = Array.isArray(bot.tools) && bot.tools.some(t => ['read_file', 'write_file', 'shell_exec'].includes(t));
       setCodeToolsEnabled(hasCode);
 
-      // Load bot memories
+      // Load bot memories & VM info
       loadMemories(bot.id);
+      loadVmInfo(bot.id);
     } else {
       setName('');
       setDescription('');
-      setSystemPrompt('Você é um agente inteligente autônomo com memória contínua e raciocínio analítico profundo.');
+      setSystemPrompt('Você é um agente inteligente autônomo com memória contínua, máquina virtual própria e raciocínio analítico profundo.');
       setIcon('Sparkles');
       setColor('#8b5cf6');
       setPreferredModel('');
@@ -124,9 +148,55 @@ export default function BotConfigModal({
       setSearchEnabled(true);
       setCodeToolsEnabled(true);
       setMemoryEnabled(true);
+      setVmEnabled(true);
+      setVmType('sandbox');
+      setVmIsolation('isolated');
+      setVmMemoryLimit(2048);
+      setVmEnvString('');
+      setVmInfo(null);
       setBotMemories([]);
     }
   }, [isOpen, bot, initialTab]);
+
+  const loadVmInfo = async (botId) => {
+    if (!botId || !window.electron?.bots?.getVmInfo) return;
+    try {
+      setLoadingVmInfo(true);
+      const res = await window.electron.bots.getVmInfo(botId);
+      if (res && res.success) {
+        setVmInfo(res.vm);
+      }
+    } catch (err) {
+      console.error('Error fetching bot VM info:', err);
+    } finally {
+      setLoadingVmInfo(false);
+    }
+  };
+
+  const handleOpenVmFolder = async () => {
+    if (!bot?.id || !window.electron?.bots?.openVmFolder) return;
+    try {
+      await window.electron.bots.openVmFolder(bot.id);
+    } catch (err) {
+      console.error('Error opening VM folder:', err);
+    }
+  };
+
+  const handleResetVm = async () => {
+    if (!bot?.id || !window.electron?.bots?.resetVm) return;
+    if (!confirm(t('bots.vmResetConfirm') || 'Tem certeza de que deseja resetar e limpar o disco virtual deste bot? Todos os arquivos criados nele serão excluídos.')) return;
+    try {
+      setResettingVm(true);
+      const res = await window.electron.bots.resetVm(bot.id);
+      if (res.success) {
+        await loadVmInfo(bot.id);
+      }
+    } catch (err) {
+      console.error('Error resetting VM:', err);
+    } finally {
+      setResettingVm(false);
+    }
+  };
 
   const loadMemories = async (botId) => {
     if (!botId || !window.electron?.bots?.getMemories) return;
@@ -202,6 +272,20 @@ export default function BotConfigModal({
         );
       }
 
+      const envObj = {};
+      if (vmEnvString.trim()) {
+        vmEnvString.split('\n').forEach(line => {
+          const trimmed = line.trim();
+          if (!trimmed || trimmed.startsWith('#')) return;
+          const idx = trimmed.indexOf('=');
+          if (idx !== -1) {
+            const key = trimmed.slice(0, idx).trim();
+            const val = trimmed.slice(idx + 1).trim();
+            if (key) envObj[key] = val;
+          }
+        });
+      }
+
       const payload = {
         id: bot?.id,
         name: name.trim(),
@@ -215,6 +299,13 @@ export default function BotConfigModal({
         approvalMode,
         searchEnabled,
         memoryEnabled,
+        vmConfig: {
+          enabled: vmEnabled,
+          type: vmType,
+          isolation: vmIsolation,
+          memoryLimitMb: Number(vmMemoryLimit),
+          env: envObj
+        },
         tools
       };
 
@@ -342,6 +433,26 @@ export default function BotConfigModal({
                 {botMemories.length}
               </span>
             )}
+          </button>
+
+          <button
+            type="button"
+            onClick={() => {
+              setActiveTab('vm');
+              if (bot?.id) loadVmInfo(bot.id);
+            }}
+            className={cn(
+              "pb-2.5 px-3 border-b-2 flex items-center gap-1.5 transition-colors cursor-pointer",
+              activeTab === 'vm'
+                ? "border-primary text-primary"
+                : "border-transparent text-muted-foreground hover:text-foreground"
+            )}
+          >
+            <Cpu className="w-3.5 h-3.5" />
+            <span>{t('bots.tabVm') || 'Máquina Virtual'}</span>
+            <span className="text-[10px] bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 px-1.5 py-0.2 rounded-full font-mono">
+              VM
+            </span>
           </button>
         </div>
 
@@ -714,6 +825,226 @@ export default function BotConfigModal({
                         </div>
                       ))
                     )}
+                  </div>
+                </>
+              )}
+            </div>
+          )}
+
+          {/* TAB 5: MÁQUINA VIRTUAL */}
+          {activeTab === 'vm' && (
+            <div className="space-y-5">
+              {/* Header and Enable Toggle */}
+              <div className="p-4 rounded-xl border border-border/60 bg-muted/20 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <label className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+                      <Cpu className="w-4 h-4 text-emerald-500" />
+                      {t('bots.vmEnabledLabel') || 'Habilitar Máquina Virtual Própria'}
+                    </label>
+                    <p className="text-[11px] text-muted-foreground">
+                      {t('bots.vmEnabledDesc') || 'Quando ativado, ferramentas, arquivos e comandos deste bot rodam confinados no seu próprio disco virtual.'}
+                    </p>
+                  </div>
+                  <Switch
+                    checked={vmEnabled}
+                    onCheckedChange={setVmEnabled}
+                  />
+                </div>
+              </div>
+
+              {vmEnabled && (
+                <>
+                  {/* VM Live Status & Disk Actions */}
+                  <div className="p-4 rounded-xl border border-border/60 bg-muted/30 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Badge variant="secondary" className="bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/20 text-xs font-medium">
+                          {t('bots.vmStatusReady') || '🟢 VM Pronta e Ativa'}
+                        </Badge>
+                        <span className="text-[11px] text-muted-foreground font-mono">
+                          {bot?.id ? `vm_${bot.id}` : 'Nova VM'}
+                        </span>
+                      </div>
+
+                      {bot?.id && (
+                        <div className="flex items-center gap-2">
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={handleOpenVmFolder}
+                            className="h-7 text-xs flex items-center gap-1 cursor-pointer"
+                            title={t('bots.vmOpenFolder') || 'Abrir Disco da VM'}
+                          >
+                            <FolderOpen className="w-3.5 h-3.5" />
+                            <span>Abrir Disco</span>
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            disabled={resettingVm}
+                            onClick={handleResetVm}
+                            className="h-7 text-xs text-rose-500 hover:text-rose-600 hover:bg-rose-500/10 flex items-center gap-1 cursor-pointer"
+                            title={t('bots.vmReset') || 'Resetar VM'}
+                          >
+                            <RotateCcw className={cn("w-3.5 h-3.5", resettingVm && "animate-spin")} />
+                            <span>Resetar VM</span>
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* VM Disk Details */}
+                    {bot?.id && vmInfo && (
+                      <div className="grid grid-cols-2 gap-2 pt-2 border-t border-border/40 text-xs">
+                        <div className="bg-card/70 p-2.5 rounded-lg border border-border/40">
+                          <span className="text-[10px] text-muted-foreground uppercase font-mono block">Uso de Disco</span>
+                          <span className="font-semibold text-foreground text-xs">{vmInfo.sizeFormatted || '0 B'}</span>
+                          <span className="text-[11px] text-muted-foreground ml-1.5">({vmInfo.fileCount || 0} arquivos)</span>
+                        </div>
+                        <div className="bg-card/70 p-2.5 rounded-lg border border-border/40 min-w-0">
+                          <span className="text-[10px] text-muted-foreground uppercase font-mono block truncate">Workspace Raiz</span>
+                          <span className="font-mono text-[11px] text-muted-foreground truncate block" title={vmInfo.workspacePath}>
+                            {vmInfo.workspacePath}
+                          </span>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* VM Runtime Type */}
+                  <div>
+                    <label className="text-xs font-semibold text-foreground block mb-1.5">
+                      {t('bots.vmTypeLabel') || 'Tipo de Máquina Virtual'}
+                    </label>
+                    <div className="grid grid-cols-3 gap-2.5">
+                      {[
+                        { 
+                          id: 'sandbox', 
+                          title: 'Micro-VM Sandbox', 
+                          desc: 'Ambiente isolado nativo sem dependências externas. Rápido e universal.', 
+                          icon: HardDrive 
+                        },
+                        { 
+                          id: 'docker', 
+                          title: 'Container Docker', 
+                          desc: 'Executa comandos dentro de um container Docker isolado para o bot.', 
+                          icon: Server 
+                        },
+                        { 
+                          id: 'wsl', 
+                          title: 'WSL Linux VM', 
+                          desc: 'Ambiente Linux isolado via Windows Subsystem for Linux.', 
+                          icon: Terminal 
+                        }
+                      ].map((type) => {
+                        const Icon = type.icon;
+                        const isSel = vmType === type.id;
+                        return (
+                          <button
+                            key={type.id}
+                            type="button"
+                            onClick={() => setVmType(type.id)}
+                            className={cn(
+                              "p-3 rounded-xl border text-left transition-all cursor-pointer flex flex-col justify-between",
+                              isSel
+                                ? "border-primary bg-primary/10 text-foreground ring-1 ring-primary"
+                                : "border-border/60 bg-muted/20 text-muted-foreground hover:bg-muted/40 hover:text-foreground"
+                            )}
+                          >
+                            <div className="flex items-center gap-2 mb-1">
+                              <Icon className={cn("w-4 h-4", isSel ? "text-primary" : "text-muted-foreground")} />
+                              <span className="font-semibold text-xs text-foreground">{type.title}</span>
+                            </div>
+                            <p className="text-[10px] leading-tight opacity-80">{type.desc}</p>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* VM Isolation Mode */}
+                  <div>
+                    <label className="text-xs font-semibold text-foreground block mb-1.5">
+                      {t('bots.vmIsolationLabel') || 'Modo de Isolamento'}
+                    </label>
+                    <div className="grid grid-cols-2 gap-2.5">
+                      {[
+                        {
+                          id: 'isolated',
+                          title: 'Totalmente Isolada (Recomendado)',
+                          desc: 'Comandos e arquivos ficam restritos 100% ao disco virtual do bot, sem interferir no projeto do usuário.'
+                        },
+                        {
+                          id: 'hybrid',
+                          title: 'Híbrida (Acesso ao Projeto)',
+                          desc: 'Usa a máquina virtual do bot mas permite que ele acesse e altere arquivos do workspace aberto no app.'
+                        }
+                      ].map((mode) => (
+                        <button
+                          key={mode.id}
+                          type="button"
+                          onClick={() => setVmIsolation(mode.id)}
+                          className={cn(
+                            "p-3 rounded-xl border text-left transition-all cursor-pointer flex flex-col justify-between",
+                            vmIsolation === mode.id
+                              ? "border-primary bg-primary/10 text-foreground ring-1 ring-primary"
+                              : "border-border/60 bg-muted/20 text-muted-foreground hover:bg-muted/40 hover:text-foreground"
+                          )}
+                        >
+                          <span className="font-semibold text-xs text-foreground mb-1">{mode.title}</span>
+                          <p className="text-[10px] leading-tight opacity-80">{mode.desc}</p>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* VM Memory Limit */}
+                  <div>
+                    <label className="text-xs font-semibold text-foreground block mb-1.5">
+                      {t('bots.vmMemoryLimitLabel') || 'Memória Alocada para a VM'}
+                    </label>
+                    <div className="grid grid-cols-4 gap-2">
+                      {[
+                        { mb: 512, label: '512 MB' },
+                        { mb: 1024, label: '1024 MB (1 GB)' },
+                        { mb: 2048, label: '2048 MB (2 GB)' },
+                        { mb: 4096, label: '4096 MB (4 GB)' }
+                      ].map((opt) => (
+                        <button
+                          key={opt.mb}
+                          type="button"
+                          onClick={() => setVmMemoryLimit(opt.mb)}
+                          className={cn(
+                            "py-2 px-2 rounded-lg border text-center text-xs font-semibold transition-all cursor-pointer",
+                            vmMemoryLimit === opt.mb
+                              ? "border-primary bg-primary/15 text-primary"
+                              : "border-border/60 bg-muted/20 text-muted-foreground hover:bg-muted/40"
+                          )}
+                        >
+                          {opt.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* VM Custom Environment Variables */}
+                  <div>
+                    <label className="text-xs font-semibold text-foreground block mb-1">
+                      Variáveis de Ambiente da VM (Custom ENV)
+                    </label>
+                    <p className="text-[11px] text-muted-foreground mb-2">
+                      Defina variáveis no formato <code className="text-foreground">CHAVE=VALOR</code> (uma por linha) injetadas no ambiente deste bot.
+                    </p>
+                    <textarea
+                      value={vmEnvString}
+                      onChange={(e) => setVmEnvString(e.target.value)}
+                      rows={3}
+                      placeholder="NODE_ENV=development&#10;DEBUG=true&#10;API_ENDPOINT=https://api.local"
+                      className="w-full text-xs font-mono p-3 rounded-xl border border-border/60 bg-muted/20 focus:outline-none focus:ring-1 focus:ring-primary text-foreground resize-y leading-relaxed"
+                    />
                   </div>
                 </>
               )}

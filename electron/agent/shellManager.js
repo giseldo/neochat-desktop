@@ -62,7 +62,10 @@ class ShellSession {
 
       const child = spawn(spawnCommand, spawnArgs, {
         cwd,
-        env: buildRestrictedEnv(process.env, options.envAllowlist || [], { networkAccess: options.networkAccess }),
+        env: {
+          ...buildRestrictedEnv(process.env, options.envAllowlist || [], { networkAccess: options.networkAccess }),
+          ...(options.customEnv || {})
+        },
         windowsHide: true,
         detached: !isWindows
       });

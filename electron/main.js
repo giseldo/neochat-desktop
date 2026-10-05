@@ -784,6 +784,21 @@ app.whenReady().then(async () => {
   ipcMain.handle('bots-clear-memories', async (event, botId) => {
     return memoryService.clearMemories(botId);
   });
+  const botVmManager = require('./botVmManager');
+  botVmManager.initialize(app);
+
+  ipcMain.handle('bots-vm-get-info', async (event, botId) => {
+    return botVmManager.getVmInfo(botId);
+  });
+  ipcMain.handle('bots-vm-reset', async (event, botId) => {
+    return botVmManager.resetVm(botId);
+  });
+  ipcMain.handle('bots-vm-open-folder', async (event, botId) => {
+    return botVmManager.openVmFolder(botId);
+  });
+  ipcMain.handle('bots-vm-list-files', async (event, botId, subPath) => {
+    return botVmManager.listVmFiles(botId, subPath);
+  });
 
   // --- Neo Agent Runtime IPC Handlers ---
   console.log("[Main Init] Registering Neo Agent Runtime handlers...");

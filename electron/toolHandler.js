@@ -37,13 +37,39 @@ async function handleExecuteToolCall(event, toolCall, discoveredTools, mcpClient
 
   if (isNativeCodeTool) {
     try {
-      const workspaceRoot = settings?.workspaceRoot || process.cwd();
-      const sessionId = settings?.currentChatId || 'default';
+      let workspaceRoot = settings?.workspaceRoot || process.cwd();
+      let sessionId = settings?.currentChatId || 'default';
+      const mergedSettings = { ...settings };
+
+      // Route to dedicated Bot Virtual Machine if a bot is active
+      const activeBotId = settings?.activeBotId || settings?.botId || null;
+      if (activeBotId) {
+        try {
+          const { botVmManager } = require('./botVmManager');
+          const { getBot } = require('./botManager');
+          const bot = settings?.activeBot || getBot(activeBotId);
+          const botVm = botVmManager.getOrCreateVm(activeBotId, bot);
+          if (botVm && botVm.enabled !== false) {
+            if (botVm.isolation === 'isolated' || !settings?.workspaceRoot) {
+              workspaceRoot = botVm.workspacePath;
+            }
+            sessionId = `bot_vm_${activeBotId}`;
+            const vmEnv = botVmManager.getVmEnv(activeBotId, bot);
+            mergedSettings.customEnv = {
+              ...(mergedSettings.customEnv || {}),
+              ...vmEnv
+            };
+          }
+        } catch (vmErr) {
+          console.warn(`[ToolHandler] Warning resolving bot VM for ${activeBotId}:`, vmErr.message);
+        }
+      }
+
       const result = await toolExecutor.execute({
         sessionId,
         toolCall,
         toolDef: { name: toolName },
-        settings,
+        settings: mergedSettings,
         mcpClients,
         discoveredTools,
         workspaceRoot

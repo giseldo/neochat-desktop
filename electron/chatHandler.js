@@ -499,6 +499,19 @@ function buildApiParams(prunedMessages, modelToUse, settings, tools, modelContex
     let systemPrompt = '';
     if (activeBot && activeBot.systemPrompt && activeBot.systemPrompt.trim()) {
         systemPrompt = activeBot.systemPrompt.trim();
+        try {
+            const { botVmManager } = require('./botVmManager');
+            const botVm = botVmManager.getOrCreateVm(activeBot.id, activeBot);
+            if (botVm && botVm.enabled !== false) {
+                systemPrompt += `\n\n=== MÁQUINA VIRTUAL DEDICADA DO BOT (${botVm.botName}) ===
+Você possui e opera dentro da sua própria Máquina Virtual isolada:
+- Identificador da VM: \`${botVm.vmId}\`
+- Ambiente: Micro-VM Sandbox (${botVm.type.toUpperCase()})
+- Disco Virtual / Workspace: \`${botVm.workspacePath}\`
+- Modo de Isolamento: ${botVm.isolation === 'isolated' ? 'Totalmente Isolada (somente seu disco virtual)' : 'Híbrida'}
+Qualquer comando executado via 'shell_exec' e quaisquer arquivos criados ou modificados via 'write_file', 'read_file', 'edit_file' operam diretamente dentro da sua própria Máquina Virtual dedicada.`;
+            }
+        } catch (vmErr) {}
         if (settings.customSystemPrompt && settings.customSystemPrompt.trim()) {
             systemPrompt += `\n\n${settings.customSystemPrompt.trim()}`;
         }

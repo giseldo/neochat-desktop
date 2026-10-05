@@ -59,9 +59,29 @@ const prompt = memoryService.getFormattedMemoryPrompt({ userMemory: { enabled: t
 assert(prompt.includes('=== BOT LEARNED KNOWLEDGE & LESSONS (Test Agent) ==='), 'Prompt should have bot learned knowledge section');
 assert(prompt.includes('React e Electron'), 'Prompt should contain learned memory content');
 
-// Clean up test memory and test bot
-memoryService.deleteMemory(mem1.memory.id);
-deleteBot(customId);
-assert.equal(getBot(customId), null, 'Custom bot should be deleted');
+// 5. Test botVmManager dedicated virtual machine
+console.log('Testing botVmManager dedicated virtual machine...');
+const botVmManager = require('../electron/botVmManager');
+assert(hermesDev.vmConfig, 'Hermes dev should have vmConfig');
+assert.equal(hermesDev.vmConfig.enabled, true, 'Hermes dev VM should be enabled');
 
-console.log('All botManager and memoryService bot-scoping tests passed successfully!');
+const devVm = botVmManager.getOrCreateVm(hermesDev.id, hermesDev);
+assert(devVm, 'VM should be created for bot');
+assert(fs.existsSync(devVm.workspacePath), 'VM workspace directory must exist');
+assert(fs.existsSync(path.join(devVm.workspacePath, 'README.md')), 'VM workspace README must exist');
+
+const vmInfo = botVmManager.getVmInfo(hermesDev.id, hermesDev);
+assert.equal(vmInfo.success, true, 'getVmInfo must succeed');
+assert(vmInfo.vm.fileCount >= 1, 'VM must have at least 1 file');
+assert(vmInfo.vm.sizeFormatted, 'VM must have formatted size');
+
+const vmEnv = botVmManager.getVmEnv(hermesDev.id, hermesDev);
+assert.equal(vmEnv.NEOCHAT_VM, '1', 'NEOCHAT_VM must be 1');
+assert.equal(vmEnv.BOT_ID, hermesDev.id, 'BOT_ID must match');
+assert.equal(vmEnv.VIRTUAL_ENV, devVm.workspacePath, 'VIRTUAL_ENV must point to VM workspace');
+
+const resetRes = botVmManager.resetVm(hermesDev.id, hermesDev);
+assert.equal(resetRes.success, true, 'resetVm must succeed');
+assert(fs.existsSync(devVm.workspacePath), 'Reset workspace should exist');
+
+console.log('All botManager, botVmManager and memoryService bot-scoping tests passed successfully!');

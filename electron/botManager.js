@@ -1,5 +1,6 @@
 const fs = require('fs');
 const path = require('path');
+const botVmManager = require('./botVmManager');
 
 let appInstance = null;
 let botsCache = null;
@@ -23,6 +24,13 @@ Suas principais diretrizes:
     searchEnabled: true,
     tools: ['web_search', 'save_user_memory', 'forget_user_memory'],
     memoryEnabled: true,
+    vmConfig: {
+      enabled: true,
+      type: 'sandbox',
+      isolation: 'isolated',
+      memoryLimitMb: 1024,
+      env: {}
+    },
     isBuiltIn: true,
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString()
@@ -49,6 +57,13 @@ Diretrizes:
       'web_search', 'save_user_memory', 'forget_user_memory'
     ],
     memoryEnabled: true,
+    vmConfig: {
+      enabled: true,
+      type: 'sandbox',
+      isolation: 'isolated',
+      memoryLimitMb: 2048,
+      env: {}
+    },
     isBuiltIn: true,
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString()
@@ -57,6 +72,7 @@ Diretrizes:
 
 function initialize(app) {
   appInstance = app;
+  botVmManager.initialize(app);
 }
 
 function getStoragePath() {
@@ -84,6 +100,17 @@ function loadBots() {
         for (const defaultBot of DEFAULT_BOTS) {
           if (!existingIds.has(defaultBot.id)) {
             merged.push(defaultBot);
+          }
+        }
+        for (const b of merged) {
+          if (!b.vmConfig) {
+            b.vmConfig = {
+              enabled: true,
+              type: 'sandbox',
+              isolation: 'isolated',
+              memoryLimitMb: 2048,
+              env: {}
+            };
           }
         }
         botsCache = merged;
@@ -165,12 +192,22 @@ function saveBot(botData) {
         searchEnabled: botData.searchEnabled !== false,
         tools: Array.isArray(botData.tools) ? botData.tools : existing.tools || [],
         memoryEnabled: botData.memoryEnabled !== false,
+        vmConfig: botData.vmConfig ? {
+          enabled: botData.vmConfig.enabled !== false,
+          type: botData.vmConfig.type || 'sandbox',
+          isolation: botData.vmConfig.isolation || 'isolated',
+          memoryLimitMb: Number(botData.vmConfig.memoryLimitMb) || 2048,
+          env: typeof botData.vmConfig.env === 'object' && botData.vmConfig.env !== null ? botData.vmConfig.env : {}
+        } : (existing.vmConfig || { enabled: true, type: 'sandbox', isolation: 'isolated', memoryLimitMb: 2048, env: {} }),
         icon: botData.icon || existing.icon || 'Bot',
         color: botData.color || existing.color || '#8b5cf6',
         updatedAt: now
       };
       bots[index] = updated;
       saveBots(bots);
+      try {
+        botVmManager.getOrCreateVm(updated.id, updated);
+      } catch (e) {}
       return { success: true, bot: updated, isNew: false };
     }
   }
@@ -188,6 +225,13 @@ function saveBot(botData) {
     searchEnabled: botData.searchEnabled !== false,
     tools: Array.isArray(botData.tools) ? botData.tools : ['web_search', 'save_user_memory', 'forget_user_memory'],
     memoryEnabled: botData.memoryEnabled !== false,
+    vmConfig: botData.vmConfig ? {
+      enabled: botData.vmConfig.enabled !== false,
+      type: botData.vmConfig.type || 'sandbox',
+      isolation: botData.vmConfig.isolation || 'isolated',
+      memoryLimitMb: Number(botData.vmConfig.memoryLimitMb) || 2048,
+      env: typeof botData.vmConfig.env === 'object' && botData.vmConfig.env !== null ? botData.vmConfig.env : {}
+    } : { enabled: true, type: 'sandbox', isolation: 'isolated', memoryLimitMb: 2048, env: {} },
     icon: botData.icon || 'Bot',
     color: botData.color || '#8b5cf6',
     isBuiltIn: false,
@@ -197,6 +241,9 @@ function saveBot(botData) {
 
   bots.push(created);
   saveBots(bots);
+  try {
+    botVmManager.getOrCreateVm(created.id, created);
+  } catch (e) {}
   return { success: true, bot: created, isNew: true };
 }
 

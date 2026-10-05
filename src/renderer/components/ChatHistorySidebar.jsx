@@ -1687,6 +1687,14 @@ function ChatHistorySidebar({
                           {bot.name}
                         </span>
                         <div className="flex items-center gap-1 shrink-0">
+                          {bot.vmConfig?.enabled !== false && (
+                            <span 
+                              className="text-[9px] px-1.5 py-0.2 bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 rounded-full font-mono flex items-center gap-0.5" 
+                              title={`Máquina Virtual Dedicada: ${bot.vmConfig?.type?.toUpperCase() || 'SANDBOX'} (${bot.vmConfig?.isolation || 'isolada'})`}
+                            >
+                              💻 VM
+                            </span>
+                          )}
                           {botMemoriesCounts[bot.id] > 0 && (
                             <span 
                               className="text-[9px] px-1.5 py-0.2 bg-purple-500/15 text-purple-600 dark:text-purple-400 rounded-full font-mono flex items-center gap-0.5" 

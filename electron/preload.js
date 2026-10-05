@@ -491,7 +491,11 @@ contextBridge.exposeInMainWorld('electron', {
     save: (botData) => ipcRenderer.invoke('bots-save', botData),
     delete: (id) => ipcRenderer.invoke('bots-delete', id),
     getMemories: (botId) => ipcRenderer.invoke('bots-get-memories', botId),
-    clearMemories: (botId) => ipcRenderer.invoke('bots-clear-memories', botId)
+    clearMemories: (botId) => ipcRenderer.invoke('bots-clear-memories', botId),
+    getVmInfo: (botId) => ipcRenderer.invoke('bots-vm-get-info', botId),
+    resetVm: (botId) => ipcRenderer.invoke('bots-vm-reset', botId),
+    openVmFolder: (botId) => ipcRenderer.invoke('bots-vm-open-folder', botId),
+    listVmFiles: (botId, subPath) => ipcRenderer.invoke('bots-vm-list-files', botId, subPath)
   },
 
   // Generic IPC renderer access (kept for backward compatibility)

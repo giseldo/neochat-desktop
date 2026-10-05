@@ -3830,6 +3830,11 @@ function App() {
                             <span className="text-[10px] px-1.5 py-0.2 rounded-full font-mono bg-primary/10 text-primary border border-primary/20">
                               Hermes Agent
                             </span>
+                            {activeBot.vmConfig?.enabled !== false && (
+                              <span className="text-[10px] px-1.5 py-0.2 rounded-full font-mono bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 flex items-center gap-1">
+                                💻 {activeBot.vmConfig?.type?.toUpperCase() || 'SANDBOX'} VM
+                              </span>
+                            )}
                             {activeBot.preferredModel && (
                               <span className="text-[10px] px-1.5 py-0.2 rounded-md font-mono bg-muted text-muted-foreground truncate max-w-[120px]">
                                 {activeBot.preferredModel}
@@ -3840,6 +3845,20 @@ function App() {
                         </div>
                       </div>
                       <div className="flex items-center gap-1.5 shrink-0">
+                        {activeBot.vmConfig?.enabled !== false && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setBotModalTab('vm');
+                              setIsBotConfigModalOpen(true);
+                            }}
+                            className="px-2.5 py-1 rounded-lg text-xs font-medium bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 transition-colors flex items-center gap-1.5 cursor-pointer border border-emerald-500/20"
+                            title="Ver e gerenciar a Máquina Virtual deste Bot"
+                          >
+                            <Cpu className="w-3.5 h-3.5" />
+                            <span>VM Própria</span>
+                          </button>
+                        )}
                         <button
                           type="button"
                           onClick={() => {

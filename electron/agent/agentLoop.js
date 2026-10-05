@@ -50,7 +50,19 @@ class AgentLoop {
     };
 
     const sessionMessages = [...messages];
-    const root = workspaceRoot || workspaceManager.getWorkspace(sessionId);
+    let root = workspaceRoot || workspaceManager.getWorkspace(sessionId);
+    const activeBotId = settings.activeBotId || settings.botId;
+    if (activeBotId) {
+      try {
+        const { botVmManager } = require('../botVmManager');
+        const { getBot } = require('../botManager');
+        const bot = settings.activeBot || getBot(activeBotId);
+        const botVm = botVmManager.getOrCreateVm(activeBotId, bot);
+        if (botVm && botVm.enabled !== false && (botVm.isolation === 'isolated' || !workspaceRoot)) {
+          root = botVm.workspacePath;
+        }
+      } catch (e) {}
+    }
     const mode = settings.agentMode ? 'code' : (settings.mode || 'chat');
 
     // Build rich workspace context for system prompt

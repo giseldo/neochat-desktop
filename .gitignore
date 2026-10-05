@@ -46,3 +46,6 @@ docs/.vitepress/dist/
 
 # Local TTS Cache
 .neochat-tts/
+
+# Temporary test data
+temp_data/
