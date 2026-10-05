@@ -25,7 +25,36 @@ const ReactDOMServer = require('react-dom/server');
         let res = part;
         res = res.replace(/\\\[([\s\S]*?)\\\]/g, (_, math) => `\n$$\n${math.trim()}\n$$\n`);
         res = res.replace(/\\\(([\s\S]*?)\\\)/g, (_, math) => `$${math.trim()}$`);
+
+        const displayMathBlocks = [];
+        res = res.replace(/\$\$[\s\S]*?\$\$/g, (match) => {
+          displayMathBlocks.push(match);
+          return `___NEO_DISPLAY_MATH_${displayMathBlocks.length - 1}___`;
+        });
+
+        const isLikelyMath = (inner) => {
+          if (!inner || inner.startsWith(' ') || inner.endsWith(' ')) return false;
+          if (/[-/]\s*$/.test(inner)) return false;
+          const strippedText = inner.replace(/\\(?:text|mathrm|mathbf|mathit|operatorname)\{[^}]*\}/g, '');
+          if (/(?:^|\s)(?:ontem|hoje|amanhã|mês|mes|ano|por|unidade|frete|dólares|dolares|reais|para|entre|sobre|com|sem|de|e|ou|the|and|or|of|to|for|per|month|year|usd|brl|eur)(?:\s|$)/i.test(strippedText)) {
+            return false;
+          }
+          return true;
+        };
+
+        const inlineMathBlocks = [];
+        res = res.replace(/(^|[^\\])\$([^\$\n]+?)\$/g, (match, prefix, inner) => {
+          if (isLikelyMath(inner)) {
+            inlineMathBlocks.push(`$${inner}$`);
+            return `${prefix}___NEO_INLINE_MATH_${inlineMathBlocks.length - 1}___`;
+          }
+          return match;
+        });
+
         res = res.replace(/(^|[^\\])\$(?=\s*\d+([.,]\d+)?)/g, '$1\\$');
+        res = res.replace(/___NEO_INLINE_MATH_(\d+)___/g, (_, idx) => inlineMathBlocks[Number(idx)]);
+        res = res.replace(/___NEO_DISPLAY_MATH_(\d+)___/g, (_, idx) => displayMathBlocks[Number(idx)]);
+
         return res;
       })
       .join('');
@@ -93,6 +122,16 @@ const ReactDOMServer = require('react-dom/server');
   const chemFormula = 'Água é H<sub>2</sub>O e glicose é C<sub>6</sub>H<sub>12</sub>O<sub>6</sub>.';
   const html6 = render(chemFormula);
   assert(html6.includes('<sub') && html6.includes('2</sub>') && !html6.includes('&lt;sub&gt;'), 'Subscript tags <sub> in formulas are parsed and rendered as HTML');
+
+  // Test 7: Formulas starting with numbers like $2^3 = 8$ are rendered as KaTeX
+  const numMath = 'Sabemos que $2^3 = 8$, então: $2 + 2 = 4$ e $2x + 1 = 5$.';
+  const html7 = render(numMath);
+  assert(html7.includes('katex') && !html7.includes('$2^3 = 8$') && !html7.includes('$2 + 2 = 4$'), 'Inline math starting with digits ($2^3 = 8$) renders via KaTeX');
+
+  // Test 8: Multiple currency dollar values in prose are preserved and not parsed as math
+  const multiCurrency = 'Custou $10 ontem e $20 hoje. Preço entre $10 e $20, ou $10-$20.';
+  const html8 = render(multiCurrency);
+  assert(html8.includes('$10') && html8.includes('$20') && !html8.includes('katex'), 'Multiple currency values in prose are preserved without KaTeX corruption');
 
   console.log(`\nResults: ${passed} passed, ${failed} failed`);
   if (failed > 0) {

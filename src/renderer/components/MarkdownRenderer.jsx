@@ -45,8 +45,46 @@ function preprocessMarkdownMath(content) {
       // Convert LaTeX inline math delimiters \( ... \) to $ ... $
       res = res.replace(/\\\(([\s\S]*?)\\\)/g, (_, math) => `$${math.trim()}$`);
 
-      // Escape currency dollar signs ($50, $10.99) so they are not parsed as math
+      // Protect display math $$ ... $$
+      const displayMathBlocks = [];
+      res = res.replace(/\$\$[\s\S]*?\$\$/g, (match) => {
+        displayMathBlocks.push(match);
+        return `___NEO_DISPLAY_MATH_${displayMathBlocks.length - 1}___`;
+      });
+
+      // Check if an inline $...$ candidate is a valid math formula rather than currency
+      const isLikelyMath = (inner) => {
+        if (!inner || inner.startsWith(' ') || inner.endsWith(' ')) return false;
+        if (/[-/]\s*$/.test(inner)) return false;
+
+        // Strip LaTeX text/math commands before inspecting words
+        const strippedText = inner.replace(/\\(?:text|mathrm|mathbf|mathit|operatorname)\{[^}]*\}/g, '');
+
+        // Disqualify natural language words that indicate currency descriptions or prose
+        if (/(?:^|\s)(?:ontem|hoje|amanhã|mês|mes|ano|por|unidade|frete|dólares|dolares|reais|para|entre|sobre|com|sem|de|e|ou|the|and|or|of|to|for|per|month|year|usd|brl|eur)(?:\s|$)/i.test(strippedText)) {
+          return false;
+        }
+        return true;
+      };
+
+      // Protect valid inline math $ ... $
+      const inlineMathBlocks = [];
+      res = res.replace(/(^|[^\\])\$([^\$\n]+?)\$/g, (match, prefix, inner) => {
+        if (isLikelyMath(inner)) {
+          inlineMathBlocks.push(`$${inner}$`);
+          return `${prefix}___NEO_INLINE_MATH_${inlineMathBlocks.length - 1}___`;
+        }
+        return match;
+      });
+
+      // Escape remaining standalone currency dollar signs ($50, $10.99) so they are not parsed as math
       res = res.replace(/(^|[^\\])\$(?=\s*\d+([.,]\d+)?)/g, '$1\\$');
+
+      // Restore protected inline math
+      res = res.replace(/___NEO_INLINE_MATH_(\d+)___/g, (_, idx) => inlineMathBlocks[Number(idx)]);
+
+      // Restore protected display math
+      res = res.replace(/___NEO_DISPLAY_MATH_(\d+)___/g, (_, idx) => displayMathBlocks[Number(idx)]);
 
       return res;
     })
