@@ -65,6 +65,17 @@ export function MermaidViewer({ code, className, onSwitchToCode }) {
       mermaidCounter += 1;
       let id = `mermaid-chart-${Date.now()}-${mermaidCounter}`;
 
+      // Create an isolated container specifically for this render call to prevent
+      // race conditions and DOM node collisions with other diagrams or React lifecycles
+      const tempContainer = document.createElement('div');
+      tempContainer.id = `mermaid-sandbox-${id}`;
+      tempContainer.style.position = 'absolute';
+      tempContainer.style.top = '-9999px';
+      tempContainer.style.left = '-9999px';
+      tempContainer.style.opacity = '0';
+      tempContainer.style.pointerEvents = 'none';
+      document.body.appendChild(tempContainer);
+
       try {
         mermaid.initialize({
           startOnLoad: false,
@@ -121,53 +132,62 @@ export function MermaidViewer({ code, className, onSwitchToCode }) {
 
         let renderResult;
         try {
-          renderResult = await mermaid.render(id, cleanCode);
+          renderResult = await mermaid.render(id, cleanCode, tempContainer);
         } catch (firstErr) {
+          if (!isMounted) return;
           // If cleanCode differed from rawCode, retry with rawCode as fallback, or vice versa
           if (cleanCode !== rawCode) {
             const stray1 = document.getElementById(`d${id}`);
             if (stray1) stray1.remove();
-            document.querySelectorAll('[id^="dmermaid-chart-"]').forEach(el => el.remove());
 
             mermaidCounter += 1;
             id = `mermaid-chart-${Date.now()}-${mermaidCounter}`;
-            renderResult = await mermaid.render(id, rawCode);
+            renderResult = await mermaid.render(id, rawCode, tempContainer);
           } else {
             throw firstErr;
           }
         }
 
+        if (!isMounted) return;
+
         const { svg, bindFunctions } = renderResult;
 
-        // Remove any stray error DOM nodes injected by mermaid
+        // Remove any stray error DOM nodes injected by mermaid for this specific id
         const strayError = document.getElementById(`d${id}`);
         if (strayError) strayError.remove();
-        document.querySelectorAll('[id^="dmermaid-chart-"]').forEach(el => el.remove());
 
-        if (isMounted) {
-          setSvgHtml(svg);
-          setError(null);
-          setLoading(false);
+        setSvgHtml(svg);
+        setError(null);
+        setLoading(false);
 
-          // Execute interaction handlers if present
-          if (bindFunctions && diagramWrapperRef.current) {
-            try {
-              bindFunctions(diagramWrapperRef.current);
-            } catch (e) {
-              console.debug('Mermaid bindFunctions error:', e);
-            }
+        // Execute interaction handlers if present
+        if (bindFunctions && diagramWrapperRef.current) {
+          try {
+            bindFunctions(diagramWrapperRef.current);
+          } catch (e) {
+            console.debug('Mermaid bindFunctions error:', e);
           }
         }
       } catch (err) {
-        // Clean up any stray error elements
+        if (!isMounted) return;
+        // Clean up only our specific error element
         const stray = document.getElementById(`d${id}`);
         if (stray) stray.remove();
-        document.querySelectorAll('[id^="dmermaid-chart-"]').forEach(el => el.remove());
 
-        if (isMounted) {
-          setError(err.message || 'Erro de sintaxe no diagrama Mermaid');
+        // If the error message was the internal firstChild DOM race error, do not show confusing syntax error
+        const errMsg = err?.message || '';
+        if (errMsg.includes('firstChild') || errMsg.includes('null')) {
+          console.debug('Suppressed transient Mermaid DOM race error:', errMsg);
+        } else {
+          setError(errMsg || 'Erro de sintaxe no diagrama Mermaid');
           setLoading(false);
         }
+      } finally {
+        if (tempContainer && tempContainer.parentNode) {
+          tempContainer.remove();
+        }
+        const stray = document.getElementById(`d${id}`);
+        if (stray) stray.remove();
       }
     };
 
