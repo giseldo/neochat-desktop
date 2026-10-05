@@ -1,5 +1,6 @@
-import { ArrowRight, Loader2, ImagePlus, Hammer, Upload, Zap, ZapOff, Square, Mic, MicOff, Terminal, Globe, BookOpen, Camera, Bot, Layout, X, Code2, Briefcase, MessageSquare, RotateCcw, Plus, Check, Cpu, Blocks, Sparkles, ScrollText } from "lucide-react";
+import { ArrowRight, Loader2, ImagePlus, Hammer, Upload, Zap, ZapOff, Square, Mic, MicOff, Terminal, Globe, BookOpen, Camera, Bot, Layout, X, Code2, Briefcase, MessageSquare, RotateCcw, Plus, Check, Cpu, Blocks, Sparkles, ScrollText, SlidersHorizontal, Key } from "lucide-react";
 import React, { useContext, useEffect, useRef, useState, useMemo } from "react";
+import { Link } from "react-router-dom";
 import { createPortal } from "react-dom";
 import TextAreaAutosize from "react-textarea-autosize";
 import { Button } from "./ui/button";
@@ -9,6 +10,8 @@ import { useCanvas } from "../context/CanvasContext";
 import { useLanguage } from "../context/LanguageContext";
 import { useProjects } from "../context/ProjectContext";
 import SlashCommandsPopover from "./SlashCommandsPopover";
+import { SearchableSelect } from "./ui/SearchableSelect";
+import { getModelDisplayName as getModelDisplayNameLib, getModelGroup } from "../lib/modelGrouping";
 const PromptTemplatesModal = React.lazy(() => import("./PromptTemplatesModal"));
 const SnipModal = React.lazy(() => import("./SnipModal"));
 import { getAllPromptCommands, PROMPT_TEMPLATES_STORAGE_KEY } from "../lib/defaultPromptCommands";
@@ -53,6 +56,7 @@ function ChatInput({
 	favoriteModels = [],
 	onToggleFavoriteModel,
 	activePersona = null,
+	onConfigureModel,
 }) {
 	const effectiveToolsCount = typeof toolsCount === 'number' && toolsCount > 0
 		? toolsCount
@@ -1526,6 +1530,51 @@ function ChatInput({
 						)}
 					</div>
 
+					{/* Model Selector & Parameters */}
+					<div className="flex items-center gap-1 shrink-0 ml-auto">
+						{models && models.length > 0 ? (
+							<>
+								<SearchableSelect
+									value={selectedModel}
+									onValueChange={onModelChange}
+									options={models}
+									placeholder={t('chat.selectModel')}
+									className="w-32 sm:w-44 md:w-52 max-w-[220px] min-w-[110px] h-8 text-xs bg-background/60 hover:bg-muted/80 border-border/70 text-foreground transition-colors"
+									disabled={loading}
+									getDisplayValue={(value) => getModelDisplayNameLib(value, modelConfigs[value], t)}
+									getOptionLabel={(model) => getModelDisplayNameLib(model, modelConfigs[model], t)}
+									getOptionValue={(model) => model}
+									groupBy={(model) => getModelGroup(model, modelConfigs[model])}
+									dropdownWidthClass="w-72 sm:w-80 max-w-[calc(100vw-2rem)]"
+									favoriteItems={favoriteModels}
+									onToggleFavorite={onToggleFavoriteModel}
+									dropdownPosition="top"
+								/>
+								{onConfigureModel && (
+									<Button
+										type="button"
+										variant="ghost"
+										size="icon"
+										onClick={onConfigureModel}
+										disabled={loading}
+										className="h-8 w-8 rounded-xl text-muted-foreground hover:text-foreground hover:bg-muted/80 transition-colors shrink-0"
+										title={t('chat.modelParameters') || 'Parâmetros do Modelo'}
+									>
+										<SlidersHorizontal className="w-3.5 h-3.5" />
+									</Button>
+								)}
+							</>
+						) : (
+							<Link
+								to="/settings"
+								className="flex items-center gap-1.5 px-2.5 py-1 text-xs rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/30 transition-colors font-medium shrink-0"
+								title={t('chat.noModelsAlert')}
+							>
+								<Key className="w-3.5 h-3.5 flex-shrink-0 text-amber-500" />
+								<span className="truncate hidden sm:inline">{t('common.configureApiKey')}</span>
+							</Link>
+						)}
+					</div>
 				</div>
 			</div>
 		</form>

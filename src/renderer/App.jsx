@@ -14,7 +14,6 @@ import { useLanguage } from './context/LanguageContext';
 import { useTheme } from './context/ThemeContext';
 import { Settings, PanelLeftClose, PanelLeft, Radio, MessagesSquare, Sparkles, Store, Columns2, X, FolderKanban, BookOpen, Scale, Bot, Workflow, ChevronDown, Keyboard, Key, AlertCircle, PenSquare, Terminal, Briefcase, MessageSquare, Globe, Clock, Activity, LayoutGrid, MoreHorizontal, Brain, FolderTree, Compass, Sliders, Cpu } from 'lucide-react';
 import { Button } from './components/ui/button';
-import { SearchableSelect } from './components/ui/SearchableSelect';
 import { cn } from './lib/utils';
 import { groupModels, getModelGroup, getModelDisplayName as getModelDisplayNameLib } from './lib/modelGrouping';
 import { extractThinking } from './lib/messageUtils';
@@ -2954,7 +2953,7 @@ function App() {
                 </Button>
               )}
 
-              {/* Model Selector & Parameters */}
+              {/* Conversation Metrics & Parameters */}
               {sortedModels.length === 0 ? (
                 <Link
                   to="/settings"
@@ -2965,32 +2964,14 @@ function App() {
                   <span className="truncate hidden md:inline">{t('common.configureApiKey')}</span>
                 </Link>
               ) : (
-                <div className="flex items-center gap-1.5 shrink-0">
-                  <SearchableSelect
-                    value={selectedModel}
-                    onValueChange={setSelectedModel}
-                    options={sortedModels}
-                    placeholder={t('chat.selectModel')}
-                    className="w-32 sm:w-44 md:w-48 max-w-[210px] min-w-[110px]"
-                    disabled={loading}
-                    getDisplayValue={(value) => getModelDisplayNameLib(value, modelConfigs[value], t)}
-                    getOptionLabel={(model) => getModelDisplayNameLib(model, modelConfigs[model], t)}
-                    getOptionValue={(model) => model}
-                    groupBy={(model) => getModelGroup(model, modelConfigs[model])}
-                    dropdownWidthClass="w-72 sm:w-80"
-                    favoriteItems={favoriteModels}
-                    onToggleFavorite={handleToggleFavoriteModel}
-                    dropdownPosition="bottom"
+                <Suspense fallback={null}>
+                  <ConversationStats
+                    messages={messages}
+                    selectedModel={selectedModel}
+                    modelConfigs={modelConfigs}
+                    onConfigureModel={() => setIsModelParamsModalOpen(true)}
                   />
-                  <Suspense fallback={null}>
-                    <ConversationStats
-                      messages={messages}
-                      selectedModel={selectedModel}
-                      modelConfigs={modelConfigs}
-                      onConfigureModel={() => setIsModelParamsModalOpen(true)}
-                    />
-                  </Suspense>
-                </div>
+                </Suspense>
               )}
 
               {/* Persona Selector (Style & Tone Profile) */}
@@ -3689,6 +3670,7 @@ function App() {
                       onSelectWorkspace={handleSelectWorkspace}
                       favoriteModels={favoriteModels}
                       onToggleFavoriteModel={handleToggleFavoriteModel}
+                      onConfigureModel={() => setIsModelParamsModalOpen(true)}
                     />
                   </div>
                 </div>
@@ -3739,6 +3721,7 @@ function App() {
                       favoriteModels={favoriteModels}
                       onToggleFavoriteModel={handleToggleFavoriteModel}
                       activePersona={activePersona}
+                      onConfigureModel={() => setIsModelParamsModalOpen(true)}
                     />
                   </div>
                 </div>
@@ -3794,6 +3777,7 @@ function App() {
                       favoriteModels={favoriteModels}
                       onToggleFavoriteModel={handleToggleFavoriteModel}
                       activePersona={activePersona}
+                      onConfigureModel={() => setIsModelParamsModalOpen(true)}
                     />
                   </div>
                 </div>
@@ -3987,6 +3971,7 @@ function App() {
                       favoriteModels={favoriteModels}
                       onToggleFavoriteModel={handleToggleFavoriteModel}
                       activePersona={activePersona}
+                      onConfigureModel={() => setIsModelParamsModalOpen(true)}
                     />
                   </div>
                 </div>
