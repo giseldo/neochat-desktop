@@ -44,8 +44,13 @@ function resolveWorkspacePath(workspaceRoot, candidate = '.', options = {}) {
   if (typeof candidate !== 'string' || !candidate.trim()) {
     throw new TypeError('A valid workspace-relative path is required.');
   }
-  if (path.isAbsolute(candidate)) {
-    throw new WorkspaceBoundaryError(candidate, path.resolve(workspaceRoot));
+  let cleanCandidate = candidate;
+  if (path.isAbsolute(cleanCandidate)) {
+    if (isWithinPath(workspaceRoot, cleanCandidate)) {
+      cleanCandidate = path.relative(workspaceRoot, cleanCandidate) || '.';
+    } else {
+      throw new WorkspaceBoundaryError(candidate, path.resolve(workspaceRoot));
+    }
   }
 
   const lexicalRoot = path.resolve(workspaceRoot);
@@ -54,7 +59,7 @@ function resolveWorkspacePath(workspaceRoot, candidate = '.', options = {}) {
   }
 
   const canonicalRoot = realpathExisting(lexicalRoot);
-  const lexicalTarget = path.resolve(lexicalRoot, candidate);
+  const lexicalTarget = path.resolve(lexicalRoot, cleanCandidate);
   if (!isWithinPath(lexicalRoot, lexicalTarget)) {
     throw new WorkspaceBoundaryError(candidate, canonicalRoot);
   }

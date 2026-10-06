@@ -213,8 +213,25 @@ function prepareTools(discoveredTools, isResponsesApi = false, settings = {}) {
         }
     }
 
-    // In 'code' mode or agent mode: register full native filesystem, shell and git tools
-    if (settings.mode === 'code' || settings.agentModeActive || settings.agentMode || settings.isAgentMode) {
+    // Check if an active bot has VM enabled or has code tools configured
+    let activeBotData = settings.activeBot || null;
+    if (!activeBotData && (settings.botId || settings.activeBotId)) {
+        try {
+            const { getBot } = require('./botManager');
+            activeBotData = getBot(settings.botId || settings.activeBotId);
+        } catch (e) {}
+    }
+    const isBotActive = Boolean(activeBotData || settings.botId || settings.activeBotId || settings.botVmActive);
+    const hasBotVmOrTools = Boolean(
+        isBotActive && (
+            activeBotData?.vmConfig?.enabled !== false ||
+            (Array.isArray(activeBotData?.tools) && activeBotData.tools.some(t => ['read_file', 'write_file', 'shell_exec'].includes(t))) ||
+            !activeBotData
+        )
+    );
+
+    // In 'code' mode, agent mode, or when an active bot with VM/code tools is chatting: register full native filesystem, shell and git tools
+    if (settings.mode === 'code' || settings.agentModeActive || settings.agentMode || settings.isAgentMode || hasBotVmOrTools) {
         const { NATIVE_TOOLS } = require('./agent/toolRegistry');
         const codeTools = [
             NATIVE_TOOLS.read_file,
@@ -555,24 +572,32 @@ When the user asks you to create, draft, write, edit, rewrite, improve, format, 
     }
 
     // Coding Agent Harness System Instructions
-    if (settings.mode === 'code' || settings.agentModeActive || settings.agentMode || settings.isAgentMode) {
+    const hasBotVmOrToolsForPrompt = Boolean(
+        activeBot && (
+            activeBot.vmConfig?.enabled !== false ||
+            (Array.isArray(activeBot.tools) && activeBot.tools.some(t => ['read_file', 'write_file', 'shell_exec'].includes(t))) ||
+            activeBot.agentEnabled
+        )
+    );
+
+    if (settings.mode === 'code' || settings.agentModeActive || settings.agentMode || settings.isAgentMode || hasBotVmOrToolsForPrompt) {
         const { workspaceManager } = require('./agent/workspaceManager');
         const workspaceRoot = settings.workspaceRoot || process.cwd();
         const workspaceInfoPrompt = workspaceManager.getWorkspaceSystemPrompt(workspaceRoot);
 
-        systemPrompt += `\n\n- CODING AGENT HARNESS (Native Filesystem & Shell):
-You are an autonomous Software Engineering Agent operating inside the user's project workspace.
-You have direct access to native filesystem, shell, and Git tools:
-- 'read_file': Read local file content with line numbers (can specify start_line and end_line).
-- 'write_file': Create new files or completely overwrite existing files on disk. (CRITICAL: When asked to create, save or write files to the workspace/project directory, ALWAYS use 'write_file', NEVER canvas_create_document).
-- 'edit_file': Edit a precise block of text in an existing file using exact matching (target_content -> replacement_content).
-- 'list_directory': Inspect directory contents and child folders.
-- 'glob_search': Search for files matching a glob pattern (e.g. '**/*.js', 'src/**/*.tsx').
-- 'grep_search': Search across codebase for regex or string matches with line numbers.
-- 'shell_exec': Execute commands in a persistent shell terminal (PowerShell on Windows, Bash on Unix).
-- 'git_status', 'git_diff', 'git_commit': Inspect repository state, view diffs, and create commits.
+        systemPrompt += `\n\n- AMBIENTE DE EXECUÇÃO & FERRAMENTAS DE ARQUIVOS/TERMINAL (MÁQUINA VIRTUAL / HARNESS):
+Você possui ferramentas nativas habilitadas diretamente na sua Máquina Virtual / Workspace:
+- 'write_file': Criar novos arquivos ou gravar código no disco.
+- 'read_file': Ler conteúdo de arquivos com números de linha.
+- 'edit_file': Editar blocos precisos de texto em arquivos existentes.
+- 'list_directory': Inspecionar pastas e listar arquivos.
+- 'glob_search': Buscar arquivos por padrão glob (ex: '**/*.js', '*.txt').
+- 'grep_search': Buscar termos e expressões regulares dentro de arquivos.
+- 'shell_exec': Executar comandos no terminal.
+- 'git_status', 'git_diff', 'git_commit': Inspecionar e versionar código.
 
-Always prioritize creating and editing files directly on disk using 'write_file' and 'edit_file'.`;
+DIRETRIZ CRÍTICA: Quando o usuário pedir para criar, salvar, escrever, gerar um arquivo, código ou script (ex: "crie um arquivo texto", "gere um script", etc.), VOCÊ DEVE OBRIGATORIAMENTE CHAMAR A FERRAMENTA 'write_file' IMEDIATAMENTE VIA TOOL CALL.
+NUNCA diga que não tem acesso ao disco ou ao sistema de arquivos, pois você tem a ferramenta 'write_file' pronta e configurada para salvar arquivos diretamente no seu disco virtual!`;
 
         if (workspaceInfoPrompt) {
             systemPrompt += `\n\n${workspaceInfoPrompt}`;

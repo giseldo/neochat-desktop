@@ -19,10 +19,14 @@ Suas principais diretrizes:
 3. Precisão e Transparência: Seja direto, técnico e honesto quando algo exigir verificação externa.`,
     preferredModel: '',
     temperature: 0.5,
-    agentEnabled: false,
+    agentEnabled: true,
     approvalMode: 'balanced',
     searchEnabled: true,
-    tools: ['web_search', 'save_user_memory', 'forget_user_memory'],
+    tools: [
+      'read_file', 'write_file', 'edit_file', 'list_directory',
+      'glob_search', 'grep_search', 'shell_exec', 'git_status',
+      'web_search', 'save_user_memory', 'forget_user_memory'
+    ],
     memoryEnabled: true,
     vmConfig: {
       enabled: true,

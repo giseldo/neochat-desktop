@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { X, Search, Globe, FolderTree, Database, Brain, Terminal, Github, Check, Download, AlertCircle, Sparkles } from 'lucide-react';
+import { X, Search, Globe, FolderTree, Database, Brain, Terminal, Github, Check, Download, AlertCircle, Sparkles, Trash2 } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
 import { cn } from '../lib/utils';
 
@@ -154,10 +154,11 @@ export const MCP_CATALOG = [
   },
 ];
 
-export function McpCatalogModal({ isOpen, onClose, onServerInstalled, existingServers = {} }) {
+export function McpCatalogModal({ isOpen, onClose, onServerInstalled, onServerUninstalled, existingServers = {} }) {
   const { t } = useLanguage();
   const [search, setSearch] = useState('');
   const [installingId, setInstallingId] = useState(null);
+  const [uninstallingId, setUninstallingId] = useState(null);
   const [installedIds, setInstalledIds] = useState(new Set());
 
   const catalog = useMemo(() => getMcpCatalog(t), [t]);
@@ -219,9 +220,15 @@ export function McpCatalogModal({ isOpen, onClose, onServerInstalled, existingSe
         [server.id]: newServerConfig,
       };
 
+      // Also ensure it is removed from disabledMcpServers if previously disabled
+      const updatedDisabled = Array.isArray(settings?.disabledMcpServers)
+        ? settings.disabledMcpServers.filter(id => id !== server.id)
+        : [];
+
       await window.electron.saveSettings({
         ...settings,
         mcpServers: updatedServers,
+        disabledMcpServers: updatedDisabled,
       });
 
       // Update local installed state immediately
@@ -238,13 +245,63 @@ export function McpCatalogModal({ isOpen, onClose, onServerInstalled, existingSe
       }
 
       if (onServerInstalled) {
-        onServerInstalled(server.id);
+        await onServerInstalled(server.id);
       }
     } catch (err) {
       console.error('Failed to install MCP server:', err);
       alert(t('mcpCatalog.errorInstall', { error: err.message }));
     } finally {
       setInstallingId(null);
+    }
+  };
+
+  const handleUninstall = async (server) => {
+    const confirmMessage = t('mcpCatalog.uninstallConfirm', { name: server.name }) || `Desinstalar ${server.name}?`;
+    if (!window.confirm(confirmMessage)) {
+      return;
+    }
+
+    setUninstallingId(server.id);
+    try {
+      // 1. Disconnect MCP server process if connected
+      if (window.electron?.disconnectMcpServer) {
+        try {
+          await window.electron.disconnectMcpServer(server.id);
+        } catch (discErr) {
+          console.warn(`[McpCatalog] Error disconnecting ${server.id}:`, discErr);
+        }
+      }
+
+      // 2. Remove server from settings
+      const settings = await window.electron.getSettings();
+      const currentServers = { ...(settings?.mcpServers || {}) };
+      delete currentServers[server.id];
+
+      const currentDisabled = Array.isArray(settings?.disabledMcpServers)
+        ? settings.disabledMcpServers.filter(id => id !== server.id)
+        : [];
+
+      await window.electron.saveSettings({
+        ...settings,
+        mcpServers: currentServers,
+        disabledMcpServers: currentDisabled,
+      });
+
+      // 3. Update local installed state immediately
+      setInstalledIds(prev => {
+        const next = new Set(prev);
+        next.delete(server.id);
+        return next;
+      });
+
+      if (onServerUninstalled) {
+        await onServerUninstalled(server.id);
+      }
+    } catch (err) {
+      console.error('Failed to uninstall MCP server:', err);
+      alert(t('mcpCatalog.errorUninstall', { error: err.message }));
+    } finally {
+      setUninstallingId(null);
     }
   };
 
@@ -292,8 +349,9 @@ export function McpCatalogModal({ isOpen, onClose, onServerInstalled, existingSe
         {/* List */}
         <div className="flex-1 overflow-y-auto p-6 space-y-3">
           {filtered.map(server => {
-            const isInstalled = installedIds.has(server.id) || !!existingServers[server.id];
+            const isInstalled = installedIds.has(server.id);
             const isInstalling = installingId === server.id;
+            const isUninstalling = uninstallingId === server.id;
             const Icon = server.icon;
 
             return (
@@ -324,12 +382,27 @@ export function McpCatalogModal({ isOpen, onClose, onServerInstalled, existingSe
                   </div>
                 </div>
 
-                <div className="flex items-center flex-shrink-0">
+                <div className="flex items-center gap-2 flex-shrink-0">
                   {isInstalled ? (
-                    <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-green-500/10 text-green-600 border border-green-500/20">
-                      <Check className="w-3.5 h-3.5" />
-                      <span>{t('mcpCatalog.installed')}</span>
-                    </div>
+                    <>
+                      <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-green-500/10 text-green-600 border border-green-500/20">
+                        <Check className="w-3.5 h-3.5" />
+                        <span>{t('mcpCatalog.installed')}</span>
+                      </div>
+                      <button
+                        onClick={() => handleUninstall(server)}
+                        disabled={isUninstalling}
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium text-destructive bg-destructive/10 hover:bg-destructive hover:text-destructive-foreground border border-destructive/20 transition-all shadow-xs disabled:opacity-50 cursor-pointer"
+                        title={t('mcpCatalog.uninstall')}
+                      >
+                        {isUninstalling ? (
+                          <span className="w-3.5 h-3.5 border-2 border-destructive/30 border-t-destructive rounded-full animate-spin"></span>
+                        ) : (
+                          <Trash2 className="w-3.5 h-3.5" />
+                        )}
+                        <span>{isUninstalling ? t('mcpCatalog.uninstalling') : t('mcpCatalog.uninstall')}</span>
+                      </button>
+                    </>
                   ) : (
                     <button
                       onClick={() => handleInstall(server)}

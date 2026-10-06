@@ -63,12 +63,12 @@ const BotConfigModal = lazy(() => import('./components/BotConfigModal'));
 
 function App() {
   // const [messages, setMessages] = useState([]); // Remove local state
-  const { 
-    messages, 
-    setMessages, 
+  const {
+    messages,
+    setMessages,
     currentChatId,
     chatList,
-    createNewChat, 
+    createNewChat,
     loadChat,
     loadChatList,
     startFreshChat,
@@ -348,7 +348,7 @@ function App() {
           setWorkspaceInfo(result.info);
           try {
             localStorage.setItem('neochat_workspace_path', result.path);
-          } catch (e) {}
+          } catch (e) { }
         }
       }
     } catch (err) {
@@ -361,7 +361,7 @@ function App() {
     try {
       localStorage.setItem('neochat_harness_mode', mode);
       localStorage.setItem('neochat_agent_mode', String(mode === 'code'));
-    } catch (e) {}
+    } catch (e) { }
   }, []);
 
   const buildAgentSystemPrompt = useCallback(() => {
@@ -491,13 +491,13 @@ function App() {
 
     // Get messages up to and including the last user message
     const messagesToKeep = messages.slice(0, lastUserMessageIndex + 1);
-    
+
     // Reset messages to only include up to the last user message
     setMessages(messagesToKeep);
 
     // Reset cancellation flag
     cancelledRef.current = false;
-    
+
     // Reset user scrolling flag
     userScrollingRef.current = false;
     setIsUserScrolling(false);
@@ -511,62 +511,62 @@ function App() {
     const MAX_TOOL_ITERATIONS = 12;
 
     try {
-        while (conversationStatus === 'processing' || conversationStatus === 'completed_with_tools') {
-            if (conversationStatus === 'completed_with_tools') {
-                toolIterationsCount++;
-                if (toolIterationsCount >= MAX_TOOL_ITERATIONS) {
-                    console.warn(`[Frontend] Maximum tool iterations (${MAX_TOOL_ITERATIONS}) reached in reload. Stopping.`);
-                    break;
-                }
-            }
-
-            const { status, assistantMessage, toolResponseMessages } = await executeChatTurn(currentApiMessages);
-
-            conversationStatus = status;
-
-            if (status === 'paused') {
-                break;
-            } else if (status === 'cancelled') {
-                console.log('Conversation cancelled by user');
-                break;
-            } else if (status === 'error') {
-                break;
-            } else if (status === 'completed_with_tools') {
-                if (assistantMessage && toolResponseMessages.length > 0) {
-                    const formattedToolResponses = toolResponseMessages.map(msg => ({
-                        role: 'tool',
-                        content: msg.content,
-                        tool_call_id: msg.tool_call_id
-                    }));
-                    currentApiMessages = [
-                        ...currentApiMessages,
-                        {
-                          role: assistantMessage.role,
-                          content: assistantMessage.content,
-                          tool_calls: assistantMessage.tool_calls
-                        },
-                        ...formattedToolResponses
-                    ];
-                } else {
-                    console.warn("Status 'completed_with_tools' but no assistant message or tool responses found.");
-                    conversationStatus = 'error';
-                    break;
-                }
-            } else if (status === 'completed_no_tools') {
-                break;
-            }
+      while (conversationStatus === 'processing' || conversationStatus === 'completed_with_tools') {
+        if (conversationStatus === 'completed_with_tools') {
+          toolIterationsCount++;
+          if (toolIterationsCount >= MAX_TOOL_ITERATIONS) {
+            console.warn(`[Frontend] Maximum tool iterations (${MAX_TOOL_ITERATIONS}) reached in reload. Stopping.`);
+            break;
+          }
         }
+
+        const { status, assistantMessage, toolResponseMessages } = await executeChatTurn(currentApiMessages);
+
+        conversationStatus = status;
+
+        if (status === 'paused') {
+          break;
+        } else if (status === 'cancelled') {
+          console.log('Conversation cancelled by user');
+          break;
+        } else if (status === 'error') {
+          break;
+        } else if (status === 'completed_with_tools') {
+          if (assistantMessage && toolResponseMessages.length > 0) {
+            const formattedToolResponses = toolResponseMessages.map(msg => ({
+              role: 'tool',
+              content: msg.content,
+              tool_call_id: msg.tool_call_id
+            }));
+            currentApiMessages = [
+              ...currentApiMessages,
+              {
+                role: assistantMessage.role,
+                content: assistantMessage.content,
+                tool_calls: assistantMessage.tool_calls
+              },
+              ...formattedToolResponses
+            ];
+          } else {
+            console.warn("Status 'completed_with_tools' but no assistant message or tool responses found.");
+            conversationStatus = 'error';
+            break;
+          }
+        } else if (status === 'completed_no_tools') {
+          break;
+        }
+      }
     } catch (error) {
-        console.error('Error in handleReloadFromMessage:', error);
-        setMessages(prev => [...prev, { role: 'assistant', content: `Error: ${error.message}` }]);
-        conversationStatus = 'error';
+      console.error('Error in handleReloadFromMessage:', error);
+      setMessages(prev => [...prev, { role: 'assistant', content: `Error: ${error.message}` }]);
+      conversationStatus = 'error';
     } finally {
-        if (conversationStatus !== 'paused') {
-            setLoading(false);
-        }
+      if (conversationStatus !== 'paused') {
+        setLoading(false);
+      }
     }
   };
-  
+
   // Models list derived from capabilities keys
   // const models = Object.keys(MODEL_CAPABILITIES).filter(key => key !== 'default');
 
@@ -575,7 +575,7 @@ function App() {
   const sortedModels = useMemo(() => {
     // Strict opt-in: filter using enabledModels (with fallback to disabledModels if not set)
     const filteredModels = filterModels(models, modelConfigs, enabledModels?.length > 0 ? enabledModels : { enabledModels, disabledModels });
-    
+
     // Group and sort models logically by group and display name
     const groups = groupModels(filteredModels, modelConfigs);
     return groups.flatMap(g => g.models);
@@ -623,7 +623,7 @@ function App() {
       // Get number of configured servers
       if (settings && settings.mcpServers) {
         const configuredCount = Object.keys(settings.mcpServers).length;
-        
+
         // Get unique server IDs from the tools
         const connectedServerIds = new Set();
         if (Array.isArray(tools)) {
@@ -635,22 +635,22 @@ function App() {
         }
         const connectedCount = connectedServerIds.size;
         const toolCount = Array.isArray(tools) ? tools.length : 0;
-        
+
         if (configuredCount > 0) {
           if (connectedCount === configuredCount) {
-            setMcpServersStatus({ 
-              loading: false, 
-              message: `${toolCount} tools, ${connectedCount}/${configuredCount} MCP servers connected` 
+            setMcpServersStatus({
+              loading: false,
+              message: `${toolCount} tools, ${connectedCount}/${configuredCount} MCP servers connected`
             });
           } else if (connectedCount > 0) {
-            setMcpServersStatus({ 
-              loading: false, 
-              message: `${toolCount} tools, ${connectedCount}/${configuredCount} MCP servers connected` 
+            setMcpServersStatus({
+              loading: false,
+              message: `${toolCount} tools, ${connectedCount}/${configuredCount} MCP servers connected`
             });
           } else {
-            setMcpServersStatus({ 
-              loading: false, 
-              message: `${toolCount} tools, No MCP servers connected (${configuredCount} configured)` 
+            setMcpServersStatus({
+              loading: false,
+              message: `${toolCount} tools, No MCP servers connected (${configuredCount} configured)`
             });
           }
         } else {
@@ -702,26 +702,26 @@ function App() {
         const isInvalidChatModel = (m) => !m || m.includes('canopylabs') || m.includes('orpheus');
 
         if (settings && settings.model) {
-            // Ensure the saved model is still valid against the loaded configs and is active
-            const isSavedModelActive = activeModels.includes(settings.model) || (configs[settings.model]?.rawModelId && activeModels.includes(configs[settings.model].rawModelId));
-            if (configs[settings.model] && !isInvalidChatModel(settings.model) && isSavedModelActive) {
-                effectiveModel = settings.model;
-            } else {
-                // Try finding matching active model
-                const matchingKey = validCandidates.find(k =>
-                  (k === settings.model ||
-                  configs[k]?.rawModelId === settings.model ||
-                  k.endsWith(`::${settings.model}`)) && !isInvalidChatModel(k)
-                );
-                if (matchingKey) {
-                  effectiveModel = matchingKey;
-                } else if (validCandidates.length > 0) {
-                  effectiveModel = validCandidates[0];
-                  console.warn(`Saved model "${settings.model}" inactive or not found. Falling back to ${effectiveModel}.`);
-                }
+          // Ensure the saved model is still valid against the loaded configs and is active
+          const isSavedModelActive = activeModels.includes(settings.model) || (configs[settings.model]?.rawModelId && activeModels.includes(configs[settings.model].rawModelId));
+          if (configs[settings.model] && !isInvalidChatModel(settings.model) && isSavedModelActive) {
+            effectiveModel = settings.model;
+          } else {
+            // Try finding matching active model
+            const matchingKey = validCandidates.find(k =>
+              (k === settings.model ||
+                configs[k]?.rawModelId === settings.model ||
+                k.endsWith(`::${settings.model}`)) && !isInvalidChatModel(k)
+            );
+            if (matchingKey) {
+              effectiveModel = matchingKey;
+            } else if (validCandidates.length > 0) {
+              effectiveModel = validCandidates[0];
+              console.warn(`Saved model "${settings.model}" inactive or not found. Falling back to ${effectiveModel}.`);
             }
+          }
         } else if (validCandidates.length > 0) {
-            effectiveModel = validCandidates[0];
+          effectiveModel = validCandidates[0];
         }
 
         setSelectedModel(effectiveModel); // Set the final selected model state
@@ -741,7 +741,7 @@ function App() {
           setMcpTools(mcpToolsResult.tools);
           updateServerStatus(mcpToolsResult.tools, settings); // Pass loaded settings
         } else {
-           // Handle case where no tools are found initially, but update status
+          // Handle case where no tools are found initially, but update status
           updateServerStatus([], settings);
         }
 
@@ -753,9 +753,9 @@ function App() {
             window.electron.getSettings().then(currentSettings => {
               updateServerStatus(data.tools, currentSettings);
             }).catch(err => {
-                console.error("Error fetching settings for status update:", err);
-                // Fallback to updating status without settings info
-                updateServerStatus(data.tools, null);
+              console.error("Error fetching settings for status update:", err);
+              // Fallback to updating status without settings info
+              updateServerStatus(data.tools, null);
             });
           }
         });
@@ -768,8 +768,8 @@ function App() {
         console.error('Error loading initial data:', error);
         setMcpServersStatus({ loading: false, message: "Error loading initial data" });
       } finally {
-          // Mark initial load as complete regardless of success/failure
-          setInitialLoadComplete(true);
+        // Mark initial load as complete regardless of success/failure
+        setInitialLoadComplete(true);
       }
     };
 
@@ -822,8 +822,8 @@ function App() {
           if (validCandidates.length > 0 && selectedModel && (!configs[selectedModel] || isInvalidChatModel(selectedModel) || !isSelectedActive)) {
             const matchingKey = validCandidates.find(k =>
               (k === selectedModel ||
-              configs[k]?.rawModelId === selectedModel ||
-              k.endsWith(`::${selectedModel}`)) && !isInvalidChatModel(k)
+                configs[k]?.rawModelId === selectedModel ||
+                k.endsWith(`::${selectedModel}`)) && !isInvalidChatModel(k)
             );
             if (matchingKey) {
               setSelectedModel(matchingKey);
@@ -848,12 +848,12 @@ function App() {
   useEffect(() => {
     // Prevent saving during initial setup before models/settings are loaded/validated
     if (!initialLoadComplete || !selectedModel) {
-        return;
+      return;
     }
 
     // Skip if already saved
     if (lastSavedModelRef.current === selectedModel) {
-        return;
+      return;
     }
 
     const saveModelSelection = async () => {
@@ -861,8 +861,8 @@ function App() {
         const settings = await window.electron.getSettings();
         // Check if the model actually changed before saving
         if (settings.model !== selectedModel) {
-            console.log(`Saving new model selection: ${selectedModel}`);
-            await window.electron.saveSettings({ ...settings, model: selectedModel });
+          console.log(`Saving new model selection: ${selectedModel}`);
+          await window.electron.saveSettings({ ...settings, model: selectedModel });
         }
         lastSavedModelRef.current = selectedModel;
       } catch (error) {
@@ -1048,7 +1048,7 @@ function App() {
     container.addEventListener('scroll', handleScroll, { passive: true });
     container.addEventListener('wheel', handleWheel, { passive: true });
     container.addEventListener('touchstart', handleTouchStart, { passive: true });
-    
+
     return () => {
       container.removeEventListener('scroll', handleScroll);
       container.removeEventListener('wheel', handleWheel);
@@ -1072,7 +1072,7 @@ function App() {
     if (!isUserScrolling && !userScrollingRef.current) {
       // Check if any message is actively streaming
       const isStreaming = messages.some(msg => msg.isStreaming === true);
-      
+
       if (isStreaming) {
         // Use requestAnimationFrame for smooth scrolling aligned with browser rendering
         if (rafRef.current) {
@@ -1081,7 +1081,7 @@ function App() {
         if (scrollThrottleRef.current) {
           clearTimeout(scrollThrottleRef.current);
         }
-        
+
         // Throttle with rAF for optimal performance
         scrollThrottleRef.current = setTimeout(() => {
           rafRef.current = requestAnimationFrame(() => {
@@ -1104,7 +1104,7 @@ function App() {
         scrollToBottom(false);
       }
     }
-    
+
     // Cleanup function
     return () => {
       if (scrollThrottleRef.current) {
@@ -1121,7 +1121,7 @@ function App() {
     try {
       const response = await window.electron.executeToolCall(toolCall, { activeBotId: activeBot?.id, botId: activeBot?.id });
       const durationMs = Date.now() - startTime;
-      
+
       // If a canvas document was created or updated, synchronize CanvasContext and open panel
       if (response.canvasData?.document) {
         openCanvas(response.canvasData.document);
@@ -1131,7 +1131,7 @@ function App() {
           if (parsed.document) {
             openCanvas(parsed.document);
           }
-        } catch (e) {}
+        } catch (e) { }
       }
 
       // Return the tool response message in the correct format
@@ -1149,8 +1149,8 @@ function App() {
     } catch (error) {
       console.error('Error executing tool call:', error);
       const durationMs = Date.now() - startTime;
-      return { 
-        role: 'tool', 
+      return {
+        role: 'tool',
         content: JSON.stringify({ error: error.message }),
         tool_call_id: toolCall.id,
         durationMs,
@@ -1197,27 +1197,27 @@ function App() {
             console.log('Tool execution cancelled by user before executing tool');
             return { status: 'cancelled', toolResponseMessages };
           }
-          
+
           const resultMsg = await executeToolCall(toolCall);
-          
+
           // Check again after execution completes
           if (cancelledRef.current) {
             console.log('Tool execution cancelled by user after tool completed');
             return { status: 'cancelled', toolResponseMessages };
           }
-          
+
           toolResponseMessages.push(resultMsg);
           // Update UI immediately for executed tool calls
           setMessages(prev => [...prev, resultMsg]);
         } catch (error) {
-            console.error(`Error executing automatically approved tool call '${toolName}':`, error);
-            const errorMsg = {
-                role: 'tool',
-                content: JSON.stringify({ error: `Error executing tool '${toolName}': ${error.message}` }),
-                tool_call_id: toolCall.id
-            };
-            toolResponseMessages.push(errorMsg);
-           setMessages(prev => [...prev, errorMsg]); // Show error in UI
+          console.error(`Error executing automatically approved tool call '${toolName}':`, error);
+          const errorMsg = {
+            role: 'tool',
+            content: JSON.stringify({ error: `Error executing tool '${toolName}': ${error.message}` }),
+            tool_call_id: toolCall.id
+          };
+          toolResponseMessages.push(errorMsg);
+          setMessages(prev => [...prev, errorMsg]); // Show error in UI
         }
       } else if (approvalStatus === 'deny') {
         const deniedMsg = { role: 'tool', content: JSON.stringify({ error: `Tool '${toolName}' blocked by permission policy.` }), tool_call_id: toolCall.id };
@@ -1276,12 +1276,12 @@ function App() {
     return () => {
       // Always clean up IPC listeners on unmount (important for HMR)
       console.log('Component unmounting, cleaning up...');
-      
+
       // Clean up chat stream listeners to prevent duplicates on HMR
       if (window.electron.cleanupChatStreamListeners) {
         window.electron.cleanupChatStreamListeners();
       }
-      
+
       // Stop any active streams when the component actually unmounts
       if (loadingRef.current) {
         console.log('Stopping active streams...');
@@ -1317,548 +1317,550 @@ function App() {
     const turnStartTime = Date.now();
 
     try {
-        // Prepare messages to send, including active project instructions and active persona system prompt if defined
-        let messagesToSend = [...turnMessages];
-        const systemParts = [];
-        const injectedParts = [];
+      // Prepare messages to send, including active project instructions and active persona system prompt if defined
+      let messagesToSend = [...turnMessages];
+      const systemParts = [];
+      const injectedParts = [];
 
-        if (activeProject?.customPrompt && activeProject.customPrompt.trim()) {
-            const projectText = `[Instruções do Projeto "${activeProject.name}"]:\n${activeProject.customPrompt.trim()}`;
-            systemParts.push(projectText);
-            injectedParts.push({
-                type: 'project',
-                title: activeProject.name,
-                content: activeProject.customPrompt.trim(),
-                raw: projectText
-            });
+      if (activeProject?.customPrompt && activeProject.customPrompt.trim()) {
+        const projectText = `[Instruções do Projeto "${activeProject.name}"]:\n${activeProject.customPrompt.trim()}`;
+        systemParts.push(projectText);
+        injectedParts.push({
+          type: 'project',
+          title: activeProject.name,
+          content: activeProject.customPrompt.trim(),
+          raw: projectText
+        });
+      }
+      if (activePersona?.systemPrompt && activePersona.systemPrompt.trim()) {
+        const personaName = activePersona.name || (activePersona.nameKey ? t(activePersona.nameKey) : activePersona.id);
+        const personaText = activePersona.systemPrompt.trim();
+        systemParts.push(personaText);
+        injectedParts.push({
+          type: 'persona',
+          title: personaName,
+          content: personaText,
+          raw: personaText
+        });
+      }
+      if (workspaceInfo?.agentsDoc?.content) {
+        const docName = workspaceInfo.agentsDoc.filename || 'AGENTS.md';
+        const wText = `[Regras do Workspace / ${docName}]:\n${workspaceInfo.agentsDoc.content.trim()}`;
+        systemParts.push(wText);
+        injectedParts.push({
+          type: 'workspace',
+          title: `${docName} (${workspaceInfo.name || 'Workspace'})`,
+          content: workspaceInfo.agentsDoc.content.trim(),
+          raw: wText
+        });
+      } else if (workspaceInfo?.readmeDoc?.content) {
+        const wText = `[README do Workspace]:\n${workspaceInfo.readmeDoc.content.trim()}`;
+        systemParts.push(wText);
+        injectedParts.push({
+          type: 'workspace',
+          title: `README (${workspaceInfo.name || 'Workspace'})`,
+          content: workspaceInfo.readmeDoc.content.trim(),
+          raw: wText
+        });
+      }
+      if (harnessMode === 'code') {
+        const harnessText = `[Diretrizes do Coding Agent Harness]:\nAcesso autônomo a ferramentas de arquivos ('read_file', 'write_file', 'edit_file', 'list_directory', 'glob_search', 'grep_search'), terminal ('shell_exec') e Git ('git_status', 'git_diff', 'git_commit'). Diretório raiz: "${workspacePath || 'Workspace'}".`;
+        systemParts.push(harnessText);
+        injectedParts.push({
+          type: 'harness',
+          title: 'Coding Agent Harness (Filesystem & Terminal)',
+          content: harnessText,
+          raw: harnessText
+        });
+      }
+      if (canvasDoc && canvasDoc.content) {
+        let canvasContextPrompt = `[Documento Canvas Ativo no Espaço de Trabalho]:\nTítulo: "${canvasDoc.title}" (v${canvasDoc.version || 1}, formato: ${canvasDoc.language || 'markdown'})\nTotal de Palavras: ${canvasDoc.stats?.words || 0}\n`;
+        if (selectedText) {
+          canvasContextPrompt += `Trecho Selecionado pelo Usuário no Canvas:\n"""\n${selectedText}\n"""\n`;
         }
-        if (activePersona?.systemPrompt && activePersona.systemPrompt.trim()) {
-            const personaName = activePersona.name || (activePersona.nameKey ? t(activePersona.nameKey) : activePersona.id);
-            const personaText = activePersona.systemPrompt.trim();
-            systemParts.push(personaText);
-            injectedParts.push({
-                type: 'persona',
-                title: personaName,
-                content: personaText,
-                raw: personaText
-            });
-        }
-        if (workspaceInfo?.agentsDoc?.content) {
-            const docName = workspaceInfo.agentsDoc.filename || 'AGENTS.md';
-            const wText = `[Regras do Workspace / ${docName}]:\n${workspaceInfo.agentsDoc.content.trim()}`;
-            systemParts.push(wText);
-            injectedParts.push({
-                type: 'workspace',
-                title: `${docName} (${workspaceInfo.name || 'Workspace'})`,
-                content: workspaceInfo.agentsDoc.content.trim(),
-                raw: wText
-            });
-        } else if (workspaceInfo?.readmeDoc?.content) {
-            const wText = `[README do Workspace]:\n${workspaceInfo.readmeDoc.content.trim()}`;
-            systemParts.push(wText);
-            injectedParts.push({
-                type: 'workspace',
-                title: `README (${workspaceInfo.name || 'Workspace'})`,
-                content: workspaceInfo.readmeDoc.content.trim(),
-                raw: wText
-            });
-        }
-        if (harnessMode === 'code') {
-            const harnessText = `[Diretrizes do Coding Agent Harness]:\nAcesso autônomo a ferramentas de arquivos ('read_file', 'write_file', 'edit_file', 'list_directory', 'glob_search', 'grep_search'), terminal ('shell_exec') e Git ('git_status', 'git_diff', 'git_commit'). Diretório raiz: "${workspacePath || 'Workspace'}".`;
-            systemParts.push(harnessText);
-            injectedParts.push({
-                type: 'harness',
-                title: 'Coding Agent Harness (Filesystem & Terminal)',
-                content: harnessText,
-                raw: harnessText
-            });
-        }
-        if (canvasDoc && canvasDoc.content) {
-            let canvasContextPrompt = `[Documento Canvas Ativo no Espaço de Trabalho]:\nTítulo: "${canvasDoc.title}" (v${canvasDoc.version || 1}, formato: ${canvasDoc.language || 'markdown'})\nTotal de Palavras: ${canvasDoc.stats?.words || 0}\n`;
-            if (selectedText) {
-                canvasContextPrompt += `Trecho Selecionado pelo Usuário no Canvas:\n"""\n${selectedText}\n"""\n`;
-            }
-            canvasContextPrompt += `Conteúdo do Documento no Canvas:\n\`\`\`${canvasDoc.language || ''}\n${canvasDoc.content}\n\`\`\``;
-            systemParts.push(canvasContextPrompt);
-            injectedParts.push({
-                type: 'canvas',
-                title: `${canvasDoc.title} (v${canvasDoc.version || 1})`,
-                content: canvasDoc.content,
-                selectedText: selectedText || null,
-                raw: canvasContextPrompt
-            });
+        canvasContextPrompt += `Conteúdo do Documento no Canvas:\n\`\`\`${canvasDoc.language || ''}\n${canvasDoc.content}\n\`\`\``;
+        systemParts.push(canvasContextPrompt);
+        injectedParts.push({
+          type: 'canvas',
+          title: `${canvasDoc.title} (v${canvasDoc.version || 1})`,
+          content: canvasDoc.content,
+          selectedText: selectedText || null,
+          raw: canvasContextPrompt
+        });
+      }
+
+      const existingSystem = messagesToSend.find(m => m.role === 'system');
+      if (existingSystem) {
+        injectedParts.unshift({
+          type: 'system',
+          title: 'System Prompt',
+          content: typeof existingSystem.content === 'string' ? existingSystem.content : JSON.stringify(existingSystem.content),
+          raw: typeof existingSystem.content === 'string' ? existingSystem.content : JSON.stringify(existingSystem.content)
+        });
+      }
+
+      if (systemParts.length > 0 && !existingSystem) {
+        messagesToSend = [{ role: 'system', content: systemParts.join('\n\n') }, ...messagesToSend];
+      }
+
+      const turnInjectedContext = (systemParts.length > 0 || injectedParts.length > 0) ? {
+        systemPrompt: systemParts.join('\n\n') || (existingSystem ? (typeof existingSystem.content === 'string' ? existingSystem.content : JSON.stringify(existingSystem.content)) : ''),
+        parts: injectedParts,
+        timestamp: turnStartTime
+      } : null;
+
+      // Create a streaming assistant message placeholder
+      const assistantPlaceholder = {
+        role: 'assistant',
+        content: '',
+        isStreaming: true,
+        reasoningSummaries: [],
+        timestamp: turnStartTime,
+        createdAt: new Date().toISOString(),
+        injectedContext: turnInjectedContext
+      };
+      setMessages(prev => [...prev, assistantPlaceholder]);
+
+      // Start streaming chat with active runtime context (Canvas, Project, Workspace, etc.)
+      const assistantRuntime = activePersona?.profile?.runtime || {};
+      const isBotVmActive = Boolean(activeBot && activeBot.vmConfig?.enabled !== false);
+      const assistantAgentMode = activeBot?.agentEnabled === true || assistantRuntime.agentEnabled === true || harnessMode === 'code' || isBotVmActive;
+      const effectiveModel = activeBot?.preferredModel || assistantRuntime.preferredModel || selectedModel;
+      const effectiveTemperature = typeof activeBot?.temperature === 'number' ? activeBot.temperature : activePersona?.temperature;
+      const streamOptions = {
+        isCanvasOpen: Boolean(isCanvasOpen),
+        canvasDoc: isCanvasOpen && canvasDoc ? canvasDoc : null,
+        canvasEnabled: harnessMode === 'code' ? true : Boolean(isCanvasOpen),
+        selectedCanvasText: isCanvasOpen ? selectedText : '',
+        activeProject: activeProject ? { id: activeProject.id, name: activeProject.name, folders: activeProject.folders } : null,
+        agentModeActive: assistantAgentMode,
+        mode: assistantAgentMode ? 'code' : harnessMode,
+        webSearchActive: typeof activeBot?.searchEnabled === 'boolean'
+          ? activeBot.searchEnabled
+          : (typeof assistantRuntime.searchEnabled === 'boolean' ? assistantRuntime.searchEnabled : undefined),
+        temperature: effectiveTemperature,
+        assistantProfile: activePersona?.profile || null,
+        activeBot: activeBot || null,
+        botId: activeBot?.id || null,
+        botVmActive: isBotVmActive,
+        workspaceRoot: isBotVmActive ? undefined : (workspacePath || undefined)
+      };
+      const streamHandler = window.electron.startChatStream(messagesToSend, effectiveModel, streamOptions);
+
+      // Collect the final message data
+      let finalAssistantData = {
+        role: 'assistant',
+        content: '',
+        tool_calls: undefined,
+        reasoning: undefined,
+        executed_tools: undefined,
+        liveReasoning: '',
+        liveExecutedTools: [],
+        reasoningSummaries: [],
+        reasoningStartTime: null,
+        reasoningDuration: null,
+        pre_calculated_tool_responses: undefined,
+        injectedContext: turnInjectedContext
+      };
+
+      // Setup event handlers for streaming
+      const streamThrottler = createStreamThrottler((latestState) => {
+        setMessages(prev => {
+          const newMessages = [...prev];
+          const idx = newMessages.findIndex(msg => msg.role === 'assistant' && msg.isStreaming);
+          if (idx !== -1) {
+            newMessages[idx] = {
+              ...newMessages[idx],
+              content: latestState.content,
+              reasoningDuration: latestState.reasoningDuration,
+              liveReasoning: latestState.liveReasoning,
+              reasoningSummaries: [...latestState.reasoningSummaries]
+            };
+          }
+          return newMessages;
+        });
+      }, 16);
+
+      streamHandler.onStart(() => { /* Placeholder exists */ });
+
+      streamHandler.onContent(({ content }) => {
+        finalAssistantData.content += content;
+
+        // Check if thinking tag is detected in streaming content
+        const thinkResult = extractThinking(finalAssistantData.content);
+        if (thinkResult.hasThink && !finalAssistantData.reasoningStartTime) {
+          finalAssistantData.reasoningStartTime = Date.now();
         }
 
-        const existingSystem = messagesToSend.find(m => m.role === 'system');
-        if (existingSystem) {
-            injectedParts.unshift({
-                type: 'system',
-                title: 'System Prompt',
-                content: typeof existingSystem.content === 'string' ? existingSystem.content : JSON.stringify(existingSystem.content),
-                raw: typeof existingSystem.content === 'string' ? existingSystem.content : JSON.stringify(existingSystem.content)
-            });
+        // If we have a reasoning start time and reasoning duration isn't set yet:
+        // Mark complete if think tag has closed and content started, or if regular content without think
+        if (finalAssistantData.reasoningStartTime && !finalAssistantData.reasoningDuration) {
+          if (thinkResult.hasThink && !thinkResult.isStreamingThink && thinkResult.cleanContent.length > 0) {
+            finalAssistantData.reasoningDuration = Math.round((Date.now() - finalAssistantData.reasoningStartTime) / 1000);
+          } else if (!thinkResult.hasThink && finalAssistantData.content === content) {
+            finalAssistantData.reasoningDuration = Math.round((Date.now() - finalAssistantData.reasoningStartTime) / 1000);
+          }
         }
 
-        if (systemParts.length > 0 && !existingSystem) {
-            messagesToSend = [{ role: 'system', content: systemParts.join('\n\n') }, ...messagesToSend];
+        streamThrottler.push({
+          content: finalAssistantData.content,
+          reasoningDuration: finalAssistantData.reasoningDuration,
+          liveReasoning: finalAssistantData.liveReasoning,
+          reasoningSummaries: finalAssistantData.reasoningSummaries
+        });
+      });
+
+      streamHandler.onToolCalls(({ tool_calls }) => {
+        streamThrottler.flush();
+        finalAssistantData.tool_calls = tool_calls;
+        setMessages(prev => {
+          const newMessages = [...prev];
+          const idx = newMessages.findIndex(msg => msg.role === 'assistant' && msg.isStreaming);
+          if (idx !== -1) {
+            newMessages[idx] = { ...newMessages[idx], tool_calls: finalAssistantData.tool_calls };
+          }
+          return newMessages;
+        });
+      });
+
+      // Handle compound-beta reasoning streaming
+      streamHandler.onReasoning(({ reasoning, accumulated }) => {
+        // Track when reasoning starts and add initial "Thinking" placeholder
+        if (!finalAssistantData.reasoningStartTime) {
+          finalAssistantData.reasoningStartTime = Date.now();
+
+          // Add initial "Thinking" placeholder if no summaries yet
+          if (finalAssistantData.reasoningSummaries.length === 0) {
+            finalAssistantData.reasoningSummaries.push({ index: 0, summary: t('message.thinking') || 'Thinking', isPlaceholder: true });
+          }
         }
 
-        const turnInjectedContext = (systemParts.length > 0 || injectedParts.length > 0) ? {
-            systemPrompt: systemParts.join('\n\n') || (existingSystem ? (typeof existingSystem.content === 'string' ? existingSystem.content : JSON.stringify(existingSystem.content)) : ''),
-            parts: injectedParts,
-            timestamp: turnStartTime
-        } : null;
+        finalAssistantData.liveReasoning = accumulated;
+        setMessages(prev => {
+          const newMessages = [...prev];
+          const idx = newMessages.findIndex(msg => msg.role === 'assistant' && msg.isStreaming);
+          if (idx !== -1) {
+            newMessages[idx] = {
+              ...newMessages[idx],
+              liveReasoning: accumulated,
+              reasoningSummaries: [...finalAssistantData.reasoningSummaries]
+            };
+          }
+          return newMessages;
+        });
+      });
 
-        // Create a streaming assistant message placeholder
-        const assistantPlaceholder = {
+      // Handle reasoning summaries
+      streamHandler.onReasoningSummary(({ streamId, summaryIndex, summary }) => {
+        // Remove the placeholder "Thinking" when first real summary arrives
+        if (finalAssistantData.reasoningSummaries.length > 0 &&
+          finalAssistantData.reasoningSummaries[0].isPlaceholder) {
+          finalAssistantData.reasoningSummaries.shift();
+        }
+
+        finalAssistantData.reasoningSummaries.push({ index: summaryIndex, summary });
+        setMessages(prev => {
+          const newMessages = [...prev];
+          const idx = newMessages.findIndex(msg => msg.role === 'assistant' && msg.isStreaming);
+          if (idx !== -1) {
+            newMessages[idx] = {
+              ...newMessages[idx],
+              reasoningSummaries: [...finalAssistantData.reasoningSummaries]
+            };
+          }
+          return newMessages;
+        });
+      });
+
+      // Handle MCP approval requests (remote MCP tools requiring user approval)
+      streamHandler.onMcpApprovalRequest((approvalRequest) => {
+        // MCP approval request received during streaming
+        // Store in finalAssistantData to be processed after stream completes
+        if (!finalAssistantData.mcpApprovalRequests) {
+          finalAssistantData.mcpApprovalRequests = [];
+        }
+        finalAssistantData.mcpApprovalRequests.push({
+          ...approvalRequest,
+          type: 'mcp_approval_request' // Mark type for handleToolApproval
+        });
+      });
+
+      // Handle compound-beta tool execution streaming
+      streamHandler.onToolExecution(({ type, tool }) => {
+        // Ensure liveExecutedTools is an array (defensive against race conditions with onComplete)
+        if (!Array.isArray(finalAssistantData.liveExecutedTools)) {
+          finalAssistantData.liveExecutedTools = [];
+        }
+
+        if (type === 'start') {
+          // Add or update tool in live list
+          const updatedLiveTools = [...finalAssistantData.liveExecutedTools];
+          const existingIndex = updatedLiveTools.findIndex(t => t.index === tool.index);
+
+          if (existingIndex === -1) {
+            updatedLiveTools.push(tool);
+          } else {
+            // Merge tool data to preserve any existing properties
+            updatedLiveTools[existingIndex] = { ...updatedLiveTools[existingIndex], ...tool };
+          }
+
+          finalAssistantData.liveExecutedTools = updatedLiveTools;
+        } else if (type === 'complete') {
+          // Update tool with complete data including output
+          const updatedLiveTools = [...finalAssistantData.liveExecutedTools];
+          // Try to match by index first, then by name as fallback
+          let existingIndex = updatedLiveTools.findIndex(t => t.index === tool.index);
+          if (existingIndex === -1 && tool.name) {
+            // Fallback: find by name if index doesn't match
+            existingIndex = updatedLiveTools.findIndex(t => t.name === tool.name && !t.output);
+          }
+
+          if (existingIndex !== -1) {
+            // Merge complete data with existing tool to preserve properties like type, arguments
+            updatedLiveTools[existingIndex] = {
+              ...updatedLiveTools[existingIndex],
+              ...tool,
+              // Ensure output is set (this is the key property for completion)
+              output: tool.output
+            };
+            finalAssistantData.liveExecutedTools = updatedLiveTools;
+          } else {
+            // Handle case where complete event arrives before start (shouldn't happen but defensive)
+            console.warn(`Received complete event for tool ${tool.name} (index ${tool.index}) without corresponding start event`);
+            updatedLiveTools.push(tool);
+            finalAssistantData.liveExecutedTools = updatedLiveTools;
+          }
+        }
+
+        // Double-check before spreading (extra safety)
+        const toolsToSet = Array.isArray(finalAssistantData.liveExecutedTools)
+          ? [...finalAssistantData.liveExecutedTools]
+          : [];
+
+        setMessages(prev => {
+          const newMessages = [...prev];
+          const idx = newMessages.findIndex(msg => msg.role === 'assistant' && msg.isStreaming);
+          if (idx !== -1) {
+            newMessages[idx] = { ...newMessages[idx], liveExecutedTools: toolsToSet };
+          }
+          return newMessages;
+        });
+      });
+
+      // Handle stream completion
+      await new Promise((resolve, reject) => {
+        streamHandler.onComplete((data) => {
+          const rawContent = data.content || finalAssistantData.content || '';
+          const thinkResult = extractThinking(rawContent);
+          let finalContent = rawContent;
+          let finalReasoning = data.reasoning;
+
+          if (thinkResult.hasThink) {
+            finalContent = thinkResult.cleanContent;
+            finalReasoning = [data.reasoning, thinkResult.thinking].filter(Boolean).join('\n\n---\n\n');
+          }
+
+          // Use existing duration if already set, otherwise calculate it now
+          let reasoningDuration = finalAssistantData.reasoningDuration;
+          if (!reasoningDuration && finalAssistantData.reasoningStartTime && (finalReasoning || data.reasoning)) {
+            reasoningDuration = Math.round((Date.now() - finalAssistantData.reasoningStartTime) / 1000);
+          }
+
+          finalAssistantData = {
             role: 'assistant',
-            content: '',
-            isStreaming: true,
-            reasoningSummaries: [],
+            content: finalContent,
+            tool_calls: data.tool_calls,
+            reasoning: finalReasoning,
+            executed_tools: data.executed_tools,
+            // Clear live streaming data on completion
+            liveReasoning: undefined,
+            liveExecutedTools: undefined,
+            // Keep the reasoning summaries
+            reasoningSummaries: finalAssistantData.reasoningSummaries,
+            reasoningDuration: reasoningDuration,
+            usage: data.usage,
+            pre_calculated_tool_responses: data.pre_calculated_tool_responses,
+            // MCP approval requests from server
+            mcp_approval_requests: data.mcp_approval_requests || finalAssistantData.mcpApprovalRequests,
+            finish_reason: data.finish_reason,
             timestamp: turnStartTime,
             createdAt: new Date().toISOString(),
+            durationMs: Date.now() - turnStartTime,
             injectedContext: turnInjectedContext
-        };
-        setMessages(prev => [...prev, assistantPlaceholder]);
+          };
+          turnAssistantMessage = finalAssistantData; // Store the completed message
+          streamThrottler.cancel();
 
-        // Start streaming chat with active runtime context (Canvas, Project, Workspace, etc.)
-        const assistantRuntime = activePersona?.profile?.runtime || {};
-        const assistantAgentMode = activeBot?.agentEnabled === true || assistantRuntime.agentEnabled === true || harnessMode === 'code';
-        const effectiveModel = activeBot?.preferredModel || assistantRuntime.preferredModel || selectedModel;
-        const effectiveTemperature = typeof activeBot?.temperature === 'number' ? activeBot.temperature : activePersona?.temperature;
-        const streamOptions = {
-            isCanvasOpen: Boolean(isCanvasOpen),
-            canvasDoc: isCanvasOpen && canvasDoc ? canvasDoc : null,
-            canvasEnabled: harnessMode === 'code' ? true : Boolean(isCanvasOpen),
-            selectedCanvasText: isCanvasOpen ? selectedText : '',
-            activeProject: activeProject ? { id: activeProject.id, name: activeProject.name, folders: activeProject.folders } : null,
-            agentModeActive: assistantAgentMode,
-            mode: assistantAgentMode ? 'code' : harnessMode,
-            webSearchActive: typeof activeBot?.searchEnabled === 'boolean' 
-                ? activeBot.searchEnabled 
-                : (typeof assistantRuntime.searchEnabled === 'boolean' ? assistantRuntime.searchEnabled : undefined),
-            temperature: effectiveTemperature,
-            assistantProfile: activePersona?.profile || null,
-            activeBot: activeBot || null,
-            botId: activeBot?.id || null,
-            workspaceRoot: workspacePath || undefined
-        };
-        const streamHandler = window.electron.startChatStream(messagesToSend, effectiveModel, streamOptions);
-
-        // Collect the final message data
-        let finalAssistantData = {
-            role: 'assistant',
-            content: '',
-            tool_calls: undefined,
-            reasoning: undefined,
-            executed_tools: undefined,
-            liveReasoning: '',
-            liveExecutedTools: [],
-            reasoningSummaries: [],
-            reasoningStartTime: null,
-            reasoningDuration: null,
-            pre_calculated_tool_responses: undefined,
-            injectedContext: turnInjectedContext
-        };
-
-        // Setup event handlers for streaming
-        const streamThrottler = createStreamThrottler((latestState) => {
-            setMessages(prev => {
-                const newMessages = [...prev];
-                const idx = newMessages.findIndex(msg => msg.role === 'assistant' && msg.isStreaming);
-                if (idx !== -1) {
-                    newMessages[idx] = { 
-                        ...newMessages[idx], 
-                        content: latestState.content,
-                        reasoningDuration: latestState.reasoningDuration,
-                        liveReasoning: latestState.liveReasoning,
-                        reasoningSummaries: [...latestState.reasoningSummaries]
-                    };
-                }
-                return newMessages;
-            });
-        }, 16);
-
-        streamHandler.onStart(() => { /* Placeholder exists */ });
-
-        streamHandler.onContent(({ content }) => {
-            finalAssistantData.content += content;
-            
-            // Check if thinking tag is detected in streaming content
-            const thinkResult = extractThinking(finalAssistantData.content);
-            if (thinkResult.hasThink && !finalAssistantData.reasoningStartTime) {
-                finalAssistantData.reasoningStartTime = Date.now();
-            }
-
-            // If we have a reasoning start time and reasoning duration isn't set yet:
-            // Mark complete if think tag has closed and content started, or if regular content without think
-            if (finalAssistantData.reasoningStartTime && !finalAssistantData.reasoningDuration) {
-                if (thinkResult.hasThink && !thinkResult.isStreamingThink && thinkResult.cleanContent.length > 0) {
-                    finalAssistantData.reasoningDuration = Math.round((Date.now() - finalAssistantData.reasoningStartTime) / 1000);
-                } else if (!thinkResult.hasThink && finalAssistantData.content === content) {
-                    finalAssistantData.reasoningDuration = Math.round((Date.now() - finalAssistantData.reasoningStartTime) / 1000);
-                }
-            }
-            
-            streamThrottler.push({
-                content: finalAssistantData.content,
-                reasoningDuration: finalAssistantData.reasoningDuration,
-                liveReasoning: finalAssistantData.liveReasoning,
-                reasoningSummaries: finalAssistantData.reasoningSummaries
-            });
-        });
-
-        streamHandler.onToolCalls(({ tool_calls }) => {
-            streamThrottler.flush();
-            finalAssistantData.tool_calls = tool_calls;
-            setMessages(prev => {
-                const newMessages = [...prev];
-                const idx = newMessages.findIndex(msg => msg.role === 'assistant' && msg.isStreaming);
-                if (idx !== -1) {
-                    newMessages[idx] = { ...newMessages[idx], tool_calls: finalAssistantData.tool_calls };
-                }
-                return newMessages;
-            });
-        });
-
-        // Handle compound-beta reasoning streaming
-        streamHandler.onReasoning(({ reasoning, accumulated }) => {
-            // Track when reasoning starts and add initial "Thinking" placeholder
-            if (!finalAssistantData.reasoningStartTime) {
-                finalAssistantData.reasoningStartTime = Date.now();
-                
-                // Add initial "Thinking" placeholder if no summaries yet
-                if (finalAssistantData.reasoningSummaries.length === 0) {
-                    finalAssistantData.reasoningSummaries.push({ index: 0, summary: t('message.thinking') || 'Thinking', isPlaceholder: true });
-                }
-            }
-            
-            finalAssistantData.liveReasoning = accumulated;
-            setMessages(prev => {
-                const newMessages = [...prev];
-                const idx = newMessages.findIndex(msg => msg.role === 'assistant' && msg.isStreaming);
-                if (idx !== -1) {
-                    newMessages[idx] = { 
-                        ...newMessages[idx], 
-                        liveReasoning: accumulated,
-                        reasoningSummaries: [...finalAssistantData.reasoningSummaries]
-                    };
-                }
-                return newMessages;
-            });
-        });
-
-        // Handle reasoning summaries
-        streamHandler.onReasoningSummary(({ streamId, summaryIndex, summary }) => {
-            // Remove the placeholder "Thinking" when first real summary arrives
-            if (finalAssistantData.reasoningSummaries.length > 0 && 
-                finalAssistantData.reasoningSummaries[0].isPlaceholder) {
-                finalAssistantData.reasoningSummaries.shift();
-            }
-            
-            finalAssistantData.reasoningSummaries.push({ index: summaryIndex, summary });
-            setMessages(prev => {
-                const newMessages = [...prev];
-                const idx = newMessages.findIndex(msg => msg.role === 'assistant' && msg.isStreaming);
-                if (idx !== -1) {
-                    newMessages[idx] = { 
-                        ...newMessages[idx], 
-                        reasoningSummaries: [...finalAssistantData.reasoningSummaries] 
-                    };
-                }
-                return newMessages;
-            });
-        });
-
-        // Handle MCP approval requests (remote MCP tools requiring user approval)
-        streamHandler.onMcpApprovalRequest((approvalRequest) => {
-            // MCP approval request received during streaming
-            // Store in finalAssistantData to be processed after stream completes
-            if (!finalAssistantData.mcpApprovalRequests) {
-                finalAssistantData.mcpApprovalRequests = [];
-            }
-            finalAssistantData.mcpApprovalRequests.push({
-                ...approvalRequest,
-                type: 'mcp_approval_request' // Mark type for handleToolApproval
-            });
-        });
-
-        // Handle compound-beta tool execution streaming
-        streamHandler.onToolExecution(({ type, tool }) => {
-            // Ensure liveExecutedTools is an array (defensive against race conditions with onComplete)
-            if (!Array.isArray(finalAssistantData.liveExecutedTools)) {
-                finalAssistantData.liveExecutedTools = [];
-            }
-            
-            if (type === 'start') {
-                // Add or update tool in live list
-                const updatedLiveTools = [...finalAssistantData.liveExecutedTools];
-                const existingIndex = updatedLiveTools.findIndex(t => t.index === tool.index);
-                
-                if (existingIndex === -1) {
-                    updatedLiveTools.push(tool);
-                } else {
-                    // Merge tool data to preserve any existing properties
-                    updatedLiveTools[existingIndex] = { ...updatedLiveTools[existingIndex], ...tool };
-                }
-                
-                finalAssistantData.liveExecutedTools = updatedLiveTools;
-            } else if (type === 'complete') {
-                // Update tool with complete data including output
-                const updatedLiveTools = [...finalAssistantData.liveExecutedTools];
-                // Try to match by index first, then by name as fallback
-                let existingIndex = updatedLiveTools.findIndex(t => t.index === tool.index);
-                if (existingIndex === -1 && tool.name) {
-                    // Fallback: find by name if index doesn't match
-                    existingIndex = updatedLiveTools.findIndex(t => t.name === tool.name && !t.output);
-                }
-                
-                if (existingIndex !== -1) {
-                    // Merge complete data with existing tool to preserve properties like type, arguments
-                    updatedLiveTools[existingIndex] = { 
-                        ...updatedLiveTools[existingIndex], 
-                        ...tool,
-                        // Ensure output is set (this is the key property for completion)
-                        output: tool.output 
-                    };
-                    finalAssistantData.liveExecutedTools = updatedLiveTools;
-                } else {
-                    // Handle case where complete event arrives before start (shouldn't happen but defensive)
-                    console.warn(`Received complete event for tool ${tool.name} (index ${tool.index}) without corresponding start event`);
-                    updatedLiveTools.push(tool);
-                    finalAssistantData.liveExecutedTools = updatedLiveTools;
-                }
-            }
-            
-            // Double-check before spreading (extra safety)
-            const toolsToSet = Array.isArray(finalAssistantData.liveExecutedTools) 
-                ? [...finalAssistantData.liveExecutedTools] 
-                : [];
-            
-            setMessages(prev => {
-                const newMessages = [...prev];
-                const idx = newMessages.findIndex(msg => msg.role === 'assistant' && msg.isStreaming);
-                if (idx !== -1) {
-                    newMessages[idx] = { ...newMessages[idx], liveExecutedTools: toolsToSet };
-                }
-                return newMessages;
-            });
-        });
-
-        // Handle stream completion
-        await new Promise((resolve, reject) => {
-            streamHandler.onComplete((data) => {
-                const rawContent = data.content || finalAssistantData.content || '';
-                const thinkResult = extractThinking(rawContent);
-                let finalContent = rawContent;
-                let finalReasoning = data.reasoning;
-
-                if (thinkResult.hasThink) {
-                    finalContent = thinkResult.cleanContent;
-                    finalReasoning = [data.reasoning, thinkResult.thinking].filter(Boolean).join('\n\n---\n\n');
-                }
-
-                // Use existing duration if already set, otherwise calculate it now
-                let reasoningDuration = finalAssistantData.reasoningDuration;
-                if (!reasoningDuration && finalAssistantData.reasoningStartTime && (finalReasoning || data.reasoning)) {
-                    reasoningDuration = Math.round((Date.now() - finalAssistantData.reasoningStartTime) / 1000);
-                }
-                
-                finalAssistantData = {
-                    role: 'assistant',
-                    content: finalContent,
-                    tool_calls: data.tool_calls,
-                    reasoning: finalReasoning,
-                    executed_tools: data.executed_tools,
-                    // Clear live streaming data on completion
-                    liveReasoning: undefined,
-                    liveExecutedTools: undefined,
-                    // Keep the reasoning summaries
-                    reasoningSummaries: finalAssistantData.reasoningSummaries,
-                    reasoningDuration: reasoningDuration,
-                    usage: data.usage,
-                    pre_calculated_tool_responses: data.pre_calculated_tool_responses,
-                    // MCP approval requests from server
-                    mcp_approval_requests: data.mcp_approval_requests || finalAssistantData.mcpApprovalRequests,
-                    finish_reason: data.finish_reason,
-                    timestamp: turnStartTime,
-                    createdAt: new Date().toISOString(),
-                    durationMs: Date.now() - turnStartTime,
-                    injectedContext: turnInjectedContext
-                };
-                turnAssistantMessage = finalAssistantData; // Store the completed message
-                streamThrottler.cancel();
-
-                setMessages(prev => {
-                    const newMessages = [...prev];
-                    const idx = newMessages.findIndex(msg => msg.role === 'assistant' && msg.isStreaming);
-                    if (idx !== -1) {
-                        newMessages[idx] = finalAssistantData; // Replace placeholder
-                    } else {
-                        // Should not happen if placeholder logic is correct
-                        console.warn("Streaming placeholder not found for replacement.");
-                        newMessages.push(finalAssistantData);
-                    }
-                    return newMessages;
-                });
-                resolve();
-            });
-
-            streamHandler.onError(({ error }) => {
-                streamThrottler.cancel();
-                console.error('Stream error received:', error);
-                console.log('Error details:', { error });
-                // Replace placeholder with error
-                setMessages(prev => {
-                    const newMessages = [...prev];
-                    const idx = newMessages.findIndex(msg => msg.role === 'assistant' && msg.isStreaming);
-                    const errorMsg = { role: 'assistant', content: `Error: ${error}`, isStreaming: false };
-                    if (idx !== -1) {
-                        newMessages[idx] = errorMsg;
-                    } else {
-                        newMessages.push(errorMsg);
-                    }
-                    return newMessages;
-                });
-                reject(new Error(error));
-            });
-
-            streamHandler.onCancelled(() => {
-                streamThrottler.cancel();
-                console.log('Stream was cancelled by user');
-                // Remove the streaming placeholder or mark it as cancelled
-                setMessages(prev => {
-                    const newMessages = [...prev];
-                    const idx = newMessages.findIndex(msg => msg.role === 'assistant' && msg.isStreaming);
-                    if (idx !== -1) {
-                        // If there's content, keep it; otherwise remove the placeholder
-                        if (finalAssistantData.content.trim()) {
-                            newMessages[idx] = {
-                                role: 'assistant',
-                                content: finalAssistantData.content,
-                                isStreaming: false
-                            };
-                        } else {
-                            // Remove empty placeholder
-                            newMessages.splice(idx, 1);
-                        }
-                    }
-                    return newMessages;
-                });
-                // Resolve with a special status to indicate cancellation
-                currentTurnStatus = 'cancelled';
-                reject(new Error('CANCELLED'));
-            });
-
-            streamHandler.onRetry(({ attempt, maxAttempts, error, newTemperature }) => {
-                console.log(`🔄 Retry attempt ${attempt}/${maxAttempts}:`);
-                console.log(`  Error: ${error}`);
-                console.log(`  New temperature: ${newTemperature}`);
-            });
-        });
-
-        // Clean up stream handlers
-        streamHandler.cleanup();
-
-        // Check and process tool calls if any
-            if (turnAssistantMessage && turnAssistantMessage.tool_calls?.length > 0) {
-            let handledIds = new Set();
-            let preCalculatedMessages = [];
-
-            if (turnAssistantMessage.pre_calculated_tool_responses) {
-                 // Map pre-calculated responses to message format
-                 preCalculatedMessages = turnAssistantMessage.pre_calculated_tool_responses.map(r => ({
-                     role: 'tool',
-                     content: r.content,
-                     tool_call_id: r.tool_call_id
-                 }));
-                 
-                 preCalculatedMessages.forEach(m => handledIds.add(m.tool_call_id));
-
-                 // Update UI with tool results immediately
-                 setMessages(prev => [...prev, ...preCalculatedMessages]);
-                 
-                 // Add to turnToolResponses accumulator
-                 turnToolResponses = [...preCalculatedMessages];
-            }
-
-            // Check for unhandled tool calls
-            // Filter out:
-            // 1. Tool calls that have pre-calculated responses (already in handledIds)
-            // 2. Remote MCP tool calls (have server_label set) - these are executed server-side by Groq
-            const unhandledToolCalls = turnAssistantMessage.tool_calls.filter(tc => {
-                return !handledIds.has(tc.id) && !tc.server_label;
-            });
-            
-            if (unhandledToolCalls.length > 0) {
-                // Create a proxy message with only unhandled tool calls for the processor
-                const proxyAssistantMessage = {
-                    ...turnAssistantMessage,
-                    tool_calls: unhandledToolCalls
-                };
-                
-                // Standard processing: Execute unhandled tools locally
-                // IMPORTANT: Pass the messages *before* this assistant message was added
-                const { status: toolProcessingStatus, toolResponseMessages } = await processToolCalls(
-                    proxyAssistantMessage,
-                    turnMessages // Pass the input messages for this turn
-                );
-    
-                turnToolResponses = [...turnToolResponses, ...toolResponseMessages]; // Combine responses
-    
-                if (toolProcessingStatus === 'paused') {
-                    currentTurnStatus = 'paused'; // Signal pause to the caller
-                } else if (toolProcessingStatus === 'cancelled') {
-                    currentTurnStatus = 'cancelled'; // Signal cancellation to the caller
-                } else if (toolProcessingStatus === 'completed') {
-                     // If tools completed, the caller might loop
-                    currentTurnStatus = 'completed_with_tools';
-                } else { // Handle potential errors from processToolCalls if added
-                    currentTurnStatus = 'error';
-                }
+          setMessages(prev => {
+            const newMessages = [...prev];
+            const idx = newMessages.findIndex(msg => msg.role === 'assistant' && msg.isStreaming);
+            if (idx !== -1) {
+              newMessages[idx] = finalAssistantData; // Replace placeholder
             } else {
-                 // All tools were handled by server
-                 currentTurnStatus = 'completed_no_tools';
+              // Should not happen if placeholder logic is correct
+              console.warn("Streaming placeholder not found for replacement.");
+              newMessages.push(finalAssistantData);
             }
-        } else {
-             // No tools, this turn is complete
-            currentTurnStatus = 'completed_no_tools';
+            return newMessages;
+          });
+          resolve();
+        });
+
+        streamHandler.onError(({ error }) => {
+          streamThrottler.cancel();
+          console.error('Stream error received:', error);
+          console.log('Error details:', { error });
+          // Replace placeholder with error
+          setMessages(prev => {
+            const newMessages = [...prev];
+            const idx = newMessages.findIndex(msg => msg.role === 'assistant' && msg.isStreaming);
+            const errorMsg = { role: 'assistant', content: `Error: ${error}`, isStreaming: false };
+            if (idx !== -1) {
+              newMessages[idx] = errorMsg;
+            } else {
+              newMessages.push(errorMsg);
+            }
+            return newMessages;
+          });
+          reject(new Error(error));
+        });
+
+        streamHandler.onCancelled(() => {
+          streamThrottler.cancel();
+          console.log('Stream was cancelled by user');
+          // Remove the streaming placeholder or mark it as cancelled
+          setMessages(prev => {
+            const newMessages = [...prev];
+            const idx = newMessages.findIndex(msg => msg.role === 'assistant' && msg.isStreaming);
+            if (idx !== -1) {
+              // If there's content, keep it; otherwise remove the placeholder
+              if (finalAssistantData.content.trim()) {
+                newMessages[idx] = {
+                  role: 'assistant',
+                  content: finalAssistantData.content,
+                  isStreaming: false
+                };
+              } else {
+                // Remove empty placeholder
+                newMessages.splice(idx, 1);
+              }
+            }
+            return newMessages;
+          });
+          // Resolve with a special status to indicate cancellation
+          currentTurnStatus = 'cancelled';
+          reject(new Error('CANCELLED'));
+        });
+
+        streamHandler.onRetry(({ attempt, maxAttempts, error, newTemperature }) => {
+          console.log(`🔄 Retry attempt ${attempt}/${maxAttempts}:`);
+          console.log(`  Error: ${error}`);
+          console.log(`  New temperature: ${newTemperature}`);
+        });
+      });
+
+      // Clean up stream handlers
+      streamHandler.cleanup();
+
+      // Check and process tool calls if any
+      if (turnAssistantMessage && turnAssistantMessage.tool_calls?.length > 0) {
+        let handledIds = new Set();
+        let preCalculatedMessages = [];
+
+        if (turnAssistantMessage.pre_calculated_tool_responses) {
+          // Map pre-calculated responses to message format
+          preCalculatedMessages = turnAssistantMessage.pre_calculated_tool_responses.map(r => ({
+            role: 'tool',
+            content: r.content,
+            tool_call_id: r.tool_call_id
+          }));
+
+          preCalculatedMessages.forEach(m => handledIds.add(m.tool_call_id));
+
+          // Update UI with tool results immediately
+          setMessages(prev => [...prev, ...preCalculatedMessages]);
+
+          // Add to turnToolResponses accumulator
+          turnToolResponses = [...preCalculatedMessages];
         }
 
-        // Handle MCP approval requests (remote tools requiring user approval)
-        // These are received when require_approval is set to "always" for a connector/remote MCP server
-        if (turnAssistantMessage?.mcp_approval_requests?.length > 0 || 
-            turnAssistantMessage?.finish_reason === 'mcp_approval_required') {
-            
-            const mcpApprovalRequests = turnAssistantMessage.mcp_approval_requests || [];
-            
-            if (mcpApprovalRequests.length > 0) {
-                // Process the first MCP approval request
-                const firstApprovalRequest = mcpApprovalRequests[0];
-                
-                // Show approval modal for the first request
-                setPendingApprovalCall({
-                    ...firstApprovalRequest,
-                    type: 'mcp_approval_request' // Ensure type is set for modal
-                });
-                
-                // Store state for resuming after approval
-                // IMPORTANT: We need to store the approval requests themselves to include them in the next input
-                setPausedChatState({
-                    currentMessages: turnMessages,
-                    finalAssistantMessage: turnAssistantMessage,
-                    accumulatedResponses: turnToolResponses,
-                    pendingMcpApprovals: mcpApprovalRequests.slice(1), // Remaining approvals
-                    mcpApprovalRequestItems: mcpApprovalRequests // Store all approval request items
-                });
-                
-                currentTurnStatus = 'paused';
-            }
+        // Check for unhandled tool calls
+        // Filter out:
+        // 1. Tool calls that have pre-calculated responses (already in handledIds)
+        // 2. Remote MCP tool calls (have server_label set) - these are executed server-side by Groq
+        const unhandledToolCalls = turnAssistantMessage.tool_calls.filter(tc => {
+          return !handledIds.has(tc.id) && !tc.server_label;
+        });
+
+        if (unhandledToolCalls.length > 0) {
+          // Create a proxy message with only unhandled tool calls for the processor
+          const proxyAssistantMessage = {
+            ...turnAssistantMessage,
+            tool_calls: unhandledToolCalls
+          };
+
+          // Standard processing: Execute unhandled tools locally
+          // IMPORTANT: Pass the messages *before* this assistant message was added
+          const { status: toolProcessingStatus, toolResponseMessages } = await processToolCalls(
+            proxyAssistantMessage,
+            turnMessages // Pass the input messages for this turn
+          );
+
+          turnToolResponses = [...turnToolResponses, ...toolResponseMessages]; // Combine responses
+
+          if (toolProcessingStatus === 'paused') {
+            currentTurnStatus = 'paused'; // Signal pause to the caller
+          } else if (toolProcessingStatus === 'cancelled') {
+            currentTurnStatus = 'cancelled'; // Signal cancellation to the caller
+          } else if (toolProcessingStatus === 'completed') {
+            // If tools completed, the caller might loop
+            currentTurnStatus = 'completed_with_tools';
+          } else { // Handle potential errors from processToolCalls if added
+            currentTurnStatus = 'error';
+          }
+        } else {
+          // All tools were handled by server
+          currentTurnStatus = 'completed_no_tools';
         }
+      } else {
+        // No tools, this turn is complete
+        currentTurnStatus = 'completed_no_tools';
+      }
+
+      // Handle MCP approval requests (remote tools requiring user approval)
+      // These are received when require_approval is set to "always" for a connector/remote MCP server
+      if (turnAssistantMessage?.mcp_approval_requests?.length > 0 ||
+        turnAssistantMessage?.finish_reason === 'mcp_approval_required') {
+
+        const mcpApprovalRequests = turnAssistantMessage.mcp_approval_requests || [];
+
+        if (mcpApprovalRequests.length > 0) {
+          // Process the first MCP approval request
+          const firstApprovalRequest = mcpApprovalRequests[0];
+
+          // Show approval modal for the first request
+          setPendingApprovalCall({
+            ...firstApprovalRequest,
+            type: 'mcp_approval_request' // Ensure type is set for modal
+          });
+
+          // Store state for resuming after approval
+          // IMPORTANT: We need to store the approval requests themselves to include them in the next input
+          setPausedChatState({
+            currentMessages: turnMessages,
+            finalAssistantMessage: turnAssistantMessage,
+            accumulatedResponses: turnToolResponses,
+            pendingMcpApprovals: mcpApprovalRequests.slice(1), // Remaining approvals
+            mcpApprovalRequestItems: mcpApprovalRequests // Store all approval request items
+          });
+
+          currentTurnStatus = 'paused';
+        }
+      }
 
     } catch (error) {
       console.error('Error in executeChatTurn:', error);
-      
+
       // Check if this was a cancellation
       if (error.message === 'CANCELLED') {
         console.log('Chat turn was cancelled');
@@ -1866,13 +1868,13 @@ function App() {
       } else {
         // Ensure placeholder is replaced (without duplicating if streamHandler.onError already handled it)
         setMessages(prev => {
-            const newMessages = [...prev];
-            const idx = newMessages.findIndex(msg => msg.role === 'assistant' && msg.isStreaming);
-            if (idx !== -1) {
-                const errorMsg = { role: 'assistant', content: `Error: ${error.message}`, isStreaming: false };
-                newMessages[idx] = errorMsg;
-            }
-            return newMessages;
+          const newMessages = [...prev];
+          const idx = newMessages.findIndex(msg => msg.role === 'assistant' && msg.isStreaming);
+          if (idx !== -1) {
+            const errorMsg = { role: 'assistant', content: `Error: ${error.message}`, isStreaming: false };
+            newMessages[idx] = errorMsg;
+          }
+          return newMessages;
         });
         currentTurnStatus = 'error';
       }
@@ -1880,9 +1882,9 @@ function App() {
 
     // Return the outcome of the turn
     return {
-        status: currentTurnStatus, // 'completed_no_tools', 'completed_with_tools', 'paused', 'error', 'cancelled'
-        assistantMessage: turnAssistantMessage,
-        toolResponseMessages: turnToolResponses,
+      status: currentTurnStatus, // 'completed_no_tools', 'completed_with_tools', 'paused', 'error', 'cancelled'
+      assistantMessage: turnAssistantMessage,
+      toolResponseMessages: turnToolResponses,
     };
   };
 
@@ -1911,7 +1913,7 @@ function App() {
 
     // Reset cancellation flag for new message
     cancelledRef.current = false;
-    
+
     // Reset user scrolling flag so new messages auto-scroll
     userScrollingRef.current = false;
     setIsUserScrolling(false);
@@ -2101,127 +2103,127 @@ function App() {
     }
 
     try {
-        while (conversationStatus === 'processing' || conversationStatus === 'completed_with_tools') {
-            if (conversationStatus === 'completed_with_tools') {
-                toolIterationsCount++;
-                if (isAgentModeActive) {
-                    setAgentStep(toolIterationsCount + 1);
+      while (conversationStatus === 'processing' || conversationStatus === 'completed_with_tools') {
+        if (conversationStatus === 'completed_with_tools') {
+          toolIterationsCount++;
+          if (isAgentModeActive) {
+            setAgentStep(toolIterationsCount + 1);
+          }
+          if (toolIterationsCount >= MAX_TOOL_ITERATIONS) {
+            console.warn(`[Frontend] Maximum tool iterations (${MAX_TOOL_ITERATIONS}) reached. Stopping tool loop.`);
+            break;
+          }
+        }
+
+        const { status, assistantMessage, toolResponseMessages } = await executeChatTurn(currentApiMessages);
+        if (assistantMessage?.content) lastCompletedAssistantMessage = assistantMessage;
+
+        conversationStatus = status; // Update status for loop condition
+
+        if (status === 'paused') {
+          // Pause initiated by executeChatTurn/processToolCalls
+          // Loading state remains true, waiting for modal interaction
+          break; // Exit the loop
+        } else if (status === 'cancelled') {
+          // Stream was cancelled by user
+          console.log('Conversation cancelled by user');
+          break;
+        } else if (status === 'error') {
+          // Error occurred, stop the loop
+          break;
+        } else if (status === 'completed_with_tools') {
+          // Reset empty response retry counter since we got valid tool calls
+          emptyResponseRetries = 0;
+
+          // Prepare messages for the next turn ONLY if tools were completed
+          if (assistantMessage && toolResponseMessages.length > 0) {
+            // Format tool responses for the API
+            const formattedToolResponses = toolResponseMessages.map(msg => ({
+              role: 'tool',
+              content: msg.content, // Ensure this is a string
+              tool_call_id: msg.tool_call_id
+            }));
+            // Append assistant message and tool responses for the next API call
+            currentApiMessages = [
+              ...currentApiMessages,
+              { // Assistant message that included the tool calls
+                role: assistantMessage.role,
+                content: assistantMessage.content,
+                tool_calls: assistantMessage.tool_calls
+              },
+              ...formattedToolResponses
+            ];
+            // Loop continues as conversationStatus is 'completed_with_tools'
+          } else {
+            // Should not happen if status is completed_with_tools, but safety break
+            console.warn("Status 'completed_with_tools' but no assistant message or tool responses found.");
+            conversationStatus = 'error'; // Treat as error
+            break;
+          }
+        } else if (status === 'completed_no_tools') {
+          // Conversation turn finished without tools
+          // Check if we got an empty response (only reasoning, no content)
+          // Note: Don't treat as empty if there are tool calls (e.g. Responses API might return tool calls with no content if that was the intent)
+          const hasContent = assistantMessage.content && assistantMessage.content.trim() !== '';
+          const hasToolCalls = assistantMessage.tool_calls && assistantMessage.tool_calls.length > 0;
+
+          if (assistantMessage && !hasContent && !hasToolCalls) {
+            if (emptyResponseRetries < MAX_EMPTY_RETRIES) {
+              emptyResponseRetries++;
+              console.warn(`[Frontend] Model completed with no content. Retrying (${emptyResponseRetries}/${MAX_EMPTY_RETRIES})...`);
+
+              // Remove the empty assistant message from the UI
+              setMessages(prev => {
+                const newMessages = [...prev];
+                // Find and remove the last assistant message (which has empty content)
+                const lastAssistantIdx = newMessages.map((m, i) => ({ idx: i, msg: m }))
+                  .reverse()
+                  .find(({ msg }) => msg.role === 'assistant')?.idx;
+                if (lastAssistantIdx !== undefined) {
+                  newMessages.splice(lastAssistantIdx, 1);
                 }
-                if (toolIterationsCount >= MAX_TOOL_ITERATIONS) {
-                    console.warn(`[Frontend] Maximum tool iterations (${MAX_TOOL_ITERATIONS}) reached. Stopping tool loop.`);
-                    break;
+                return newMessages;
+              });
+
+              // Retry with the same messages (don't modify currentApiMessages)
+              conversationStatus = 'processing';
+            } else {
+              // Max retries reached, show error
+              console.error('[Frontend] Max retries reached for empty response. Stopping.');
+              setMessages(prev => {
+                const newMessages = [...prev];
+                // Find and replace the last assistant message with error
+                const lastAssistantIdx = newMessages.map((m, i) => ({ idx: i, msg: m }))
+                  .reverse()
+                  .find(({ msg }) => msg.role === 'assistant')?.idx;
+                if (lastAssistantIdx !== undefined) {
+                  newMessages[lastAssistantIdx] = {
+                    role: 'assistant',
+                    content: 'Error: Model failed to generate a response after multiple attempts.'
+                  };
                 }
+                return newMessages;
+              });
+              break;
             }
-
-            const { status, assistantMessage, toolResponseMessages } = await executeChatTurn(currentApiMessages);
-            if (assistantMessage?.content) lastCompletedAssistantMessage = assistantMessage;
-
-            conversationStatus = status; // Update status for loop condition
-
-            if (status === 'paused') {
-                 // Pause initiated by executeChatTurn/processToolCalls
-                 // Loading state remains true, waiting for modal interaction
-                 break; // Exit the loop
-            } else if (status === 'cancelled') {
-                 // Stream was cancelled by user
-                 console.log('Conversation cancelled by user');
-                 break;
-            } else if (status === 'error') {
-                 // Error occurred, stop the loop
-                  break;
-            } else if (status === 'completed_with_tools') {
-                  // Reset empty response retry counter since we got valid tool calls
-                  emptyResponseRetries = 0;
-                  
-                  // Prepare messages for the next turn ONLY if tools were completed
-                  if (assistantMessage && toolResponseMessages.length > 0) {
-                      // Format tool responses for the API
-                      const formattedToolResponses = toolResponseMessages.map(msg => ({
-                          role: 'tool',
-                          content: msg.content, // Ensure this is a string
-                          tool_call_id: msg.tool_call_id
-                      }));
-                      // Append assistant message and tool responses for the next API call
-                      currentApiMessages = [
-                          ...currentApiMessages,
-                          { // Assistant message that included the tool calls
-                            role: assistantMessage.role,
-                            content: assistantMessage.content,
-                            tool_calls: assistantMessage.tool_calls
-                          },
-                          ...formattedToolResponses
-                      ];
-                      // Loop continues as conversationStatus is 'completed_with_tools'
-                  } else {
-                      // Should not happen if status is completed_with_tools, but safety break
-                      console.warn("Status 'completed_with_tools' but no assistant message or tool responses found.");
-                      conversationStatus = 'error'; // Treat as error
-                      break;
-                  }
-            } else if (status === 'completed_no_tools') {
-                  // Conversation turn finished without tools
-                  // Check if we got an empty response (only reasoning, no content)
-                  // Note: Don't treat as empty if there are tool calls (e.g. Responses API might return tool calls with no content if that was the intent)
-                  const hasContent = assistantMessage.content && assistantMessage.content.trim() !== '';
-                  const hasToolCalls = assistantMessage.tool_calls && assistantMessage.tool_calls.length > 0;
-                  
-                  if (assistantMessage && !hasContent && !hasToolCalls) {
-                      if (emptyResponseRetries < MAX_EMPTY_RETRIES) {
-                          emptyResponseRetries++;
-                          console.warn(`[Frontend] Model completed with no content. Retrying (${emptyResponseRetries}/${MAX_EMPTY_RETRIES})...`);
-                          
-                          // Remove the empty assistant message from the UI
-                          setMessages(prev => {
-                              const newMessages = [...prev];
-                              // Find and remove the last assistant message (which has empty content)
-                              const lastAssistantIdx = newMessages.map((m, i) => ({ idx: i, msg: m }))
-                                  .reverse()
-                                  .find(({ msg }) => msg.role === 'assistant')?.idx;
-                              if (lastAssistantIdx !== undefined) {
-                                  newMessages.splice(lastAssistantIdx, 1);
-                              }
-                              return newMessages;
-                          });
-                          
-                          // Retry with the same messages (don't modify currentApiMessages)
-                          conversationStatus = 'processing';
-                      } else {
-                          // Max retries reached, show error
-                          console.error('[Frontend] Max retries reached for empty response. Stopping.');
-                          setMessages(prev => {
-                              const newMessages = [...prev];
-                              // Find and replace the last assistant message with error
-                              const lastAssistantIdx = newMessages.map((m, i) => ({ idx: i, msg: m }))
-                                  .reverse()
-                                  .find(({ msg }) => msg.role === 'assistant')?.idx;
-                              if (lastAssistantIdx !== undefined) {
-                                  newMessages[lastAssistantIdx] = {
-                                      role: 'assistant',
-                                      content: 'Error: Model failed to generate a response after multiple attempts.'
-                                  };
-                              }
-                              return newMessages;
-                          });
-                          break;
-                      }
-                  } else {
-                      // Normal completion with content, stop the loop
-                      break;
-                  }
-            }
-        } // End while loop
+          } else {
+            // Normal completion with content, stop the loop
+            break;
+          }
+        }
+      } // End while loop
 
     } catch (error) {
-        // Catch errors originating directly in handleSendMessage loop (unlikely with refactor)
-        console.error('Error in handleSendMessage conversation flow:', error);
-        setMessages(prev => [...prev, { role: 'assistant', content: `Error: ${error.message}` }]);
-        conversationStatus = 'error'; // Ensure loading state is handled
+      // Catch errors originating directly in handleSendMessage loop (unlikely with refactor)
+      console.error('Error in handleSendMessage conversation flow:', error);
+      setMessages(prev => [...prev, { role: 'assistant', content: `Error: ${error.message}` }]);
+      conversationStatus = 'error'; // Ensure loading state is handled
     } finally {
-        setAgentStep(0);
-        // Only set loading false if the conversation is not paused
-        if (conversationStatus !== 'paused') {
-            setLoading(false);
-        }
+      setAgentStep(0);
+      // Only set loading false if the conversation is not paused
+      if (conversationStatus !== 'paused') {
+        setLoading(false);
+      }
     }
 
     if (relatedQuestionsEnabled && conversationStatus === 'completed_no_tools' && lastCompletedAssistantMessage?.content && window.electron?.relatedQuestions?.generate) {
@@ -2255,314 +2257,314 @@ function App() {
 
   // --- Placeholder for resuming chat after modal interaction ---
   const resumeChatFlow = async (handledToolResponse) => {
-      if (!pausedChatState) {
-          console.error("Attempted to resume chat flow without paused state.");
-          setLoading(false); // Ensure loading indicator stops
-          return;
-      }
+    if (!pausedChatState) {
+      console.error("Attempted to resume chat flow without paused state.");
+      setLoading(false); // Ensure loading indicator stops
+      return;
+    }
 
+    // Check if operation was cancelled
+    if (cancelledRef.current) {
+      console.log('Resume chat flow cancelled by user');
+      setLoading(false);
+      return;
+    }
+
+    const { currentMessages, finalAssistantMessage, accumulatedResponses } = pausedChatState;
+    setPausedChatState(null); // Clear the paused state
+
+    const allResponsesForTurn = [...accumulatedResponses, handledToolResponse];
+
+    // Find the index of the tool that caused the pause
+    const pausedToolIndex = finalAssistantMessage.tool_calls.findIndex(
+      tc => tc.id === handledToolResponse.tool_call_id // Match based on ID
+    );
+
+    if (pausedToolIndex === -1) {
+      console.error("Could not find the paused tool call in the original message.");
+      setLoading(false);
+      return; // Cannot proceed
+    }
+
+    const remainingTools = finalAssistantMessage.tool_calls.slice(pausedToolIndex + 1);
+    let needsPauseAgain = false;
+
+    // Process remaining tools
+    for (const nextToolCall of remainingTools) {
       // Check if operation was cancelled
       if (cancelledRef.current) {
-          console.log('Resume chat flow cancelled by user');
-          setLoading(false);
-          return;
+        console.log('Tool execution cancelled by user during resume');
+        setLoading(false);
+        return;
       }
 
-      const { currentMessages, finalAssistantMessage, accumulatedResponses } = pausedChatState;
-      setPausedChatState(null); // Clear the paused state
+      const toolName = nextToolCall.function.name;
+      const approvalStatus = await getToolApprovalStatus(toolName, nextToolCall.server_label);
 
-      const allResponsesForTurn = [...accumulatedResponses, handledToolResponse];
-
-      // Find the index of the tool that caused the pause
-      const pausedToolIndex = finalAssistantMessage.tool_calls.findIndex(
-          tc => tc.id === handledToolResponse.tool_call_id // Match based on ID
-      );
-
-      if (pausedToolIndex === -1) {
-          console.error("Could not find the paused tool call in the original message.");
-          setLoading(false);
-          return; // Cannot proceed
-      }
-
-      const remainingTools = finalAssistantMessage.tool_calls.slice(pausedToolIndex + 1);
-      let needsPauseAgain = false;
-
-      // Process remaining tools
-      for (const nextToolCall of remainingTools) {
-        // Check if operation was cancelled
-        if (cancelledRef.current) {
-            console.log('Tool execution cancelled by user during resume');
+      if (approvalStatus === 'allow' || approvalStatus === 'always' || approvalStatus === 'yolo') {
+        console.log(`Resuming: Tool '${toolName}' automatically approved (${approvalStatus}). Executing...`);
+        try {
+          // Check before executing
+          if (cancelledRef.current) {
+            console.log('Tool execution cancelled by user before executing');
             setLoading(false);
             return;
-        }
+          }
 
-        const toolName = nextToolCall.function.name;
-        const approvalStatus = await getToolApprovalStatus(toolName, nextToolCall.server_label);
+          const resultMsg = await executeToolCall(nextToolCall);
 
-        if (approvalStatus === 'allow' || approvalStatus === 'always' || approvalStatus === 'yolo') {
-            console.log(`Resuming: Tool '${toolName}' automatically approved (${approvalStatus}). Executing...`);
-            try {
-                // Check before executing
-                if (cancelledRef.current) {
-                    console.log('Tool execution cancelled by user before executing');
-                    setLoading(false);
-                    return;
-                }
-                
-                const resultMsg = await executeToolCall(nextToolCall);
-                
-                // Check after executing
-                if (cancelledRef.current) {
-                    console.log('Tool execution cancelled by user after tool completed');
-                    setLoading(false);
-                    return;
-                }
-                
-                allResponsesForTurn.push(resultMsg);
-                setMessages(prev => [...prev, resultMsg]); // Update UI immediately
-            } catch (error) {
-                console.error(`Resuming: Error executing tool call '${toolName}':`, error);
-                const errorMsg = { role: 'tool', content: JSON.stringify({ error: `Error executing tool '${toolName}': ${error.message}` }), tool_call_id: nextToolCall.id };
-                allResponsesForTurn.push(errorMsg);
-                setMessages(prev => [...prev, errorMsg]);
-            }
-        } else if (approvalStatus === 'deny') {
-            const deniedMsg = { role: 'tool', content: JSON.stringify({ error: `Tool '${toolName}' blocked by permission policy.` }), tool_call_id: nextToolCall.id };
-            allResponsesForTurn.push(deniedMsg);
-            setMessages(prev => [...prev, deniedMsg]);
-        } else { // Needs prompt again
-            console.log(`Resuming: Tool '${toolName}' requires user approval.`);
-            setPendingApprovalCall(nextToolCall);
-            // Save state again, including the responses gathered *during* this resume attempt
-            setPausedChatState({
-                currentMessages: currentMessages, // Original messages before assistant response
-                finalAssistantMessage: finalAssistantMessage,
-                accumulatedResponses: allResponsesForTurn // All responses UP TO this new pause
-            });
-            needsPauseAgain = true;
-            break; // Stop processing remaining tools
-        }
-      }
+          // Check after executing
+          if (cancelledRef.current) {
+            console.log('Tool execution cancelled by user after tool completed');
+            setLoading(false);
+            return;
+          }
 
-      if (needsPauseAgain) {
-        // Loading state remains true, waiting for the next modal interaction
-        console.log("Chat flow paused again for the next tool.");
-      } else {
-        // All remaining tools were processed. Prepare for the next API call.
-        console.log("All tools for the turn processed. Continuing conversation.");
-        setLoading(true); // Show loading for the next API call
-
-        const nextApiMessages = [
-            ...currentMessages, // History BEFORE the assistant message with tools
-            { // The assistant message itself
-                role: finalAssistantMessage.role,
-                content: finalAssistantMessage.content,
-                tool_calls: finalAssistantMessage.tool_calls,
-            },
-            // Map ALL tool responses for the completed turn
-            ...allResponsesForTurn.map(msg => ({
-                role: 'tool',
-                content: msg.content,
-                tool_call_id: msg.tool_call_id
-            }))
-        ];
-
-        // Continue the conversation loop by executing the next turn
-        // This recursively calls the main logic, effectively continuing the loop
-        // Pass the fully prepared message list for the *next* API call
-        // We need to handle the loading state correctly after this returns
-        try {
-             // Start the next turn
-              const { status: nextTurnStatus } = await executeChatTurn(nextApiMessages);
-              // If the *next* turn also pauses, loading state remains true
-              if (nextTurnStatus !== 'paused') {
-                  setLoading(false);
-              }
+          allResponsesForTurn.push(resultMsg);
+          setMessages(prev => [...prev, resultMsg]); // Update UI immediately
         } catch (error) {
-            // Check if this was a cancellation
-            if (error.message !== 'CANCELLED') {
-                console.error("Error during resumed chat turn:", error);
-                setMessages(prev => [...prev, { role: 'assistant', content: `Error after resuming: ${error.message}` }]);
-            }
-            setLoading(false); // Stop loading on error or cancellation
+          console.error(`Resuming: Error executing tool call '${toolName}':`, error);
+          const errorMsg = { role: 'tool', content: JSON.stringify({ error: `Error executing tool '${toolName}': ${error.message}` }), tool_call_id: nextToolCall.id };
+          allResponsesForTurn.push(errorMsg);
+          setMessages(prev => [...prev, errorMsg]);
         }
+      } else if (approvalStatus === 'deny') {
+        const deniedMsg = { role: 'tool', content: JSON.stringify({ error: `Tool '${toolName}' blocked by permission policy.` }), tool_call_id: nextToolCall.id };
+        allResponsesForTurn.push(deniedMsg);
+        setMessages(prev => [...prev, deniedMsg]);
+      } else { // Needs prompt again
+        console.log(`Resuming: Tool '${toolName}' requires user approval.`);
+        setPendingApprovalCall(nextToolCall);
+        // Save state again, including the responses gathered *during* this resume attempt
+        setPausedChatState({
+          currentMessages: currentMessages, // Original messages before assistant response
+          finalAssistantMessage: finalAssistantMessage,
+          accumulatedResponses: allResponsesForTurn // All responses UP TO this new pause
+        });
+        needsPauseAgain = true;
+        break; // Stop processing remaining tools
       }
+    }
+
+    if (needsPauseAgain) {
+      // Loading state remains true, waiting for the next modal interaction
+      console.log("Chat flow paused again for the next tool.");
+    } else {
+      // All remaining tools were processed. Prepare for the next API call.
+      console.log("All tools for the turn processed. Continuing conversation.");
+      setLoading(true); // Show loading for the next API call
+
+      const nextApiMessages = [
+        ...currentMessages, // History BEFORE the assistant message with tools
+        { // The assistant message itself
+          role: finalAssistantMessage.role,
+          content: finalAssistantMessage.content,
+          tool_calls: finalAssistantMessage.tool_calls,
+        },
+        // Map ALL tool responses for the completed turn
+        ...allResponsesForTurn.map(msg => ({
+          role: 'tool',
+          content: msg.content,
+          tool_call_id: msg.tool_call_id
+        }))
+      ];
+
+      // Continue the conversation loop by executing the next turn
+      // This recursively calls the main logic, effectively continuing the loop
+      // Pass the fully prepared message list for the *next* API call
+      // We need to handle the loading state correctly after this returns
+      try {
+        // Start the next turn
+        const { status: nextTurnStatus } = await executeChatTurn(nextApiMessages);
+        // If the *next* turn also pauses, loading state remains true
+        if (nextTurnStatus !== 'paused') {
+          setLoading(false);
+        }
+      } catch (error) {
+        // Check if this was a cancellation
+        if (error.message !== 'CANCELLED') {
+          console.error("Error during resumed chat turn:", error);
+          setMessages(prev => [...prev, { role: 'assistant', content: `Error after resuming: ${error.message}` }]);
+        }
+        setLoading(false); // Stop loading on error or cancellation
+      }
+    }
   };
 
   // --- Placeholder for handling modal choice ---
   const handleToolApproval = async (choice, toolCall) => {
-      if (!toolCall || !toolCall.id) {
-          console.error("handleToolApproval called with invalid toolCall:", toolCall);
-          return;
-      }
-      
-      if (toolCall._agentRuntime) {
-          setPendingApprovalCall(null);
-          const approved = !['deny', 'never'].includes(choice);
-          if (approved) {
-              await window.electron.agent.approveTool(
-                  toolCall._agentSessionId,
-                  toolCall.id,
-                  ['always', 'yolo'].includes(choice)
-              );
-          } else {
-              await window.electron.agent.rejectTool(toolCall._agentSessionId, toolCall.id, 'User denied tool execution');
-          }
-          return;
-      }
+    if (!toolCall || !toolCall.id) {
+      console.error("handleToolApproval called with invalid toolCall:", toolCall);
+      return;
+    }
 
-      // Check if this is an MCP approval request (remote tool)
-      const isMcpApprovalRequest = toolCall.type === 'mcp_approval_request';
-      const toolName = isMcpApprovalRequest ? toolCall.name : toolCall.function?.name;
-      
-
-      // Clear the pending call *before* executing/resuming
+    if (toolCall._agentRuntime) {
       setPendingApprovalCall(null);
-
-      // Update localStorage based on choice
-      await setToolApprovalStatus(toolName, choice, toolCall.server_label);
-
-      if (isMcpApprovalRequest) {
-          // Handle MCP approval request - need to send approval/denial back to the API
-          await handleMcpApprovalResponse(choice, toolCall);
+      const approved = !['deny', 'never'].includes(choice);
+      if (approved) {
+        await window.electron.agent.approveTool(
+          toolCall._agentSessionId,
+          toolCall.id,
+          ['always', 'yolo'].includes(choice)
+        );
       } else {
-          // Handle local tool call
-          let handledToolResponse;
-
-          if (choice === 'deny' || choice === 'never') {
-              handledToolResponse = {
-                  role: 'tool',
-                  content: JSON.stringify({ error: 'Tool execution denied by user.' }),
-                  tool_call_id: toolCall.id
-              };
-              setMessages(prev => [...prev, handledToolResponse]); // Show denial in UI
-              // Resume processing potential subsequent tools
-              await resumeChatFlow(handledToolResponse);
-          } else { // 'once', 'always', 'yolo' -> Execute the tool
-              setLoading(true); // Show loading specifically for tool execution phase
-              try {
-                  console.log(`Executing tool '${toolName}' after user approval...`);
-                  handledToolResponse = await executeToolCall(toolCall);
-                  setMessages(prev => [...prev, handledToolResponse]); // Show result in UI
-                  // Resume processing potential subsequent tools
-                  await resumeChatFlow(handledToolResponse);
-              } catch (error) {
-                  console.error(`Error executing approved tool call '${toolName}':`, error);
-                  handledToolResponse = {
-                      role: 'tool',
-                      content: JSON.stringify({ error: `Error executing tool '${toolName}' after approval: ${error.message}` }),
-                      tool_call_id: toolCall.id
-                  };
-                  setMessages(prev => [...prev, handledToolResponse]); // Show error in UI
-                  // Still try to resume processing subsequent tools even if this one failed
-                  await resumeChatFlow(handledToolResponse);
-              } finally {
-                  // Loading state will be handled by resumeChatFlow or set to false if it errors/completes fully
-                  // setLoading(false); // Don't set false here, resumeChatFlow handles it
-              }
-          }
+        await window.electron.agent.rejectTool(toolCall._agentSessionId, toolCall.id, 'User denied tool execution');
       }
+      return;
+    }
+
+    // Check if this is an MCP approval request (remote tool)
+    const isMcpApprovalRequest = toolCall.type === 'mcp_approval_request';
+    const toolName = isMcpApprovalRequest ? toolCall.name : toolCall.function?.name;
+
+
+    // Clear the pending call *before* executing/resuming
+    setPendingApprovalCall(null);
+
+    // Update localStorage based on choice
+    await setToolApprovalStatus(toolName, choice, toolCall.server_label);
+
+    if (isMcpApprovalRequest) {
+      // Handle MCP approval request - need to send approval/denial back to the API
+      await handleMcpApprovalResponse(choice, toolCall);
+    } else {
+      // Handle local tool call
+      let handledToolResponse;
+
+      if (choice === 'deny' || choice === 'never') {
+        handledToolResponse = {
+          role: 'tool',
+          content: JSON.stringify({ error: 'Tool execution denied by user.' }),
+          tool_call_id: toolCall.id
+        };
+        setMessages(prev => [...prev, handledToolResponse]); // Show denial in UI
+        // Resume processing potential subsequent tools
+        await resumeChatFlow(handledToolResponse);
+      } else { // 'once', 'always', 'yolo' -> Execute the tool
+        setLoading(true); // Show loading specifically for tool execution phase
+        try {
+          console.log(`Executing tool '${toolName}' after user approval...`);
+          handledToolResponse = await executeToolCall(toolCall);
+          setMessages(prev => [...prev, handledToolResponse]); // Show result in UI
+          // Resume processing potential subsequent tools
+          await resumeChatFlow(handledToolResponse);
+        } catch (error) {
+          console.error(`Error executing approved tool call '${toolName}':`, error);
+          handledToolResponse = {
+            role: 'tool',
+            content: JSON.stringify({ error: `Error executing tool '${toolName}' after approval: ${error.message}` }),
+            tool_call_id: toolCall.id
+          };
+          setMessages(prev => [...prev, handledToolResponse]); // Show error in UI
+          // Still try to resume processing subsequent tools even if this one failed
+          await resumeChatFlow(handledToolResponse);
+        } finally {
+          // Loading state will be handled by resumeChatFlow or set to false if it errors/completes fully
+          // setLoading(false); // Don't set false here, resumeChatFlow handles it
+        }
+      }
+    }
   };
 
   // Handle MCP approval response - send approval/denial back to the API
   const handleMcpApprovalResponse = async (choice, approvalRequest) => {
-      if (!pausedChatState) {
-          console.error("handleMcpApprovalResponse called without paused state");
-          setLoading(false);
-          return;
-      }
+    if (!pausedChatState) {
+      console.error("handleMcpApprovalResponse called without paused state");
+      setLoading(false);
+      return;
+    }
 
-      const { currentMessages, finalAssistantMessage, accumulatedResponses, pendingMcpApprovals, mcpApprovalRequestItems } = pausedChatState;
-      
-      // Determine approval decision
-      const approved = choice !== 'deny' && choice !== 'never';
-      
+    const { currentMessages, finalAssistantMessage, accumulatedResponses, pendingMcpApprovals, mcpApprovalRequestItems } = pausedChatState;
 
-      // Create the approval response item for the API
-      const approvalResponseItem = {
+    // Determine approval decision
+    const approved = choice !== 'deny' && choice !== 'never';
+
+
+    // Create the approval response item for the API
+    const approvalResponseItem = {
+      type: 'mcp_approval_response',
+      approval_request_id: approvalRequest.id,
+      approve: approved,
+      // Include reason if denied
+      ...((!approved) && { reason: 'User denied the tool execution' })
+    };
+
+    // Check if there are more pending approvals
+    if (pendingMcpApprovals && pendingMcpApprovals.length > 0) {
+      // Show modal for the next approval request
+      const nextApproval = pendingMcpApprovals[0];
+      setPendingApprovalCall({
+        ...nextApproval,
+        type: 'mcp_approval_request'
+      });
+
+      // Update paused state with the response and remaining approvals
+      setPausedChatState({
+        currentMessages,
+        finalAssistantMessage,
+        accumulatedResponses: [...accumulatedResponses, approvalResponseItem],
+        pendingMcpApprovals: pendingMcpApprovals.slice(1),
+        mcpApprovalRequestItems
+      });
+      return; // Wait for next approval
+    }
+
+    // All approvals handled, continue the conversation
+    setPausedChatState(null);
+    setLoading(true);
+
+    try {
+      // Build the input for the next API call
+      // For Responses API with MCP approvals:
+      // 1. Include original conversation history
+      // 2. Include the mcp_approval_request items (output from previous response)
+      // 3. Include the mcp_approval_response items (our responses)
+
+      const allApprovalResponses = [...accumulatedResponses, approvalResponseItem]
+        .filter(r => r.type === 'mcp_approval_response');
+
+      // Build messages for the next turn
+      const nextApiMessages = [
+        ...currentMessages,
+        // Include the assistant's message content if any
+        ...(finalAssistantMessage.content ? [{
+          role: 'assistant',
+          content: finalAssistantMessage.content,
+          // Include any tool calls that were made
+          ...(finalAssistantMessage.tool_calls && { tool_calls: finalAssistantMessage.tool_calls })
+        }] : []),
+        // Include the mcp_approval_request items from the response
+        // These need to be in the input so the API knows what we're responding to
+        ...(mcpApprovalRequestItems || []).map(req => ({
+          type: 'mcp_approval_request',
+          id: req.id,
+          name: req.name,
+          server_label: req.server_label,
+          arguments: req.arguments
+        })),
+        // Add our approval responses
+        ...allApprovalResponses.map(r => ({
           type: 'mcp_approval_response',
-          approval_request_id: approvalRequest.id,
-          approve: approved,
-          // Include reason if denied
-          ...((!approved) && { reason: 'User denied the tool execution' })
-      };
+          approval_request_id: r.approval_request_id,
+          approve: r.approve,
+          ...(r.reason && { reason: r.reason })
+        }))
+      ];
 
-      // Check if there are more pending approvals
-      if (pendingMcpApprovals && pendingMcpApprovals.length > 0) {
-          // Show modal for the next approval request
-          const nextApproval = pendingMcpApprovals[0];
-          setPendingApprovalCall({
-              ...nextApproval,
-              type: 'mcp_approval_request'
-          });
-          
-          // Update paused state with the response and remaining approvals
-          setPausedChatState({
-              currentMessages,
-              finalAssistantMessage,
-              accumulatedResponses: [...accumulatedResponses, approvalResponseItem],
-              pendingMcpApprovals: pendingMcpApprovals.slice(1),
-              mcpApprovalRequestItems
-          });
-          return; // Wait for next approval
+
+      // Continue the conversation with the approval responses
+      const { status: nextTurnStatus } = await executeChatTurn(nextApiMessages);
+
+      if (nextTurnStatus !== 'paused') {
+        setLoading(false);
       }
-
-      // All approvals handled, continue the conversation
-      setPausedChatState(null);
-      setLoading(true);
-
-      try {
-          // Build the input for the next API call
-          // For Responses API with MCP approvals:
-          // 1. Include original conversation history
-          // 2. Include the mcp_approval_request items (output from previous response)
-          // 3. Include the mcp_approval_response items (our responses)
-          
-          const allApprovalResponses = [...accumulatedResponses, approvalResponseItem]
-              .filter(r => r.type === 'mcp_approval_response');
-          
-          // Build messages for the next turn
-          const nextApiMessages = [
-              ...currentMessages,
-              // Include the assistant's message content if any
-              ...(finalAssistantMessage.content ? [{
-                  role: 'assistant',
-                  content: finalAssistantMessage.content,
-                  // Include any tool calls that were made
-                  ...(finalAssistantMessage.tool_calls && { tool_calls: finalAssistantMessage.tool_calls })
-              }] : []),
-              // Include the mcp_approval_request items from the response
-              // These need to be in the input so the API knows what we're responding to
-              ...(mcpApprovalRequestItems || []).map(req => ({
-                  type: 'mcp_approval_request',
-                  id: req.id,
-                  name: req.name,
-                  server_label: req.server_label,
-                  arguments: req.arguments
-              })),
-              // Add our approval responses
-              ...allApprovalResponses.map(r => ({
-                  type: 'mcp_approval_response',
-                  approval_request_id: r.approval_request_id,
-                  approve: r.approve,
-                  ...(r.reason && { reason: r.reason })
-              }))
-          ];
-
-
-          // Continue the conversation with the approval responses
-          const { status: nextTurnStatus } = await executeChatTurn(nextApiMessages);
-          
-          if (nextTurnStatus !== 'paused') {
-              setLoading(false);
-          }
-      } catch (error) {
-          if (error.message !== 'CANCELLED') {
-              console.error("Error during MCP approval continuation:", error);
-              setMessages(prev => [...prev, { role: 'assistant', content: `Error after approval: ${error.message}` }]);
-          }
-          setLoading(false);
+    } catch (error) {
+      if (error.message !== 'CANCELLED') {
+        console.error("Error during MCP approval continuation:", error);
+        setMessages(prev => [...prev, { role: 'assistant', content: `Error after approval: ${error.message}` }]);
       }
+      setLoading(false);
+    }
   };
 
   // Disconnect from an MCP server
@@ -2584,7 +2586,7 @@ function App() {
       return false;
     }
   };
-  
+
   // Reconnect to an MCP server
   const reconnectMcpServer = async (serverId) => {
     try {
@@ -2594,7 +2596,7 @@ function App() {
         console.error(`Server configuration not found for ${serverId}`);
         return false;
       }
-      
+
       // Get the full configuration object for the server
       const serverConfig = settings.mcpServers[serverId];
 
@@ -2625,7 +2627,7 @@ function App() {
     } catch (error) {
       console.error('Error reconnecting to MCP server:', error);
       // Return an error structure consistent with what ToolsPanel might expect
-      return { success: false, error: error.message || 'An unknown error occurred', requiresAuth: false }; 
+      return { success: false, error: error.message || 'An unknown error occurred', requiresAuth: false };
     }
   };
 
@@ -2633,13 +2635,13 @@ function App() {
   const refreshMcpTools = async () => {
     try {
       setMcpServersStatus({ loading: true, message: "Refreshing MCP connections..." });
-      
+
       // Get latest settings
       const settings = await window.electron.getSettings();
-      
+
       // Manually fetch the current tools
       const mcpToolsResult = await window.electron.getMcpTools();
-      
+
       if (mcpToolsResult && mcpToolsResult.tools) {
         setMcpTools(mcpToolsResult.tools);
         updateServerStatus(mcpToolsResult.tools, settings);
@@ -2667,12 +2669,12 @@ function App() {
 
     // Switch back to chat tab if currently on trajectory or other tab
     setActiveTab('chat');
-    
+
     const projId = targetProjectId !== undefined ? targetProjectId : activeProjectId;
     if (targetProjectId !== undefined) {
       setActiveProjectId(targetProjectId);
     }
-    
+
     // Clear canvas and artifacts when creating a new chat
     clearCanvas();
     closeCanvas();
@@ -2699,7 +2701,7 @@ function App() {
     const handleKeyDown = (e) => {
       const isInputFocused = ['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement?.tagName) ||
         document.activeElement?.isContentEditable;
-      
+
       const isModifier = e.ctrlKey || e.metaKey;
 
       // Ctrl/Cmd + N: New Chat
@@ -2848,12 +2850,12 @@ function App() {
 
     if (chat.useResponsesApi !== undefined) {
       const chatApiMode = chat.useResponsesApi;
-      
+
       // If the chat's API mode differs from current setting, update it
       if (chatApiMode !== useResponsesApi) {
         console.log(`[App] Switching API mode for chat: useResponsesApi=${chatApiMode}`);
         setUseResponsesApi(chatApiMode);
-        
+
         // Also update the setting in storage so the chat handler uses it
         try {
           const settings = await window.electron.getSettings();
@@ -2922,7 +2924,7 @@ function App() {
   return (
     <div className="flex h-screen bg-background">
       {/* Chat History Sidebar */}
-      <ChatHistorySidebar 
+      <ChatHistorySidebar
         onNewChat={handleNewChat}
         onChatLoaded={handleChatLoaded}
         loading={loading}
@@ -2933,7 +2935,7 @@ function App() {
         onSelectBotChat={handleSelectBotChat}
         onOpenNewsDiscover={() => setIsNewsDiscoverOpen(true)}
       />
-      
+
       {/* Main Content Area */}
       <div className="flex flex-col flex-1 min-w-0">
         {/* Modern Sticky Header */}
@@ -2984,12 +2986,12 @@ function App() {
 
               {/* Active Project Badge */}
               {isPowerUser && activeProject && (
-                <div 
+                <div
                   className="h-7 flex items-center gap-1.5 px-2.5 rounded-lg border text-xs font-medium cursor-pointer transition-colors shadow-2xs hover:opacity-90"
-                  style={{ 
-                    backgroundColor: `${activeProject.color || '#f55036'}18`, 
+                  style={{
+                    backgroundColor: `${activeProject.color || '#f55036'}18`,
                     borderColor: `${activeProject.color || '#f55036'}40`,
-                    color: activeProject.color || '#f55036' 
+                    color: activeProject.color || '#f55036'
                   }}
                   onClick={() => openEditProjectModal(activeProject)}
                   title={`${t('projects.activeBadge')}: ${activeProject.name}`}
@@ -3061,497 +3063,505 @@ function App() {
                 {/* Dropdown Menu */}
                 {isToolsDropdownOpen && (
                   <div className="absolute right-0 mt-2 w-80 sm:w-88 max-h-[calc(100vh-5rem)] overflow-y-auto overscroll-contain custom-scrollbar p-1.5 rounded-2xl bg-popover border border-border text-popover-foreground shadow-2xl z-50 animate-in fade-in-0 zoom-in-95 space-y-0.5 text-xs">
-                    
+
                     {isPowerUser && (
                       <>
-                      {/* Trajectory */}
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setIsToolsDropdownOpen(false);
-                          setActiveTab(activeTab === 'trajectory' ? 'chat' : 'trajectory');
-                        }}
-                        className={cn(
-                          "w-full flex items-center gap-2.5 px-3 py-2 rounded-xl transition-colors text-left",
-                          activeTab === 'trajectory' 
-                            ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 font-medium" 
-                            : "hover:bg-muted/80 text-foreground"
-                        )}
-                      >
-                        <Activity className="w-4 h-4 text-emerald-500 shrink-0" />
-                        <div className="flex-1 min-w-0">
-                          <div className="font-semibold flex items-center justify-between gap-1">
-                            <span>{t('trajectory.trajectoryTab') || 'Trajetória'}</span>
-                            <div className="flex items-center gap-1.5 shrink-0">
-                              <kbd className="px-1.5 py-0.5 rounded bg-muted/80 text-[10px] font-mono font-medium border border-border/60 text-muted-foreground">{modKey}+T</kbd>
-                              {activeTab === 'trajectory' && <span className="px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-[10px] font-mono font-semibold">Aberto</span>}
+
+
+                        {/* Settings / Configurações */}
+                        <Link
+                          to="/settings"
+                          onClick={() => setIsToolsDropdownOpen(false)}
+                          className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-muted/80 text-foreground transition-colors text-left group"
+                        >
+                          <Settings className="w-4 h-4 text-primary shrink-0 transition-transform duration-300 group-hover:rotate-45" />
+                          <div className="flex-1 min-w-0">
+                            <div className="font-semibold text-foreground flex items-center justify-between gap-1">
+                              <span>{t('header.settings') || 'Configurações'}</span>
+                              <kbd className="px-1.5 py-0.5 rounded bg-muted/80 text-[10px] font-mono font-medium border border-border/60 text-muted-foreground">{modKey}+,</kbd>
                             </div>
+                            <div className="text-[10px] text-muted-foreground truncate">{t('header.settingsSubtitle') || 'Preferências, provedores, chaves e sistema'}</div>
                           </div>
-                          <div className="text-[10px] text-muted-foreground truncate">{t('header.trajectorySubtitle') || 'Linha do tempo & eventos detalhados'}</div>
-                        </div>
-                      </button>
+                        </Link>
 
-                      {/* Compare Models */}
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setIsToolsDropdownOpen(false);
-                          setIsCompareMode(!isCompareMode);
-                        }}
-                        className={cn(
-                          "w-full flex items-center gap-2.5 px-3 py-2 rounded-xl transition-colors text-left",
-                          isCompareMode 
-                            ? "bg-purple-500/10 text-purple-700 dark:text-purple-300 font-medium" 
-                            : "hover:bg-muted/80 text-foreground"
-                        )}
-                      >
-                        <Scale className="w-4 h-4 text-purple-500 shrink-0" />
-                        <div className="flex-1 min-w-0">
-                          <div className="font-semibold flex items-center justify-between gap-1">
-                            <span>{t('header.compareModels') || 'Comparar Modelos'}</span>
-                            <div className="flex items-center gap-1.5 shrink-0">
-                              <kbd className="px-1.5 py-0.5 rounded bg-muted/80 text-[10px] font-mono font-medium border border-border/60 text-muted-foreground">{modKey}+M</kbd>
-                              {isCompareMode && <span className="px-1.5 py-0.5 rounded bg-purple-500/20 text-purple-600 dark:text-purple-400 text-[10px] font-mono font-semibold">Aberto</span>}
+                        <div className="my-1 border-t border-border/60" />
+
+                        {/* Trajectory */}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIsToolsDropdownOpen(false);
+                            setActiveTab(activeTab === 'trajectory' ? 'chat' : 'trajectory');
+                          }}
+                          className={cn(
+                            "w-full flex items-center gap-2.5 px-3 py-2 rounded-xl transition-colors text-left",
+                            activeTab === 'trajectory'
+                              ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 font-medium"
+                              : "hover:bg-muted/80 text-foreground"
+                          )}
+                        >
+                          <Activity className="w-4 h-4 text-emerald-500 shrink-0" />
+                          <div className="flex-1 min-w-0">
+                            <div className="font-semibold flex items-center justify-between gap-1">
+                              <span>{t('trajectory.trajectoryTab') || 'Trajetória'}</span>
+                              <div className="flex items-center gap-1.5 shrink-0">
+                                <kbd className="px-1.5 py-0.5 rounded bg-muted/80 text-[10px] font-mono font-medium border border-border/60 text-muted-foreground">{modKey}+T</kbd>
+                                {activeTab === 'trajectory' && <span className="px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-[10px] font-mono font-semibold">Aberto</span>}
+                              </div>
                             </div>
+                            <div className="text-[10px] text-muted-foreground truncate">{t('header.trajectorySubtitle') || 'Linha do tempo & eventos detalhados'}</div>
                           </div>
-                          <div className="text-[10px] text-muted-foreground truncate">{t('header.compareModelsSubtitle') || 'Visualização lado a lado'}</div>
-                        </div>
-                      </button>
-                      
-                      <div className="my-1 border-t border-border/60" />
-                      
-                      {/* Terminal Workspace */}
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setIsToolsDropdownOpen(false);
-                          setIsTerminalOpen(!isTerminalOpen);
-                        }}
-                        className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-muted/80 text-foreground transition-colors text-left"
-                      >
-                        <Terminal className="w-4 h-4 text-emerald-500 shrink-0" />
-                        <div className="flex-1 min-w-0">
-                          <div className="font-semibold text-foreground flex items-center justify-between gap-1">
-                            <span>Terminal Shell</span>
-                            <div className="flex items-center gap-1.5 shrink-0">
-                              <kbd className="px-1.5 py-0.5 rounded bg-muted/80 text-[10px] font-mono font-medium border border-border/60 text-muted-foreground">{modKey}+`</kbd>
-                              {isTerminalOpen && <span className="px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-[10px] font-mono font-semibold">Aberto</span>}
+                        </button>
+
+                        <div className="my-1 border-t border-border/60" />
+
+                        {/* Compare Models */}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIsToolsDropdownOpen(false);
+                            setIsCompareMode(!isCompareMode);
+                          }}
+                          className={cn(
+                            "w-full flex items-center gap-2.5 px-3 py-2 rounded-xl transition-colors text-left",
+                            isCompareMode
+                              ? "bg-purple-500/10 text-purple-700 dark:text-purple-300 font-medium"
+                              : "hover:bg-muted/80 text-foreground"
+                          )}
+                        >
+                          <Scale className="w-4 h-4 text-purple-500 shrink-0" />
+                          <div className="flex-1 min-w-0">
+                            <div className="font-semibold flex items-center justify-between gap-1">
+                              <span>{t('header.compareModels') || 'Comparar Modelos'}</span>
+                              <div className="flex items-center gap-1.5 shrink-0">
+                                <kbd className="px-1.5 py-0.5 rounded bg-muted/80 text-[10px] font-mono font-medium border border-border/60 text-muted-foreground">{modKey}+M</kbd>
+                                {isCompareMode && <span className="px-1.5 py-0.5 rounded bg-purple-500/20 text-purple-600 dark:text-purple-400 text-[10px] font-mono font-semibold">Aberto</span>}
+                              </div>
                             </div>
+                            <div className="text-[10px] text-muted-foreground truncate">{t('header.compareModelsSubtitle') || 'Visualização lado a lado'}</div>
                           </div>
-                          <div className="text-[10px] text-muted-foreground truncate">PowerShell & comandos</div>
-                        </div>
-                      </button>
+                        </button>
 
-                      
+                        <div className="my-1 border-t border-border/60" />
 
-                      {/* Workspace File Explorer */}
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setIsToolsDropdownOpen(false);
-                          setIsExplorerOpen(!isExplorerOpen);
-                        }}
-                        className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-muted/80 text-foreground transition-colors text-left cursor-pointer"
-                      >
-                        <FolderTree className="w-4 h-4 text-amber-500 shrink-0" />
-                        <div className="flex-1 min-w-0">
-                          <div className="font-semibold text-foreground flex items-center justify-between gap-1">
-                            <span>{t('header.workspaceExplorer') || 'Explorador de Arquivos'}</span>
-                            <div className="flex items-center gap-1.5 shrink-0">
-                              <kbd className="px-1.5 py-0.5 rounded bg-muted/80 text-[10px] font-mono font-medium border border-border/60 text-muted-foreground">{modKey}+Shift+E</kbd>
-                              {isExplorerOpen && <span className="px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-600 dark:text-amber-400 text-[10px] font-mono font-semibold">Aberto</span>}
+                        {/* Terminal Workspace */}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIsToolsDropdownOpen(false);
+                            setIsTerminalOpen(!isTerminalOpen);
+                          }}
+                          className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-muted/80 text-foreground transition-colors text-left"
+                        >
+                          <Terminal className="w-4 h-4 text-emerald-500 shrink-0" />
+                          <div className="flex-1 min-w-0">
+                            <div className="font-semibold text-foreground flex items-center justify-between gap-1">
+                              <span>Terminal Shell</span>
+                              <div className="flex items-center gap-1.5 shrink-0">
+                                <kbd className="px-1.5 py-0.5 rounded bg-muted/80 text-[10px] font-mono font-medium border border-border/60 text-muted-foreground">{modKey}+`</kbd>
+                                {isTerminalOpen && <span className="px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-[10px] font-mono font-semibold">Aberto</span>}
+                              </div>
                             </div>
+                            <div className="text-[10px] text-muted-foreground truncate">PowerShell & comandos</div>
                           </div>
-                          <div className="text-[10px] text-muted-foreground truncate">{t('header.workspaceExplorerSubtitle') || 'Estrutura de pastas e arquivos'}</div>
-                        </div>
-                      </button>
+                        </button>
 
-                      {/* Canvas Workspace */}
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setIsToolsDropdownOpen(false);
-                          handleToggleCanvas();
-                        }}
-                        className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-muted/80 text-foreground transition-colors text-left"
-                      >
-                        <PenSquare className="w-4 h-4 text-primary shrink-0" />
-                        <div className="flex-1 min-w-0">
-                          <div className="font-semibold text-foreground flex items-center justify-between gap-1">
-                            <span>Espaço Canvas</span>
-                            <div className="flex items-center gap-1.5 shrink-0">
-                              <kbd className="px-1.5 py-0.5 rounded bg-muted/80 text-[10px] font-mono font-medium border border-border/60 text-muted-foreground">{modKey}+Shift+C</kbd>
-                              {isCanvasOpen && <span className="px-1.5 py-0.5 rounded bg-primary/20 text-primary text-[10px] font-mono font-semibold">Aberto</span>}
+
+
+                        {/* Workspace File Explorer */}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIsToolsDropdownOpen(false);
+                            setIsExplorerOpen(!isExplorerOpen);
+                          }}
+                          className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-muted/80 text-foreground transition-colors text-left cursor-pointer"
+                        >
+                          <FolderTree className="w-4 h-4 text-amber-500 shrink-0" />
+                          <div className="flex-1 min-w-0">
+                            <div className="font-semibold text-foreground flex items-center justify-between gap-1">
+                              <span>{t('header.workspaceExplorer') || 'Explorador de Arquivos'}</span>
+                              <div className="flex items-center gap-1.5 shrink-0">
+                                <kbd className="px-1.5 py-0.5 rounded bg-muted/80 text-[10px] font-mono font-medium border border-border/60 text-muted-foreground">{modKey}+Shift+E</kbd>
+                                {isExplorerOpen && <span className="px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-600 dark:text-amber-400 text-[10px] font-mono font-semibold">Aberto</span>}
+                              </div>
                             </div>
+                            <div className="text-[10px] text-muted-foreground truncate">{t('header.workspaceExplorerSubtitle') || 'Estrutura de pastas e arquivos'}</div>
                           </div>
-                          <div className="text-[10px] text-muted-foreground truncate">Editor lado a lado</div>
-                        </div>
-                      </button>
+                        </button>
 
-                      {/* In-App Browser */}
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setIsToolsDropdownOpen(false);
-                          setIsBrowserOpen(!isBrowserOpen);
-                        }}
-                        className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-muted/80 text-foreground transition-colors text-left"
-                      >
-                        <Globe className="w-4 h-4 text-blue-500 shrink-0" />
-                        <div className="flex-1 min-w-0">
-                          <div className="font-semibold text-foreground flex items-center justify-between gap-1">
-                            <span>Navegador Web</span>
-                            <div className="flex items-center gap-1.5 shrink-0">
-                              <kbd className="px-1.5 py-0.5 rounded bg-muted/80 text-[10px] font-mono font-medium border border-border/60 text-muted-foreground">{modKey}+Shift+B</kbd>
-                              {isBrowserOpen && <span className="px-1.5 py-0.5 rounded bg-blue-500/20 text-blue-600 dark:text-blue-400 text-[10px] font-mono font-semibold">Aberto</span>}
+                        {/* Canvas Workspace */}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIsToolsDropdownOpen(false);
+                            handleToggleCanvas();
+                          }}
+                          className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-muted/80 text-foreground transition-colors text-left"
+                        >
+                          <PenSquare className="w-4 h-4 text-primary shrink-0" />
+                          <div className="flex-1 min-w-0">
+                            <div className="font-semibold text-foreground flex items-center justify-between gap-1">
+                              <span>Espaço Canvas</span>
+                              <div className="flex items-center gap-1.5 shrink-0">
+                                <kbd className="px-1.5 py-0.5 rounded bg-muted/80 text-[10px] font-mono font-medium border border-border/60 text-muted-foreground">{modKey}+Shift+C</kbd>
+                                {isCanvasOpen && <span className="px-1.5 py-0.5 rounded bg-primary/20 text-primary text-[10px] font-mono font-semibold">Aberto</span>}
+                              </div>
                             </div>
+                            <div className="text-[10px] text-muted-foreground truncate">Editor lado a lado</div>
                           </div>
-                          <div className="text-[10px] text-muted-foreground truncate">Painel embutido</div>
-                        </div>
-                      </button>
+                        </button>
 
-                      {/* Background Tasks */}
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setIsToolsDropdownOpen(false);
-                          setIsTasksOpen(!isTasksOpen);
-                        }}
-                        className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-muted/80 text-foreground transition-colors text-left"
-                      >
-                        <Clock className="w-4 h-4 text-cyan-500 shrink-0" />
-                        <div className="flex-1 min-w-0">
-                          <div className="font-semibold text-foreground flex items-center justify-between gap-1">
-                            <span>Tarefas em Segundo Plano</span>
-                            <div className="flex items-center gap-1.5 shrink-0">
-                              {runningTasksCount > 0 && (
-                                <span className="px-1.5 py-0.5 rounded-full bg-blue-500 text-white text-[9px] font-bold">
-                                  {runningTasksCount}
-                                </span>
-                              )}
-                              <kbd className="px-1.5 py-0.5 rounded bg-muted/80 text-[10px] font-mono font-medium border border-border/60 text-muted-foreground">{modKey}+Shift+T</kbd>
-                              {isTasksOpen && (
-                                <span className="px-1.5 py-0.5 rounded bg-cyan-500/20 text-cyan-600 dark:text-cyan-400 text-[10px] font-mono font-semibold">Aberto</span>
-                              )}
+                        {/* In-App Browser */}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIsToolsDropdownOpen(false);
+                            setIsBrowserOpen(!isBrowserOpen);
+                          }}
+                          className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-muted/80 text-foreground transition-colors text-left"
+                        >
+                          <Globe className="w-4 h-4 text-blue-500 shrink-0" />
+                          <div className="flex-1 min-w-0">
+                            <div className="font-semibold text-foreground flex items-center justify-between gap-1">
+                              <span>Navegador Web</span>
+                              <div className="flex items-center gap-1.5 shrink-0">
+                                <kbd className="px-1.5 py-0.5 rounded bg-muted/80 text-[10px] font-mono font-medium border border-border/60 text-muted-foreground">{modKey}+Shift+B</kbd>
+                                {isBrowserOpen && <span className="px-1.5 py-0.5 rounded bg-blue-500/20 text-blue-600 dark:text-blue-400 text-[10px] font-mono font-semibold">Aberto</span>}
+                              </div>
                             </div>
+                            <div className="text-[10px] text-muted-foreground truncate">Painel embutido</div>
                           </div>
-                          <div className="text-[10px] text-muted-foreground truncate">Processos e tarefas ativas</div>
-                        </div>
-                      </button>
+                        </button>
 
-                      {/* Code Interpreter */}
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setIsToolsDropdownOpen(false);
-                          handleToggleCodeInterpreter();
-                        }}
-                        className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-muted/80 text-foreground transition-colors text-left"
-                      >
-                        <Terminal className="w-4 h-4 text-violet-500 shrink-0" />
-                        <div className="flex-1 min-w-0">
-                          <div className="font-semibold text-foreground flex items-center justify-between gap-1">
-                            <span>{t('header.codeInterpreter') || 'Interpretador de Código'}</span>
-                            <div className="flex items-center gap-1.5 shrink-0">
-                              <kbd className="px-1.5 py-0.5 rounded bg-muted/80 text-[10px] font-mono font-medium border border-border/60 text-muted-foreground">{modKey}+Shift+X</kbd>
-                              {activeArtifact && activeArtifact.id === 'code_interpreter' && <span className="px-1.5 py-0.5 rounded bg-violet-500/20 text-violet-600 dark:text-violet-400 text-[10px] font-mono font-semibold">Aberto</span>}
+                        {/* Background Tasks */}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIsToolsDropdownOpen(false);
+                            setIsTasksOpen(!isTasksOpen);
+                          }}
+                          className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-muted/80 text-foreground transition-colors text-left"
+                        >
+                          <Clock className="w-4 h-4 text-cyan-500 shrink-0" />
+                          <div className="flex-1 min-w-0">
+                            <div className="font-semibold text-foreground flex items-center justify-between gap-1">
+                              <span>Tarefas em Segundo Plano</span>
+                              <div className="flex items-center gap-1.5 shrink-0">
+                                {runningTasksCount > 0 && (
+                                  <span className="px-1.5 py-0.5 rounded-full bg-blue-500 text-white text-[9px] font-bold">
+                                    {runningTasksCount}
+                                  </span>
+                                )}
+                                <kbd className="px-1.5 py-0.5 rounded bg-muted/80 text-[10px] font-mono font-medium border border-border/60 text-muted-foreground">{modKey}+Shift+T</kbd>
+                                {isTasksOpen && (
+                                  <span className="px-1.5 py-0.5 rounded bg-cyan-500/20 text-cyan-600 dark:text-cyan-400 text-[10px] font-mono font-semibold">Aberto</span>
+                                )}
+                              </div>
                             </div>
+                            <div className="text-[10px] text-muted-foreground truncate">Processos e tarefas ativas</div>
                           </div>
-                          <div className="text-[10px] text-muted-foreground truncate">Python & JavaScript interativo</div>
-                        </div>
-                      </button>
+                        </button>
 
-                      {/* Created Artifacts */}
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setIsToolsDropdownOpen(false);
-                          handleToggleArtifacts();
-                        }}
-                        className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-muted/80 text-foreground transition-colors text-left cursor-pointer"
-                      >
-                        <Sparkles className="w-4 h-4 text-violet-500 shrink-0" />
-                        <div className="flex-1 min-w-0">
-                          <div className="font-semibold text-foreground flex items-center justify-between gap-1">
-                            <span>{t('artifacts.toolsMenuTitle') || 'Artefatos Criados'}</span>
-                            <div className="flex items-center gap-1.5 shrink-0">
-                              {artifacts.length > 0 && (
-                                <span className="px-1.5 py-0.5 rounded-full bg-violet-500 text-white text-[9px] font-bold">
-                                  {artifacts.length}
-                                </span>
-                              )}
-                              <kbd className="px-1.5 py-0.5 rounded bg-muted/80 text-[10px] font-mono font-medium border border-border/60 text-muted-foreground">{modKey}+Shift+A</kbd>
-                              {activeArtifact && <span className="px-1.5 py-0.5 rounded bg-violet-500/20 text-violet-600 dark:text-violet-400 text-[10px] font-mono font-semibold">Aberto</span>}
+                        {/* Code Interpreter */}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIsToolsDropdownOpen(false);
+                            handleToggleCodeInterpreter();
+                          }}
+                          className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-muted/80 text-foreground transition-colors text-left"
+                        >
+                          <Terminal className="w-4 h-4 text-violet-500 shrink-0" />
+                          <div className="flex-1 min-w-0">
+                            <div className="font-semibold text-foreground flex items-center justify-between gap-1">
+                              <span>{t('header.codeInterpreter') || 'Interpretador de Código'}</span>
+                              <div className="flex items-center gap-1.5 shrink-0">
+                                <kbd className="px-1.5 py-0.5 rounded bg-muted/80 text-[10px] font-mono font-medium border border-border/60 text-muted-foreground">{modKey}+Shift+X</kbd>
+                                {activeArtifact && activeArtifact.id === 'code_interpreter' && <span className="px-1.5 py-0.5 rounded bg-violet-500/20 text-violet-600 dark:text-violet-400 text-[10px] font-mono font-semibold">Aberto</span>}
+                              </div>
                             </div>
+                            <div className="text-[10px] text-muted-foreground truncate">Python & JavaScript interativo</div>
                           </div>
-                          <div className="text-[10px] text-muted-foreground truncate">{artifacts.length > 0 ? `${artifacts.length} artefato(s) nesta conversa` : (t('artifacts.emptyGallery') || 'Nenhum artefato criado')}</div>
-                        </div>
-                      </button>
+                        </button>
 
-                      <div className="my-1 border-t border-border/60" />
-
-                      {/* MCP Catalog */}
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setIsToolsDropdownOpen(false);
-                          setIsMcpCatalogOpen(true);
-                        }}
-                        className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-muted/80 text-foreground transition-colors text-left"
-                      >
-                        <Store className="w-4 h-4 text-amber-500 shrink-0" />
-                        <div className="flex-1 min-w-0">
-                          <div className="font-semibold text-foreground flex items-center justify-between gap-1">
-                            <span>{t('mcpCatalog.title') || 'Loja MCP'}</span>
-                            <div className="flex items-center gap-1.5 shrink-0">
-                              {isMcpCatalogOpen && <span className="px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-600 dark:text-amber-400 text-[10px] font-mono font-semibold">Aberto</span>}
+                        {/* Created Artifacts */}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIsToolsDropdownOpen(false);
+                            handleToggleArtifacts();
+                          }}
+                          className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-muted/80 text-foreground transition-colors text-left cursor-pointer"
+                        >
+                          <Sparkles className="w-4 h-4 text-violet-500 shrink-0" />
+                          <div className="flex-1 min-w-0">
+                            <div className="font-semibold text-foreground flex items-center justify-between gap-1">
+                              <span>{t('artifacts.toolsMenuTitle') || 'Artefatos Criados'}</span>
+                              <div className="flex items-center gap-1.5 shrink-0">
+                                {artifacts.length > 0 && (
+                                  <span className="px-1.5 py-0.5 rounded-full bg-violet-500 text-white text-[9px] font-bold">
+                                    {artifacts.length}
+                                  </span>
+                                )}
+                                <kbd className="px-1.5 py-0.5 rounded bg-muted/80 text-[10px] font-mono font-medium border border-border/60 text-muted-foreground">{modKey}+Shift+A</kbd>
+                                {activeArtifact && <span className="px-1.5 py-0.5 rounded bg-violet-500/20 text-violet-600 dark:text-violet-400 text-[10px] font-mono font-semibold">Aberto</span>}
+                              </div>
                             </div>
+                            <div className="text-[10px] text-muted-foreground truncate">{artifacts.length > 0 ? `${artifacts.length} artefato(s) nesta conversa` : (t('artifacts.emptyGallery') || 'Nenhum artefato criado')}</div>
                           </div>
-                          <div className="text-[10px] text-muted-foreground truncate">Servidores de ferramentas e integrações</div>
-                        </div>
-                      </button>
+                        </button>
 
-                      {/* User Long-Term Memory */}
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setIsToolsDropdownOpen(false);
-                          if (window.electron?.getSettings) {
-                            window.electron.getSettings().then(s => {
-                              setIsUserMemoryEnabled(s?.userMemory?.enabled !== false);
-                            }).catch(() => {});
-                          }
-                          setIsUserMemoryModalOpen(true);
-                        }}
-                        className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-muted/80 text-foreground transition-colors text-left"
-                      >
-                        <Brain className="w-4 h-4 text-purple-600 dark:text-purple-400 shrink-0" />
-                        <div className="flex-1 min-w-0">
-                          <div className="font-semibold text-foreground flex items-center justify-between gap-1">
-                            <span>{t('memory.title') || 'Memória Persistente'}</span>
-                            <div className="flex items-center gap-1.5 shrink-0">
-                              {isUserMemoryModalOpen && <span className="px-1.5 py-0.5 rounded bg-purple-500/20 text-purple-600 dark:text-purple-400 text-[10px] font-mono font-semibold">Aberto</span>}
+                        <div className="my-1 border-t border-border/60" />
+
+                        {/* MCP Catalog */}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIsToolsDropdownOpen(false);
+                            setIsMcpCatalogOpen(true);
+                          }}
+                          className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-muted/80 text-foreground transition-colors text-left"
+                        >
+                          <Store className="w-4 h-4 text-amber-500 shrink-0" />
+                          <div className="flex-1 min-w-0">
+                            <div className="font-semibold text-foreground flex items-center justify-between gap-1">
+                              <span>{t('mcpCatalog.title') || 'Loja MCP'}</span>
+                              <div className="flex items-center gap-1.5 shrink-0">
+                                {isMcpCatalogOpen && <span className="px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-600 dark:text-amber-400 text-[10px] font-mono font-semibold">Aberto</span>}
+                              </div>
                             </div>
+                            <div className="text-[10px] text-muted-foreground truncate">Servidores de ferramentas e integrações</div>
                           </div>
-                          <div className="text-[10px] text-muted-foreground truncate">Preferências e fatos lembrados pela IA</div>
-                        </div>
-                      </button>
+                        </button>
 
-                      <div className="my-1 border-t border-border/60" />
-
-                      {/* Swarm */}
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setIsToolsDropdownOpen(false);
-                          setIsSwarmModalOpen(true);
-                        }}
-                        className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-muted/80 text-foreground transition-colors text-left"
-                      >
-                        <Bot className="w-4 h-4 text-indigo-500 shrink-0" />
-                        <div className="flex-1 min-w-0">
-                          <div className="font-semibold text-foreground flex items-center justify-between gap-1">
-                            <span>Equipe Swarm</span>
-                            <div className="flex items-center gap-1.5 shrink-0">
-                              {isSwarmModalOpen && <span className="px-1.5 py-0.5 rounded bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 text-[10px] font-mono font-semibold">Aberto</span>}
+                        {/* User Long-Term Memory */}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIsToolsDropdownOpen(false);
+                            if (window.electron?.getSettings) {
+                              window.electron.getSettings().then(s => {
+                                setIsUserMemoryEnabled(s?.userMemory?.enabled !== false);
+                              }).catch(() => { });
+                            }
+                            setIsUserMemoryModalOpen(true);
+                          }}
+                          className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-muted/80 text-foreground transition-colors text-left"
+                        >
+                          <Brain className="w-4 h-4 text-purple-600 dark:text-purple-400 shrink-0" />
+                          <div className="flex-1 min-w-0">
+                            <div className="font-semibold text-foreground flex items-center justify-between gap-1">
+                              <span>{t('memory.title') || 'Memória Persistente'}</span>
+                              <div className="flex items-center gap-1.5 shrink-0">
+                                {isUserMemoryModalOpen && <span className="px-1.5 py-0.5 rounded bg-purple-500/20 text-purple-600 dark:text-purple-400 text-[10px] font-mono font-semibold">Aberto</span>}
+                              </div>
                             </div>
+                            <div className="text-[10px] text-muted-foreground truncate">Preferências e fatos lembrados pela IA</div>
                           </div>
-                          <div className="text-[10px] text-muted-foreground truncate">Multi-agentes autônomos</div>
-                        </div>
-                      </button>
+                        </button>
 
-                      
+                        <div className="my-1 border-t border-border/60" />
 
-                      {/* Workflows */}
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setIsToolsDropdownOpen(false);
-                          setIsWorkflowsOpen(true);
-                        }}
-                        className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-muted/80 text-foreground transition-colors text-left"
-                      >
-                        <Workflow className="w-4 h-4 text-teal-500 shrink-0" />
-                        <div className="flex-1 min-w-0">
-                          <div className="font-semibold text-foreground flex items-center justify-between gap-1">
-                            <span>{t('workflows.title') || 'Workflows'}</span>
-                            <div className="flex items-center gap-1.5 shrink-0">
-                              {isWorkflowsOpen && <span className="px-1.5 py-0.5 rounded bg-teal-500/20 text-teal-600 dark:text-teal-400 text-[10px] font-mono font-semibold">Aberto</span>}
+                        {/* Swarm */}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIsToolsDropdownOpen(false);
+                            setIsSwarmModalOpen(true);
+                          }}
+                          className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-muted/80 text-foreground transition-colors text-left"
+                        >
+                          <Bot className="w-4 h-4 text-indigo-500 shrink-0" />
+                          <div className="flex-1 min-w-0">
+                            <div className="font-semibold text-foreground flex items-center justify-between gap-1">
+                              <span>Equipe Swarm</span>
+                              <div className="flex items-center gap-1.5 shrink-0">
+                                {isSwarmModalOpen && <span className="px-1.5 py-0.5 rounded bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 text-[10px] font-mono font-semibold">Aberto</span>}
+                              </div>
                             </div>
+                            <div className="text-[10px] text-muted-foreground truncate">Multi-agentes autônomos</div>
                           </div>
-                          <div className="text-[10px] text-muted-foreground truncate">Fluxos de trabalho automatizados</div>
-                        </div>
-                      </button>
+                        </button>
 
 
-                     
-                      {/* AI Arena */}
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setIsToolsDropdownOpen(false);
-                          setIsArenaModalOpen(true);
-                        }}
-                        className="w-full flex items-center gap-2.5 px-3 py-1.5 rounded-xl hover:bg-muted/80 text-foreground transition-colors text-left"
-                      >
-                        <Bot className="w-4 h-4 text-orange-400 shrink-0" />
-                        <div className="flex-1 min-w-0">
-                          <div className="font-semibold text-foreground flex items-center justify-between gap-1">
-                            <span>AI Arena & Debate</span>
-                            <div className="flex items-center gap-1.5 shrink-0">
-                              {isArenaModalOpen && <span className="px-1.5 py-0.5 rounded bg-orange-500/20 text-orange-600 dark:text-orange-400 text-[10px] font-mono font-semibold">Aberto</span>}
+
+                        {/* Workflows */}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIsToolsDropdownOpen(false);
+                            setIsWorkflowsOpen(true);
+                          }}
+                          className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-muted/80 text-foreground transition-colors text-left"
+                        >
+                          <Workflow className="w-4 h-4 text-teal-500 shrink-0" />
+                          <div className="flex-1 min-w-0">
+                            <div className="font-semibold text-foreground flex items-center justify-between gap-1">
+                              <span>{t('workflows.title') || 'Workflows'}</span>
+                              <div className="flex items-center gap-1.5 shrink-0">
+                                {isWorkflowsOpen && <span className="px-1.5 py-0.5 rounded bg-teal-500/20 text-teal-600 dark:text-teal-400 text-[10px] font-mono font-semibold">Aberto</span>}
+                              </div>
                             </div>
+                            <div className="text-[10px] text-muted-foreground truncate">Fluxos de trabalho automatizados</div>
                           </div>
-                          <div className="text-[10px] text-muted-foreground truncate">Debate em rodadas & consenso</div>
-                        </div>
-                      </button>
+                        </button>
 
-                      {/* Web Sandbox */}
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setIsToolsDropdownOpen(false);
-                          setIsLiveSandboxOpen(true);
-                        }}
-                        className="w-full flex items-center gap-2.5 px-3 py-1.5 rounded-xl hover:bg-muted/80 text-foreground transition-colors text-left"
-                      >
-                        <LayoutGrid className="w-4 h-4 text-emerald-400 shrink-0" />
-                        <div className="flex-1 min-w-0">
-                          <div className="font-semibold text-foreground flex items-center justify-between gap-1">
-                            <span>Live Dev Sandbox</span>
-                            <div className="flex items-center gap-1.5 shrink-0">
-                              {isLiveSandboxOpen && <span className="px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-[10px] font-mono font-semibold">Aberto</span>}
-                            </div>
-                          </div>
-                          <div className="text-[10px] text-muted-foreground truncate">Preview HTML/Tailwind/React</div>
-                        </div>
-                      </button>
 
-                      {/* Podcast Studio */}
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setIsToolsDropdownOpen(false);
-                          setIsPodcastStudioOpen(true);
-                        }}
-                        className="w-full flex items-center gap-2.5 px-3 py-1.5 rounded-xl hover:bg-muted/80 text-foreground transition-colors text-left"
-                      >
-                        <Radio className="w-4 h-4 text-purple-400 shrink-0" />
-                        <div className="flex-1 min-w-0">
-                          <div className="font-semibold text-foreground flex items-center justify-between gap-1">
-                            <span>Podcast & Audio Studio</span>
-                            <div className="flex items-center gap-1.5 shrink-0">
-                              {isPodcastStudioOpen && <span className="px-1.5 py-0.5 rounded bg-purple-500/20 text-purple-600 dark:text-purple-400 text-[10px] font-mono font-semibold">Aberto</span>}
-                            </div>
-                          </div>
-                          <div className="text-[10px] text-muted-foreground truncate">NotebookLM style 2-hosts TTS</div>
-                        </div>
-                      </button>
 
-                      {/* Knowledge Graph */}
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setIsToolsDropdownOpen(false);
-                          setIsKnowledgeGraphOpen(true);
-                        }}
-                        className="w-full flex items-center gap-2.5 px-3 py-1.5 rounded-xl hover:bg-muted/80 text-foreground transition-colors text-left"
-                      >
-                        <BookOpen className="w-4 h-4 text-blue-400 shrink-0" />
-                        <div className="flex-1 min-w-0">
-                          <div className="font-semibold text-foreground flex items-center justify-between gap-1">
-                            <span>Grafo & Data Studio</span>
-                            <div className="flex items-center gap-1.5 shrink-0">
-                              {isKnowledgeGraphOpen && <span className="px-1.5 py-0.5 rounded bg-blue-500/20 text-blue-600 dark:text-blue-400 text-[10px] font-mono font-semibold">Aberto</span>}
+                        {/* AI Arena */}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIsToolsDropdownOpen(false);
+                            setIsArenaModalOpen(true);
+                          }}
+                          className="w-full flex items-center gap-2.5 px-3 py-1.5 rounded-xl hover:bg-muted/80 text-foreground transition-colors text-left"
+                        >
+                          <Bot className="w-4 h-4 text-orange-400 shrink-0" />
+                          <div className="flex-1 min-w-0">
+                            <div className="font-semibold text-foreground flex items-center justify-between gap-1">
+                              <span>AI Arena & Debate</span>
+                              <div className="flex items-center gap-1.5 shrink-0">
+                                {isArenaModalOpen && <span className="px-1.5 py-0.5 rounded bg-orange-500/20 text-orange-600 dark:text-orange-400 text-[10px] font-mono font-semibold">Aberto</span>}
+                              </div>
                             </div>
+                            <div className="text-[10px] text-muted-foreground truncate">Debate em rodadas & consenso</div>
                           </div>
-                          <div className="text-[10px] text-muted-foreground truncate">Grafo 2D do RAG & gráficos</div>
-                        </div>
-                      </button>
+                        </button>
 
-                      {/* Daily Briefing */}
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setIsToolsDropdownOpen(false);
-                          setIsDailyBriefingOpen(true);
-                        }}
-                        className="w-full flex items-center gap-2.5 px-3 py-1.5 rounded-xl hover:bg-muted/80 text-foreground transition-colors text-left"
-                      >
-                        <Clock className="w-4 h-4 text-amber-400 shrink-0" />
-                        <div className="flex-1 min-w-0">
-                          <div className="font-semibold text-foreground flex items-center justify-between gap-1">
-                            <span>Proactive Daily Briefing</span>
-                            <div className="flex items-center gap-1.5 shrink-0">
-                              {isDailyBriefingOpen && <span className="px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-600 dark:text-amber-400 text-[10px] font-mono font-semibold">Aberto</span>}
+                        {/* Web Sandbox */}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIsToolsDropdownOpen(false);
+                            setIsLiveSandboxOpen(true);
+                          }}
+                          className="w-full flex items-center gap-2.5 px-3 py-1.5 rounded-xl hover:bg-muted/80 text-foreground transition-colors text-left"
+                        >
+                          <LayoutGrid className="w-4 h-4 text-emerald-400 shrink-0" />
+                          <div className="flex-1 min-w-0">
+                            <div className="font-semibold text-foreground flex items-center justify-between gap-1">
+                              <span>Live Dev Sandbox</span>
+                              <div className="flex items-center gap-1.5 shrink-0">
+                                {isLiveSandboxOpen && <span className="px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-[10px] font-mono font-semibold">Aberto</span>}
+                              </div>
                             </div>
+                            <div className="text-[10px] text-muted-foreground truncate">Preview HTML/Tailwind/React</div>
                           </div>
-                          <div className="text-[10px] text-muted-foreground truncate">Resumo matinal inteligente</div>
-                        </div>
-                      </button>
+                        </button>
 
-                      {/* AI News & Discovery */}
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setIsToolsDropdownOpen(false);
-                          setIsNewsDiscoverOpen(true);
-                        }}
-                        className="w-full flex items-center gap-2.5 px-3 py-1.5 rounded-xl hover:bg-muted/80 text-foreground transition-colors text-left"
-                      >
-                        <Compass className="w-4 h-4 text-sky-400 shrink-0" />
-                        <div className="flex-1 min-w-0">
-                          <div className="font-semibold text-foreground flex items-center justify-between gap-1">
-                            <span>Descoberta & Notícias IA</span>
-                            <div className="flex items-center gap-1.5 shrink-0">
-                              {isNewsDiscoverOpen && <span className="px-1.5 py-0.5 rounded bg-sky-500/20 text-sky-600 dark:text-sky-400 text-[10px] font-mono font-semibold">Aberto</span>}
+                        {/* Podcast Studio */}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIsToolsDropdownOpen(false);
+                            setIsPodcastStudioOpen(true);
+                          }}
+                          className="w-full flex items-center gap-2.5 px-3 py-1.5 rounded-xl hover:bg-muted/80 text-foreground transition-colors text-left"
+                        >
+                          <Radio className="w-4 h-4 text-purple-400 shrink-0" />
+                          <div className="flex-1 min-w-0">
+                            <div className="font-semibold text-foreground flex items-center justify-between gap-1">
+                              <span>Podcast & Audio Studio</span>
+                              <div className="flex items-center gap-1.5 shrink-0">
+                                {isPodcastStudioOpen && <span className="px-1.5 py-0.5 rounded bg-purple-500/20 text-purple-600 dark:text-purple-400 text-[10px] font-mono font-semibold">Aberto</span>}
+                              </div>
                             </div>
+                            <div className="text-[10px] text-muted-foreground truncate">NotebookLM style 2-hosts TTS</div>
                           </div>
-                          <div className="text-[10px] text-muted-foreground truncate">Síntese multi-fonte e citações</div>
-                        </div>
-                      </button>
+                        </button>
 
-                       {/* Plugins & Modules Hub */}
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setIsToolsDropdownOpen(false);
-                          setIsPluginsManagerOpen(true);
-                        }}
-                        className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-muted/80 text-foreground transition-colors text-left"
-                      >
-                        <Sparkles className="w-4 h-4 text-indigo-400 shrink-0" />
-                        <div className="flex-1 min-w-0">
-                          <div className="font-semibold text-foreground flex items-center justify-between gap-1">
-                            <span>Módulos & Extensões</span>
-                            <div className="flex items-center gap-1.5 shrink-0">
-                              <span className="px-1.5 py-0.5 rounded bg-indigo-500/20 text-indigo-400 text-[9px] font-semibold">Hub</span>
-                              {isPluginsManagerOpen && <span className="px-1.5 py-0.5 rounded bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 text-[10px] font-mono font-semibold">Aberto</span>}
+                        {/* Knowledge Graph */}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIsToolsDropdownOpen(false);
+                            setIsKnowledgeGraphOpen(true);
+                          }}
+                          className="w-full flex items-center gap-2.5 px-3 py-1.5 rounded-xl hover:bg-muted/80 text-foreground transition-colors text-left"
+                        >
+                          <BookOpen className="w-4 h-4 text-blue-400 shrink-0" />
+                          <div className="flex-1 min-w-0">
+                            <div className="font-semibold text-foreground flex items-center justify-between gap-1">
+                              <span>Grafo & Data Studio</span>
+                              <div className="flex items-center gap-1.5 shrink-0">
+                                {isKnowledgeGraphOpen && <span className="px-1.5 py-0.5 rounded bg-blue-500/20 text-blue-600 dark:text-blue-400 text-[10px] font-mono font-semibold">Aberto</span>}
+                              </div>
                             </div>
+                            <div className="text-[10px] text-muted-foreground truncate">Grafo 2D do RAG & gráficos</div>
                           </div>
-                          <div className="text-[10px] text-muted-foreground truncate">Ativar/desativar módulos (0MB idle)</div>
-                        </div>
-                      </button>
+                        </button>
+
+                        {/* Daily Briefing */}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIsToolsDropdownOpen(false);
+                            setIsDailyBriefingOpen(true);
+                          }}
+                          className="w-full flex items-center gap-2.5 px-3 py-1.5 rounded-xl hover:bg-muted/80 text-foreground transition-colors text-left"
+                        >
+                          <Clock className="w-4 h-4 text-amber-400 shrink-0" />
+                          <div className="flex-1 min-w-0">
+                            <div className="font-semibold text-foreground flex items-center justify-between gap-1">
+                              <span>Proactive Daily Briefing</span>
+                              <div className="flex items-center gap-1.5 shrink-0">
+                                {isDailyBriefingOpen && <span className="px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-600 dark:text-amber-400 text-[10px] font-mono font-semibold">Aberto</span>}
+                              </div>
+                            </div>
+                            <div className="text-[10px] text-muted-foreground truncate">Resumo matinal inteligente</div>
+                          </div>
+                        </button>
+
+                        {/* AI News & Discovery */}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIsToolsDropdownOpen(false);
+                            setIsNewsDiscoverOpen(true);
+                          }}
+                          className="w-full flex items-center gap-2.5 px-3 py-1.5 rounded-xl hover:bg-muted/80 text-foreground transition-colors text-left"
+                        >
+                          <Compass className="w-4 h-4 text-sky-400 shrink-0" />
+                          <div className="flex-1 min-w-0">
+                            <div className="font-semibold text-foreground flex items-center justify-between gap-1">
+                              <span>Descoberta & Notícias IA</span>
+                              <div className="flex items-center gap-1.5 shrink-0">
+                                {isNewsDiscoverOpen && <span className="px-1.5 py-0.5 rounded bg-sky-500/20 text-sky-600 dark:text-sky-400 text-[10px] font-mono font-semibold">Aberto</span>}
+                              </div>
+                            </div>
+                            <div className="text-[10px] text-muted-foreground truncate">Síntese multi-fonte e citações</div>
+                          </div>
+                        </button>
+
+                        {/* Plugins & Modules Hub */}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIsToolsDropdownOpen(false);
+                            setIsPluginsManagerOpen(true);
+                          }}
+                          className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-muted/80 text-foreground transition-colors text-left"
+                        >
+                          <Sparkles className="w-4 h-4 text-indigo-400 shrink-0" />
+                          <div className="flex-1 min-w-0">
+                            <div className="font-semibold text-foreground flex items-center justify-between gap-1">
+                              <span>Módulos & Extensões</span>
+                              <div className="flex items-center gap-1.5 shrink-0">
+                                <span className="px-1.5 py-0.5 rounded bg-indigo-500/20 text-indigo-400 text-[9px] font-semibold">Hub</span>
+                                {isPluginsManagerOpen && <span className="px-1.5 py-0.5 rounded bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 text-[10px] font-mono font-semibold">Aberto</span>}
+                              </div>
+                            </div>
+                            <div className="text-[10px] text-muted-foreground truncate">Ativar/desativar módulos (0MB idle)</div>
+                          </div>
+                        </button>
                       </>
                     )}
 
                     {isPowerUser && <div className="my-1 border-t border-border/60" />}
 
-                    {/* Settings / Configurações */}
-                    <Link
-                      to="/settings"
-                      onClick={() => setIsToolsDropdownOpen(false)}
-                      className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-muted/80 text-foreground transition-colors text-left group"
-                    >
-                      <Settings className="w-4 h-4 text-primary shrink-0 transition-transform duration-300 group-hover:rotate-45" />
-                      <div className="flex-1 min-w-0">
-                        <div className="font-semibold text-foreground flex items-center justify-between gap-1">
-                          <span>{t('header.settings') || 'Configurações'}</span>
-                          <kbd className="px-1.5 py-0.5 rounded bg-muted/80 text-[10px] font-mono font-medium border border-border/60 text-muted-foreground">{modKey}+,</kbd>
-                        </div>
-                        <div className="text-[10px] text-muted-foreground truncate">{t('header.settingsSubtitle') || 'Preferências, provedores, chaves e sistema'}</div>
-                      </div>
-                    </Link>
+
 
                     {/* Command Palette */}
                     <button
@@ -3599,773 +3609,780 @@ function App() {
           </div>
         </header>
 
-      {/* Floating Agent Execution Tracker Banner */}
-      {agentStep > 0 && (
-        <div className="fixed top-14 left-1/2 -translate-x-1/2 z-30 flex items-center gap-2.5 px-4 py-2 rounded-full bg-amber-500/15 border border-amber-500/40 backdrop-blur-md shadow-xl text-xs text-amber-700 dark:text-amber-300 animate-in slide-in-from-top-4 duration-300">
-          <Bot className="w-4 h-4 animate-bounce text-amber-500" />
-          <span className="font-semibold">Modo Agente Autônomo</span>
-          <span className="opacity-60">•</span>
-           <span>Passo {agentStep} de {isAgentRunning ? 25 : 12}</span>
-          <button
-            type="button"
-            onClick={handleStopGeneration}
-            className="ml-2 px-2 py-0.5 rounded-full bg-destructive text-destructive-foreground hover:bg-destructive/90 text-[10.5px] font-medium transition-colors"
-          >
-            Interromper
-          </button>
-        </div>
-      )}
+        {/* Floating Agent Execution Tracker Banner */}
+        {agentStep > 0 && (
+          <div className="fixed top-14 left-1/2 -translate-x-1/2 z-30 flex items-center gap-2.5 px-4 py-2 rounded-full bg-amber-500/15 border border-amber-500/40 backdrop-blur-md shadow-xl text-xs text-amber-700 dark:text-amber-300 animate-in slide-in-from-top-4 duration-300">
+            <Bot className="w-4 h-4 animate-bounce text-amber-500" />
+            <span className="font-semibold">Modo Agente Autônomo</span>
+            <span className="opacity-60">•</span>
+            <span>Passo {agentStep} de {isAgentRunning ? 25 : 12}</span>
+            <button
+              type="button"
+              onClick={handleStopGeneration}
+              className="ml-2 px-2 py-0.5 rounded-full bg-destructive text-destructive-foreground hover:bg-destructive/90 text-[10.5px] font-medium transition-colors"
+            >
+              Interromper
+            </button>
+          </div>
+        )}
 
-      {/* Main Content */}
-      <div className="flex-1 flex overflow-hidden">
-        <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-          <div className="flex-1 overflow-y-auto custom-scrollbar">
-            <div className={cn(
-              "mx-auto h-full transition-all duration-200",
-              chatWidth === 'wide'
-                ? "max-w-4xl lg:max-w-5xl xl:max-w-5xl py-6 px-4 sm:px-6 w-full"
-                : "max-w-[1600px] w-full py-6 px-6 sm:px-8"
-            )}>
-              <div className="h-full">
-              {isCompareMode ? (
-                /* Multi-Model Compare View */
-                <div className="flex flex-col h-full min-h-0">
-                  <div className="flex-1 overflow-hidden min-h-0 mb-4">
-                    <Suspense fallback={<div className="flex items-center justify-center h-full p-8"><div className="w-5 h-5 border-2 border-primary border-t-transparent rounded-full animate-spin" /></div>}>
-                      <CompareChatView
-                        modelA={compareModelA}
-                        modelB={compareModelB}
-                        onModelAChange={setCompareModelA}
-                        onModelBChange={setCompareModelB}
-                        availableModels={sortedModels.map(id => ({ id, displayName: modelConfigs[id]?.displayName || id }))}
-                        streamStateA={streamStateA}
-                        streamStateB={streamStateB}
-                        onSelectWinningResponse={handleSelectWinningResponse}
-                        onPreviewArtifact={(art) => setActiveArtifact(art)}
-                        onClose={() => setIsCompareMode(false)}
-                      />
-                    </Suspense>
-                  </div>
-                  <div className="flex-shrink-0 bg-background/95 backdrop-blur pt-3 w-full">
-                    <ChatInput
-                      messages={messages}
-                      onSendMessage={handleSendMessage}
-                      onStopGeneration={handleStopGeneration}
-                      loading={streamStateA.isLoading || streamStateB.isLoading}
-                      visionSupported={visionSupported}
-                      models={sortedModels}
-                      selectedModel={selectedModel}
-                      onModelChange={setSelectedModel}
-                      onOpenMcpTools={() => setIsToolsPanelOpen(true)}
-                      onOpenSkillsModal={() => handleOpenSkillsModal('installed')}
-                      toolsCount={mcpTools.length}
-                      modelConfigs={modelConfigs}
-                      focusSignal={chatFocusSignal}
-                      onModelConfigUpdated={handleModelConfigUpdated}
-                      powerUserMode={isPowerUser}
-                      showButtonLabels={showButtonLabels}
-                      harnessMode={harnessMode}
-                      onModeChange={handleModeChange}
-                      agentHarness={agentHarness}
-                      onHarnessChange={handleAgentHarnessChange}
-                      workspaceInfo={workspaceInfo}
-                      onSelectWorkspace={handleSelectWorkspace}
-                      favoriteModels={favoriteModels}
-                      onToggleFavoriteModel={handleToggleFavoriteModel}
-                      onConfigureModel={() => setIsModelParamsModalOpen(true)}
-                    />
-                  </div>
-                </div>
-              ) : (messages.length === 0 && activeTab === 'chat') ? (
-                /* Welcome Screen */
-                <div className={cn(
-                  "flex flex-col items-center justify-center h-full mx-auto w-full px-4 py-6 overflow-y-auto",
-                  chatWidth === 'wide' ? "max-w-4xl lg:max-w-5xl" : "max-w-[1600px]"
-                )}>
-                  <WelcomeScreen
-                    showTips={showWelcomeTips}
-                    showSuggestions={showWelcomeSuggestions}
-                    hasNoModels={initialLoadComplete && sortedModels.length === 0}
-                    onSelectPrompt={(promptText) => {
-                      setPresetInputMessage(promptText);
-                      setChatFocusSignal(prev => prev + 1);
-                    }}
-                  />
-                  {/* Chat Input */}
-                  <div className="w-full">
-                    <ChatInput
-                      messages={messages}
-                      onSendMessage={(msg, opts) => {
-                        setPresetInputMessage('');
-                        handleSendMessage(msg, opts);
-                      }}
-                      onStopGeneration={handleStopGeneration}
-                      loading={loading}
-                      visionSupported={visionSupported}
-                      models={sortedModels}
-                      selectedModel={selectedModel}
-                      onModelChange={setSelectedModel}
-                      onOpenMcpTools={() => setIsToolsPanelOpen(true)}
-                      onOpenSkillsModal={() => handleOpenSkillsModal('installed')}
-                      toolsCount={mcpTools.length}
-                      modelConfigs={modelConfigs}
-                      focusSignal={chatFocusSignal}
-                      onModelConfigUpdated={handleModelConfigUpdated}
-                      powerUserMode={isPowerUser}
-                      showButtonLabels={showButtonLabels}
-                      presetMessage={presetInputMessage}
-                      harnessMode={harnessMode}
-                      onModeChange={handleModeChange}
-                      agentHarness={agentHarness}
-                      onHarnessChange={handleAgentHarnessChange}
-                      workspaceInfo={workspaceInfo}
-                      onSelectWorkspace={handleSelectWorkspace}
-                      favoriteModels={favoriteModels}
-                      onToggleFavoriteModel={handleToggleFavoriteModel}
-                      activePersona={activePersona}
-                      onConfigureModel={() => setIsModelParamsModalOpen(true)}
-                    />
-                  </div>
-                </div>
-              ) : (activeTab === 'trajectory') ? (
-                /* Trajectory View */
-                <div className="flex flex-col h-full min-h-0">
-                  <div className="flex-1 overflow-hidden min-h-0 mb-4">
-                    <Suspense fallback={<div className="flex items-center justify-center h-full p-8"><div className="w-5 h-5 border-2 border-primary border-t-transparent rounded-full animate-spin" /></div>}>
-                      <TrajectoryView
-                        messages={messages}
-                        currentChatTitle={currentChatTitle}
-                        activeProject={activeProject}
-                        activePersona={activePersona}
-                        workspaceInfo={workspaceInfo}
-                        harnessMode={harnessMode}
-                        canvasDoc={canvasDoc}
-                        selectedText={selectedText}
-                        selectedModel={selectedModel}
-                        mcpTools={mcpTools}
-                        loading={loading}
-                        onPreviewArtifact={(art) => setActiveArtifact(art)}
-                        onOpenMcpTools={() => setIsToolsPanelOpen(true)}
-                        onRollback={handleRollback}
-                        onClose={() => setActiveTab('chat')}
-                      />
-                    </Suspense>
-                  </div>
-
-                  <div className="flex-shrink-0 bg-background/95 backdrop-blur pt-3 w-full">
-                    <ChatInput
-                      messages={messages}
-                      onSendMessage={handleSendMessage}
-                      onStopGeneration={handleStopGeneration}
-                      loading={loading}
-                      visionSupported={visionSupported}
-                      models={sortedModels}
-                      selectedModel={selectedModel}
-                      onModelChange={setSelectedModel}
-                      onOpenMcpTools={() => setIsToolsPanelOpen(true)}
-                      onOpenSkillsModal={() => handleOpenSkillsModal('installed')}
-                      toolsCount={mcpTools.length}
-                      modelConfigs={modelConfigs}
-                      focusSignal={chatFocusSignal}
-                      onModelConfigUpdated={handleModelConfigUpdated}
-                      powerUserMode={isPowerUser}
-                      showButtonLabels={showButtonLabels}
-                      harnessMode={harnessMode}
-                      onModeChange={handleModeChange}
-                      agentHarness={agentHarness}
-                      onHarnessChange={handleAgentHarnessChange}
-                      workspaceInfo={workspaceInfo}
-                      onSelectWorkspace={handleSelectWorkspace}
-                      favoriteModels={favoriteModels}
-                      onToggleFavoriteModel={handleToggleFavoriteModel}
-                      activePersona={activePersona}
-                      onConfigureModel={() => setIsModelParamsModalOpen(true)}
-                    />
-                  </div>
-                </div>
-              ) : (
-                /* Chat View */
-                <div className="flex flex-col h-full min-h-0 relative">
-                  {initialLoadComplete && sortedModels.length === 0 && (
-                    <div className="mb-4 p-3.5 rounded-2xl bg-amber-500/10 dark:bg-amber-500/15 border border-amber-500/30 text-foreground shadow-sm animate-in fade-in duration-300 flex items-center justify-between gap-3 shrink-0">
-                      <div className="flex items-center gap-2.5 min-w-0">
-                        <Key className="w-4 h-4 text-amber-500 shrink-0" />
-                        <span className="text-xs text-foreground/90 font-medium truncate">
-                          {t('chat.noModelsAlert')}
-                        </span>
+        {/* Main Content */}
+        <div className="flex-1 flex overflow-hidden">
+          <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
+            <div className="flex-1 overflow-y-auto custom-scrollbar">
+              <div className={cn(
+                "mx-auto h-full transition-all duration-200",
+                chatWidth === 'wide'
+                  ? "max-w-4xl lg:max-w-5xl xl:max-w-5xl py-6 px-4 sm:px-6 w-full"
+                  : "max-w-[1600px] w-full py-6 px-6 sm:px-8"
+              )}>
+                <div className="h-full">
+                  {isCompareMode ? (
+                    /* Multi-Model Compare View */
+                    <div className="flex flex-col h-full min-h-0">
+                      <div className="flex-1 overflow-hidden min-h-0 mb-4">
+                        <Suspense fallback={<div className="flex items-center justify-center h-full p-8"><div className="w-5 h-5 border-2 border-primary border-t-transparent rounded-full animate-spin" /></div>}>
+                          <CompareChatView
+                            modelA={compareModelA}
+                            modelB={compareModelB}
+                            onModelAChange={setCompareModelA}
+                            onModelBChange={setCompareModelB}
+                            availableModels={sortedModels.map(id => ({ id, displayName: modelConfigs[id]?.displayName || id }))}
+                            streamStateA={streamStateA}
+                            streamStateB={streamStateB}
+                            onSelectWinningResponse={handleSelectWinningResponse}
+                            onPreviewArtifact={(art) => setActiveArtifact(art)}
+                            onClose={() => setIsCompareMode(false)}
+                          />
+                        </Suspense>
                       </div>
-                      <Link
-                        to="/settings"
-                        className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-amber-600 hover:bg-amber-700 text-white dark:bg-amber-500 dark:hover:bg-amber-600 text-xs font-medium transition-colors shrink-0 shadow-2xs"
-                      >
-                        <Key className="w-3 h-3" />
-                        <span>{t('common.goToSettings')}</span>
-                      </Link>
+                      <div className="flex-shrink-0 bg-background/95 backdrop-blur pt-3 w-full">
+                        <ChatInput
+                          messages={messages}
+                          onSendMessage={handleSendMessage}
+                          onStopGeneration={handleStopGeneration}
+                          loading={streamStateA.isLoading || streamStateB.isLoading}
+                          visionSupported={visionSupported}
+                          models={sortedModels}
+                          selectedModel={selectedModel}
+                          onModelChange={setSelectedModel}
+                          onOpenMcpTools={() => setIsToolsPanelOpen(true)}
+                          onOpenSkillsModal={() => handleOpenSkillsModal('installed')}
+                          mcpTools={mcpTools}
+                          toolsCount={mcpTools.length}
+                          modelConfigs={modelConfigs}
+                          focusSignal={chatFocusSignal}
+                          onModelConfigUpdated={handleModelConfigUpdated}
+                          powerUserMode={isPowerUser}
+                          showButtonLabels={showButtonLabels}
+                          harnessMode={harnessMode}
+                          onModeChange={handleModeChange}
+                          agentHarness={agentHarness}
+                          onHarnessChange={handleAgentHarnessChange}
+                          workspaceInfo={workspaceInfo}
+                          onSelectWorkspace={handleSelectWorkspace}
+                          favoriteModels={favoriteModels}
+                          onToggleFavoriteModel={handleToggleFavoriteModel}
+                          onConfigureModel={() => setIsModelParamsModalOpen(true)}
+                        />
+                      </div>
                     </div>
-                  )}
-
-                  {/* Active Bot Conversation Banner (Hermes Agent Style) */}
-                  {activeBot && (
-                    <div className="mb-2 px-3.5 py-2 rounded-xl bg-card/90 backdrop-blur-md border border-primary/30 shadow-xs flex items-center justify-between gap-3 shrink-0 animate-in fade-in duration-200">
-                      <div className="flex items-center gap-2.5 min-w-0">
-                        <BotAvatar persona={activeBot} className="w-8 h-8 rounded-xl shadow-2xs" iconClassName="w-4 h-4" />
-                        <div className="min-w-0">
-                          <div className="flex items-center gap-1.5 flex-wrap">
-                            <span className="text-xs font-bold text-foreground truncate">{activeBot.name}</span>
-                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" title="Online" />
-                            <span className="text-[10px] px-1.5 py-0.2 rounded-full font-mono bg-primary/10 text-primary border border-primary/20">
-                              Hermes Agent
-                            </span>
-                            {activeBot.vmConfig?.enabled !== false && (
-                              <span className="text-[10px] px-1.5 py-0.2 rounded-full font-mono bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 flex items-center gap-1">
-                                💻 {activeBot.vmConfig?.type?.toUpperCase() || 'SANDBOX'} VM
-                              </span>
-                            )}
-                            {activeBot.preferredModel && (
-                              <span className="text-[10px] px-1.5 py-0.2 rounded-md font-mono bg-muted text-muted-foreground truncate max-w-[120px]">
-                                {activeBot.preferredModel}
-                              </span>
-                            )}
-                          </div>
-                          <p className="text-[11px] text-muted-foreground truncate mt-0.5">{activeBot.description}</p>
-                        </div>
+                  ) : (messages.length === 0 && activeTab === 'chat') ? (
+                    /* Welcome Screen */
+                    <div className={cn(
+                      "flex flex-col items-center justify-center h-full mx-auto w-full px-4 py-6 overflow-y-auto",
+                      chatWidth === 'wide' ? "max-w-4xl lg:max-w-5xl" : "max-w-[1600px]"
+                    )}>
+                      <WelcomeScreen
+                        showTips={showWelcomeTips}
+                        showSuggestions={showWelcomeSuggestions}
+                        hasNoModels={initialLoadComplete && sortedModels.length === 0}
+                        onSelectPrompt={(promptText) => {
+                          setPresetInputMessage(promptText);
+                          setChatFocusSignal(prev => prev + 1);
+                        }}
+                      />
+                      {/* Chat Input */}
+                      <div className="w-full">
+                        <ChatInput
+                          messages={messages}
+                          onSendMessage={(msg, opts) => {
+                            setPresetInputMessage('');
+                            handleSendMessage(msg, opts);
+                          }}
+                          onStopGeneration={handleStopGeneration}
+                          loading={loading}
+                          visionSupported={visionSupported}
+                          models={sortedModels}
+                          selectedModel={selectedModel}
+                          onModelChange={setSelectedModel}
+                          onOpenMcpTools={() => setIsToolsPanelOpen(true)}
+                          onOpenSkillsModal={() => handleOpenSkillsModal('installed')}
+                          mcpTools={mcpTools}
+                          toolsCount={mcpTools.length}
+                          modelConfigs={modelConfigs}
+                          focusSignal={chatFocusSignal}
+                          onModelConfigUpdated={handleModelConfigUpdated}
+                          powerUserMode={isPowerUser}
+                          showButtonLabels={showButtonLabels}
+                          presetMessage={presetInputMessage}
+                          harnessMode={harnessMode}
+                          onModeChange={handleModeChange}
+                          agentHarness={agentHarness}
+                          onHarnessChange={handleAgentHarnessChange}
+                          workspaceInfo={workspaceInfo}
+                          onSelectWorkspace={handleSelectWorkspace}
+                          favoriteModels={favoriteModels}
+                          onToggleFavoriteModel={handleToggleFavoriteModel}
+                          activePersona={activePersona}
+                          onConfigureModel={() => setIsModelParamsModalOpen(true)}
+                        />
                       </div>
-                      <div className="flex items-center gap-1.5 shrink-0">
-                        {activeBot.vmConfig?.enabled !== false && (
+                    </div>
+                  ) : (activeTab === 'trajectory') ? (
+                    /* Trajectory View */
+                    <div className="flex flex-col h-full min-h-0">
+                      <div className="flex-1 overflow-hidden min-h-0 mb-4">
+                        <Suspense fallback={<div className="flex items-center justify-center h-full p-8"><div className="w-5 h-5 border-2 border-primary border-t-transparent rounded-full animate-spin" /></div>}>
+                          <TrajectoryView
+                            messages={messages}
+                            currentChatTitle={currentChatTitle}
+                            activeProject={activeProject}
+                            activePersona={activePersona}
+                            workspaceInfo={workspaceInfo}
+                            harnessMode={harnessMode}
+                            canvasDoc={canvasDoc}
+                            selectedText={selectedText}
+                            selectedModel={selectedModel}
+                            mcpTools={mcpTools}
+                            loading={loading}
+                            onPreviewArtifact={(art) => setActiveArtifact(art)}
+                            onOpenMcpTools={() => setIsToolsPanelOpen(true)}
+                            onRollback={handleRollback}
+                            onClose={() => setActiveTab('chat')}
+                          />
+                        </Suspense>
+                      </div>
+
+                      <div className="flex-shrink-0 bg-background/95 backdrop-blur pt-3 w-full">
+                        <ChatInput
+                          messages={messages}
+                          onSendMessage={handleSendMessage}
+                          onStopGeneration={handleStopGeneration}
+                          loading={loading}
+                          visionSupported={visionSupported}
+                          models={sortedModels}
+                          selectedModel={selectedModel}
+                          onModelChange={setSelectedModel}
+                          onOpenMcpTools={() => setIsToolsPanelOpen(true)}
+                          onOpenSkillsModal={() => handleOpenSkillsModal('installed')}
+                          mcpTools={mcpTools}
+                          toolsCount={mcpTools.length}
+                          modelConfigs={modelConfigs}
+                          focusSignal={chatFocusSignal}
+                          onModelConfigUpdated={handleModelConfigUpdated}
+                          powerUserMode={isPowerUser}
+                          showButtonLabels={showButtonLabels}
+                          harnessMode={harnessMode}
+                          onModeChange={handleModeChange}
+                          agentHarness={agentHarness}
+                          onHarnessChange={handleAgentHarnessChange}
+                          workspaceInfo={workspaceInfo}
+                          onSelectWorkspace={handleSelectWorkspace}
+                          favoriteModels={favoriteModels}
+                          onToggleFavoriteModel={handleToggleFavoriteModel}
+                          activePersona={activePersona}
+                          onConfigureModel={() => setIsModelParamsModalOpen(true)}
+                        />
+                      </div>
+                    </div>
+                  ) : (
+                    /* Chat View */
+                    <div className="flex flex-col h-full min-h-0 relative">
+                      {initialLoadComplete && sortedModels.length === 0 && (
+                        <div className="mb-4 p-3.5 rounded-2xl bg-amber-500/10 dark:bg-amber-500/15 border border-amber-500/30 text-foreground shadow-sm animate-in fade-in duration-300 flex items-center justify-between gap-3 shrink-0">
+                          <div className="flex items-center gap-2.5 min-w-0">
+                            <Key className="w-4 h-4 text-amber-500 shrink-0" />
+                            <span className="text-xs text-foreground/90 font-medium truncate">
+                              {t('chat.noModelsAlert')}
+                            </span>
+                          </div>
+                          <Link
+                            to="/settings"
+                            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-amber-600 hover:bg-amber-700 text-white dark:bg-amber-500 dark:hover:bg-amber-600 text-xs font-medium transition-colors shrink-0 shadow-2xs"
+                          >
+                            <Key className="w-3 h-3" />
+                            <span>{t('common.goToSettings')}</span>
+                          </Link>
+                        </div>
+                      )}
+
+                      {/* Active Bot Conversation Banner (Hermes Agent Style) */}
+                      {activeBot && (
+                        <div className="mb-2 px-3.5 py-2 rounded-xl bg-card/90 backdrop-blur-md border border-primary/30 shadow-xs flex items-center justify-between gap-3 shrink-0 animate-in fade-in duration-200">
+                          <div className="flex items-center gap-2.5 min-w-0">
+                            <BotAvatar persona={activeBot} className="w-8 h-8 rounded-xl shadow-2xs" iconClassName="w-4 h-4" />
+                            <div className="min-w-0">
+                              <div className="flex items-center gap-1.5 flex-wrap">
+                                <span className="text-xs font-bold text-foreground truncate">{activeBot.name}</span>
+                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" title="Online" />
+                                <span className="text-[10px] px-1.5 py-0.2 rounded-full font-mono bg-primary/10 text-primary border border-primary/20">
+                                  Hermes Agent
+                                </span>
+                                {activeBot.vmConfig?.enabled !== false && (
+                                  <span className="text-[10px] px-1.5 py-0.2 rounded-full font-mono bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 flex items-center gap-1">
+                                    💻 {activeBot.vmConfig?.type?.toUpperCase() || 'SANDBOX'} VM
+                                  </span>
+                                )}
+                                {activeBot.preferredModel && (
+                                  <span className="text-[10px] px-1.5 py-0.2 rounded-md font-mono bg-muted text-muted-foreground truncate max-w-[120px]">
+                                    {activeBot.preferredModel}
+                                  </span>
+                                )}
+                              </div>
+                              <p className="text-[11px] text-muted-foreground truncate mt-0.5">{activeBot.description}</p>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-1.5 shrink-0">
+                            {activeBot.vmConfig?.enabled !== false && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setBotModalTab('vm');
+                                  setIsBotConfigModalOpen(true);
+                                }}
+                                className="px-2.5 py-1 rounded-lg text-xs font-medium bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 transition-colors flex items-center gap-1.5 cursor-pointer border border-emerald-500/20"
+                                title="Ver e gerenciar a Máquina Virtual deste Bot"
+                              >
+                                <Cpu className="w-3.5 h-3.5" />
+                                <span>VM Própria</span>
+                              </button>
+                            )}
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setBotModalTab('memories');
+                                setIsBotConfigModalOpen(true);
+                              }}
+                              className="px-2.5 py-1 rounded-lg text-xs font-medium bg-purple-500/10 hover:bg-purple-500/20 text-purple-600 dark:text-purple-400 transition-colors flex items-center gap-1.5 cursor-pointer border border-purple-500/20"
+                              title="Ver aprendizados e memórias deste Bot"
+                            >
+                              <Brain className="w-3.5 h-3.5" />
+                              <span>Aprendizados</span>
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setBotModalTab('identity');
+                                setIsBotConfigModalOpen(true);
+                              }}
+                              className="px-2.5 py-1 rounded-lg text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted transition-colors flex items-center gap-1 cursor-pointer"
+                              title="Configurar este Bot"
+                            >
+                              <Sliders className="w-3.5 h-3.5" />
+                              <span>Configurar</span>
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setActiveBot(null);
+                                if (currentChatId) {
+                                  updateChatBotLocally(currentChatId, null);
+                                }
+                              }}
+                              className="p-1 rounded-lg text-xs text-muted-foreground hover:text-foreground hover:bg-muted transition-colors cursor-pointer"
+                              title="Desvincular bot desta conversa"
+                            >
+                              ✕
+                            </button>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Active Persona Banner (Style / Tone Modifier) */}
+                      {activePersona && activePersona.id !== 'none' && activePersona.id !== 'disabled' && (
+                        <div className="mb-2 px-3 py-1.5 rounded-xl bg-card/60 backdrop-blur-xs border border-border/50 shadow-2xs flex items-center justify-between gap-3 shrink-0 animate-in fade-in duration-200">
+                          <div className="flex items-center gap-2 min-w-0">
+                            <span className="text-[11px] font-semibold text-muted-foreground">🎭 Persona:</span>
+                            <span className="text-xs font-bold text-foreground truncate">{activePersona.name}</span>
+                            <p className="text-[10px] text-muted-foreground truncate max-w-sm hidden sm:block">({activePersona.description})</p>
+                          </div>
                           <button
                             type="button"
                             onClick={() => {
-                              setBotModalTab('vm');
-                              setIsBotConfigModalOpen(true);
+                              setActivePersona(null);
+                              if (currentChatId) {
+                                updateChatPersonaLocally(currentChatId, null);
+                              }
                             }}
-                            className="px-2.5 py-1 rounded-lg text-xs font-medium bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 transition-colors flex items-center gap-1.5 cursor-pointer border border-emerald-500/20"
-                            title="Ver e gerenciar a Máquina Virtual deste Bot"
+                            className="px-2 py-0.5 rounded text-[10px] text-muted-foreground hover:text-foreground hover:bg-muted transition-colors cursor-pointer"
+                            title={t('personas.deactivateTitle') || "Desativar persona"}
                           >
-                            <Cpu className="w-3.5 h-3.5" />
-                            <span>VM Própria</span>
+                            ✕
                           </button>
-                        )}
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setBotModalTab('memories');
-                            setIsBotConfigModalOpen(true);
-                          }}
-                          className="px-2.5 py-1 rounded-lg text-xs font-medium bg-purple-500/10 hover:bg-purple-500/20 text-purple-600 dark:text-purple-400 transition-colors flex items-center gap-1.5 cursor-pointer border border-purple-500/20"
-                          title="Ver aprendizados e memórias deste Bot"
-                        >
-                          <Brain className="w-3.5 h-3.5" />
-                          <span>Aprendizados</span>
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setBotModalTab('identity');
-                            setIsBotConfigModalOpen(true);
-                          }}
-                          className="px-2.5 py-1 rounded-lg text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted transition-colors flex items-center gap-1 cursor-pointer"
-                          title="Configurar este Bot"
-                        >
-                          <Sliders className="w-3.5 h-3.5" />
-                          <span>Configurar</span>
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setActiveBot(null);
-                            if (currentChatId) {
-                              updateChatBotLocally(currentChatId, null);
-                            }
-                          }}
-                          className="p-1 rounded-lg text-xs text-muted-foreground hover:text-foreground hover:bg-muted transition-colors cursor-pointer"
-                          title="Desvincular bot desta conversa"
-                        >
-                          ✕
-                        </button>
-                      </div>
-                    </div>
-                  )}
+                        </div>
+                      )}
 
-                  {/* Active Persona Banner (Style / Tone Modifier) */}
-                  {activePersona && activePersona.id !== 'none' && activePersona.id !== 'disabled' && (
-                    <div className="mb-2 px-3 py-1.5 rounded-xl bg-card/60 backdrop-blur-xs border border-border/50 shadow-2xs flex items-center justify-between gap-3 shrink-0 animate-in fade-in duration-200">
-                      <div className="flex items-center gap-2 min-w-0">
-                        <span className="text-[11px] font-semibold text-muted-foreground">🎭 Persona:</span>
-                        <span className="text-xs font-bold text-foreground truncate">{activePersona.name}</span>
-                        <p className="text-[10px] text-muted-foreground truncate max-w-sm hidden sm:block">({activePersona.description})</p>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setActivePersona(null);
-                          if (currentChatId) {
-                            updateChatPersonaLocally(currentChatId, null);
-                          }
-                        }}
-                        className="px-2 py-0.5 rounded text-[10px] text-muted-foreground hover:text-foreground hover:bg-muted transition-colors cursor-pointer"
-                        title={t('personas.deactivateTitle') || "Desativar persona"}
+                      <div
+                        ref={messagesContainerRef}
+                        className="flex-1 overflow-y-auto mb-6 min-h-0 custom-scrollbar"
+                        style={{ willChange: 'scroll-position' }}
                       >
-                        ✕
-                      </button>
+                        <MessageList
+                          messages={messages}
+                          onToolCallExecute={executeToolCall}
+                          onRemoveLastMessage={handleRemoveLastMessage}
+                          onReloadFromMessage={handleReloadFromMessage}
+                          onBranchFromMessage={handleBranchFromMessage}
+                          onSuggestionClick={(question) => handleSendMessage(question)}
+                          loading={loading}
+                          onActionsVisible={scrollToBottom}
+                          onPreviewArtifact={(art) => setActiveArtifact(art)}
+                          interfaceMode={interfaceMode}
+                        />
+                        <div ref={messagesEndRef} />
+                      </div>
+
+                      {/* Floating Scroll to Bottom button */}
+                      {isUserScrolling && messages.length > 0 && (
+                        <button
+                          onClick={() => {
+                            userScrollingRef.current = false;
+                            setIsUserScrolling(false);
+                            scrollToBottom(false);
+                          }}
+                          className="absolute bottom-28 left-1/2 -translate-x-1/2 z-20 flex items-center justify-center p-2.5 rounded-full bg-card/95 hover:bg-accent text-foreground shadow-lg border border-border/80 backdrop-blur transition-all duration-200 hover:scale-105"
+                          aria-label="Scroll to bottom"
+                          title={t('chat.scrollToBottom') || "Rolar para o final"}
+                        >
+                          <ChevronDown className="w-4 h-4 text-muted-foreground hover:text-foreground" />
+                        </button>
+                      )}
+
+                      <div className="flex-shrink-0 bg-background/95 backdrop-blur pt-3 w-full">
+                        <ChatInput
+                          messages={messages}
+                          onSendMessage={handleSendMessage}
+                          onStopGeneration={handleStopGeneration}
+                          loading={loading}
+                          visionSupported={visionSupported}
+                          models={sortedModels}
+                          selectedModel={selectedModel}
+                          onModelChange={setSelectedModel}
+                          onOpenMcpTools={() => setIsToolsPanelOpen(true)}
+                          onOpenSkillsModal={() => handleOpenSkillsModal('installed')}
+                          mcpTools={mcpTools}
+                          toolsCount={mcpTools.length}
+                          modelConfigs={modelConfigs}
+                          focusSignal={chatFocusSignal}
+                          onModelConfigUpdated={handleModelConfigUpdated}
+                          powerUserMode={isPowerUser}
+                          showButtonLabels={showButtonLabels}
+                          harnessMode={harnessMode}
+                          onModeChange={handleModeChange}
+                          agentHarness={agentHarness}
+                          onHarnessChange={handleAgentHarnessChange}
+                          workspaceInfo={workspaceInfo}
+                          onSelectWorkspace={handleSelectWorkspace}
+                          favoriteModels={favoriteModels}
+                          onToggleFavoriteModel={handleToggleFavoriteModel}
+                          activePersona={activePersona}
+                          onConfigureModel={() => setIsModelParamsModalOpen(true)}
+                        />
+                      </div>
                     </div>
                   )}
-
-                  <div 
-                    ref={messagesContainerRef} 
-                    className="flex-1 overflow-y-auto mb-6 min-h-0 custom-scrollbar"
-                    style={{ willChange: 'scroll-position' }}
-                  >
-                    <MessageList 
-                      messages={messages} 
-                      onToolCallExecute={executeToolCall} 
-                      onRemoveLastMessage={handleRemoveLastMessage}
-                      onReloadFromMessage={handleReloadFromMessage}
-                      onBranchFromMessage={handleBranchFromMessage}
-                      onSuggestionClick={(question) => handleSendMessage(question)}
-                      loading={loading}
-                      onActionsVisible={scrollToBottom}
-                      onPreviewArtifact={(art) => setActiveArtifact(art)}
-                      interfaceMode={interfaceMode}
-                    />
-                    <div ref={messagesEndRef} />
-                  </div>
-
-                  {/* Floating Scroll to Bottom button */}
-                  {isUserScrolling && messages.length > 0 && (
-                    <button
-                      onClick={() => {
-                        userScrollingRef.current = false;
-                        setIsUserScrolling(false);
-                        scrollToBottom(false);
-                      }}
-                      className="absolute bottom-28 left-1/2 -translate-x-1/2 z-20 flex items-center justify-center p-2.5 rounded-full bg-card/95 hover:bg-accent text-foreground shadow-lg border border-border/80 backdrop-blur transition-all duration-200 hover:scale-105"
-                      aria-label="Scroll to bottom"
-                      title={t('chat.scrollToBottom') || "Rolar para o final"}
-                    >
-                      <ChevronDown className="w-4 h-4 text-muted-foreground hover:text-foreground" />
-                    </button>
-                  )}
-                  
-                  <div className="flex-shrink-0 bg-background/95 backdrop-blur pt-3 w-full">
-                    <ChatInput
-                      messages={messages}
-                      onSendMessage={handleSendMessage}
-                      onStopGeneration={handleStopGeneration}
-                      loading={loading}
-                      visionSupported={visionSupported}
-                      models={sortedModels}
-                      selectedModel={selectedModel}
-                      onModelChange={setSelectedModel}
-                      onOpenMcpTools={() => setIsToolsPanelOpen(true)}
-                      onOpenSkillsModal={() => handleOpenSkillsModal('installed')}
-                      toolsCount={mcpTools.length}
-                      modelConfigs={modelConfigs}
-                      focusSignal={chatFocusSignal}
-                      onModelConfigUpdated={handleModelConfigUpdated}
-                      powerUserMode={isPowerUser}
-                      showButtonLabels={showButtonLabels}
-                      harnessMode={harnessMode}
-                      onModeChange={handleModeChange}
-                      agentHarness={agentHarness}
-                      onHarnessChange={handleAgentHarnessChange}
-                      workspaceInfo={workspaceInfo}
-                      onSelectWorkspace={handleSelectWorkspace}
-                      favoriteModels={favoriteModels}
-                      onToggleFavoriteModel={handleToggleFavoriteModel}
-                      activePersona={activePersona}
-                      onConfigureModel={() => setIsModelParamsModalOpen(true)}
-                    />
-                  </div>
                 </div>
-              )}
               </div>
             </div>
           </div>
+
+          {/* Side-by-side Artifacts Panel */}
+          {activeArtifact && !isCanvasOpen && (
+            <Suspense fallback={null}>
+              <ArtifactsPanel
+                artifact={activeArtifact}
+                onClose={() => setActiveArtifact(null)}
+                artifacts={artifacts}
+                onSelectArtifact={setActiveArtifact}
+                onOpenGallery={openGallery}
+              />
+            </Suspense>
+          )}
+
+          {/* Side-by-side Canvas Panel */}
+          {isCanvasOpen && canvasDoc && (
+            <Suspense fallback={null}>
+              <CanvasPanel
+                onSendPrompt={(prompt) => handleSendMessage(prompt)}
+              />
+            </Suspense>
+          )}
+
+          {/* Side-by-side Interactive Terminal Panel */}
+          {isTerminalOpen && (
+            <Suspense fallback={null}>
+              <TerminalPanel
+                onClose={() => setIsTerminalOpen(false)}
+                isMaximized={isTerminalMaximized}
+                onToggleMaximize={() => setIsTerminalMaximized(!isTerminalMaximized)}
+                initialCwd={workspacePath}
+              />
+            </Suspense>
+          )}
+
+          {/* Side-by-side Background Tasks Panel */}
+          {isTasksOpen && (
+            <Suspense fallback={null}>
+              <BackgroundTasksPanel
+                onClose={() => setIsTasksOpen(false)}
+                isMaximized={isTasksMaximized}
+                onToggleMaximize={() => setIsTasksMaximized(!isTasksMaximized)}
+              />
+            </Suspense>
+          )}
+
+          {/* Side-by-side Embedded Browser Panel */}
+          {isBrowserOpen && (
+            <Suspense fallback={null}>
+              <BrowserPanel
+                onClose={() => setIsBrowserOpen(false)}
+                isMaximized={isBrowserMaximized}
+                onToggleMaximize={() => setIsBrowserMaximized(!isBrowserMaximized)}
+              />
+            </Suspense>
+          )}
+
+          {/* Side-by-side Workspace File Explorer Panel */}
+          {isExplorerOpen && (
+            <Suspense fallback={null}>
+              <WorkspaceExplorerPanel
+                onClose={() => setIsExplorerOpen(false)}
+                isMaximized={isExplorerMaximized}
+                onToggleMaximize={() => setIsExplorerMaximized(!isExplorerMaximized)}
+                workspacePath={workspacePath}
+                workspaceInfo={workspaceInfo}
+                onSelectWorkspace={handleSelectWorkspace}
+                onOpenFileInCanvas={handleOpenFileInCanvas}
+                onInsertPrompt={handleInsertPrompt}
+              />
+            </Suspense>
+          )}
         </div>
 
-        {/* Side-by-side Artifacts Panel */}
-        {activeArtifact && !isCanvasOpen && (
-          <Suspense fallback={null}>
-            <ArtifactsPanel
-              artifact={activeArtifact}
-              onClose={() => setActiveArtifact(null)}
-              artifacts={artifacts}
-              onSelectArtifact={setActiveArtifact}
-              onOpenGallery={openGallery}
+        {/* Modals */}
+        <Suspense fallback={null}>
+          {isToolsPanelOpen && (
+            <ToolsPanel
+              tools={mcpTools}
+              onClose={() => setIsToolsPanelOpen(false)}
+              onDisconnectServer={disconnectMcpServer}
+              onReconnectServer={reconnectMcpServer}
             />
-          </Suspense>
-        )}
+          )}
 
-        {/* Side-by-side Canvas Panel */}
-        {isCanvasOpen && canvasDoc && (
-          <Suspense fallback={null}>
-            <CanvasPanel
-              onSendPrompt={(prompt) => handleSendMessage(prompt)}
+          {pendingApprovalCall && (
+            <ToolApprovalModal
+              toolCall={pendingApprovalCall}
+              onApprove={handleToolApproval}
             />
-          </Suspense>
-        )}
+          )}
 
-        {/* Side-by-side Interactive Terminal Panel */}
-        {isTerminalOpen && (
-          <Suspense fallback={null}>
-            <TerminalPanel
-              onClose={() => setIsTerminalOpen(false)}
-              isMaximized={isTerminalMaximized}
-              onToggleMaximize={() => setIsTerminalMaximized(!isTerminalMaximized)}
-              initialCwd={workspacePath}
+          {/* Artifacts Gallery Modal */}
+          {isGalleryOpen && (
+            <Suspense fallback={null}>
+              <ArtifactsGalleryModal
+                isOpen={isGalleryOpen}
+                onClose={closeGallery}
+              />
+            </Suspense>
+          )}
+
+          {isMcpCatalogOpen && (
+            <McpCatalogModal
+              isOpen={isMcpCatalogOpen}
+              onClose={() => setIsMcpCatalogOpen(false)}
+              onServerInstalled={async () => {
+                await refreshMcpTools();
+              }}
+              onServerUninstalled={async () => {
+                await refreshMcpTools();
+              }}
             />
-          </Suspense>
-        )}
+          )}
 
-        {/* Side-by-side Background Tasks Panel */}
-        {isTasksOpen && (
-          <Suspense fallback={null}>
-            <BackgroundTasksPanel
-              onClose={() => setIsTasksOpen(false)}
-              isMaximized={isTasksMaximized}
-              onToggleMaximize={() => setIsTasksMaximized(!isTasksMaximized)}
-            />
-          </Suspense>
-        )}
-
-        {/* Side-by-side Embedded Browser Panel */}
-        {isBrowserOpen && (
-          <Suspense fallback={null}>
-            <BrowserPanel
-              onClose={() => setIsBrowserOpen(false)}
-              isMaximized={isBrowserMaximized}
-              onToggleMaximize={() => setIsBrowserMaximized(!isBrowserMaximized)}
-            />
-          </Suspense>
-        )}
-
-        {/* Side-by-side Workspace File Explorer Panel */}
-        {isExplorerOpen && (
-          <Suspense fallback={null}>
-            <WorkspaceExplorerPanel
-              onClose={() => setIsExplorerOpen(false)}
-              isMaximized={isExplorerMaximized}
-              onToggleMaximize={() => setIsExplorerMaximized(!isExplorerMaximized)}
-              workspacePath={workspacePath}
-              workspaceInfo={workspaceInfo}
-              onSelectWorkspace={handleSelectWorkspace}
-              onOpenFileInCanvas={handleOpenFileInCanvas}
-              onInsertPrompt={handleInsertPrompt}
-            />
-          </Suspense>
-        )}
-      </div>
-
-      {/* Modals */}
-      <Suspense fallback={null}>
-        {isToolsPanelOpen && (
-          <ToolsPanel
-            tools={mcpTools}
-            onClose={() => setIsToolsPanelOpen(false)}
-            onDisconnectServer={disconnectMcpServer}
-            onReconnectServer={reconnectMcpServer}
-          />
-        )}
-
-        {pendingApprovalCall && (
-          <ToolApprovalModal
-            toolCall={pendingApprovalCall}
-            onApprove={handleToolApproval}
-          />
-        )}
-
-        {/* Artifacts Gallery Modal */}
-        {isGalleryOpen && (
-          <Suspense fallback={null}>
-            <ArtifactsGalleryModal
-              isOpen={isGalleryOpen}
-              onClose={closeGallery}
-            />
-          </Suspense>
-        )}
-
-        {isMcpCatalogOpen && (
-          <McpCatalogModal
-            isOpen={isMcpCatalogOpen}
-            onClose={() => setIsMcpCatalogOpen(false)}
-            onServerInstalled={async () => {
-              await refreshMcpTools();
+          <WorkflowsModal
+            isOpen={isWorkflowsOpen}
+            onClose={() => setIsWorkflowsOpen(false)}
+            onRun={async (workflow) => {
+              const result = await window.electron.workflows.buildPrompt(workflow.id, {});
+              if (!result?.success) return;
+              localStorage.setItem('neochat_agent_mode', 'true');
+              setIsWorkflowsOpen(false);
+              await handleSendMessage(result.prompt);
             }}
           />
-        )}
 
-        <WorkflowsModal
-          isOpen={isWorkflowsOpen}
-          onClose={() => setIsWorkflowsOpen(false)}
-          onRun={async (workflow) => {
-            const result = await window.electron.workflows.buildPrompt(workflow.id, {});
-            if (!result?.success) return;
-            localStorage.setItem('neochat_agent_mode', 'true');
-            setIsWorkflowsOpen(false);
-            await handleSendMessage(result.prompt);
-          }}
-        />
+          {/* Project Modals */}
+          <ProjectModal />
+          <MoveToProjectModal />
+          <KnowledgeBaseModal
+            isOpen={isKnowledgeBaseModalOpen}
+            onClose={closeKnowledgeBaseModal}
+            projectId={activeProjectId}
+            projectName={activeProject?.name}
+          />
 
-        {/* Project Modals */}
-        <ProjectModal />
-        <MoveToProjectModal />
-        <KnowledgeBaseModal
-          isOpen={isKnowledgeBaseModalOpen}
-          onClose={closeKnowledgeBaseModal}
-          projectId={activeProjectId}
-          projectName={activeProject?.name}
-        />
+          {/* Keyboard Shortcuts Central Modal */}
+          <KeyboardShortcutsModal
+            isOpen={isShortcutsModalOpen}
+            onClose={() => setIsShortcutsModalOpen(false)}
+          />
 
-        {/* Keyboard Shortcuts Central Modal */}
-        <KeyboardShortcutsModal
-          isOpen={isShortcutsModalOpen}
-          onClose={() => setIsShortcutsModalOpen(false)}
-        />
+          {/* Command Palette Global Launcher (Ctrl+Shift+P) */}
+          <CommandPaletteModal
+            isOpen={isCommandPaletteOpen}
+            onClose={() => setIsCommandPaletteOpen(false)}
+            onOpenSettings={() => navigate('/settings')}
+            onOpenKnowledgeBase={openKnowledgeBaseModal}
+            onOpenWorkflows={() => setIsWorkflowsOpen(true)}
+            onOpenProjects={openCreateProjectModal}
+            onOpenMcpCatalog={() => setIsMcpCatalogOpen(true)}
+            onOpenUserMemory={() => {
+              if (window.electron?.getSettings) {
+                window.electron.getSettings().then(s => {
+                  setIsUserMemoryEnabled(s?.userMemory?.enabled !== false);
+                }).catch(() => { });
+              }
+              setIsUserMemoryModalOpen(true);
+            }}
+            onOpenShortcuts={() => setIsShortcutsModalOpen(true)}
+            onOpenModelParameters={() => setIsModelParamsModalOpen(true)}
+            onToggleCompareMode={() => setIsCompareMode(prev => !prev)}
+            onToggleTrajectory={() => setActiveTab(prev => prev === 'trajectory' ? 'chat' : 'trajectory')}
+            onToggleTerminal={() => setIsTerminalOpen(prev => !prev)}
+            onToggleExplorer={() => setIsExplorerOpen(prev => !prev)}
+            onOpenInOsExplorer={() => {
+              if (workspacePath && window.electron?.agent?.openPath) {
+                window.electron.agent.openPath(workspacePath);
+              }
+            }}
+            onToggleBackgroundTasks={() => setIsTasksOpen(prev => !prev)}
+            onToggleBrowser={() => setIsBrowserOpen(prev => !prev)}
+            onOpenSwarmModal={() => setIsSwarmModalOpen(true)}
+            onOpenPluginsManager={() => setIsPluginsManagerOpen(true)}
+            onOpenSkills={(tab) => handleOpenSkillsModal(tab || 'installed')}
+            onOpenArenaModal={() => setIsArenaModalOpen(true)}
+            onOpenLiveSandbox={() => setIsLiveSandboxOpen(true)}
+            onOpenPodcastStudio={() => setIsPodcastStudioOpen(true)}
+            onOpenKnowledgeGraph={() => setIsKnowledgeGraphOpen(true)}
+            onOpenDailyBriefing={() => setIsDailyBriefingOpen(true)}
+            onOpenNewsDiscover={() => setIsNewsDiscoverOpen(true)}
+            onOpenMcpHub={() => setIsMcpHubOpen(true)}
+            onOpenComputerVision={() => setIsComputerVisionOpen(true)}
+            onTriggerSnip={handleStartSnip}
+            onTriggerVoice={() => {
+              // Trigger voice push-to-talk
+            }}
+            availableModels={models}
+            currentModel={selectedModel}
+            onSelectModel={(m) => setSelectedModel(m)}
+            personas={getStoredPersonas(t)}
+            activePersona={activePersona}
+            onSelectPersona={(p) => setActivePersona(p)}
+            onClearChat={clearCurrentChat}
+            onNewChat={handleNewChat}
+            onExportChat={handleExportChat}
+          />
 
-        {/* Command Palette Global Launcher (Ctrl+Shift+P) */}
-        <CommandPaletteModal
-          isOpen={isCommandPaletteOpen}
-          onClose={() => setIsCommandPaletteOpen(false)}
-          onOpenSettings={() => navigate('/settings')}
-          onOpenKnowledgeBase={openKnowledgeBaseModal}
-          onOpenWorkflows={() => setIsWorkflowsOpen(true)}
-          onOpenProjects={openCreateProjectModal}
-          onOpenMcpCatalog={() => setIsMcpCatalogOpen(true)}
-          onOpenUserMemory={() => {
-            if (window.electron?.getSettings) {
-              window.electron.getSettings().then(s => {
-                setIsUserMemoryEnabled(s?.userMemory?.enabled !== false);
-              }).catch(() => {});
-            }
-            setIsUserMemoryModalOpen(true);
-          }}
-          onOpenShortcuts={() => setIsShortcutsModalOpen(true)}
-          onOpenModelParameters={() => setIsModelParamsModalOpen(true)}
-          onToggleCompareMode={() => setIsCompareMode(prev => !prev)}
-          onToggleTrajectory={() => setActiveTab(prev => prev === 'trajectory' ? 'chat' : 'trajectory')}
-          onToggleTerminal={() => setIsTerminalOpen(prev => !prev)}
-          onToggleExplorer={() => setIsExplorerOpen(prev => !prev)}
-          onOpenInOsExplorer={() => {
-            if (workspacePath && window.electron?.agent?.openPath) {
-              window.electron.agent.openPath(workspacePath);
-            }
-          }}
-          onToggleBackgroundTasks={() => setIsTasksOpen(prev => !prev)}
-          onToggleBrowser={() => setIsBrowserOpen(prev => !prev)}
-          onOpenSwarmModal={() => setIsSwarmModalOpen(true)}
-          onOpenPluginsManager={() => setIsPluginsManagerOpen(true)}
-          onOpenSkills={(tab) => handleOpenSkillsModal(tab || 'installed')}
-          onOpenArenaModal={() => setIsArenaModalOpen(true)}
-          onOpenLiveSandbox={() => setIsLiveSandboxOpen(true)}
-          onOpenPodcastStudio={() => setIsPodcastStudioOpen(true)}
-          onOpenKnowledgeGraph={() => setIsKnowledgeGraphOpen(true)}
-          onOpenDailyBriefing={() => setIsDailyBriefingOpen(true)}
-          onOpenNewsDiscover={() => setIsNewsDiscoverOpen(true)}
-          onOpenMcpHub={() => setIsMcpHubOpen(true)}
-          onOpenComputerVision={() => setIsComputerVisionOpen(true)}
-          onTriggerSnip={handleStartSnip}
-          onTriggerVoice={() => {
-            // Trigger voice push-to-talk
-          }}
-          availableModels={models}
-          currentModel={selectedModel}
-          onSelectModel={(m) => setSelectedModel(m)}
-          personas={getStoredPersonas(t)}
-          activePersona={activePersona}
-          onSelectPersona={(p) => setActivePersona(p)}
-          onClearChat={clearCurrentChat}
-          onNewChat={handleNewChat}
-          onExportChat={handleExportChat}
-        />
+          {/* Multi-Agent Swarm Team Modal */}
+          <SwarmTeamModal
+            isOpen={isSwarmModalOpen}
+            onClose={() => setIsSwarmModalOpen(false)}
+            currentModel={selectedModel}
+            onSendToChat={(content) => {
+              handleSendMessage(content);
+            }}
+          />
 
-        {/* Multi-Agent Swarm Team Modal */}
-        <SwarmTeamModal
-          isOpen={isSwarmModalOpen}
-          onClose={() => setIsSwarmModalOpen(false)}
-          currentModel={selectedModel}
-          onSendToChat={(content) => {
-            handleSendMessage(content);
-          }}
-        />
+          {/* Snip & Ask Screen Capture Modal */}
+          <SnipModal
+            isOpen={isAppSnipModalOpen}
+            onClose={() => setIsAppSnipModalOpen(false)}
+            onCaptureComplete={(capturedFile) => {
+              setIsAppSnipModalOpen(false);
+              if (capturedFile) {
+                handleSendMessage('', [capturedFile]);
+              }
+            }}
+          />
 
-        {/* Snip & Ask Screen Capture Modal */}
-        <SnipModal
-          isOpen={isAppSnipModalOpen}
-          onClose={() => setIsAppSnipModalOpen(false)}
-          onCaptureComplete={(capturedFile) => {
-            setIsAppSnipModalOpen(false);
-            if (capturedFile) {
-              handleSendMessage('', [capturedFile]);
-            }
-          }}
-        />
+          {/* Modular Plugins Manager Hub Modal */}
+          <PluginsManagerModal
+            isOpen={isPluginsManagerOpen}
+            onClose={() => setIsPluginsManagerOpen(false)}
+            onOpenPluginModal={(pluginId) => {
+              if (pluginId === 'arena') setIsArenaModalOpen(true);
+              else if (pluginId === 'live-preview') setIsLiveSandboxOpen(true);
+              else if (pluginId === 'podcast-studio') setIsPodcastStudioOpen(true);
+              else if (pluginId === 'knowledge-graph') setIsKnowledgeGraphOpen(true);
+              else if (pluginId === 'daily-briefing') setIsDailyBriefingOpen(true);
+              else if (pluginId === 'news') setIsNewsDiscoverOpen(true);
+              else if (pluginId === 'mcp-hub') setIsMcpHubOpen(true);
+              else if (pluginId === 'computer-vision') setIsComputerVisionOpen(true);
+              else if (pluginId === 'rag') openKnowledgeBaseModal();
+              else if (pluginId === 'canvas') handleToggleCanvas();
+              else if (pluginId === 'workflows') setIsWorkflowsOpen(true);
+              else if (pluginId === 'swarm') setIsSwarmModalOpen(true);
+              else if (pluginId === 'terminal') setIsTerminalOpen(true);
+              else if (pluginId === 'browser') setIsBrowserOpen(true);
+            }}
+          />
 
-        {/* Modular Plugins Manager Hub Modal */}
-        <PluginsManagerModal
-          isOpen={isPluginsManagerOpen}
-          onClose={() => setIsPluginsManagerOpen(false)}
-          onOpenPluginModal={(pluginId) => {
-            if (pluginId === 'arena') setIsArenaModalOpen(true);
-            else if (pluginId === 'live-preview') setIsLiveSandboxOpen(true);
-            else if (pluginId === 'podcast-studio') setIsPodcastStudioOpen(true);
-            else if (pluginId === 'knowledge-graph') setIsKnowledgeGraphOpen(true);
-            else if (pluginId === 'daily-briefing') setIsDailyBriefingOpen(true);
-            else if (pluginId === 'news') setIsNewsDiscoverOpen(true);
-            else if (pluginId === 'mcp-hub') setIsMcpHubOpen(true);
-            else if (pluginId === 'computer-vision') setIsComputerVisionOpen(true);
-            else if (pluginId === 'rag') openKnowledgeBaseModal();
-            else if (pluginId === 'canvas') handleToggleCanvas();
-            else if (pluginId === 'workflows') setIsWorkflowsOpen(true);
-            else if (pluginId === 'swarm') setIsSwarmModalOpen(true);
-            else if (pluginId === 'terminal') setIsTerminalOpen(true);
-            else if (pluginId === 'browser') setIsBrowserOpen(true);
-          }}
-        />
+          {/* AI Arena & Debate Multi-Modelos */}
+          <ArenaModal
+            isOpen={isArenaModalOpen}
+            onClose={() => setIsArenaModalOpen(false)}
+            currentModel={selectedModel}
+            availableModels={sortedModels}
+            modelConfigs={modelConfigs}
+            activeProject={activeProject}
+            projects={projects}
+            onSendToChat={(content) => handleSendMessage(content)}
+            onOpenCanvas={() => handleToggleCanvas()}
+          />
 
-        {/* AI Arena & Debate Multi-Modelos */}
-        <ArenaModal
-          isOpen={isArenaModalOpen}
-          onClose={() => setIsArenaModalOpen(false)}
-          currentModel={selectedModel}
-          availableModels={sortedModels}
-          modelConfigs={modelConfigs}
-          activeProject={activeProject}
-          projects={projects}
-          onSendToChat={(content) => handleSendMessage(content)}
-          onOpenCanvas={() => handleToggleCanvas()}
-        />
+          {/* Web Sandbox & Live Preview */}
+          <LiveSandboxModal
+            isOpen={isLiveSandboxOpen}
+            onClose={() => setIsLiveSandboxOpen(false)}
+          />
 
-        {/* Web Sandbox & Live Preview */}
-        <LiveSandboxModal
-          isOpen={isLiveSandboxOpen}
-          onClose={() => setIsLiveSandboxOpen(false)}
-        />
+          {/* Podcast & Audio Studio */}
+          <PodcastStudioModal
+            isOpen={isPodcastStudioOpen}
+            onClose={() => setIsPodcastStudioOpen(false)}
+          />
 
-        {/* Podcast & Audio Studio */}
-        <PodcastStudioModal
-          isOpen={isPodcastStudioOpen}
-          onClose={() => setIsPodcastStudioOpen(false)}
-        />
+          {/* Knowledge Graph & Data Studio */}
+          <KnowledgeGraphModal
+            isOpen={isKnowledgeGraphOpen}
+            onClose={() => setIsKnowledgeGraphOpen(false)}
+          />
 
-        {/* Knowledge Graph & Data Studio */}
-        <KnowledgeGraphModal
-          isOpen={isKnowledgeGraphOpen}
-          onClose={() => setIsKnowledgeGraphOpen(false)}
-        />
+          {/* Proactive Daily Briefing */}
+          <DailyBriefingModal
+            isOpen={isDailyBriefingOpen}
+            onClose={() => setIsDailyBriefingOpen(false)}
+            onSendToChat={(content) => handleSendMessage(content)}
+          />
 
-        {/* Proactive Daily Briefing */}
-        <DailyBriefingModal
-          isOpen={isDailyBriefingOpen}
-          onClose={() => setIsDailyBriefingOpen(false)}
-          onSendToChat={(content) => handleSendMessage(content)}
-        />
+          {/* AI News & Discovery Module */}
+          <NewsDiscoverModal
+            isOpen={isNewsDiscoverOpen}
+            onClose={() => setIsNewsDiscoverOpen(false)}
+            onSendToChat={(content) => handleSendMessage(content)}
+          />
 
-        {/* AI News & Discovery Module */}
-        <NewsDiscoverModal
-          isOpen={isNewsDiscoverOpen}
-          onClose={() => setIsNewsDiscoverOpen(false)}
-          onSendToChat={(content) => handleSendMessage(content)}
-        />
+          {/* Community MCP Hub & Store */}
+          <McpHubModal
+            isOpen={isMcpHubOpen}
+            onClose={() => setIsMcpHubOpen(false)}
+            onOpenSettingsMcp={() => navigate('/settings?tab=integrations')}
+          />
 
-        {/* Community MCP Hub & Store */}
-        <McpHubModal
-          isOpen={isMcpHubOpen}
-          onClose={() => setIsMcpHubOpen(false)}
-          onOpenSettingsMcp={() => navigate('/settings?tab=integrations')}
-        />
+          {/* Computer Vision & Desktop Assistant */}
+          <ComputerVisionModal
+            isOpen={isComputerVisionOpen}
+            onClose={() => setIsComputerVisionOpen(false)}
+            onSendToChat={(content) => handleSendMessage(content)}
+          />
 
-        {/* Computer Vision & Desktop Assistant */}
-        <ComputerVisionModal
-          isOpen={isComputerVisionOpen}
-          onClose={() => setIsComputerVisionOpen(false)}
-          onSendToChat={(content) => handleSendMessage(content)}
-        />
+          {/* User Persistent Long-Term Memory */}
+          <UserMemoryModal
+            isOpen={isUserMemoryModalOpen}
+            onClose={() => setIsUserMemoryModalOpen(false)}
+            isMemoryEnabled={isUserMemoryEnabled}
+          />
 
-        {/* User Persistent Long-Term Memory */}
-        <UserMemoryModal
-          isOpen={isUserMemoryModalOpen}
-          onClose={() => setIsUserMemoryModalOpen(false)}
-          isMemoryEnabled={isUserMemoryEnabled}
-        />
+          {/* AI Skills & Capabilities Central Hub */}
+          <SkillsModal
+            isOpen={isSkillsModalOpen}
+            onClose={() => setIsSkillsModalOpen(false)}
+            initialTab={skillsModalInitialTab}
+            onInvokeSkill={(skill) => {
+              const cmd = skill.slashCommand || skill.id;
+              handleSendMessage(`/${cmd} `);
+            }}
+          />
 
-        {/* AI Skills & Capabilities Central Hub */}
-        <SkillsModal
-          isOpen={isSkillsModalOpen}
-          onClose={() => setIsSkillsModalOpen(false)}
-          initialTab={skillsModalInitialTab}
-          onInvokeSkill={(skill) => {
-            const cmd = skill.slashCommand || skill.id;
-            handleSendMessage(`/${cmd} `);
-          }}
-        />
+          {/* Model Parameters Modal */}
+          <ModelParametersModal
+            isOpen={isModelParamsModalOpen}
+            onClose={() => setIsModelParamsModalOpen(false)}
+            selectedModel={selectedModel}
+            modelConfigs={modelConfigs}
+            onModelConfigUpdated={handleModelConfigUpdated}
+          />
 
-        {/* Model Parameters Modal */}
-        <ModelParametersModal
-          isOpen={isModelParamsModalOpen}
-          onClose={() => setIsModelParamsModalOpen(false)}
-          selectedModel={selectedModel}
-          modelConfigs={modelConfigs}
-          onModelConfigUpdated={handleModelConfigUpdated}
-        />
+          {/* Persistent Bot Config Modal (Hermes Agent) */}
+          <BotConfigModal
+            isOpen={isBotConfigModalOpen}
+            onClose={() => setIsBotConfigModalOpen(false)}
+            bot={activeBot}
+            initialTab={botModalTab}
+            availableModels={models}
+            onSave={(savedBot) => {
+              setActiveBot(savedBot);
+              setIsBotConfigModalOpen(false);
+            }}
+          />
+        </Suspense>
 
-        {/* Persistent Bot Config Modal (Hermes Agent) */}
-        <BotConfigModal
-          isOpen={isBotConfigModalOpen}
-          onClose={() => setIsBotConfigModalOpen(false)}
-          bot={activeBot}
-          initialTab={botModalTab}
-          availableModels={models}
-          onSave={(savedBot) => {
-            setActiveBot(savedBot);
-            setIsBotConfigModalOpen(false);
-          }}
-        />
-      </Suspense>
-
-      {/* Floating Memory Notification Toast */}
-      {memoryToast && (
-        <div className="fixed bottom-6 right-6 z-[10000] max-w-md animate-in slide-in-from-bottom-5 duration-300">
-          <div className="p-3.5 rounded-2xl bg-card border border-purple-500/30 text-foreground shadow-2xl flex items-start gap-3 bg-card/95 backdrop-blur-md">
-            <div className="p-2 rounded-xl bg-purple-500/15 text-purple-600 dark:text-purple-400 shrink-0">
-              <Brain className="w-4 h-4" />
-            </div>
-            <div className="flex-1 min-w-0 pr-2">
-              <div className="text-xs font-semibold text-foreground flex items-center gap-1.5 mb-0.5">
-                <span>{memoryToast.type === 'added' ? '🧠 Nova memória aprendida' : '🧠 Memória esquecida'}</span>
-                {memoryToast.category && (
-                  <span className="text-[10px] px-1.5 py-0.2 rounded bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20 font-normal">
-                    {memoryToast.category}
-                  </span>
-                )}
+        {/* Floating Memory Notification Toast */}
+        {memoryToast && (
+          <div className="fixed bottom-6 right-6 z-[10000] max-w-md animate-in slide-in-from-bottom-5 duration-300">
+            <div className="p-3.5 rounded-2xl bg-card border border-purple-500/30 text-foreground shadow-2xl flex items-start gap-3 bg-card/95 backdrop-blur-md">
+              <div className="p-2 rounded-xl bg-purple-500/15 text-purple-600 dark:text-purple-400 shrink-0">
+                <Brain className="w-4 h-4" />
               </div>
-              <p className="text-xs text-muted-foreground truncate">
-                &ldquo;{memoryToast.message}&rdquo;
-              </p>
+              <div className="flex-1 min-w-0 pr-2">
+                <div className="text-xs font-semibold text-foreground flex items-center gap-1.5 mb-0.5">
+                  <span>{memoryToast.type === 'added' ? '🧠 Nova memória aprendida' : '🧠 Memória esquecida'}</span>
+                  {memoryToast.category && (
+                    <span className="text-[10px] px-1.5 py-0.2 rounded bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20 font-normal">
+                      {memoryToast.category}
+                    </span>
+                  )}
+                </div>
+                <p className="text-xs text-muted-foreground truncate">
+                  &ldquo;{memoryToast.message}&rdquo;
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  if (window.electron?.getSettings) {
+                    window.electron.getSettings().then(s => {
+                      setIsUserMemoryEnabled(s?.userMemory?.enabled !== false);
+                    }).catch(() => { });
+                  }
+                  setIsUserMemoryModalOpen(true);
+                }}
+                className="text-[11px] font-semibold text-purple-600 dark:text-purple-400 hover:underline shrink-0 self-center"
+              >
+                Ver
+              </button>
+              <button
+                type="button"
+                onClick={() => setMemoryToast(null)}
+                className="p-1 rounded text-muted-foreground hover:text-foreground shrink-0 self-center"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
             </div>
-            <button
-              type="button"
-              onClick={() => {
-                if (window.electron?.getSettings) {
-                  window.electron.getSettings().then(s => {
-                    setIsUserMemoryEnabled(s?.userMemory?.enabled !== false);
-                  }).catch(() => {});
-                }
-                setIsUserMemoryModalOpen(true);
-              }}
-              className="text-[11px] font-semibold text-purple-600 dark:text-purple-400 hover:underline shrink-0 self-center"
-            >
-              Ver
-            </button>
-            <button
-              type="button"
-              onClick={() => setMemoryToast(null)}
-              className="p-1 rounded text-muted-foreground hover:text-foreground shrink-0 self-center"
-            >
-              <X className="w-3.5 h-3.5" />
-            </button>
           </div>
-        </div>
-      )}
+        )}
 
       </div>
     </div>

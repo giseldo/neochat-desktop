@@ -18,7 +18,8 @@ import {
   Folder,
   MessageSquare,
   Plus,
-  RefreshCw
+  RefreshCw,
+  Trash2
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { Button } from './ui/button';
@@ -34,6 +35,7 @@ export function McpHubModal({
   const [activeTab, setActiveTab] = useState('servers'); // 'servers' or 'recipes'
   const [searchQuery, setSearchQuery] = useState('');
   const [installingId, setInstallingId] = useState(null);
+  const [uninstallingId, setUninstallingId] = useState(null);
   const [installedMap, setInstalledMap] = useState({});
   const [nextCursor, setNextCursor] = useState('');
   const [registryStatus, setRegistryStatus] = useState('loading');
@@ -105,6 +107,48 @@ export function McpHubModal({
       console.error(`Failed to install server ${server.id}:`, err);
     } finally {
       setInstallingId(null);
+    }
+  };
+
+  const handleUninstall = async (server) => {
+    if (!window.confirm(`Tem certeza de que deseja desinstalar o servidor MCP "${server.name}"?`)) {
+      return;
+    }
+
+    setUninstallingId(server.id);
+    try {
+      if (window.electron?.disconnectMcpServer) {
+        try {
+          await window.electron.disconnectMcpServer(server.id);
+        } catch (discErr) {
+          console.warn(`[McpHub] Error disconnecting ${server.id}:`, discErr);
+        }
+      }
+
+      const settings = await window.electron.getSettings();
+      const currentServers = { ...(settings?.mcpServers || {}) };
+      delete currentServers[server.id];
+
+      const currentDisabled = Array.isArray(settings?.disabledMcpServers)
+        ? settings.disabledMcpServers.filter(id => id !== server.id)
+        : [];
+
+      await window.electron.saveSettings({
+        ...settings,
+        mcpServers: currentServers,
+        disabledMcpServers: currentDisabled,
+      });
+
+      setInstalledMap(prev => {
+        const next = { ...prev };
+        delete next[server.id];
+        return next;
+      });
+    } catch (err) {
+      console.error(`Failed to uninstall server ${server.id}:`, err);
+      setHubError(`Falha ao desinstalar servidor: ${err.message}`);
+    } finally {
+      setUninstallingId(null);
     }
   };
 
@@ -312,30 +356,42 @@ export function McpHubModal({
                         {server.url || `${server.command || ''} ${server.args?.[0] || ''}`}
                       </span>
 
-                      <button
-                        disabled={isInstalled || isInstalling}
-                        onClick={() => handleInstall(server)}
-                        className={cn(
-                          'text-xs px-3.5 py-1.5 font-semibold rounded-xl flex items-center gap-1.5 transition-all cursor-pointer shadow-xs',
-                          isInstalled
-                            ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30'
-                            : 'bg-primary hover:bg-primary/90 text-primary-foreground ring-2 ring-primary/30'
-                        )}
-                      >
-                        {isInstalled ? (
-                          <>
+                      {isInstalled ? (
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-xs px-2.5 py-1.5 font-semibold rounded-xl flex items-center gap-1 bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30">
                             <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
                             Instalado
-                          </>
-                        ) : isInstalling ? (
-                          'Instalando...'
-                        ) : (
-                          <>
-                            <Download className="w-3.5 h-3.5" />
-                            Instalar 1-Click
-                          </>
-                        )}
-                      </button>
+                          </span>
+                          <button
+                            onClick={() => handleUninstall(server)}
+                            disabled={uninstallingId === server.id}
+                            className="text-xs px-2.5 py-1.5 font-medium rounded-xl flex items-center gap-1 text-destructive bg-destructive/10 hover:bg-destructive hover:text-destructive-foreground border border-destructive/20 transition-all cursor-pointer disabled:opacity-50"
+                            title="Desinstalar"
+                          >
+                            {uninstallingId === server.id ? (
+                              <span className="w-3 h-3 border-2 border-destructive/30 border-t-destructive rounded-full animate-spin"></span>
+                            ) : (
+                              <Trash2 className="w-3.5 h-3.5" />
+                            )}
+                            Desinstalar
+                          </button>
+                        </div>
+                      ) : (
+                        <button
+                          disabled={isInstalling}
+                          onClick={() => handleInstall(server)}
+                          className="text-xs px-3.5 py-1.5 font-semibold rounded-xl flex items-center gap-1.5 transition-all cursor-pointer shadow-xs bg-primary hover:bg-primary/90 text-primary-foreground ring-2 ring-primary/30"
+                        >
+                          {isInstalling ? (
+                            'Instalando...'
+                          ) : (
+                            <>
+                              <Download className="w-3.5 h-3.5" />
+                              Instalar 1-Click
+                            </>
+                          )}
+                        </button>
+                      )}
                     </div>
                   </div>
                 );

@@ -104,6 +104,7 @@ function ChatInput({
 	const [isSnipModalOpen, setIsSnipModalOpen] = useState(false);
 	const [isPlusMenuOpen, setIsPlusMenuOpen] = useState(false);
 	const [isSkillsPopoverOpen, setIsSkillsPopoverOpen] = useState(false);
+	const [isMcpPopoverOpen, setIsMcpPopoverOpen] = useState(false);
 	const plusMenuRef = useRef(null);
 	const agentModeActive = harnessMode === 'code';
 	const mediaRecorderRef = useRef(null);
@@ -120,15 +121,16 @@ function ChatInput({
 			if (plusMenuRef.current && !plusMenuRef.current.contains(e.target)) {
 				setIsPlusMenuOpen(false);
 				setIsSkillsPopoverOpen(false);
+				setIsMcpPopoverOpen(false);
 			}
 		};
-		if (isPlusMenuOpen || isSkillsPopoverOpen) {
+		if (isPlusMenuOpen || isSkillsPopoverOpen || isMcpPopoverOpen) {
 			document.addEventListener("mousedown", handleClickOutside);
 		}
 		return () => {
 			document.removeEventListener("mousedown", handleClickOutside);
 		};
-	}, [isPlusMenuOpen, isSkillsPopoverOpen]);
+	}, [isPlusMenuOpen, isSkillsPopoverOpen, isMcpPopoverOpen]);
 
 	useEffect(() => {
 		isRecordingRef.current = isRecording;
@@ -1169,7 +1171,11 @@ function ChatInput({
 								type="button"
 								variant={isPlusMenuOpen ? "default" : "ghost"}
 								size="sm"
-								onClick={() => setIsPlusMenuOpen(!isPlusMenuOpen)}
+								onClick={() => {
+									setIsSkillsPopoverOpen(false);
+									setIsMcpPopoverOpen(false);
+									setIsPlusMenuOpen(!isPlusMenuOpen);
+								}}
 								className={cn(
 									"h-8 w-8 p-0 rounded-xl transition-all duration-200 flex items-center justify-center flex-shrink-0 cursor-pointer",
 									isPlusMenuOpen
@@ -1393,6 +1399,102 @@ function ChatInput({
 							)}
 						</div>
 
+						{/* MCP tools selector and active marker */}
+						{effectiveToolsCount > 0 && (
+							<div className="relative">
+								<Button
+									type="button"
+									variant="ghost"
+									size="icon"
+									onClick={() => {
+										setIsPlusMenuOpen(false);
+										setIsSkillsPopoverOpen(false);
+										setIsMcpPopoverOpen(open => !open);
+									}}
+									disabled={loading}
+									aria-expanded={isMcpPopoverOpen}
+									aria-label={
+										effectiveToolsCount > 0
+											? `${effectiveToolsCount} ${language === 'pt' ? (effectiveToolsCount === 1 ? 'ferramenta MCP ativa' : 'ferramentas MCP ativas') : (effectiveToolsCount === 1 ? 'active MCP tool' : 'active MCP tools')}`
+											: (t('chat.tools') || 'Ferramentas MCP')
+									}
+									className={cn(
+										'h-8 w-8 rounded-xl shrink-0 border transition-colors',
+										effectiveToolsCount > 0
+											? 'border-amber-500/20 bg-amber-500/10 text-amber-600 hover:bg-amber-500/20 dark:text-amber-400'
+											: 'border-transparent text-muted-foreground hover:bg-muted/80 hover:text-foreground'
+									)}
+									title={
+										effectiveToolsCount > 0
+											? `${effectiveToolsCount} ${language === 'pt' ? (effectiveToolsCount === 1 ? 'ferramenta MCP ativa' : 'ferramentas MCP ativas') : (effectiveToolsCount === 1 ? 'active MCP tool' : 'active MCP tools')}`
+											: (t('chat.tools') || 'Ferramentas MCP')
+									}
+								>
+									<Hammer className="w-4 h-4" />
+								</Button>
+
+								{isMcpPopoverOpen && (
+									<div className="absolute bottom-full left-0 z-50 mb-2 max-h-64 w-72 overflow-y-auto rounded-2xl border border-border bg-popover p-2 text-popover-foreground shadow-2xl animate-in fade-in-0 zoom-in-95">
+										<div className="flex items-center justify-between px-3 py-1.5 border-b border-border/40 mb-1">
+											<div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wide text-muted-foreground">
+												<span>{t('chat.tools') || 'Ferramentas MCP'}</span>
+												<span className="px-1.5 py-0.2 rounded-full bg-amber-500/15 text-amber-600 dark:text-amber-400 font-mono text-[9px] font-bold">
+													{effectiveToolsCount}
+												</span>
+											</div>
+											{onOpenMcpTools && (
+												<button
+													type="button"
+													onClick={() => {
+														setIsMcpPopoverOpen(false);
+														onOpenMcpTools();
+													}}
+													className="text-[10px] font-medium text-amber-600 dark:text-amber-400 hover:underline cursor-pointer"
+												>
+													{t('toolsPanel.title') || 'Gerenciar'}
+												</button>
+											)}
+										</div>
+										<div className="space-y-0.5">
+											{Array.isArray(mcpTools) && mcpTools.length > 0 ? (
+												mcpTools.map((tool, idx) => (
+													<button
+														type="button"
+														key={tool.name || idx}
+														onClick={() => {
+															setIsMcpPopoverOpen(false);
+															onOpenMcpTools?.();
+														}}
+														className="flex w-full items-center justify-between gap-2.5 rounded-xl px-3 py-1.5 text-left text-xs text-foreground transition-colors hover:bg-muted/80 cursor-pointer"
+													>
+														<div className="min-w-0 flex-1">
+															<div className="font-medium truncate">{tool.name}</div>
+															{tool.description && (
+																<div className="text-[10px] text-muted-foreground truncate">{tool.description}</div>
+															)}
+														</div>
+														<span className="flex h-2 w-2 shrink-0 rounded-full bg-amber-500 shadow-xs" />
+													</button>
+												))
+											) : (
+												<button
+													type="button"
+													onClick={() => {
+														setIsMcpPopoverOpen(false);
+														onOpenMcpTools?.();
+													}}
+													className="flex w-full items-center justify-between gap-2 rounded-xl px-3 py-2 text-left text-xs text-muted-foreground hover:bg-muted/80 cursor-pointer"
+												>
+													<span>{effectiveToolsCount} {language === 'pt' ? 'ferramentas ativas' : 'active tools'}</span>
+													<span className="text-[10px] text-amber-600 dark:text-amber-400 font-medium">Ver detalhes</span>
+												</button>
+											)}
+										</div>
+									</div>
+								)}
+							</div>
+						)}
+
 						{/* Skills selector and active marker */}
 						{installedSkills.length > 0 && (
 							<div className="relative">
@@ -1402,6 +1504,7 @@ function ChatInput({
 									size="icon"
 									onClick={() => {
 										setIsPlusMenuOpen(false);
+										setIsMcpPopoverOpen(false);
 										setIsSkillsPopoverOpen(open => !open);
 									}}
 									disabled={loading}

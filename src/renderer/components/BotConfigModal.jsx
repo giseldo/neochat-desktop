@@ -143,7 +143,7 @@ export default function BotConfigModal({
       setColor('#8b5cf6');
       setPreferredModel('');
       setTemperature(0.5);
-      setAgentEnabled(false);
+      setAgentEnabled(true);
       setApprovalMode('balanced');
       setSearchEnabled(true);
       setCodeToolsEnabled(true);
