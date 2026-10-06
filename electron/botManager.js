@@ -116,6 +116,19 @@ function loadBots() {
               env: {}
             };
           }
+          // Ensure all bots with VM have standard file & terminal tools
+          if (b.vmConfig.enabled !== false) {
+            if (!Array.isArray(b.tools)) b.tools = [];
+            const standardCodeTools = [
+              'read_file', 'write_file', 'edit_file', 'list_directory',
+              'glob_search', 'grep_search', 'shell_exec', 'git_status'
+            ];
+            for (const ct of standardCodeTools) {
+              if (!b.tools.includes(ct)) {
+                b.tools.push(ct);
+              }
+            }
+          }
         }
         botsCache = merged;
         return botsCache;
