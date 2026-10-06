@@ -45,6 +45,7 @@ import {
   buildHtmlSandboxDoc, 
   buildReactSandboxDoc, 
   buildMermaidDoc, 
+  buildEChartsDoc, 
   isReactCode 
 } from '../lib/sandboxUtils';
 
@@ -77,7 +78,9 @@ function getMonacoLanguage(type = '') {
     xml: 'xml',
     svg: 'xml',
     mermaid: 'markdown',
-    mindmap: 'markdown'
+    mindmap: 'markdown',
+    chart: 'json',
+    echarts: 'json'
   };
   return map[t] || 'plaintext';
 }
@@ -242,7 +245,7 @@ export function ArtifactsPanel({
       const rawType = (artifact.type || '').toLowerCase();
       const isHtml = rawType === 'html' || rawType === 'htm' || rawType === 'svg' || /<!DOCTYPE html|<html[\s>]/i.test(code);
       const hasReact = !isHtml && (['jsx', 'tsx', 'react'].includes(rawType) || isReactCode(code));
-      const isVisual = ['html', 'htm', 'svg', 'mermaid', 'mindmap', 'markdown', 'md', 'jsx', 'tsx', 'react'].includes(rawType) || isHtml || hasReact;
+      const isVisual = ['html', 'htm', 'svg', 'mermaid', 'mindmap', 'chart', 'echarts', 'markdown', 'md', 'jsx', 'tsx', 'react'].includes(rawType) || isHtml || hasReact;
       const isExecutableType = ['js', 'javascript', 'ts', 'typescript', 'py', 'python'].includes(rawType) && !hasReact;
 
       if (isVisual) {
@@ -304,13 +307,16 @@ export function ArtifactsPanel({
   const isPython = rawType === 'py' || rawType === 'python';
   const isJS = (rawType === 'js' || rawType === 'javascript' || rawType === 'ts' || rawType === 'typescript') && !hasReact;
   const isExecutable = isPython || isJS;
-  const isVisual = ['html', 'htm', 'svg', 'mermaid', 'mindmap', 'markdown', 'md', 'jsx', 'tsx', 'react'].includes(rawType) || isHtml || hasReact;
+  const isVisual = ['html', 'htm', 'svg', 'mermaid', 'mindmap', 'chart', 'echarts', 'markdown', 'md', 'jsx', 'tsx', 'react'].includes(rawType) || isHtml || hasReact;
 
   // Build live sandbox iframe doc
   const sandboxDoc = useMemo(() => {
     if (!artifact) return '';
     if (rawType === 'mermaid' || rawType === 'mindmap') {
       return buildMermaidDoc(currentCode, isDark);
+    }
+    if (rawType === 'chart' || rawType === 'echarts') {
+      return buildEChartsDoc(currentCode, isDark);
     }
     if (hasReact) {
       return buildReactSandboxDoc(currentCode, isDark);
@@ -337,6 +343,8 @@ export function ArtifactsPanel({
       svg: 'svg',
       mermaid: 'mmd',
       mindmap: 'mmd',
+      chart: 'json',
+      echarts: 'json',
       python: 'py',
       py: 'py',
       javascript: 'js',

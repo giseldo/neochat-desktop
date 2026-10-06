@@ -1,12 +1,13 @@
 import React, { useState } from 'react';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { oneDark, oneLight } from 'react-syntax-highlighter/dist/esm/styles/prism';
-import { Check, Copy, Code2, Eye, Play, PenSquare, Workflow, Image as ImageIcon, ExternalLink } from 'lucide-react';
+import { Check, Copy, Code2, Eye, Play, PenSquare, Workflow, Image as ImageIcon, ExternalLink, BarChart2 } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 import { useLanguage } from '../context/LanguageContext';
 import { useCanvas } from '../context/CanvasContext';
 import { MermaidViewer } from './MermaidViewer';
 import { SvgViewer } from './SvgViewer';
+import { ChartViewer } from './ChartViewer';
 import { cn } from '../lib/utils';
 
 // Helper to format language name for display
@@ -46,6 +47,8 @@ const formatLanguage = (lang) => {
     mermaid: 'Mermaid Diagram',
     mindmap: 'Mapa Mental',
     svg: 'SVG Image',
+    chart: 'Gráfico ECharts',
+    echarts: 'Gráfico ECharts',
     latex: 'LaTeX',
     tex: 'TeX',
     bibtex: 'BibTeX'
@@ -88,7 +91,8 @@ export function CodeBlock({ language, code, onPreviewArtifact, className }) {
   const lang = (language || '').toLowerCase().trim();
 
   const isMermaid = lang === 'mermaid' || lang === 'mindmap';
-  const hasInlinePreview = isMermaid || lang === 'svg';
+  const isChart = lang === 'chart' || lang === 'echarts';
+  const hasInlinePreview = isMermaid || lang === 'svg' || isChart;
   const [activeTab, setActiveTab] = useState(hasInlinePreview ? 'preview' : 'code');
 
   const handleCopy = async () => {
@@ -136,14 +140,22 @@ export function CodeBlock({ language, code, onPreviewArtifact, className }) {
                     ? "bg-primary text-primary-foreground shadow-xs font-semibold"
                     : "text-muted-foreground hover:text-foreground"
                 )}
-                title={isMermaid ? (lang === 'mindmap' ? "Visualizar mapa mental renderizado" : "Visualizar diagrama renderizado") : "Visualizar imagem"}
+                title={
+                  isMermaid
+                    ? (lang === 'mindmap' ? "Visualizar mapa mental renderizado" : "Visualizar diagrama renderizado")
+                    : isChart
+                    ? "Visualizar gráfico renderizado"
+                    : "Visualizar imagem"
+                }
               >
                 {isMermaid ? (
                   <Workflow className="w-3.5 h-3.5" />
+                ) : isChart ? (
+                  <BarChart2 className="w-3.5 h-3.5" />
                 ) : (
                   <ImageIcon className="w-3.5 h-3.5" />
                 )}
-                <span>{isMermaid ? (lang === 'mindmap' ? 'Mapa Mental' : 'Diagrama') : 'Visualizar'}</span>
+                <span>{isMermaid ? (lang === 'mindmap' ? 'Mapa Mental' : 'Diagrama') : isChart ? 'Gráfico' : 'Visualizar'}</span>
               </button>
               <button
                 type="button"
@@ -243,6 +255,11 @@ export function CodeBlock({ language, code, onPreviewArtifact, className }) {
             code={cleanCode} 
             onSwitchToCode={() => setActiveTab('code')} 
           />
+        ) : isChart ? (
+          <ChartViewer
+            code={cleanCode}
+            onSwitchToCode={() => setActiveTab('code')}
+          />
         ) : (
           <SvgViewer 
             code={cleanCode} 
@@ -253,7 +270,7 @@ export function CodeBlock({ language, code, onPreviewArtifact, className }) {
         <div className="overflow-x-auto text-xs md:text-sm font-mono">
           {lang ? (
             <SyntaxHighlighter
-              language={lang}
+              language={(isChart ? 'json' : lang)}
               style={isDark ? customOneDark : customOneLight}
               PreTag="div"
               customStyle={{

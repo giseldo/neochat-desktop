@@ -93,6 +93,7 @@
     "clsx": "^2.1.1",
     "docx": "^9.7.1",
     "dotenv": "^16.6.1",
+    "echarts": "^6.1.0",
     "electron-json-storage": "^4.6.0",
     "electron-updater": "^6.8.9",
     "groq-sdk": "0.16.0",

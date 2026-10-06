@@ -241,6 +241,8 @@ function ChatHistorySidebar({
   onSelectPersona = null,
   onSelectBotChat = null,
   onOpenNewsDiscover = null,
+  sidebarNavTab: propSidebarNavTab,
+  onSidebarNavTabChange = null,
 }) {
   const { 
     chatList, 
@@ -284,7 +286,7 @@ function ChatHistorySidebar({
   const editInputRef = useRef(null);
 
   // Stable top-level navigation for the three primary product areas.
-  const [sidebarNavTab, setSidebarNavTab] = useState(() => {
+  const [internalSidebarNavTab, setInternalSidebarNavTab] = useState(() => {
     try {
       const savedTab = localStorage.getItem('neochat_sidebar_nav_tab');
       return savedTab === 'bots' ? 'bots' : 'chat';
@@ -293,8 +295,14 @@ function ChatHistorySidebar({
     }
   });
 
+  const sidebarNavTab = propSidebarNavTab !== undefined ? propSidebarNavTab : internalSidebarNavTab;
+
   const handleSidebarNavTabChange = (tab) => {
-    setSidebarNavTab(tab);
+    if (onSidebarNavTabChange) {
+      onSidebarNavTabChange(tab);
+    } else {
+      setInternalSidebarNavTab(tab);
+    }
     try {
       localStorage.setItem('neochat_sidebar_nav_tab', tab);
     } catch (e) {}

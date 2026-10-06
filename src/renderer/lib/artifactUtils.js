@@ -5,7 +5,7 @@
  */
 
 // Supported visual formats
-export const VISUAL_TYPES = ['html', 'htm', 'svg', 'jsx', 'tsx', 'react', 'mermaid', 'mindmap'];
+export const VISUAL_TYPES = ['html', 'htm', 'svg', 'jsx', 'tsx', 'react', 'mermaid', 'mindmap', 'chart', 'echarts'];
 
 // Supported executable formats
 export const EXECUTABLE_TYPES = ['js', 'javascript', 'ts', 'typescript', 'py', 'python'];
@@ -41,6 +41,8 @@ export const LANGUAGE_LABEL_MAP = {
   markdown: 'Markdown',
   mermaid: 'Mermaid',
   mindmap: 'Mapa Mental',
+  chart: 'Gráfico ECharts',
+  echarts: 'Gráfico ECharts',
   svg: 'SVG Vector',
   xml: 'XML'
 };
@@ -64,6 +66,8 @@ export function getArtifactExtension(type = '') {
     htm: 'html',
     css: 'css',
     json: 'json',
+    chart: 'json',
+    echarts: 'json',
     bash: 'sh',
     sh: 'sh',
     shell: 'sh',
@@ -101,6 +105,7 @@ export function normalizeArtifactType(rawType = '', code = '') {
   if (t === 'text/html' || t === 'html' || t === 'htm') return 'html';
   if (t === 'image/svg+xml' || t === 'svg') return 'svg';
   if (t === 'application/vnd.ant.mermaid' || t === 'mermaid' || t === 'mindmap') return 'mermaid';
+  if (t === 'application/vnd.ant.chart' || t === 'chart' || t === 'echarts') return 'chart';
   if (t === 'application/vnd.ant.markdown' || t === 'markdown' || t === 'md') return 'markdown';
   if (t === 'application/vnd.ant.code' || t === 'code') {
     if (code.includes('import React') || code.includes('export default function')) return 'jsx';
@@ -144,6 +149,19 @@ function inferTitleFromCode(code, lang, index) {
       return titleMatch[1].trim();
     }
     return lang === 'mindmap' ? `Mapa Mental ${index + 1}` : `Diagrama Mermaid ${index + 1}`;
+  }
+
+  // Chart (ECharts) title
+  if (lang === 'chart' || lang === 'echarts') {
+    try {
+      const parsed = JSON.parse(code);
+      const title = parsed?.spec?.title?.text || parsed?.title?.text;
+      if (title) return title;
+    } catch {
+      const match = code.match(/"text"\s*:\s*"([^"]+)"/);
+      if (match && match[1]) return match[1];
+    }
+    return `Gráfico ECharts ${index + 1}`;
   }
 
   const langLabel = LANGUAGE_LABEL_MAP[lang.toLowerCase()] || lang.toUpperCase();

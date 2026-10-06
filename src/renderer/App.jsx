@@ -165,6 +165,32 @@ function App() {
   const [activeBot, setActiveBot] = useState(null);
   const [isBotConfigModalOpen, setIsBotConfigModalOpen] = useState(false);
   const [botModalTab, setBotModalTab] = useState('identity');
+
+  // Sidebar navigation tab state ('chat' | 'bots')
+  const [sidebarNavTab, setSidebarNavTab] = useState(() => {
+    try {
+      const savedTab = localStorage.getItem('neochat_sidebar_nav_tab');
+      return savedTab === 'bots' ? 'bots' : 'chat';
+    } catch (e) {
+      return 'chat';
+    }
+  });
+
+  const handleSidebarNavTabChange = useCallback((tab) => {
+    setSidebarNavTab(tab);
+    try {
+      localStorage.setItem('neochat_sidebar_nav_tab', tab);
+    } catch (e) {}
+  }, []);
+
+  // Keep activeBot in sync with current chat: if the current chat doesn't have a bot assigned, ensure activeBot is null
+  useEffect(() => {
+    if (!currentChatId || !chatList) return;
+    const currentChat = chatList.find(c => c.id === currentChatId);
+    if (currentChat && !currentChat.botId && activeBot) {
+      setActiveBot(null);
+    }
+  }, [currentChatId, chatList, activeBot]);
   const {
     artifacts,
     activeArtifact,
@@ -1423,10 +1449,14 @@ function App() {
 
       // Start streaming chat with active runtime context (Canvas, Project, Workspace, etc.)
       const assistantRuntime = activePersona?.profile?.runtime || {};
-      const isBotVmActive = Boolean(activeBot && activeBot.vmConfig?.enabled !== false);
-      const assistantAgentMode = activeBot?.agentEnabled === true || assistantRuntime.agentEnabled === true || harnessMode === 'code' || isBotVmActive;
-      const effectiveModel = activeBot?.preferredModel || assistantRuntime.preferredModel || selectedModel;
-      const effectiveTemperature = typeof activeBot?.temperature === 'number' ? activeBot.temperature : activePersona?.temperature;
+      const currentChatMeta = (chatList || []).find(c => c.id === currentChatId);
+      const isChatBotAttached = Boolean(currentChatMeta?.botId && activeBot && currentChatMeta.botId === activeBot.id);
+      const isBotSessionActive = Boolean(activeBot && (isChatBotAttached || sidebarNavTab === 'bots'));
+      const effectiveBot = isBotSessionActive ? activeBot : null;
+      const isBotVmActive = Boolean(effectiveBot && effectiveBot.vmConfig?.enabled !== false);
+      const assistantAgentMode = effectiveBot?.agentEnabled === true || assistantRuntime.agentEnabled === true || harnessMode === 'code' || isBotVmActive;
+      const effectiveModel = effectiveBot?.preferredModel || assistantRuntime.preferredModel || selectedModel;
+      const effectiveTemperature = typeof effectiveBot?.temperature === 'number' ? effectiveBot.temperature : activePersona?.temperature;
       const streamOptions = {
         isCanvasOpen: Boolean(isCanvasOpen),
         canvasDoc: isCanvasOpen && canvasDoc ? canvasDoc : null,
@@ -1435,13 +1465,13 @@ function App() {
         activeProject: activeProject ? { id: activeProject.id, name: activeProject.name, folders: activeProject.folders } : null,
         agentModeActive: assistantAgentMode,
         mode: assistantAgentMode ? 'code' : harnessMode,
-        webSearchActive: typeof activeBot?.searchEnabled === 'boolean'
-          ? activeBot.searchEnabled
+        webSearchActive: typeof effectiveBot?.searchEnabled === 'boolean'
+          ? effectiveBot.searchEnabled
           : (typeof assistantRuntime.searchEnabled === 'boolean' ? assistantRuntime.searchEnabled : undefined),
         temperature: effectiveTemperature,
         assistantProfile: activePersona?.profile || null,
-        activeBot: activeBot || null,
-        botId: activeBot?.id || null,
+        activeBot: effectiveBot || null,
+        botId: effectiveBot?.id || null,
         botVmActive: isBotVmActive,
         workspaceRoot: isBotVmActive ? undefined : (workspacePath || undefined)
       };
@@ -1900,7 +1930,14 @@ function App() {
     let activeChatId = currentChatId;
     const personaIdToUse = (activePersona?.id && activePersona.id !== 'none' && activePersona.id !== 'disabled') ? activePersona.id : null;
     if (!activeChatId) {
-      const createdChat = await createNewChat(selectedModel, useResponsesApi, activeProjectId, personaIdToUse);
+      let botIdToUse = null;
+      if (sidebarNavTab === 'bots' && activeBot) {
+        botIdToUse = activeBot.id;
+      } else if (activeBot) {
+        setActiveBot(null);
+      }
+      const modelToUse = (botIdToUse && activeBot?.preferredModel) ? activeBot.preferredModel : selectedModel;
+      const createdChat = await createNewChat(modelToUse, useResponsesApi, activeProjectId, personaIdToUse, botIdToUse);
       activeChatId = createdChat?.id;
       if (!activeChatId) return;
     } else if (personaIdToUse) {
@@ -2656,7 +2693,7 @@ function App() {
   };
 
   // Handle creating a new chat
-  const handleNewChat = useCallback(async (targetProjectId = undefined, targetPersonaId = undefined) => {
+  const handleNewChat = useCallback(async (targetProjectId = undefined, targetPersonaId = undefined, targetBotId = undefined) => {
     // Stop any ongoing streams before clearing
     if (loading) {
       console.log('Stopping streams before starting new chat...');
@@ -2680,16 +2717,34 @@ function App() {
     closeCanvas();
     setActiveArtifact(null);
 
+    // Determine bot to use:
+    // When the user is NOT on the 'bots' tab (i.e. sidebarNavTab !== 'bots') and targetBotId is not explicitly provided,
+    // we MUST clear activeBot so the new chat doesn't inherit any previous bot session.
+    let botIdToUse = null;
+    if (targetBotId !== undefined) {
+      botIdToUse = targetBotId;
+      if (!botIdToUse) {
+        setActiveBot(null);
+      }
+    } else if (sidebarNavTab === 'bots' && activeBot) {
+      botIdToUse = activeBot.id;
+    } else {
+      setActiveBot(null);
+      botIdToUse = null;
+    }
+
     const personaIdToUse = targetPersonaId !== undefined
       ? targetPersonaId
       : (activePersona?.id && activePersona.id !== 'none' && activePersona.id !== 'disabled' ? activePersona.id : null);
 
-    // Create a new chat in history with the current API mode and target project and personaId
-    await createNewChat(selectedModel, useResponsesApi, projId, personaIdToUse);
+    const modelToUse = (botIdToUse && activeBot?.preferredModel) ? activeBot.preferredModel : selectedModel;
+
+    // Create a new chat in history with the current API mode and target project, personaId, and botId
+    await createNewChat(modelToUse, useResponsesApi, projId, personaIdToUse, botIdToUse);
 
     // Signal the ChatInput to focus on the text area
     setChatFocusSignal(s => s + 1);
-  }, [loading, createNewChat, selectedModel, useResponsesApi, activeProjectId, setActiveProjectId, clearCanvas, closeCanvas, activePersona]);
+  }, [loading, createNewChat, selectedModel, useResponsesApi, activeProjectId, setActiveProjectId, clearCanvas, closeCanvas, activePersona, sidebarNavTab, activeBot]);
 
   // Global Keyboard shortcuts:
   // - Ctrl/Cmd + N -> New Chat
@@ -2925,6 +2980,8 @@ function App() {
     <div className="flex h-screen bg-background">
       {/* Chat History Sidebar */}
       <ChatHistorySidebar
+        sidebarNavTab={sidebarNavTab}
+        onSidebarNavTabChange={handleSidebarNavTabChange}
         onNewChat={handleNewChat}
         onChatLoaded={handleChatLoaded}
         loading={loading}
@@ -3018,12 +3075,12 @@ function App() {
               {/* Artifacts Header Indicator & Toggle Button */}
               {(artifacts.length > 0 || Boolean(activeArtifact)) && (
                 <Button
-                  variant={Boolean(activeArtifact) ? "default" : "outline"}
+                  variant={activeArtifact ? "default" : "outline"}
                   size="sm"
                   onClick={handleToggleArtifacts}
                   className={cn(
                     "h-8 gap-1.5 px-2.5 rounded-xl font-medium text-xs transition-all shadow-2xs cursor-pointer",
-                    Boolean(activeArtifact)
+                    activeArtifact
                       ? "bg-primary text-primary-foreground shadow-xs"
                       : "text-foreground hover:bg-muted border-border/80"
                   )}
@@ -3818,7 +3875,7 @@ function App() {
                       )}
 
                       {/* Active Bot Conversation Banner (Hermes Agent Style) */}
-                      {activeBot && (
+                      {Boolean(activeBot && (sidebarNavTab === 'bots' || Boolean(chatList?.find(c => c.id === currentChatId)?.botId))) && (
                         <div className="mb-2 px-3.5 py-2 rounded-xl bg-card/90 backdrop-blur-md border border-primary/30 shadow-xs flex items-center justify-between gap-3 shrink-0 animate-in fade-in duration-200">
                           <div className="flex items-center gap-2.5 min-w-0">
                             <BotAvatar persona={activeBot} className="w-8 h-8 rounded-xl shadow-2xs" iconClassName="w-4 h-4" />

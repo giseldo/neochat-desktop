@@ -286,3 +286,75 @@ ${cleanCode}
 </body>
 </html>`;
 }
+
+/**
+ * Build Live ECharts document for sandboxed preview
+ */
+export function buildEChartsDoc(chartCode = '', isDark = true) {
+  let cleaned = String(chartCode || '').trim();
+  cleaned = cleaned.replace(/^```(?:json|chart|echarts)?\s*/i, '').replace(/```\s*$/i, '').trim();
+
+  return `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <script src="https://cdn.jsdelivr.net/npm/echarts@5/dist/echarts.min.js"></script>
+  <style>
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background-color: ${isDark ? '#0f172a' : '#ffffff'};
+      color: ${isDark ? '#f8fafc' : '#0f172a'};
+      font-family: system-ui, -apple-system, sans-serif;
+    }
+    #chart-container {
+      width: 100%;
+      height: 100%;
+      padding: 16px;
+    }
+    #error-container {
+      display: none;
+      padding: 20px;
+      color: #ef4444;
+      font-family: monospace;
+      font-size: 13px;
+    }
+  </style>
+</head>
+<body>
+  <div id="chart-container"></div>
+  <div id="error-container"></div>
+  <script>
+    (function() {
+      try {
+        var raw = ${JSON.stringify(cleaned)};
+        var parsed;
+        try {
+          parsed = JSON.parse(raw);
+        } catch(e) {
+          var fixed = raw.replace(/,\\s*([\\]}])/g, '$1');
+          parsed = JSON.parse(fixed);
+        }
+        var spec = (parsed && parsed.spec) ? parsed.spec : parsed;
+        var theme = ${isDark ? "'dark'" : "'default'"};
+        var chart = echarts.init(document.getElementById('chart-container'), theme);
+        if (spec && typeof spec === 'object') {
+          spec.backgroundColor = 'transparent';
+          chart.setOption(spec);
+        }
+        window.addEventListener('resize', function() { chart.resize(); });
+      } catch (err) {
+        var errDom = document.getElementById('error-container');
+        errDom.style.display = 'block';
+        errDom.textContent = 'Erro ao renderizar gráfico: ' + err.message;
+      }
+    })();
+  </script>
+</body>
+</html>`;
+}
+
