@@ -1,10 +1,18 @@
 import React, { useState, useMemo, useEffect, useRef, useId } from 'react';
-import { Activity, ChevronDown, SlidersHorizontal } from 'lucide-react';
+import { Activity, ChevronDown, SlidersHorizontal, ArrowRight } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
 import { cn } from '../lib/utils';
 import { calculateContextUsage } from '../lib/contextUsage';
 
-export function ConversationStats({ messages = [], selectedModel = '', modelConfigs = {}, onConfigureModel, className }) {
+export function ConversationStats({
+  messages = [],
+  selectedModel = '',
+  modelConfigs = {},
+  onConfigureModel,
+  onOpenTrajectory,
+  isTrajectoryActive = false,
+  className
+}) {
   const { language } = useLanguage();
   const contextUsage = useMemo(() => calculateContextUsage({ messages, selectedModel, modelConfigs }), [messages, selectedModel, modelConfigs]);
   const [isOpen, setIsOpen] = useState(false);
@@ -113,6 +121,10 @@ export function ConversationStats({ messages = [], selectedModel = '', modelConf
   const title = pt ? 'Métricas da conversa' : 'Conversation metrics';
   const contextLabel = pt ? 'Ocupação do contexto' : 'Context usage';
   const usageColor = contextUsage.clampedPercentage >= 90 ? 'text-rose-500' : contextUsage.clampedPercentage >= 70 ? 'text-amber-500' : 'text-muted-foreground';
+  const isMac = typeof navigator !== 'undefined' && /Mac|iPod|iPhone|iPad/.test(navigator.platform);
+  const modKey = isMac ? '⌘' : 'Ctrl';
+  const trajectoryLabel = pt ? 'Ver trajetória da conversa' : 'View conversation trajectory';
+  const trajectoryBadge = pt ? 'Trajetória' : 'Trajectory';
 
   return (
     <div className={cn("relative inline-block text-left select-none font-sans", className)}>
@@ -135,11 +147,33 @@ export function ConversationStats({ messages = [], selectedModel = '', modelConf
         <>
           <div className="fixed inset-0 z-40" onClick={() => setIsOpen(false)} />
           <section id={panelId} aria-label={title} className="absolute left-0 mt-2 w-[340px] max-w-[calc(100vw-24px)] max-h-[calc(100vh-80px)] overflow-y-auto rounded-xl border border-border/60 bg-popover text-popover-foreground p-5 shadow-lg z-50">
-            <header className="mb-5">
-              <h4 className="font-semibold text-sm text-foreground">{title}</h4>
-              <p className="mt-1 text-xs text-muted-foreground">
-                {formatNumber(stats.totalTurns)} {stats.totalTurns === 1 ? (pt ? 'mensagem' : 'message') : (pt ? 'mensagens' : 'messages')}
-              </p>
+            <header className="mb-5 flex items-start justify-between gap-3">
+              <div>
+                <h4 className="font-semibold text-sm text-foreground">{title}</h4>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  {formatNumber(stats.totalTurns)} {stats.totalTurns === 1 ? (pt ? 'mensagem' : 'message') : (pt ? 'mensagens' : 'messages')}
+                </p>
+              </div>
+              {onOpenTrajectory && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsOpen(false);
+                    onOpenTrajectory();
+                  }}
+                  className={cn(
+                    "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium border transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 shrink-0 select-none",
+                    isTrajectoryActive
+                      ? "bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border-emerald-500/40"
+                      : "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20 hover:bg-emerald-500/20"
+                  )}
+                  title={`${trajectoryLabel} (${modKey}+T)`}
+                  aria-label={`${trajectoryLabel} (${modKey}+T)`}
+                >
+                  <Activity className="w-3.5 h-3.5 text-emerald-500" />
+                  <span>{trajectoryBadge}</span>
+                </button>
+              )}
             </header>
 
             <div className="mb-5 space-y-2">
@@ -206,11 +240,54 @@ export function ConversationStats({ messages = [], selectedModel = '', modelConf
                 </dd>
               </div>
             </dl>
-            {onConfigureModel && (
-              <button type="button" onClick={() => { setIsOpen(false); onConfigureModel(); }} className="mt-4 pt-3 border-t border-border/50 w-full flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50">
-                <SlidersHorizontal className="w-3.5 h-3.5" />
-                {pt ? 'Parâmetros do modelo' : 'Model parameters'}
-              </button>
+            {(onOpenTrajectory || onConfigureModel) && (
+              <div className="mt-4 pt-3 border-t border-border/50 space-y-1">
+                {onOpenTrajectory && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsOpen(false);
+                      onOpenTrajectory();
+                    }}
+                    className={cn(
+                      "w-full flex items-center justify-between py-1.5 px-2 -mx-2 rounded-lg text-xs transition-colors cursor-pointer group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50",
+                      isTrajectoryActive
+                        ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-medium"
+                        : "text-muted-foreground hover:text-foreground hover:bg-muted/60"
+                    )}
+                    title={`${trajectoryLabel} (${modKey}+T)`}
+                  >
+                    <span className="flex items-center gap-2">
+                      <Activity className={cn("w-3.5 h-3.5 shrink-0", isTrajectoryActive ? "text-emerald-500" : "text-emerald-500/80 group-hover:text-emerald-500")} />
+                      <span className="group-hover:text-foreground transition-colors font-medium">
+                        {trajectoryLabel}
+                      </span>
+                    </span>
+                    <span className="flex items-center gap-1.5 text-muted-foreground">
+                      <kbd className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-muted/80 border border-border/60 text-muted-foreground">
+                        {modKey}+T
+                      </kbd>
+                      <ArrowRight className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" />
+                    </span>
+                  </button>
+                )}
+                {onConfigureModel && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsOpen(false);
+                      onConfigureModel();
+                    }}
+                    className="w-full flex items-center justify-between py-1.5 px-2 -mx-2 rounded-lg text-xs text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors cursor-pointer group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
+                  >
+                    <span className="flex items-center gap-2">
+                      <SlidersHorizontal className="w-3.5 h-3.5 shrink-0" />
+                      <span>{pt ? 'Parâmetros do modelo' : 'Model parameters'}</span>
+                    </span>
+                    <ArrowRight className="w-3 h-3 text-muted-foreground/60 group-hover:translate-x-0.5 transition-transform" />
+                  </button>
+                )}
+              </div>
             )}
           </section>
         </>

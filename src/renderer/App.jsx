@@ -2970,6 +2970,8 @@ function App() {
                     selectedModel={selectedModel}
                     modelConfigs={modelConfigs}
                     onConfigureModel={() => setIsModelParamsModalOpen(true)}
+                    onOpenTrajectory={() => setActiveTab('trajectory')}
+                    isTrajectoryActive={activeTab === 'trajectory'}
                   />
                 </Suspense>
               )}
@@ -3674,7 +3676,7 @@ function App() {
                     />
                   </div>
                 </div>
-              ) : (messages.length === 0 && (activeTab === 'chat' || !isPowerUser)) ? (
+              ) : (messages.length === 0 && activeTab === 'chat') ? (
                 /* Welcome Screen */
                 <div className={cn(
                   "flex flex-col items-center justify-center h-full mx-auto w-full px-4 py-6 overflow-y-auto",
@@ -3725,7 +3727,7 @@ function App() {
                     />
                   </div>
                 </div>
-              ) : (activeTab === 'trajectory' && isPowerUser) ? (
+              ) : (activeTab === 'trajectory') ? (
                 /* Trajectory View */
                 <div className="flex flex-col h-full min-h-0">
                   <div className="flex-1 overflow-hidden min-h-0 mb-4">
