@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 import { 
   Bot, BotOff, Check, Plus, Edit2, Trash2, Sparkles, Code2, ShieldAlert, 
   Languages, Database, Feather, X, Sliders, CheckCircle2, Droplets, 
-  Compass, Inbox, Terminal, Cpu, Zap, Copy, Store
+  Compass, Inbox, Terminal, Cpu, Zap, Copy, Store, ChevronLeft, ChevronRight
 } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
 import { cn } from '../lib/utils';
@@ -389,9 +389,14 @@ export function deleteCustomPersona(id) {
   return updated;
 }
 
-export function PersonaSelector({ activePersona, onSelectPersona, className }) {
+export function PersonaSelectorPanel({
+  activePersona,
+  onSelectPersona,
+  onBack,
+  onClose,
+  className
+}) {
   const { t } = useLanguage();
-  const [isOpen, setIsOpen] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isMarketOpen, setIsMarketOpen] = useState(false);
   const [editingPersona, setEditingPersona] = useState(null);
@@ -403,7 +408,6 @@ export function PersonaSelector({ activePersona, onSelectPersona, className }) {
     systemPrompt: '',
     temperature: 0.7,
   });
-  const dropdownRef = useRef(null);
 
   const defaultPersonas = useMemo(() => {
     const base = getDefaultPersonas(t);
@@ -421,16 +425,6 @@ export function PersonaSelector({ activePersona, onSelectPersona, className }) {
 
   const personas = useMemo(() => [...defaultPersonas, ...customPersonas], [defaultPersonas, customPersonas]);
 
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
-        setIsOpen(false);
-      }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
-
   const isDeactivated = !activePersona || activePersona.id === 'none' || activePersona.id === 'disabled';
   const currentPersona = isDeactivated ? null : (personas.find(p => p.id === activePersona?.id) || personas[0]);
 
@@ -442,7 +436,6 @@ export function PersonaSelector({ activePersona, onSelectPersona, className }) {
       systemPrompt: '',
       temperature: 0.7,
     });
-    setIsOpen(false);
     setIsModalOpen(true);
   };
 
@@ -467,8 +460,12 @@ export function PersonaSelector({ activePersona, onSelectPersona, className }) {
     };
     const updated = saveCustomPersona(persona);
     setCustomPersonas(updated);
-    onSelectPersona(persona);
-    localStorage.setItem(ACTIVE_PERSONA_STORAGE_KEY, persona.id);
+    onSelectPersona?.(persona);
+    try {
+      localStorage.setItem(ACTIVE_PERSONA_STORAGE_KEY, persona.id);
+    } catch (err) {}
+    setIsMarketOpen(false);
+    onClose?.();
   };
 
   const handleOpenEdit = (e, p) => {
@@ -480,7 +477,6 @@ export function PersonaSelector({ activePersona, onSelectPersona, className }) {
       systemPrompt: p.systemPrompt || '',
       temperature: p.temperature ?? 0.7,
     });
-    setIsOpen(false);
     setIsModalOpen(true);
   };
 
@@ -504,7 +500,7 @@ export function PersonaSelector({ activePersona, onSelectPersona, className }) {
         temperature: base.temperature ?? 0.7,
       });
       if (activePersona?.id === base.id) {
-        onSelectPersona(base);
+        onSelectPersona?.(base);
       }
     }
   };
@@ -514,69 +510,55 @@ export function PersonaSelector({ activePersona, onSelectPersona, className }) {
     if (!formData.name.trim()) return;
 
     if (editingPersona && editingPersona.isCustom) {
-      // Update existing custom persona
       const updatedCustom = customPersonas.map((p) => {
         if (p.id === editingPersona.id) {
           return {
             ...p,
             name: formData.name.trim(),
-            description: formData.description.trim() || t('personas.defaultPersonaDesc'),
+            description: formData.description.trim(),
             systemPrompt: formData.systemPrompt.trim(),
             temperature: Number(formData.temperature) || 0.7,
           };
         }
         return p;
       });
-
       setCustomPersonas(updatedCustom);
       try {
         localStorage.setItem(PERSONAS_STORAGE_KEY, JSON.stringify(updatedCustom));
       } catch (err) {
-        console.error('Failed to save persona:', err);
+        console.error('Failed to update persona:', err);
       }
-
-      const updated = updatedCustom.find((p) => p.id === editingPersona.id);
-      if (updated) {
-        onSelectPersona(updated);
-        try {
-          localStorage.setItem(ACTIVE_PERSONA_STORAGE_KEY, updated.id);
-        } catch (err) {}
+      if (activePersona?.id === editingPersona.id) {
+        const updated = updatedCustom.find(p => p.id === editingPersona.id);
+        if (updated) onSelectPersona?.(updated);
       }
-    } else if (editingPersona && !editingPersona.isCustom) {
-      // Update / customize a default preset
+    } else if (editingPersona) {
       const updatedOverrides = {
         ...personaOverrides,
         [editingPersona.id]: {
           name: formData.name.trim(),
-          description: formData.description.trim() || editingPersona.description,
+          description: formData.description.trim(),
           systemPrompt: formData.systemPrompt.trim(),
           temperature: Number(formData.temperature) || 0.7,
-        },
+        }
       };
-
       setPersonaOverrides(updatedOverrides);
       try {
         localStorage.setItem(PERSONAS_OVERRIDES_STORAGE_KEY, JSON.stringify(updatedOverrides));
       } catch (err) {
         console.error('Failed to save persona overrides:', err);
       }
-
-      const updated = {
-        ...editingPersona,
-        ...updatedOverrides[editingPersona.id],
-        isDefaultOverridden: true,
-      };
-
-      onSelectPersona(updated);
-      try {
-        localStorage.setItem(ACTIVE_PERSONA_STORAGE_KEY, updated.id);
-      } catch (err) {}
+      if (activePersona?.id === editingPersona.id) {
+        onSelectPersona?.({
+          ...editingPersona,
+          ...updatedOverrides[editingPersona.id]
+        });
+      }
     } else {
-      // Create new custom persona
       const created = {
         id: `custom_${Date.now()}`,
         name: formData.name.trim(),
-        description: formData.description.trim() || t('personas.defaultPersonaDesc'),
+        description: formData.description.trim(),
         systemPrompt: formData.systemPrompt.trim(),
         temperature: Number(formData.temperature) || 0.7,
         icon: 'Bot',
@@ -592,13 +574,14 @@ export function PersonaSelector({ activePersona, onSelectPersona, className }) {
         console.error('Failed to save persona:', err);
       }
 
-      onSelectPersona(created);
+      onSelectPersona?.(created);
       try {
         localStorage.setItem(ACTIVE_PERSONA_STORAGE_KEY, created.id);
       } catch (err) {}
     }
 
     setIsModalOpen(false);
+    onClose?.();
   };
 
   const handleDeactivate = (e) => {
@@ -606,24 +589,23 @@ export function PersonaSelector({ activePersona, onSelectPersona, className }) {
       e.preventDefault();
       e.stopPropagation();
     }
-    onSelectPersona(null);
+    onSelectPersona?.(null);
     try {
       localStorage.setItem(ACTIVE_PERSONA_STORAGE_KEY, 'none');
     } catch (err) {}
-    setIsOpen(false);
+    onClose?.();
   };
 
   const handleSelectPersona = (p) => {
-    // If clicking on the currently active persona, toggle/deactivate it
     if (!isDeactivated && currentPersona?.id === p.id) {
       handleDeactivate();
       return;
     }
-    onSelectPersona(p);
+    onSelectPersona?.(p);
     try {
       localStorage.setItem(ACTIVE_PERSONA_STORAGE_KEY, p.id);
     } catch (err) {}
-    setIsOpen(false);
+    onClose?.();
   };
 
   const handleDeletePersona = (e, id) => {
@@ -638,169 +620,142 @@ export function PersonaSelector({ activePersona, onSelectPersona, className }) {
     }
   };
 
-  const IconComponent = isDeactivated ? BotOff : getPersonaIcon(currentPersona?.icon);
-
   return (
-    <div className={cn("relative inline-block text-left", className)} ref={dropdownRef}>
-      <button
-        type="button"
-        onClick={() => setIsOpen(!isOpen)}
-        className={cn(
-          "h-7 flex items-center gap-1.5 px-2.5 rounded-lg text-xs transition-all group/btn cursor-pointer border shadow-2xs",
-          !isDeactivated
-            ? "bg-background/80 hover:bg-muted/70 border-border/60 text-foreground font-medium"
-            : "bg-muted/30 hover:bg-muted/60 border-border/40 text-muted-foreground font-medium"
-        )}
-        title={!isDeactivated ? `${currentPersona?.name} • ${t('personas.clickToDeactivate') || 'Clique para desativar'}` : t('personas.buttonTitle')}
-      >
-        {!isDeactivated && currentPersona?.avatar ? (
-          typeof currentPersona.avatar === 'string' && (currentPersona.avatar.startsWith('http://') || currentPersona.avatar.startsWith('https://') || currentPersona.avatar.startsWith('data:image/')) ? (
-            <img src={currentPersona.avatar} alt="" className="w-3.5 h-3.5 rounded object-cover shrink-0" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
-          ) : (
-            <span className="text-xs leading-none shrink-0 select-none">{currentPersona.avatar}</span>
-          )
-        ) : (
-          <IconComponent className={cn("w-3.5 h-3.5 shrink-0", !isDeactivated ? "text-primary" : "text-muted-foreground")} />
-        )}
-        <span className="max-w-[120px] truncate">
-          {!isDeactivated ? currentPersona?.name : (t('personas.deactivated') || 'Desativado')}
-        </span>
-        {!isDeactivated && (
-          <span
-            role="button"
-            tabIndex={0}
-            onClick={handleDeactivate}
-            className="ml-0.5 -mr-1 p-0.5 rounded hover:bg-muted text-muted-foreground hover:text-destructive transition-colors cursor-pointer"
-            title={t('personas.deactivateTitle')}
+    <div className={cn("w-full text-left", className)}>
+      <div className="px-2 py-1.5 text-[10px] font-semibold text-muted-foreground uppercase border-b border-border/60 mb-1 flex items-center justify-between gap-1">
+        <div className="flex items-center gap-1 min-w-0">
+          {onBack && (
+            <button
+              type="button"
+              onClick={onBack}
+              className="p-1 -ml-1 rounded-md hover:bg-muted text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+              title={t('common.back') || 'Voltar'}
+            >
+              <ChevronLeft className="w-3.5 h-3.5" />
+            </button>
+          )}
+          <span className="truncate">{t('personas.dropdownTitle') || 'Assistentes'}</span>
+        </div>
+        <div className="flex items-center gap-2 shrink-0">
+          {!isDeactivated && (
+            <button
+              type="button"
+              onClick={handleDeactivate}
+              className="text-muted-foreground hover:text-destructive flex items-center gap-0.5 font-medium transition-colors cursor-pointer text-[10px]"
+              title={t('personas.deactivateTitle')}
+            >
+              <X className="w-3 h-3" /> {t('personas.deactivateButton')}
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={() => setIsMarketOpen(true)}
+            className="text-primary hover:underline flex items-center gap-0.5 font-medium cursor-pointer text-[10px]"
+            title="Assistants Store"
           >
-            <X className="w-3 h-3" />
-          </span>
-        )}
-      </button>
+            <Store className="w-3 h-3" /> Assistants
+          </button>
+          <button
+            type="button"
+            onClick={handleOpenCreate}
+            className="text-primary hover:underline flex items-center gap-0.5 font-medium cursor-pointer text-[10px]"
+            title={t('personas.createButton')}
+          >
+            <Plus className="w-3 h-3" /> {t('personas.createButton')}
+          </button>
+        </div>
+      </div>
 
-      {isOpen && (
-        <div className="absolute left-0 mt-2 w-68 rounded-xl border border-border bg-popover p-1.5 shadow-xl z-50 animate-in fade-in-0 zoom-in-95">
-          <div className="px-2 py-1 text-[10px] font-semibold text-muted-foreground uppercase border-b border-border mb-1 flex items-center justify-between">
-            <span>{t('personas.dropdownTitle')}</span>
-            <div className="flex items-center gap-2">
-              {!isDeactivated && (
-                <button
-                  type="button"
-                  onClick={handleDeactivate}
-                  className="text-muted-foreground hover:text-destructive flex items-center gap-0.5 font-medium transition-colors cursor-pointer"
-                  title={t('personas.deactivateTitle')}
-                >
-                  <X className="w-3 h-3" /> {t('personas.deactivateButton')}
-                </button>
-              )}
-              <button
-                type="button"
-                onClick={() => { setIsOpen(false); setIsMarketOpen(true); }}
-                className="text-primary hover:underline flex items-center gap-0.5 font-medium cursor-pointer"
-              >
-                <Store className="w-3 h-3" /> Assistants
-              </button>
-              <button
-                type="button"
-                onClick={handleOpenCreate}
-                className="text-primary hover:underline flex items-center gap-0.5 font-medium cursor-pointer"
-              >
-                <Plus className="w-3 h-3" /> {t('personas.createButton')}
-              </button>
+      <div className="max-h-64 overflow-y-auto space-y-0.5 pr-0.5">
+        {/* Option: Desativado */}
+        <div
+          onClick={handleDeactivate}
+          title={isDeactivated ? undefined : t('personas.deactivateTitle')}
+          className={cn(
+            "flex items-center justify-between p-2 rounded-xl cursor-pointer transition-colors text-left group",
+            isDeactivated ? "bg-primary/10 text-primary font-semibold" : "hover:bg-muted text-popover-foreground"
+          )}
+        >
+          <div className="flex items-start gap-2 min-w-0 pr-2">
+            <BotOff className={cn("w-4 h-4 mt-0.5 flex-shrink-0", isDeactivated ? "text-primary" : "text-muted-foreground")} />
+            <div className="min-w-0">
+              <div className="text-xs truncate">{t('personas.deactivated') || 'Desativado'}</div>
+              <div className="text-[10px] text-muted-foreground truncate">{t('personas.deactivatedDesc') || 'Sem persona especializada ativa (conversação padrão)'}</div>
             </div>
           </div>
+          {isDeactivated && (
+            <span className="flex items-center">
+              <Check className="w-3.5 h-3.5 text-primary flex-shrink-0 ml-0.5" />
+            </span>
+          )}
+        </div>
 
-          <div className="max-h-64 overflow-y-auto space-y-1">
-            {/* Option: Desativado */}
+        {/* Configured Personas */}
+        {personas.map((p) => {
+          const ItemIcon = getPersonaIcon(p.icon);
+          const isSelected = !isDeactivated && currentPersona?.id === p.id;
+          return (
             <div
-              onClick={handleDeactivate}
-              title={isDeactivated ? undefined : t('personas.deactivateTitle')}
+              key={p.id}
+              onClick={() => handleSelectPersona(p)}
+              title={isSelected ? t('personas.clickToDeactivate') : undefined}
               className={cn(
-                "flex items-center justify-between p-2 rounded-lg cursor-pointer transition-colors text-left group",
-                isDeactivated ? "bg-primary/10 text-primary font-semibold" : "hover:bg-muted text-popover-foreground"
+                "flex items-center justify-between p-2 rounded-xl cursor-pointer transition-colors text-left group",
+                isSelected ? "bg-primary/10 text-primary font-semibold" : "hover:bg-muted text-popover-foreground"
               )}
             >
               <div className="flex items-start gap-2 min-w-0 pr-2">
-                <BotOff className={cn("w-4 h-4 mt-0.5 flex-shrink-0", isDeactivated ? "text-primary" : "text-muted-foreground")} />
+                {p.avatar ? (
+                  typeof p.avatar === 'string' && (p.avatar.startsWith('http://') || p.avatar.startsWith('https://') || p.avatar.startsWith('data:image/')) ? (
+                    <img src={p.avatar} alt="" className="w-4 h-4 mt-0.5 rounded object-cover flex-shrink-0" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
+                  ) : (
+                    <span className="w-4 h-4 mt-0.5 flex-shrink-0 text-center text-xs leading-none select-none">{p.avatar}</span>
+                  )
+                ) : (
+                  <ItemIcon className="w-4 h-4 mt-0.5 text-primary flex-shrink-0" />
+                )}
                 <div className="min-w-0">
-                  <div className="text-xs truncate">{t('personas.deactivated') || 'Desativado'}</div>
-                  <div className="text-[10px] text-muted-foreground truncate">{t('personas.deactivatedDesc') || 'Sem persona especializada ativa (conversação padrão)'}</div>
+                  <div className="text-xs truncate">{p.name}</div>
+                  <div className="text-[10px] text-muted-foreground truncate">{p.description}</div>
                 </div>
               </div>
-              {isDeactivated && (
-                <span className="flex items-center">
-                  <Check className="w-3.5 h-3.5 text-primary flex-shrink-0 ml-0.5" />
-                </span>
-              )}
-            </div>
-
-            {/* Configured Personas */}
-            {personas.map((p) => {
-              const ItemIcon = getPersonaIcon(p.icon);
-              const isSelected = !isDeactivated && currentPersona?.id === p.id;
-              return (
-                <div
-                  key={p.id}
-                  onClick={() => handleSelectPersona(p)}
-                  title={isSelected ? t('personas.clickToDeactivate') : undefined}
-                  className={cn(
-                    "flex items-center justify-between p-2 rounded-lg cursor-pointer transition-colors text-left group",
-                    isSelected ? "bg-primary/10 text-primary font-semibold" : "hover:bg-muted text-popover-foreground"
-                  )}
+              <div className="flex items-center gap-1 flex-shrink-0">
+                <button
+                  type="button"
+                  onClick={(e) => handleOpenEdit(e, p)}
+                  className="opacity-0 group-hover:opacity-100 p-1 rounded hover:bg-background/80 hover:text-primary transition-opacity text-muted-foreground cursor-pointer"
+                  title={p.isCustom ? t('personas.editTitle') : t('personas.customizeTitle')}
                 >
-                  <div className="flex items-start gap-2 min-w-0 pr-2">
-                    {p.avatar ? (
-                      typeof p.avatar === 'string' && (p.avatar.startsWith('http://') || p.avatar.startsWith('https://') || p.avatar.startsWith('data:image/')) ? (
-                        <img src={p.avatar} alt="" className="w-4 h-4 mt-0.5 rounded object-cover flex-shrink-0" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
-                      ) : (
-                        <span className="w-4 h-4 mt-0.5 flex-shrink-0 text-center text-xs leading-none select-none">{p.avatar}</span>
-                      )
-                    ) : (
-                      <ItemIcon className="w-4 h-4 mt-0.5 text-primary flex-shrink-0" />
-                    )}
-                    <div className="min-w-0">
-                      <div className="text-xs truncate">{p.name}</div>
-                      <div className="text-[10px] text-muted-foreground truncate">{p.description}</div>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-1 flex-shrink-0">
-                    <button
-                      type="button"
-                      onClick={(e) => handleOpenEdit(e, p)}
-                      className="opacity-0 group-hover:opacity-100 p-1 rounded hover:bg-background/80 hover:text-primary transition-opacity text-muted-foreground cursor-pointer"
-                      title={p.isCustom ? t('personas.editTitle') : t('personas.customizeTitle')}
-                    >
-                      <Edit2 className="w-3 h-3" />
-                    </button>
-                    {p.isCustom && (
-                      <button
-                        type="button"
-                        onClick={(e) => handleDeletePersona(e, p.id)}
-                        className="opacity-0 group-hover:opacity-100 p-1 rounded hover:bg-background/80 hover:text-destructive transition-opacity text-muted-foreground cursor-pointer"
-                        title={t('personas.deleteTitle')}
-                      >
-                        <Trash2 className="w-3 h-3" />
-                      </button>
-                    )}
-                    {isSelected && (
-                      <span
-                        className="flex items-center"
-                        title={t('personas.clickToDeactivate')}
-                      >
-                        <Check className="w-3.5 h-3.5 text-primary flex-shrink-0 ml-0.5" />
-                      </span>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
+                  <Edit2 className="w-3 h-3" />
+                </button>
+                {p.isCustom && (
+                  <button
+                    type="button"
+                    onClick={(e) => handleDeletePersona(e, p.id)}
+                    className="opacity-0 group-hover:opacity-100 p-1 rounded hover:bg-background/80 hover:text-destructive transition-opacity text-muted-foreground cursor-pointer"
+                    title={t('personas.deleteTitle')}
+                  >
+                    <Trash2 className="w-3 h-3" />
+                  </button>
+                )}
+                {isSelected && (
+                  <span
+                    className="flex items-center"
+                    title={t('personas.clickToDeactivate')}
+                  >
+                    <Check className="w-3.5 h-3.5 text-primary flex-shrink-0 ml-0.5" />
+                  </span>
+                )}
+              </div>
+            </div>
+          );
+        })}
+      </div>
 
-      {/* Modal to create / edit custom persona rendered in document.body via Portal to prevent container constraints */}
+      {/* Modal to create / edit custom persona rendered in document.body via Portal */}
       {isModalOpen && typeof document !== 'undefined' && createPortal(
         <div
+          data-portal="true"
           className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center z-[9999] p-4 animate-in fade-in-0"
           onClick={(e) => {
             if (e.target === e.currentTarget) setIsModalOpen(false);
@@ -934,6 +889,78 @@ export function PersonaSelector({ activePersona, onSelectPersona, className }) {
         onInstall={handleInstallAssistant}
         installedIds={customPersonas.map(persona => persona.id)}
       />
+    </div>
+  );
+}
+
+export function PersonaSelector({ activePersona, onSelectPersona, className }) {
+  const { t } = useLanguage();
+  const [isOpen, setIsOpen] = useState(false);
+  const dropdownRef = useRef(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const isDeactivated = !activePersona || activePersona.id === 'none' || activePersona.id === 'disabled';
+  const IconComponent = isDeactivated ? BotOff : getPersonaIcon(activePersona?.icon);
+
+  return (
+    <div className={cn("relative inline-block text-left", className)} ref={dropdownRef}>
+      <button
+        type="button"
+        onClick={() => setIsOpen(!isOpen)}
+        className={cn(
+          "h-7 flex items-center gap-1.5 px-2.5 rounded-lg text-xs transition-all group/btn cursor-pointer border shadow-2xs",
+          !isDeactivated
+            ? "bg-background/80 hover:bg-muted/70 border-border/60 text-foreground font-medium"
+            : "bg-muted/30 hover:bg-muted/60 border-border/40 text-muted-foreground font-medium"
+        )}
+        title={!isDeactivated ? `${activePersona?.name} • ${t('personas.clickToDeactivate') || 'Clique para desativar'}` : t('personas.buttonTitle')}
+      >
+        {!isDeactivated && activePersona?.avatar ? (
+          typeof activePersona.avatar === 'string' && (activePersona.avatar.startsWith('http://') || activePersona.avatar.startsWith('https://') || activePersona.avatar.startsWith('data:image/')) ? (
+            <img src={activePersona.avatar} alt="" className="w-3.5 h-3.5 rounded object-cover shrink-0" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
+          ) : (
+            <span className="text-xs leading-none shrink-0 select-none">{activePersona.avatar}</span>
+          )
+        ) : (
+          <IconComponent className={cn("w-3.5 h-3.5 shrink-0", !isDeactivated ? "text-primary" : "text-muted-foreground")} />
+        )}
+        <span className="max-w-[120px] truncate">
+          {!isDeactivated ? activePersona?.name : (t('personas.deactivated') || 'Desativado')}
+        </span>
+        {!isDeactivated && (
+          <span
+            role="button"
+            tabIndex={0}
+            onClick={(e) => {
+              e.stopPropagation();
+              onSelectPersona?.(null);
+            }}
+            className="ml-0.5 -mr-1 p-0.5 rounded hover:bg-muted text-muted-foreground hover:text-destructive transition-colors cursor-pointer"
+            title={t('personas.deactivateTitle')}
+          >
+            <X className="w-3 h-3" />
+          </span>
+        )}
+      </button>
+
+      {isOpen && (
+        <div className="absolute left-0 mt-2 w-68 rounded-xl border border-border bg-popover p-1.5 shadow-xl z-50 animate-in fade-in-0 zoom-in-95">
+          <PersonaSelectorPanel
+            activePersona={activePersona}
+            onSelectPersona={onSelectPersona}
+            onClose={() => setIsOpen(false)}
+          />
+        </div>
+      )}
     </div>
   );
 }

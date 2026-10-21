@@ -1,4 +1,4 @@
-import { ArrowRight, Loader2, ImagePlus, Hammer, Upload, Zap, ZapOff, Square, Mic, MicOff, Terminal, Globe, BookOpen, Camera, Bot, Layout, X, Code2, Briefcase, MessageSquare, RotateCcw, Plus, Check, Cpu, Blocks, Sparkles, ScrollText, SlidersHorizontal, Key } from "lucide-react";
+import { ArrowRight, Loader2, ImagePlus, Hammer, ChevronRight, ChevronLeft, Upload, Zap, ZapOff, Square, Mic, MicOff, Terminal, Globe, BookOpen, Camera, Bot, Layout, X, Code2, Briefcase, MessageSquare, RotateCcw, Plus, Check, Cpu, Blocks, Sparkles, ScrollText, SlidersHorizontal, Key } from "lucide-react";
 import React, { useContext, useEffect, useRef, useState, useMemo } from "react";
 import { Link } from "react-router-dom";
 import { createPortal } from "react-dom";
@@ -15,6 +15,7 @@ import { getModelDisplayName as getModelDisplayNameLib, getModelGroup } from "..
 const PromptTemplatesModal = React.lazy(() => import("./PromptTemplatesModal"));
 const SnipModal = React.lazy(() => import("./SnipModal"));
 import { getAllPromptCommands, PROMPT_TEMPLATES_STORAGE_KEY } from "../lib/defaultPromptCommands";
+import { PersonaSelectorPanel } from "./PersonaSelector";
 
 function isVoiceFeatureAvailable(settings) {
 	if (!settings || settings.voiceInput?.enabled === false) {
@@ -56,6 +57,7 @@ function ChatInput({
 	favoriteModels = [],
 	onToggleFavoriteModel,
 	activePersona = null,
+	onSelectPersona = null,
 	onConfigureModel,
 }) {
 	const effectiveToolsCount = typeof toolsCount === 'number' && toolsCount > 0
@@ -103,6 +105,7 @@ function ChatInput({
 	const [imageMode, setImageMode] = useState(false);
 	const [isSnipModalOpen, setIsSnipModalOpen] = useState(false);
 	const [isPlusMenuOpen, setIsPlusMenuOpen] = useState(false);
+	const [plusMenuView, setPlusMenuView] = useState("main");
 	const [isSkillsPopoverOpen, setIsSkillsPopoverOpen] = useState(false);
 	const [isMcpPopoverOpen, setIsMcpPopoverOpen] = useState(false);
 	const plusMenuRef = useRef(null);
@@ -118,8 +121,12 @@ function ChatInput({
 
 	useEffect(() => {
 		const handleClickOutside = (e) => {
+			if (e.target.closest && (e.target.closest('[role="dialog"]') || e.target.closest('.fixed.inset-0') || e.target.closest('[data-portal]'))) {
+				return;
+			}
 			if (plusMenuRef.current && !plusMenuRef.current.contains(e.target)) {
 				setIsPlusMenuOpen(false);
+				setPlusMenuView("main");
 				setIsSkillsPopoverOpen(false);
 				setIsMcpPopoverOpen(false);
 			}
@@ -1175,6 +1182,9 @@ function ChatInput({
 									setIsSkillsPopoverOpen(false);
 									setIsMcpPopoverOpen(false);
 									setIsPlusMenuOpen(!isPlusMenuOpen);
+									if (isPlusMenuOpen) {
+										setPlusMenuView("main");
+									}
 								}}
 								className={cn(
 									"h-8 w-8 p-0 rounded-xl transition-all duration-200 flex items-center justify-center flex-shrink-0 cursor-pointer",
@@ -1191,6 +1201,8 @@ function ChatInput({
 							{/* Dropdown Menu */}
 							{isPlusMenuOpen && (
 								<div className="absolute bottom-full left-0 mb-2 w-72 p-1.5 rounded-2xl bg-popover border border-border text-popover-foreground shadow-2xl z-50 animate-in fade-in-0 zoom-in-95 space-y-0.5 text-xs">
+									{plusMenuView === "main" ? (
+										<>
 									{/* Gerar Imagem */}
 									{imageGenerationSettings?.enabled !== false && (
 										<button
@@ -1306,6 +1318,38 @@ function ChatInput({
 										</button>
 									)}
 
+									{/* Assistentes Especialistas (Personas) */}
+									<button
+										type="button"
+										onClick={() => setPlusMenuView("personas")}
+										className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-muted/80 text-foreground transition-colors text-left"
+									>
+										<Bot className="w-4 h-4 text-violet-500 shrink-0" />
+										<div className="flex-1 min-w-0">
+											<div className="font-semibold text-foreground flex items-center gap-1.5">
+												<span>{t('personas.dropdownTitle') || 'Assistentes Especialistas'}</span>
+												{activePersona && activePersona.id !== 'none' && activePersona.id !== 'disabled' && (
+													<span className="w-1.5 h-1.5 rounded-full bg-violet-500 shrink-0" />
+												)}
+											</div>
+											<div className="text-[10px] text-muted-foreground truncate">
+												{activePersona && activePersona.id !== 'none' && activePersona.id !== 'disabled'
+													? (activePersona.name || 'Personalizado')
+													: (t('personas.deactivated') || 'Desativado')}
+											</div>
+										</div>
+										<div className="flex items-center gap-1 shrink-0">
+											<div className={cn(
+												"px-2 py-0.5 rounded-md text-[10px] font-medium border",
+												activePersona && activePersona.id !== 'none' && activePersona.id !== 'disabled'
+													? "bg-violet-500/20 text-violet-600 dark:text-violet-400 border-violet-500/30 font-semibold"
+													: "bg-muted text-muted-foreground border-border/60"
+											)}>
+												{activePersona && activePersona.id !== 'none' && activePersona.id !== 'disabled' ? 'ON' : 'OFF'}
+											</div>
+											<ChevronRight className="w-3.5 h-3.5 text-muted-foreground" />
+										</div>
+									</button>
 									{/* AI Skills Hub */}
 									{onOpenSkillsModal && (
 										<button
@@ -1395,6 +1439,22 @@ function ChatInput({
 											<div className="text-[10px] text-muted-foreground truncate">Prompts e ações rápidas</div>
 										</div>
 									</button>
+										</>
+									) : plusMenuView === "personas" ? (
+										<PersonaSelectorPanel
+											activePersona={activePersona}
+											onSelectPersona={(persona) => {
+												onSelectPersona?.(persona);
+												setIsPlusMenuOpen(false);
+												setPlusMenuView("main");
+											}}
+											onBack={() => setPlusMenuView("main")}
+											onClose={() => {
+												setIsPlusMenuOpen(false);
+												setPlusMenuView("main");
+											}}
+										/>
+									) : null}
 								</div>
 							)}
 						</div>

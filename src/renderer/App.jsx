@@ -310,6 +310,14 @@ function App() {
   }, [activePersona]);
   // --- End Persona, Artifacts & Catalog State ---
 
+  const handleSelectPersona = useCallback((persona) => {
+    setActivePersona(persona);
+    const personaId = (persona?.id && persona.id !== 'none' && persona.id !== 'disabled') ? persona.id : null;
+    if (currentChatId) {
+      updateChatPersonaLocally(currentChatId, personaId);
+    }
+  }, [currentChatId, updateChatPersonaLocally]);
+
   // --- Multi-Model Comparison State ---
   const [isCompareMode, setIsCompareMode] = useState(false);
   const [compareModelA, setCompareModelA] = useState('');
@@ -3044,11 +3052,6 @@ function App() {
                 </Suspense>
               )}
 
-              {/* Persona Selector (Style & Tone Profile) */}
-              <PersonaSelector
-                activePersona={activePersona}
-                onSelectPersona={setActivePersona}
-              />
 
               {/* Active Project Badge */}
               {isPowerUser && activeProject && (
@@ -3785,6 +3788,8 @@ function App() {
                           onSelectWorkspace={handleSelectWorkspace}
                           favoriteModels={favoriteModels}
                           onToggleFavoriteModel={handleToggleFavoriteModel}
+                          activePersona={activePersona}
+                          onSelectPersona={handleSelectPersona}
                           onConfigureModel={() => setIsModelParamsModalOpen(true)}
                         />
                       </div>
@@ -3837,6 +3842,7 @@ function App() {
                           favoriteModels={favoriteModels}
                           onToggleFavoriteModel={handleToggleFavoriteModel}
                           activePersona={activePersona}
+                          onSelectPersona={handleSelectPersona}
                           onConfigureModel={() => setIsModelParamsModalOpen(true)}
                         />
                       </div>
@@ -3894,6 +3900,7 @@ function App() {
                           favoriteModels={favoriteModels}
                           onToggleFavoriteModel={handleToggleFavoriteModel}
                           activePersona={activePersona}
+                          onSelectPersona={handleSelectPersona}
                           onConfigureModel={() => setIsModelParamsModalOpen(true)}
                         />
                       </div>
@@ -4089,6 +4096,7 @@ function App() {
                           favoriteModels={favoriteModels}
                           onToggleFavoriteModel={handleToggleFavoriteModel}
                           activePersona={activePersona}
+                          onSelectPersona={handleSelectPersona}
                           onConfigureModel={() => setIsModelParamsModalOpen(true)}
                         />
                       </div>
