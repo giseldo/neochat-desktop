@@ -11,8 +11,8 @@ import { useCanvas } from './context/CanvasContext';
 import { useArtifacts } from './context/ArtifactsContext';
 import { useProjects } from './context/ProjectContext';
 import { useLanguage } from './context/LanguageContext';
-import { useTheme } from './context/ThemeContext';
-import { Settings, PanelLeftClose, PanelLeft, Radio, MessagesSquare, Sparkles, Store, Columns2, X, FolderKanban, BookOpen, Scale, Bot, Workflow, ChevronDown, Keyboard, Key, AlertCircle, PenSquare, Terminal, Briefcase, MessageSquare, Globe, Clock, Activity, LayoutGrid, MoreHorizontal, Brain, FolderTree, Compass, Sliders, Cpu } from 'lucide-react';
+import { useTheme, COLOR_THEMES } from './context/ThemeContext';
+import { Settings, PanelLeftClose, PanelLeft, Radio, MessagesSquare, Sparkles, Store, Columns2, X, FolderKanban, BookOpen, Scale, Bot, Workflow, ChevronDown, Keyboard, Key, AlertCircle, PenSquare, Terminal, Briefcase, MessageSquare, Globe, Clock, Activity, LayoutGrid, MoreHorizontal, Brain, FolderTree, Compass, Sliders, Cpu, Palette, ChevronRight, Sun, Moon, Laptop } from 'lucide-react';
 import { Button } from './components/ui/button';
 import { cn } from './lib/utils';
 import { groupModels, getModelGroup, getModelDisplayName as getModelDisplayNameLib } from './lib/modelGrouping';
@@ -101,8 +101,11 @@ function App() {
     openKnowledgeBaseModal,
     closeKnowledgeBaseModal
   } = useProjects();
-  const { t } = useLanguage();
-  const { chatWidth } = useTheme();
+  const { t, language } = useLanguage();
+  const { chatWidth, theme, resolvedTheme, colorTheme } = useTheme();
+  const pt = language === 'pt';
+  const activeColorObj = COLOR_THEMES.find(c => c.id === colorTheme) || COLOR_THEMES[0];
+  const CurrentThemeIcon = theme === 'system' ? Laptop : (resolvedTheme === 'dark' ? Moon : Sun);
 
   const navigate = useNavigate();
   const isMac = useMemo(() => {
@@ -220,6 +223,13 @@ function App() {
   const [isComputerVisionOpen, setIsComputerVisionOpen] = useState(false);
   const [isModelParamsModalOpen, setIsModelParamsModalOpen] = useState(false);
   const { isToolsDropdownOpen, setIsToolsDropdownOpen, toolsDropdownRef } = useToolsDropdown();
+  const [toolsSubmenu, setToolsSubmenu] = useState(null); // null | 'theme'
+
+  useEffect(() => {
+    if (!isToolsDropdownOpen) {
+      setToolsSubmenu(null);
+    }
+  }, [isToolsDropdownOpen]);
 
   const handleOpenSkillsModal = useCallback((tab = 'installed') => {
     setSkillsModalInitialTab(tab);
@@ -3100,7 +3110,10 @@ function App() {
                 <Button
                   variant={isToolsDropdownOpen ? "default" : "ghost"}
                   size="icon"
-                  onClick={() => setIsToolsDropdownOpen(!isToolsDropdownOpen)}
+                  onClick={() => {
+                    setIsToolsDropdownOpen(!isToolsDropdownOpen);
+                    setToolsSubmenu(null);
+                  }}
                   className={cn(
                     "h-8 w-8 rounded-xl relative transition-all",
                     isToolsDropdownOpen
@@ -3118,16 +3131,30 @@ function App() {
 
                 {/* Dropdown Menu */}
                 {isToolsDropdownOpen && (
-                  <div className="absolute right-0 mt-2 w-80 sm:w-88 max-h-[calc(100vh-5rem)] overflow-y-auto overscroll-contain custom-scrollbar p-1.5 rounded-2xl bg-popover border border-border text-popover-foreground shadow-2xl z-50 animate-in fade-in-0 zoom-in-95 space-y-0.5 text-xs">
-
-                    {isPowerUser && (
+                  <div className={cn(
+                    "absolute right-0 mt-2 max-h-[calc(100vh-5rem)] overflow-y-auto overscroll-contain custom-scrollbar p-1.5 rounded-2xl bg-popover border border-border text-popover-foreground shadow-2xl z-50 animate-in fade-in-0 zoom-in-95 space-y-0.5 text-xs transition-all",
+                    toolsSubmenu === 'theme' ? "w-[360px] max-w-[calc(100vw-1.5rem)]" : "w-80 sm:w-88"
+                  )}>
+                    {toolsSubmenu === 'theme' ? (
+                      <ThemeToggle
+                        embedded
+                        onBack={() => setToolsSubmenu(null)}
+                        onClose={() => {
+                          setIsToolsDropdownOpen(false);
+                          setToolsSubmenu(null);
+                        }}
+                        interfaceMode={interfaceMode}
+                        onInterfaceModeChange={handleInterfaceModeChange}
+                      />
+                    ) : (
                       <>
-
-
                         {/* Settings / Configurações */}
                         <Link
                           to="/settings"
-                          onClick={() => setIsToolsDropdownOpen(false)}
+                          onClick={() => {
+                            setIsToolsDropdownOpen(false);
+                            setToolsSubmenu(null);
+                          }}
                           className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-muted/80 text-foreground transition-colors text-left group"
                         >
                           <Settings className="w-4 h-4 text-primary shrink-0 transition-transform duration-300 group-hover:rotate-45" />
@@ -3140,7 +3167,32 @@ function App() {
                           </div>
                         </Link>
 
+                        {/* Theme & Appearance Submenu */}
+                        <button
+                          type="button"
+                          onClick={() => setToolsSubmenu('theme')}
+                          className="w-full flex items-center justify-between px-3 py-2 rounded-xl hover:bg-muted/80 text-foreground transition-colors text-left group"
+                        >
+                          <div className="flex items-center gap-2.5 min-w-0">
+                            <Palette className="w-4 h-4 text-primary shrink-0" />
+                            <div className="flex-1 min-w-0">
+                              <div className="font-semibold text-foreground flex items-center justify-between gap-1">
+                                <span>{pt ? 'Tema & Aparência' : 'Theme & Appearance'}</span>
+                              </div>
+                              <div className="text-[10px] text-muted-foreground truncate">{pt ? 'Cores, modo claro/escuro e fontes' : 'Colors, dark/light mode and fonts'}</div>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-1.5 text-muted-foreground shrink-0">
+                            <span className="w-2.5 h-2.5 rounded-full ring-1 ring-border/80" style={{ backgroundColor: activeColorObj.hex }} />
+                            <CurrentThemeIcon className="w-3.5 h-3.5" />
+                            <ChevronRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
+                          </div>
+                        </button>
+
                         <div className="my-1 border-t border-border/60" />
+
+                        {isPowerUser && (
+                          <>
 
                         {/* Trajectory */}
                         <button
@@ -3650,17 +3702,11 @@ function App() {
                       </div>
                       <kbd className="px-1.5 py-0.5 rounded bg-muted/80 text-[10px] font-mono font-medium border border-border/60 text-muted-foreground">{modKey}+/</kbd>
                     </button>
+                      </>
+                    )}
                   </div>
                 )}
               </div>
-
-              {/* Theme & Quick Appearance / Mode Toggle */}
-              {isPowerUser && (
-                <ThemeToggle
-                  interfaceMode={interfaceMode}
-                  onInterfaceModeChange={handleInterfaceModeChange}
-                />
-              )}
             </div>
           </div>
         </header>
