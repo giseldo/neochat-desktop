@@ -449,6 +449,16 @@
     margin-bottom: var(--chat-paragraph-spacing, 0.5rem);
   }
 
+  .markdown-content p {
+    text-indent: var(--chat-text-indent, 0);
+  }
+
+  .markdown-content li p,
+  .markdown-content table p,
+  .markdown-content blockquote p {
+    text-indent: 0;
+  }
+
   /* Text alignment preference */
   .markdown-content {
     letter-spacing: var(--chat-letter-spacing, normal);
@@ -685,6 +695,7 @@ select#model-select option {
 
 .reasoning-content .markdown-content p {
   margin-bottom: 0 !important;
+  text-indent: 0 !important;
 }
 
 .reasoning-content .markdown-content p:not(:last-child) {

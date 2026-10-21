@@ -74,6 +74,7 @@ function loadSettings() {
             showWelcomeSuggestions: false,
             showButtonLabels: false,
             textAlign: 'left',
+            textIndent: 'none',
             model: '',
             temperature: 0.7,
             top_p: 0.95,
@@ -197,6 +198,7 @@ function loadSettings() {
         providerFilterTab: 'active',
         chatWidth: 'wide',
         textAlign: 'left',
+        textIndent: 'none',
         webSearch: {
             enabled: false,
             provider: 'local',

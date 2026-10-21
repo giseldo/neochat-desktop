@@ -722,6 +722,11 @@ export const translations = {
       textAlignDesc: 'Escolha se as respostas do chat devem ser alinhadas à esquerda ou justificadas',
       textAlignLeft: 'À Esquerda',
       textAlignJustify: 'Justificado',
+      textIndentTitle: 'Recuo do Parágrafo',
+      textIndentDesc: 'Ajuste o recuo da primeira linha dos parágrafos no chat',
+      textIndentNone: 'Nenhum',
+      textIndentRelaxed: 'Suave',
+      textIndentWide: 'Amplo',
       quickMenuTitle: 'Aparência Rápida',
       tabs: {
         colors: 'Cores',
@@ -2571,6 +2576,11 @@ export const translations = {
       textAlignDesc: 'Choose whether chat responses should be left-aligned or justified',
       textAlignLeft: 'Left',
       textAlignJustify: 'Justified',
+      textIndentTitle: 'Paragraph Indentation',
+      textIndentDesc: 'Adjust first-line indentation for chat paragraphs',
+      textIndentNone: 'None',
+      textIndentRelaxed: 'Relaxed',
+      textIndentWide: 'Wide',
       quickMenuTitle: 'Quick Appearance',
       tabs: {
         colors: 'Colors',

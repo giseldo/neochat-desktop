@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Sun, Moon, Laptop, Check, ArrowRight } from 'lucide-react';
-import { useTheme, COLOR_THEMES, FONT_THEMES, FONT_SIZES, LETTER_SPACINGS, PARAGRAPH_SPACINGS } from '../context/ThemeContext';
+import { useTheme, COLOR_THEMES, FONT_THEMES, FONT_SIZES, LETTER_SPACINGS, PARAGRAPH_SPACINGS, TEXT_INDENTS } from '../context/ThemeContext';
 import { useLanguage } from '../context/LanguageContext';
 import { cn } from '../lib/utils';
 
@@ -23,6 +23,8 @@ export function ThemeToggle({ className, interfaceMode: propInterfaceMode, onInt
     setChatWidth,
     textAlign,
     setTextAlign,
+    textIndent,
+    setTextIndent,
     letterSpacing,
     setLetterSpacing,
     paragraphSpacing,
@@ -160,7 +162,7 @@ export function ThemeToggle({ className, interfaceMode: propInterfaceMode, onInt
               </fieldset>
               <div className="border-t border-border/50 pt-3">
                 <p className="text-xs text-muted-foreground mb-2">{pt ? 'Prévia' : 'Preview'}</p>
-                <p style={{ fontFamily: fontFamily(selectedFont), fontSize: selectedSize.scale }} className={cn("leading-relaxed break-words", textAlign === 'justify' ? "text-justify [text-justify:inter-word]" : "text-left")}>{pt ? 'Um espaço para conversar e criar.' : 'A space to talk and create.'}</p>
+                <p style={{ fontFamily: fontFamily(selectedFont), fontSize: selectedSize.scale, textIndent: TEXT_INDENTS.find(option => option.id === textIndent)?.value }} className={cn("leading-relaxed break-words", textAlign === 'justify' ? "text-justify [text-justify:inter-word]" : "text-left")}>{pt ? 'Um espaço para conversar e criar.' : 'A space to talk and create.'}</p>
               </div>
             </div>
           )}
@@ -181,6 +183,21 @@ export function ThemeToggle({ className, interfaceMode: propInterfaceMode, onInt
                       {label}
                     </button>
                   ))}
+                </div>
+              </fieldset>
+              <fieldset>
+                <legend className="text-xs text-muted-foreground mb-2">{t('theme.textIndentTitle') || (pt ? 'Recuo de parágrafo' : 'Paragraph indentation')}</legend>
+                <div className="grid grid-cols-3 gap-1 bg-muted/60 rounded-lg p-1">
+                  {TEXT_INDENTS.map((option, index) => (
+                    <button key={option.id} type="button" aria-pressed={textIndent === option.id} onClick={() => setTextIndent(option.id)} className={optionStyle(textIndent === option.id)}>
+                      {(pt ? ['Nenhum', 'Suave', 'Amplo'] : ['None', 'Relaxed', 'Wide'])[index]}
+                    </button>
+                  ))}
+                </div>
+                <p className="mt-2 text-xs text-muted-foreground">{pt ? 'Prévia do recuo na primeira linha' : 'Preview of first-line indentation'}</p>
+                <div className="mt-2 text-sm leading-relaxed break-words" style={{ letterSpacing: LETTER_SPACINGS.find(option => option.id === letterSpacing)?.value }}>
+                  <p style={{ textIndent: TEXT_INDENTS.find(option => option.id === textIndent)?.value, marginBottom: PARAGRAPH_SPACINGS.find(option => option.id === paragraphSpacing)?.value }}>{pt ? 'Um espaço para conversar e criar.' : 'A space to talk and create.'}</p>
+                  <p style={{ textIndent: TEXT_INDENTS.find(option => option.id === textIndent)?.value }}>{pt ? 'Mais espaço para uma leitura confortável.' : 'More space for comfortable reading.'}</p>
                 </div>
               </fieldset>
               <fieldset>
@@ -208,8 +225,8 @@ export function ThemeToggle({ className, interfaceMode: propInterfaceMode, onInt
                 </div>
                 <p className="mt-2 text-xs text-muted-foreground">{pt ? 'Prévia do espaçamento nas conversas' : 'Preview of conversation spacing'}</p>
                 <div className="mt-2 text-sm leading-relaxed break-words" style={{ letterSpacing: LETTER_SPACINGS.find(option => option.id === letterSpacing)?.value }}>
-                  <p style={{ marginBottom: PARAGRAPH_SPACINGS.find(option => option.id === paragraphSpacing)?.value }}>{pt ? 'Um espaço para conversar e criar.' : 'A space to talk and create.'}</p>
-                  <p>{pt ? 'Mais espaço para uma leitura confortável.' : 'More space for comfortable reading.'}</p>
+                  <p style={{ textIndent: TEXT_INDENTS.find(option => option.id === textIndent)?.value, marginBottom: PARAGRAPH_SPACINGS.find(option => option.id === paragraphSpacing)?.value }}>{pt ? 'Um espaço para conversar e criar.' : 'A space to talk and create.'}</p>
+                  <p style={{ textIndent: TEXT_INDENTS.find(option => option.id === textIndent)?.value }}>{pt ? 'Mais espaço para uma leitura confortável.' : 'More space for comfortable reading.'}</p>
                 </div>
               </fieldset>
               <fieldset>

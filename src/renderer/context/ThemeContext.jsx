@@ -51,6 +51,12 @@ export const PARAGRAPH_SPACINGS = [
   { id: 'wide', value: '1.5rem' },
 ];
 
+export const TEXT_INDENTS = [
+  { id: 'none', value: '0' },
+  { id: 'relaxed', value: '1.5rem' },
+  { id: 'wide', value: '2.5rem' },
+];
+
 export const ThemeContext = createContext({
   theme: 'system',
   setTheme: () => {},
@@ -66,6 +72,8 @@ export const ThemeContext = createContext({
   setChatWidth: () => {},
   textAlign: 'left',
   setTextAlign: () => {},
+  textIndent: 'none',
+  setTextIndent: () => {},
   letterSpacing: 'normal',
   setLetterSpacing: () => {},
   paragraphSpacing: 'normal',
@@ -146,6 +154,35 @@ export const ThemeProvider = ({ children }) => {
       return 'left';
     }
   });
+
+  const [textIndent, setTextIndentState] = useState(() => {
+    try {
+      const saved = localStorage.getItem('neochat_text_indent');
+      return TEXT_INDENTS.some(option => option.id === saved) ? saved : 'none';
+    } catch {
+      return 'none';
+    }
+  });
+
+  useEffect(() => {
+    const indent = TEXT_INDENTS.find(option => option.id === textIndent);
+    document.documentElement.style.setProperty('--chat-text-indent', indent?.value || '0');
+  }, [textIndent]);
+
+  const setTextIndent = (value) => {
+    const valid = TEXT_INDENTS.some(option => option.id === value) ? value : 'none';
+    setTextIndentState(valid);
+    try {
+      localStorage.setItem('neochat_text_indent', valid);
+    } catch (error) {
+      console.error('Failed to save text indent:', error);
+    }
+    if (window.electron?.saveSettings) {
+      window.electron.getSettings().then(current => {
+        window.electron.saveSettings({ ...current, textIndent: valid }).catch(() => {});
+      }).catch(() => {});
+    }
+  };
 
   const [letterSpacing, setLetterSpacingState] = useState(() => {
     try {
@@ -229,14 +266,15 @@ export const ThemeProvider = ({ children }) => {
       root.classList.remove('dark');
     }
 
-    // Data attributes for colors, background, font, font-size, chat-width and text-align
+    // Data attributes for colors, background, font, font-size, chat-width, text-align and text-indent
     root.setAttribute('data-color-theme', colorTheme);
     root.setAttribute('data-bg-theme', effectiveBgTheme);
     root.setAttribute('data-font', fontTheme);
     root.setAttribute('data-font-size', fontSize);
     root.setAttribute('data-chat-width', chatWidth);
     root.setAttribute('data-text-align', textAlign);
-  }, [isDark, colorTheme, effectiveBgTheme, fontTheme, fontSize, chatWidth, textAlign]);
+    root.setAttribute('data-text-indent', textIndent);
+  }, [isDark, colorTheme, effectiveBgTheme, fontTheme, fontSize, chatWidth, textAlign, textIndent]);
 
   const setTheme = (newTheme) => {
     setThemeState(newTheme);
@@ -340,6 +378,8 @@ export const ThemeProvider = ({ children }) => {
       setChatWidth,
       textAlign,
       setTextAlign,
+      textIndent,
+      setTextIndent,
       letterSpacing,
       setLetterSpacing,
       paragraphSpacing,

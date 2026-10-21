@@ -36,7 +36,6 @@ import {
   Edit2,
   Sliders,
   Droplets,
-  Compass,
   Inbox
 } from 'lucide-react';
 import { BotAvatar, getPersonaIcon, getStoredPersonas } from './PersonaSelector';
@@ -1443,19 +1442,6 @@ function ChatHistorySidebar({
         <h2 className="font-semibold text-sm text-foreground tracking-tight pl-1">NeoChat</h2>
         
         <div className="flex items-center gap-0.5">
-          {/* AI News & Discovery button */}
-          {onOpenNewsDiscover && (
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={onOpenNewsDiscover}
-              className="h-7 w-7 text-muted-foreground hover:text-sky-500 hover:bg-sky-500/10 rounded-lg transition-colors"
-              title="Descoberta & Notícias IA"
-            >
-              <Compass className="h-4 w-4" />
-            </Button>
-          )}
-
           {/* New Chat button */}
           <Button
             variant="ghost"

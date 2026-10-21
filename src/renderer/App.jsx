@@ -2990,7 +2990,6 @@ function App() {
         activeBot={activeBot}
         onSelectPersona={setActivePersona}
         onSelectBotChat={handleSelectBotChat}
-        onOpenNewsDiscover={() => setIsNewsDiscoverOpen(true)}
       />
 
       {/* Main Content Area */}

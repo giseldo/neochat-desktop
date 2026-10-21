@@ -10,7 +10,7 @@ import { Textarea } from '../components/ui/textarea';
 import { Badge } from '../components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
 import Switch from '../components/ui/Switch';
-import { useTheme, COLOR_THEMES, BG_THEMES, FONT_THEMES, FONT_SIZES } from '../context/ThemeContext';
+import { useTheme, COLOR_THEMES, BG_THEMES, FONT_THEMES, FONT_SIZES, TEXT_INDENTS } from '../context/ThemeContext';
 import { useLanguage } from '../context/LanguageContext';
 import PromptTemplatesModal from '../components/PromptTemplatesModal';
 import KeyboardShortcutsModal, { formatAccelerator, KeyCombo, KeyBadge } from '../components/KeyboardShortcutsModal';
@@ -358,6 +358,8 @@ function Settings() {
     setChatWidth,
     textAlign,
     setTextAlign,
+    textIndent,
+    setTextIndent,
     resolvedTheme,
     isDark
   } = useTheme();
@@ -3552,7 +3554,8 @@ function Settings() {
               <SettingsRow label={t('theme.fontSizeTitle')}><SettingsChoices value={fontSize} onChange={setFontSize} options={FONT_SIZES.map((f, i) => ({ id: f.id, name: (language === 'pt' ? ['Pequeno', 'Padrão', 'Grande', 'Extra'] : ['Small', 'Default', 'Large', 'Extra'])[i] }))} /></SettingsRow>
               <SettingsRow label={t('theme.chatWidthTitle')}><SettingsChoices value={chatWidth} onChange={setChatWidth} options={[{ id: 'wide', name: language === 'pt' ? 'Centralizado' : 'Centered' }, { id: 'full', name: language === 'pt' ? 'Amplo' : 'Full width' }]} /></SettingsRow>
               <SettingsRow label={t('theme.textAlignTitle')}><SettingsChoices value={textAlign} onChange={setTextAlign} options={[{ id: 'left', name: t('theme.textAlignLeft') }, { id: 'justify', name: t('theme.textAlignJustify') }]} /></SettingsRow>
-              <p className={cn("pt-4 text-muted-foreground", textAlign === 'justify' ? "text-justify [text-justify:inter-word]" : "text-left")} style={{ fontSize: FONT_SIZES.find(f => f.id === fontSize)?.scale }}>{language === 'pt' ? 'Um espaço para conversar, criar e raciocinar com clareza através de inteligência artificial.' : 'A space to talk, create and reason with clarity through artificial intelligence.'}</p>
+              <SettingsRow label={t('theme.textIndentTitle')}><SettingsChoices value={textIndent} onChange={setTextIndent} options={[{ id: 'none', name: t('theme.textIndentNone') || (language === 'pt' ? 'Nenhum' : 'None') }, { id: 'relaxed', name: t('theme.textIndentRelaxed') || (language === 'pt' ? 'Suave' : 'Relaxed') }, { id: 'wide', name: t('theme.textIndentWide') || (language === 'pt' ? 'Amplo' : 'Wide') }]} /></SettingsRow>
+              <p className={cn("pt-4 text-muted-foreground", textAlign === 'justify' ? "text-justify [text-justify:inter-word]" : "text-left")} style={{ fontSize: FONT_SIZES.find(f => f.id === fontSize)?.scale, textIndent: TEXT_INDENTS.find(i => i.id === textIndent)?.value }}>{language === 'pt' ? 'Um espaço para conversar, criar e raciocinar com clareza através de inteligência artificial.' : 'A space to talk, create and reason with clarity through artificial intelligence.'}</p>
             </CardContent>
           </Card>
         )}
