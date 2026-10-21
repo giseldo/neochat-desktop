@@ -676,18 +676,60 @@ ${skill.instructions || ''}
    * @param {string} skillId 
    */
   deleteSkill(skillId) {
-    if (!this.installedSkills.has(skillId)) {
+    if (!skillId) {
+      return { success: false, error: 'ID da skill inválido.' };
+    }
+
+    let skill = this.installedSkills.get(skillId);
+    let resolvedId = skillId;
+
+    if (!skill) {
+      const slugId = this._slugify(skillId);
+      if (this.installedSkills.has(slugId)) {
+        skill = this.installedSkills.get(slugId);
+        resolvedId = slugId;
+      }
+    }
+
+    if (!skill) {
+      for (const [id, s] of this.installedSkills.entries()) {
+        if (
+          id.toLowerCase() === String(skillId).toLowerCase() ||
+          (s.name && s.name.toLowerCase() === String(skillId).toLowerCase()) ||
+          (s.slashCommand && s.slashCommand.toLowerCase() === String(skillId).toLowerCase())
+        ) {
+          skill = s;
+          resolvedId = id;
+          break;
+        }
+      }
+    }
+
+    if (!skill) {
+      if (this.skillsDir) {
+        const potentialDir = path.join(this.skillsDir, this._slugify(skillId));
+        if (fs.existsSync(potentialDir)) {
+          try {
+            fs.rmSync(potentialDir, { recursive: true, force: true });
+            this._loadInstalledSkills();
+            return { success: true, skillId };
+          } catch (err) {
+            console.warn('[SkillManager] Failed to remove directory:', err.message);
+          }
+        }
+      }
       return { success: false, error: 'Skill não encontrada.' };
     }
 
-    const skill = this.installedSkills.get(skillId);
     if (skill.dirPath && fs.existsSync(skill.dirPath)) {
       try {
         fs.rmSync(skill.dirPath, { recursive: true, force: true });
       } catch (err) {
         console.warn(`[SkillManager] Failed to remove directory ${skill.dirPath}:`, err.message);
       }
-    } else if (skill.filePath && fs.existsSync(skill.filePath)) {
+    }
+
+    if (skill.filePath && fs.existsSync(skill.filePath)) {
       try {
         fs.unlinkSync(skill.filePath);
       } catch (err) {
@@ -695,9 +737,14 @@ ${skill.instructions || ''}
       }
     }
 
-    this.installedSkills.delete(skillId);
-    console.log(`[SkillManager] Deleted skill: ${skillId}`);
-    return { success: true, skillId };
+    this.installedSkills.delete(resolvedId);
+    if (skill.id) {
+      this.installedSkills.delete(skill.id);
+    }
+    this.installedSkills.delete(this._slugify(skillId));
+
+    console.log(`[SkillManager] Deleted skill: ${resolvedId}`);
+    return { success: true, skillId: resolvedId };
   }
 
   /**

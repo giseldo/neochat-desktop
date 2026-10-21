@@ -84,6 +84,7 @@ export function SkillsModal({
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [installingId, setInstallingId] = useState(null);
+  const [uninstallingId, setUninstallingId] = useState(null);
   const [actionMessage, setActionMessage] = useState(null);
   const [expandedSkillId, setExpandedSkillId] = useState(null);
 
@@ -149,6 +150,7 @@ export function SkillsModal({
     try {
       await window.electron.skills.toggle(skillId, !currentEnabled);
       setSkills(prev => prev.map(s => s.id === skillId ? { ...s, enabled: !currentEnabled } : s));
+      window.dispatchEvent(new CustomEvent('neochat:skills-updated'));
     } catch (err) {
       console.error('Failed to toggle skill:', err);
       showToast(err.message, 'error');
@@ -163,6 +165,7 @@ export function SkillsModal({
       if (res && res.success) {
         showToast(t('skills.importSuccess') || 'Skill instalada com sucesso!');
         await loadSkillsData();
+        window.dispatchEvent(new CustomEvent('neochat:skills-updated'));
       }
     } catch (err) {
       console.error('Failed to install skill from catalog:', err);
@@ -174,18 +177,25 @@ export function SkillsModal({
 
   const handleDelete = async (skill) => {
     if (!window.electron?.skills?.delete) return;
-    const confirmMsg = t('skills.uninstallConfirm', { name: skill.displayName || skill.name }) || `Desinstalar a skill ${skill.name}?`;
+    const skillName = skill.displayName || skill.name || skill.id;
+    const confirmMsg = t('skills.uninstallConfirm', { name: skillName }) || `Tem certeza que deseja desinstalar a skill "${skillName}"?`;
     if (!window.confirm(confirmMsg)) return;
 
     try {
+      setUninstallingId(skill.id);
       const res = await window.electron.skills.delete(skill.id);
       if (res && res.success) {
         showToast(t('skills.deleteSuccess') || 'Skill removida com sucesso!');
         await loadSkillsData();
+        window.dispatchEvent(new CustomEvent('neochat:skills-updated'));
+      } else if (res && res.error) {
+        showToast(res.error, 'error');
       }
     } catch (err) {
       console.error('Failed to delete skill:', err);
       showToast(err.message, 'error');
+    } finally {
+      setUninstallingId(null);
     }
   };
 
@@ -210,6 +220,7 @@ export function SkillsModal({
       if (res && res.success) {
         showToast(t('skills.importSuccess') || 'Skill importada com sucesso!');
         await loadSkillsData();
+        window.dispatchEvent(new CustomEvent('neochat:skills-updated'));
         setActiveTab('installed');
       } else if (res && res.error) {
         showToast(res.error, 'error');
@@ -231,6 +242,7 @@ export function SkillsModal({
         showToast(t('skills.importSuccess') || 'Skill importada com sucesso!');
         setImportUrl('');
         await loadSkillsData();
+        window.dispatchEvent(new CustomEvent('neochat:skills-updated'));
         setActiveTab('installed');
       } else if (res && res.error) {
         showToast(res.error, 'error');
@@ -297,6 +309,7 @@ export function SkillsModal({
       if (res && res.success) {
         showToast(editingSkill ? t('skills.updateSuccess') : t('skills.createSuccess'));
         await loadSkillsData();
+        window.dispatchEvent(new CustomEvent('neochat:skills-updated'));
         setActiveTab('installed');
       }
     } catch (err) {
@@ -708,11 +721,17 @@ export function SkillsModal({
                             <Button
                               size="sm"
                               variant="ghost"
-                              className="h-7 px-2 text-[11px] text-destructive hover:text-destructive hover:bg-destructive/10"
+                              className="h-7 px-2.5 text-[11px] text-destructive hover:text-destructive hover:bg-destructive/10 font-medium cursor-pointer"
                               onClick={() => handleDelete(skill)}
+                              disabled={uninstallingId === skill.id}
                               title={t('skills.uninstall')}
                             >
-                              <Trash2 className="w-3 h-3" />
+                              {uninstallingId === skill.id ? (
+                                <RotateCcw className="w-3 h-3 animate-spin mr-1" />
+                              ) : (
+                                <Trash2 className="w-3 h-3 mr-1" />
+                              )}
+                              <span>{t('skills.uninstall')}</span>
                             </Button>
                           </div>
                         </div>
@@ -804,16 +823,41 @@ export function SkillsModal({
 
                             <div>
                               {isInstalled ? (
-                                <Badge variant="outline" className="text-[11px] bg-emerald-500/10 text-emerald-500 border-emerald-500/20 flex items-center gap-1">
-                                  <Check className="w-3 h-3" />
-                                  <span>{t('skills.installed')}</span>
-                                </Badge>
+                                <div className="flex items-center gap-1.5">
+                                  <Badge variant="outline" className="text-[11px] bg-emerald-500/10 text-emerald-500 border-emerald-500/20 flex items-center gap-1 font-medium">
+                                    <Check className="w-3 h-3" />
+                                    <span>{t('skills.installed')}</span>
+                                  </Badge>
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    onClick={() => {
+                                      const installedSkill = skills.find(s => s.id === item.id) || item;
+                                      handleDelete(installedSkill);
+                                    }}
+                                    disabled={uninstallingId === item.id}
+                                    className="h-8 px-2.5 text-xs text-destructive hover:text-destructive hover:bg-destructive/10 border border-transparent hover:border-destructive/20 font-medium cursor-pointer"
+                                    title={t('skills.uninstall')}
+                                  >
+                                    {uninstallingId === item.id ? (
+                                      <>
+                                        <RotateCcw className="w-3.5 h-3.5 mr-1.5 animate-spin" />
+                                        <span>{t('skills.uninstalling') || 'Desinstalando...'}</span>
+                                      </>
+                                    ) : (
+                                      <>
+                                        <Trash2 className="w-3.5 h-3.5 mr-1.5" />
+                                        <span>{t('skills.uninstall')}</span>
+                                      </>
+                                    )}
+                                  </Button>
+                                </div>
                               ) : (
                                 <Button
                                   size="sm"
                                   onClick={() => handleInstallFromCatalog(item.id)}
                                   disabled={isInstalling}
-                                  className="h-8 text-xs font-semibold"
+                                  className="h-8 text-xs font-semibold cursor-pointer"
                                 >
                                   {isInstalling ? (
                                     <>

@@ -200,7 +200,14 @@ function ChatInput({
 			}
 		};
 		loadSkills();
-		return () => { isMounted = false; };
+		const handleSkillsChanged = () => {
+			loadSkills();
+		};
+		window.addEventListener('neochat:skills-updated', handleSkillsChanged);
+		return () => {
+			isMounted = false;
+			window.removeEventListener('neochat:skills-updated', handleSkillsChanged);
+		};
 	}, [focusSignal, workspaceInfo?.root]);
 
 	const activeSkills = useMemo(() => {

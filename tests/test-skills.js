@@ -84,11 +84,20 @@ async function runTests() {
   assert(importedRes.success === true, 'Import must succeed');
   console.log('✅ Imported skill from Markdown string');
 
-  // 9. Test Delete
+  // 9. Test Delete & Uninstall
   const delRes = manager.deleteSkill('custom-seo-optimizer');
   assert(delRes.success === true, 'Delete must succeed');
   assert(!manager.installedSkills.has('custom-seo-optimizer'), 'Deleted skill must not exist in map');
-  console.log('✅ Deleted skill successfully');
+  console.log('✅ Deleted custom skill successfully');
+
+  // Test uninstalling catalog-installed skill (sys-architect)
+  const uninstallCatalogRes = manager.deleteSkill('sys-architect');
+  assert(uninstallCatalogRes.success === true, 'Catalog skill uninstall must succeed');
+  assert(!manager.installedSkills.has('sys-architect'), 'sys-architect must be uninstalled');
+  const updatedCatalog = manager.getCatalog();
+  const sysArchItem = updatedCatalog.find(s => s.id === 'sys-architect');
+  assert(sysArchItem && sysArchItem.isInstalled === false, 'Catalog item should reflect uninstalled state');
+  console.log('✅ Uninstalled catalog skill successfully');
 
   // 10. Composer active-skill marker mirrors the neo-chat interaction.
   const chatInputSource = fs.readFileSync(path.join(__dirname, '..', 'src', 'renderer', 'components', 'ChatInput.jsx'), 'utf8');
