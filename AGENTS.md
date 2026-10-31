@@ -8,8 +8,8 @@ Electron + React 19 desktop AI workspace & chat app with universal multi-provide
 - Dev: `pnpm dev` (runs Vite on :5173 + Electron concurrently). DevTools auto-opens; main window is created `fullscreen: true` (`electron/windowManager.js`).
 - Build: `pnpm build` (Vite → `dist/`), `pnpm build:electron` (electron-builder), `pnpm dist` (both, output to `release/`).
 - **No test framework, no typecheck, no lint script.** Verification is ad-hoc `node tests/test-*.js` scripts (`tests/test-paths.js`, `tests/test-resolver.js`, `tests/test-popup-window.js`, ...). `pnpm test` runs core tests; `pnpm test:paths` runs one; `tests/test-cross-platform.sh` requires Docker and runs Linux tests via `tests/test-linux.Dockerfile`; `tests/test-windows.ps1` for Windows. Run ESLint via `npx eslint` (flat config).
-- **Workflow**: Always test/build, then `git commit` and `git push` to `origin main` automatically after implementing each requested change/feature.
-- **Release Workflow**: Whenever generating a new release:
+- **Workflow**: Always test/build, then `git commit`, `git push` to `origin main`, and generate a new release (`pnpm release:create patch`) automatically after implementing each requested change/feature (see `.agents/skills/auto-release/SKILL.md`).
+- **Release Workflow**: Whenever generating a new release (required after every change, without version numbers in release titles or binary artifact names):
   - **Automated**: Run `pnpm release:create [patch|minor|major|<version>]` (e.g. `pnpm release:create patch`). This automatically bumps version, tags, pushes, and triggers GitHub Actions to build and publish release artifacts.
   - **Manual**:
     1. Bump version in `package.json` (e.g. semver patch/minor).

@@ -50,8 +50,8 @@ if (releaseExists) {
   execSync('gh release upload --repo ' + REPO_TARGET + ' ' + tag + ' ' + quotedFiles + ' --clobber', { stdio: 'inherit' });
 } else {
   console.log('\nCreating release ' + tag + ' on ' + REPO_TARGET + '...');
-  const title = 'NeoChat Desktop ' + tag;
-  let notes = '## NeoChat Desktop ' + tag + '\n\n';
+  const title = 'NeoChat Desktop';
+  let notes = '## NeoChat Desktop\n\n';
   try {
     const prevTag = execSync('git describe --tags --abbrev=0 HEAD^', { encoding: 'utf8' }).trim();
     const commits = execSync('git log ' + prevTag + '..HEAD --pretty=format:"* %s (%h)"', { encoding: 'utf8' }).trim();

@@ -96,7 +96,7 @@ jobs:
           else
             TAG_NAME="v${PKG_VERSION}"
           fi
-          TITLE="NeoChat Desktop ${TAG_NAME}"
+          TITLE="NeoChat Desktop"
           
           mkdir -p release-files
           find all-artifacts -type f -exec cp {} release-files/ \;
