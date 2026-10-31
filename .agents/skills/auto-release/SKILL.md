@@ -28,7 +28,7 @@ Whenever you implement any change, feature, or bug fix in the repository, you **
      ```bash
      pnpm release:create patch
      ```
-   - This bumps `package.json`, updates WinGet manifests, builds `dist/`, deletes older GitHub releases, commits the version bump, creates the `vX.Y.Z` git tag, and pushes both `main` and the tag to `origin` so GitHub Actions builds and publishes the release.
+   - This bumps `package.json`, updates WinGet manifests, cleans the `release/` directory, builds `dist/` and the latest unversioned Windows installers (`pnpm dist:win`) into `release/`, deletes older GitHub releases, commits the version bump, creates the `vX.Y.Z` git tag, and pushes both `main` and the tag to `origin`.
 
 ## Release Naming Rules (No Version Numbers)
 

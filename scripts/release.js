@@ -143,7 +143,12 @@ Options:
 
   // 5. Build dist assets for NPX and desktop
   console.log(`\n[3/4] Building web/dist assets for npx and packaging...`);
-  run('pnpm build', { dryRun: isDryRun });
+  const releaseDir = path.join(rootDir, 'release');
+  if (!isDryRun && fs.existsSync(releaseDir)) {
+    console.log(`  Cleaning old files in ${releaseDir}...`);
+    fs.rmSync(releaseDir, { recursive: true, force: true });
+  }
+  run('pnpm dist:win', { dryRun: isDryRun });
 
   // 6. Commit & Tag
   console.log(`\n[4/4] Creating Git commit and tag (${tag})...`);
