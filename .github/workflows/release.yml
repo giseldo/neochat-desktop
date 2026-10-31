@@ -103,6 +103,12 @@ jobs:
           
           echo "Files to publish:"
           ls -la release-files/
+          for old_tag in $(gh release list --limit 100 --json tagName -q '.[].tagName'); do
+            if [ "${old_tag}" != "${TAG_NAME}" ]; then
+              echo "Deleting old release ${old_tag}..."
+              gh release delete "${old_tag}" --yes --cleanup-tag || true
+            fi
+          done
           
           if gh release view "${TAG_NAME}" >/dev/null 2>&1; then
             echo "Updating existing release ${TAG_NAME}..."

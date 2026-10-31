@@ -152,7 +152,22 @@ Options:
   run(`git tag ${tag}`, { dryRun: isDryRun });
   console.log(`✔ Git commit and tag ${tag} created.`);
 
-  // 7. Push to remote
+  // 7. Delete old GitHub releases before pushing new release tag
+  if (!isDryRun && !isSkipPush) {
+    try {
+      const releasesRaw = execSync(`gh release list -R ${REPO_TARGET} --limit 100 --json tagName`, { encoding: 'utf8' });
+      const releases = JSON.parse(releasesRaw || '[]');
+      for (const rel of releases) {
+        if (rel.tagName && rel.tagName !== tag) {
+          console.log(`  Deleting old release ${rel.tagName}...`);
+          execSync(`gh release delete "${rel.tagName}" -R ${REPO_TARGET} --yes --cleanup-tag`, { stdio: 'inherit' });
+        }
+      }
+    } catch (e) {
+      console.warn('⚠️  Could not clean up old releases via gh CLI:', e.message);
+    }
+  }
+  // 8. Push to remote
   console.log(`\nPushing commit and tag ${tag} to origin main...`);
   if (!isSkipPush) {
     run('git push origin main', { dryRun: isDryRun });
