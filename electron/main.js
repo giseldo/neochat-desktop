@@ -45,7 +45,6 @@ const { initializeSettingsHandlers, loadSettings, saveSettings } = require('./se
 const { initializeCommandResolver } = require('./commandResolver');
 const mcpManager = require('./mcpManager');
 const { initializeWindowManager } = require('./windowManager');
-const { createSplashScreen } = require('./splashManager');
 const googleOAuthManager = require('./googleOAuthManager');
 const { initializeToolPermissionHandlers } = require('./toolPermissionManager');
 const { autoUpdater } = require('electron-updater');
@@ -248,33 +247,25 @@ app.on('open-url', (event, url) => {
 app.whenReady().then(async () => {
   console.log("App Ready. Initializing...");
 
-  try {
-    createSplashScreen(BrowserWindow, app);
-  } catch (splashErr) {
-    console.warn('[main] Could not initialize splash screen:', splashErr.message);
-  }
-
   neoAgentRuntime.configurePersistence(path.join(app.getPath('userData'), 'agent-runtime'));
 
   // Initialize command resolver first (might be needed by others)
   initializeCommandResolver(app);
 
-  // Load model context sizes from the active provider's API
+  // Start with defaults and refresh from the provider API in the background
+  // so the network never blocks startup.
+  modelContextSizes = MODEL_CONTEXT_SIZES;
   try {
     const currentSettings = loadSettings();
     const apiKey = getActiveApiKey(currentSettings);
     const modelsUrl = getModelsUrl(currentSettings);
     if (apiKey && modelsUrl) {
-      console.log(`Fetching models from provider API...`);
-      modelContextSizes = await getModelsFromAPIWithCache(apiKey, modelsUrl);
-      console.log('Successfully loaded models from API.');
-    } else {
-      console.warn('No valid API key found, using default model configuration.');
-      modelContextSizes = MODEL_CONTEXT_SIZES;
+      getModelsFromAPIWithCache(apiKey, modelsUrl)
+        .then((models) => { if (models) modelContextSizes = models; })
+        .catch((error) => console.error('Failed to load models from API:', error));
     }
   } catch (error) {
     console.error('Failed to load models from API:', error);
-    modelContextSizes = MODEL_CONTEXT_SIZES; // Fallback
   }
 
   // Helper to fetch and merge all models across active providers with unique keys

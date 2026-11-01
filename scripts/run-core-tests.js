@@ -34,8 +34,7 @@ const tests = [
   'test-mermaid.js',
   'test-artifacts.js',
   'test-emoji-list.js',
-  'test-default-model-empty.js',
-  'test-splash-screen.js'
+  'test-default-model-empty.js'
 ];
 
 for (const test of tests) {
