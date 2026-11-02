@@ -146,7 +146,11 @@ Options:
   const releaseDir = path.join(rootDir, 'release');
   if (!isDryRun && fs.existsSync(releaseDir)) {
     console.log(`  Cleaning old files in ${releaseDir}...`);
-    fs.rmSync(releaseDir, { recursive: true, force: true });
+    try {
+      fs.rmSync(releaseDir, { recursive: true, force: true, maxRetries: 3, retryDelay: 500 });
+    } catch (err) {
+      console.warn(`  Warning: could not delete release directory (${err.message}), continuing with build...`);
+    }
   }
   run('pnpm dist:win', { dryRun: isDryRun });
 
