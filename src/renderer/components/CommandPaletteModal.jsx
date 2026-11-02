@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import {
   Search,
+  FlaskConical,
   Settings,
   Bot,
   Sparkles,
@@ -145,6 +146,12 @@ export function CommandPaletteModal({
   }, [isOpen]);
 
   // Build the list of all command items
+  const isLabActive = (key) => {
+    if (!labsSettings) return true;
+    if (labsSettings.enabled === false) return false;
+    return Boolean(labsSettings[key]);
+  };
+
   const allItems = useMemo(() => {
     const items = [];
 
@@ -651,6 +658,7 @@ export function CommandPaletteModal({
     });
   }, [
     availableModels,
+    labsSettings,
     currentModel,
     personas,
     activePersona,
