@@ -1,11 +1,13 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
-import { Check, ChevronDown, Layers, Key, Star } from 'lucide-react';
+import { Check, ChevronDown, Layers, Key, Star, Bot, Plus, SlidersHorizontal } from 'lucide-react';
+import { BotAvatar } from '../PersonaSelector';
 import { useLanguage } from '../../context/LanguageContext';
 import { cn } from '../../lib/utils';
 
 /**
  * A searchable select component that allows filtering options by typing
  * and optionally grouping options by categories/providers.
+ * Also supports a prominent unified top section for "Funcionários Agênticos" (TypingMind style).
  */
 export function SearchableSelect({ 
   value, 
@@ -22,6 +24,10 @@ export function SearchableSelect({
   favoriteItems = [],
   onToggleFavorite = null,
   dropdownPosition = "top",
+  botsList = [],
+  activeBot = null,
+  onSelectBot = null,
+  onOpenBotManager = null,
 }) {
   const { t } = useLanguage();
   const [isOpen, setIsOpen] = useState(false);
@@ -32,6 +38,18 @@ export function SearchableSelect({
   const listRef = useRef(null);
 
   const favoriteSet = useMemo(() => new Set(favoriteItems || []), [favoriteItems]);
+
+  // Filtered Funcionários Agênticos
+  const filteredBots = useMemo(() => {
+    if (!botsList || botsList.length === 0) return [];
+    const query = searchQuery.trim().toLowerCase();
+    if (!query) return botsList;
+    return botsList.filter(b =>
+      (b.name && b.name.toLowerCase().includes(query)) ||
+      (b.description && b.description.toLowerCase().includes(query)) ||
+      (b.preferredModel && b.preferredModel.toLowerCase().includes(query))
+    );
+  }, [botsList, searchQuery]);
 
   // Default accessors if not provided
   const displayValue = getDisplayValue 
@@ -181,6 +199,7 @@ export function SearchableSelect({
 
   const handleOptionClick = (option) => {
     const selectedValue = getValue(option);
+    onSelectBot?.(null);
     onValueChange(selectedValue);
     setIsOpen(false);
     setSearchQuery('');
@@ -198,12 +217,27 @@ export function SearchableSelect({
         disabled={disabled}
         className={cn(
           "flex h-8 w-full items-center justify-between gap-1.5 rounded-xl border border-border/80 bg-background/50 px-2.5 py-1 text-xs sm:text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 transition-colors min-w-0 overflow-hidden",
+          activeBot ? "border-primary/50 bg-primary/10 hover:bg-primary/15 shadow-2xs" : "",
           isOpen && "ring-2 ring-ring ring-offset-2"
         )}
         aria-haspopup="listbox"
         aria-expanded={isOpen}
       >
-        <span className="truncate text-left flex-1 min-w-0 text-foreground">{displayValue || placeholder}</span>
+        {activeBot ? (
+          <div className="flex items-center gap-1.5 min-w-0 flex-1">
+            <BotAvatar persona={activeBot} className="w-4 h-4 rounded-sm shadow-2xs shrink-0" iconClassName="w-2.5 h-2.5" />
+            <span className="truncate text-left font-semibold text-xs text-foreground">
+              {activeBot.name}
+            </span>
+            {activeBot.vmConfig?.enabled !== false && (
+              <span className="text-[9px] px-1 py-0.1 bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 rounded font-mono font-medium shrink-0">
+                VM
+              </span>
+            )}
+          </div>
+        ) : (
+          <span className="truncate text-left flex-1 min-w-0 text-foreground">{displayValue || placeholder}</span>
+        )}
         <ChevronDown className={cn(
           "h-3.5 w-3.5 opacity-50 transition-transform duration-200 flex-shrink-0",
           isOpen && "rotate-180"
@@ -227,7 +261,7 @@ export function SearchableSelect({
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               onKeyDown={handleKeyDown}
-              placeholder={t('common.typeToFilter')}
+              placeholder={t('sidebar.searchBotsPlaceholder') || "Buscar modelo ou funcionário..."}
               className="w-full px-2.5 py-1.5 text-xs sm:text-sm bg-background/80 rounded-lg border border-input focus:outline-none focus:ring-2 focus:ring-ring text-foreground placeholder:text-muted-foreground"
             />
           </div>
@@ -235,9 +269,90 @@ export function SearchableSelect({
           {/* Options List */}
           <div 
             ref={listRef}
-            className="max-h-[320px] overflow-y-auto p-1 space-y-0.5"
+            className="max-h-[340px] overflow-y-auto p-1 space-y-0.5"
             role="listbox"
           >
+            {/* --- SECTION: 👔 FUNCIONÁRIOS AGÊNTICOS (TypingMind Style) --- */}
+            {filteredBots.length > 0 && (
+              <div className="py-1">
+                {/* Section Header */}
+                <div className="px-2.5 py-1 text-[11px] font-semibold tracking-wider uppercase flex items-center justify-between border-b border-primary/20 bg-primary/5 rounded-t-md text-primary mb-1">
+                  <span className="flex items-center gap-1.5 truncate">
+                    <Bot className="w-3.5 h-3.5" />
+                    <span>{t('sidebar.botsTitle') || 'Funcionários Agênticos'}</span>
+                  </span>
+                  <span className="text-[10px] font-mono font-bold px-1.5 py-0.2 rounded-full bg-primary/20 text-primary">
+                    {filteredBots.length}
+                  </span>
+                </div>
+
+                {/* List of Employees */}
+                <div className="space-y-0.5">
+                  {filteredBots.map((bot) => {
+                    const isSelected = activeBot?.id === bot.id;
+                    return (
+                      <div
+                        key={`bot-${bot.id}`}
+                        onClick={() => {
+                          onSelectBot?.(bot);
+                          setIsOpen(false);
+                          setSearchQuery('');
+                        }}
+                        className={cn(
+                          "group relative flex w-full cursor-pointer select-none items-center gap-2.5 rounded-lg py-1.5 px-2.5 text-xs outline-none transition-colors text-foreground",
+                          isSelected
+                            ? "bg-primary/15 text-primary font-medium"
+                            : "hover:bg-muted"
+                        )}
+                        role="option"
+                        aria-selected={isSelected}
+                      >
+                        <BotAvatar persona={bot} className="w-6 h-6 rounded-md shadow-2xs shrink-0" iconClassName="w-3.5 h-3.5" />
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-1.5">
+                            <span className="font-semibold truncate text-xs">{bot.name}</span>
+                            {bot.vmConfig?.enabled !== false && (
+                              <span className="text-[8px] px-1 py-0.2 bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 rounded-full font-mono font-medium">
+                                💻 VM
+                              </span>
+                            )}
+                            {bot.preferredModel && (
+                              <span className="text-[8px] px-1 py-0.2 bg-muted text-muted-foreground rounded font-mono truncate max-w-[85px]">
+                                {bot.preferredModel}
+                              </span>
+                            )}
+                          </div>
+                          {bot.description && (
+                            <p className="text-[10px] text-muted-foreground truncate leading-tight mt-0.5">{bot.description}</p>
+                          )}
+                        </div>
+                        {isSelected && (
+                          <Check className="h-3.5 w-3.5 text-primary shrink-0" />
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* Manage Employees Link */}
+                {onOpenBotManager && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsOpen(false);
+                      onOpenBotManager();
+                    }}
+                    className="w-full mt-1 flex items-center justify-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold text-primary hover:bg-primary/10 transition-colors cursor-pointer border border-primary/20 border-dashed"
+                  >
+                    <Plus className="w-3 h-3" />
+                    <span>{t('sidebar.manageBots') || 'Gerenciar Funcionários Agênticos'}</span>
+                  </button>
+                )}
+
+                <div className="my-1.5 border-t border-border/40" />
+              </div>
+            )}
+
             {options.length === 0 ? (
               <div className="py-5 px-3 text-center text-xs text-muted-foreground flex flex-col items-center justify-center gap-2.5">
                 <span className="leading-relaxed text-foreground/80">{t('common.noModelsConfigured')}</span>
@@ -285,7 +400,7 @@ export function SearchableSelect({
                     {section.items.map((option) => {
                       const optionValue = getValue(option);
                       const optionLabel = getLabel(option);
-                      const isSelected = optionValue === value;
+                      const isSelected = !activeBot && optionValue === value;
                       const isFavorite = favoriteSet.has(optionValue);
                       const currentIndex = runningItemIndex++;
                       const isHighlighted = currentIndex === highlightedIndex;
@@ -341,7 +456,7 @@ export function SearchableSelect({
               filteredOptions.map((option, index) => {
                 const optionValue = getValue(option);
                 const optionLabel = getLabel(option);
-                const isSelected = optionValue === value;
+                const isSelected = !activeBot && optionValue === value;
                 const isFavorite = favoriteSet.has(optionValue);
                 const isHighlighted = index === highlightedIndex;
 

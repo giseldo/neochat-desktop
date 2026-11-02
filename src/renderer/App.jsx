@@ -61,6 +61,7 @@ const UserMemoryModal = lazy(() => import('./components/UserMemoryModal'));
 const SkillsModal = lazy(() => import('./components/SkillsModal'));
 const ModelParametersModal = lazy(() => import('./components/ModelParametersModal'));
 const BotConfigModal = lazy(() => import('./components/BotConfigModal'));
+const BotsGalleryModal = lazy(() => import('./components/BotsGalleryModal'));
 
 function App() {
   // const [messages, setMessages] = useState([]); // Remove local state
@@ -167,8 +168,43 @@ function App() {
   // --- Persona, Artifacts & Catalog State ---
   const [activePersona, setActivePersona] = useState(() => getStoredActivePersona());
   const [activeBot, setActiveBot] = useState(null);
+  const [botsList, setBotsList] = useState([]);
+  const [isBotsGalleryOpen, setIsBotsGalleryOpen] = useState(false);
   const [isBotConfigModalOpen, setIsBotConfigModalOpen] = useState(false);
   const [botModalTab, setBotModalTab] = useState('identity');
+
+  const loadBots = useCallback(async () => {
+    if (window.electron?.bots?.list) {
+      try {
+        const list = await window.electron.bots.list();
+        setBotsList(Array.isArray(list) ? list : []);
+      } catch (e) {
+        console.error('Error loading bots:', e);
+      }
+    }
+  }, []);
+
+  useEffect(() => {
+    loadBots();
+  }, [loadBots]);
+
+  const handleSelectBotFromSelector = useCallback((bot) => {
+    if (!bot) {
+      setActiveBot(null);
+      if (currentChatId) {
+        updateChatBotLocally(currentChatId, null);
+      }
+      return;
+    }
+
+    setActiveBot(bot);
+    if (currentChatId) {
+      updateChatBotLocally(currentChatId, bot.id);
+    }
+    if (bot.preferredModel) {
+      setSelectedModel(bot.preferredModel);
+    }
+  }, [currentChatId, updateChatBotLocally]);
 
   // Sidebar navigation tab state ('chat' | 'bots')
   const [sidebarNavTab, setSidebarNavTab] = useState(() => {
@@ -1530,7 +1566,7 @@ function App() {
       const assistantRuntime = activePersona?.profile?.runtime || {};
       const currentChatMeta = (chatList || []).find(c => c.id === currentChatId);
       const isChatBotAttached = Boolean(currentChatMeta?.botId && activeBot && currentChatMeta.botId === activeBot.id);
-      const isBotSessionActive = Boolean(activeBot && (isChatBotAttached || sidebarNavTab === 'bots'));
+      const isBotSessionActive = Boolean(activeBot && (isChatBotAttached || !currentChatMeta?.botId || currentChatMeta.botId === activeBot.id));
       const effectiveBot = isBotSessionActive ? activeBot : null;
       const isBotVmActive = Boolean(effectiveBot && effectiveBot.vmConfig?.enabled !== false);
       const assistantAgentMode = effectiveBot?.agentEnabled === true || assistantRuntime.agentEnabled === true || harnessMode === 'code' || isBotVmActive;
@@ -2009,12 +2045,7 @@ function App() {
     let activeChatId = currentChatId;
     const personaIdToUse = (activePersona?.id && activePersona.id !== 'none' && activePersona.id !== 'disabled') ? activePersona.id : null;
     if (!activeChatId) {
-      let botIdToUse = null;
-      if (sidebarNavTab === 'bots' && activeBot) {
-        botIdToUse = activeBot.id;
-      } else if (activeBot) {
-        setActiveBot(null);
-      }
+      let botIdToUse = activeBot ? activeBot.id : null;
       const modelToUse = (botIdToUse && activeBot?.preferredModel) ? activeBot.preferredModel : selectedModel;
       const createdChat = await createNewChat(modelToUse, useResponsesApi, activeProjectId, personaIdToUse, botIdToUse);
       activeChatId = createdChat?.id;
@@ -2805,11 +2836,8 @@ function App() {
       if (!botIdToUse) {
         setActiveBot(null);
       }
-    } else if (sidebarNavTab === 'bots' && activeBot) {
+    } else if (activeBot) {
       botIdToUse = activeBot.id;
-    } else {
-      setActiveBot(null);
-      botIdToUse = null;
     }
 
     const personaIdToUse = targetPersonaId !== undefined
@@ -3932,6 +3960,10 @@ function App() {
                           activePersona={activePersona}
                           onSelectPersona={handleSelectPersona}
                           onConfigureModel={() => setIsModelParamsModalOpen(true)}
+                          botsList={botsList}
+                          activeBot={activeBot}
+                          onSelectBot={handleSelectBotFromSelector}
+                          onOpenBotManager={() => setIsBotsGalleryOpen(true)}
                         />
                       </div>
                     </div>
@@ -3985,6 +4017,10 @@ function App() {
                           activePersona={activePersona}
                           onSelectPersona={handleSelectPersona}
                           onConfigureModel={() => setIsModelParamsModalOpen(true)}
+                          botsList={botsList}
+                          activeBot={activeBot}
+                          onSelectBot={handleSelectBotFromSelector}
+                          onOpenBotManager={() => setIsBotsGalleryOpen(true)}
                         />
                       </div>
                     </div>
@@ -4043,6 +4079,10 @@ function App() {
                           activePersona={activePersona}
                           onSelectPersona={handleSelectPersona}
                           onConfigureModel={() => setIsModelParamsModalOpen(true)}
+                          botsList={botsList}
+                          activeBot={activeBot}
+                          onSelectBot={handleSelectBotFromSelector}
+                          onOpenBotManager={() => setIsBotsGalleryOpen(true)}
                         />
                       </div>
                     </div>
@@ -4067,8 +4107,8 @@ function App() {
                         </div>
                       )}
 
-                      {/* Active Bot Conversation Banner (Hermes Agent Style) */}
-                      {Boolean(activeBot && (sidebarNavTab === 'bots' || Boolean(chatList?.find(c => c.id === currentChatId)?.botId))) && (
+                      {/* Active Bot Conversation Banner */}
+                      {Boolean(activeBot) && (
                         <div className="mb-2 px-3.5 py-2 rounded-xl bg-card/90 backdrop-blur-md border border-primary/30 shadow-xs flex items-center justify-between gap-3 shrink-0 animate-in fade-in duration-200">
                           <div className="flex items-center gap-2.5 min-w-0">
                             <BotAvatar persona={activeBot} className="w-8 h-8 rounded-xl shadow-2xs" iconClassName="w-4 h-4" />
@@ -4077,7 +4117,7 @@ function App() {
                                 <span className="text-xs font-bold text-foreground truncate">{activeBot.name}</span>
                                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" title="Online" />
                                 <span className="text-[10px] px-1.5 py-0.2 rounded-full font-mono bg-primary/10 text-primary border border-primary/20">
-                                  Hermes Agent
+                                  {t('sidebar.activeBotBadge') || 'Funcionário Agêntico'}
                                 </span>
                                 {activeBot.vmConfig?.enabled !== false && (
                                   <span className="text-[10px] px-1.5 py-0.2 rounded-full font-mono bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 flex items-center gap-1">
@@ -4239,6 +4279,10 @@ function App() {
                           activePersona={activePersona}
                           onSelectPersona={handleSelectPersona}
                           onConfigureModel={() => setIsModelParamsModalOpen(true)}
+                          botsList={botsList}
+                          activeBot={activeBot}
+                          onSelectBot={handleSelectBotFromSelector}
+                          onOpenBotManager={() => setIsBotsGalleryOpen(true)}
                         />
                       </div>
                     </div>
@@ -4638,6 +4682,17 @@ function App() {
               setActiveBot(savedBot);
               setIsBotConfigModalOpen(false);
             }}
+          />
+
+          {/* Funcionários Agênticos Gallery Modal */}
+          <BotsGalleryModal
+            isOpen={isBotsGalleryOpen}
+            onClose={() => setIsBotsGalleryOpen(false)}
+            botsList={botsList}
+            activeBot={activeBot}
+            onSelectBot={handleSelectBotFromSelector}
+            onRefreshBots={loadBots}
+            availableModels={sortedModels}
           />
         </Suspense>
 

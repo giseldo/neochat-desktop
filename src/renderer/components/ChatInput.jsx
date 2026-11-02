@@ -59,6 +59,10 @@ function ChatInput({
 	activePersona = null,
 	onSelectPersona = null,
 	onConfigureModel,
+	botsList = [],
+	activeBot = null,
+	onSelectBot = null,
+	onOpenBotManager = null,
 }) {
 	const effectiveToolsCount = typeof toolsCount === 'number' && toolsCount > 0
 		? toolsCount
@@ -1709,16 +1713,20 @@ function ChatInput({
 									onValueChange={onModelChange}
 									options={models}
 									placeholder={t('chat.selectModel')}
-									className="w-32 sm:w-44 md:w-52 max-w-[220px] min-w-[110px] h-8 text-xs bg-background/60 hover:bg-muted/80 border-border/70 text-foreground transition-colors"
+									className="w-36 sm:w-48 md:w-56 max-w-[240px] min-w-[120px] h-8 text-xs bg-background/60 hover:bg-muted/80 border-border/70 text-foreground transition-colors"
 									disabled={loading}
 									getDisplayValue={(value) => getModelDisplayNameLib(value, modelConfigs[value], t)}
 									getOptionLabel={(model) => getModelDisplayNameLib(model, modelConfigs[model], t)}
 									getOptionValue={(model) => model}
 									groupBy={(model) => getModelGroup(model, modelConfigs[model])}
-									dropdownWidthClass="w-72 sm:w-80 max-w-[calc(100vw-2rem)]"
+									dropdownWidthClass="w-80 sm:w-96 max-w-[calc(100vw-2rem)]"
 									favoriteItems={favoriteModels}
 									onToggleFavorite={onToggleFavoriteModel}
 									dropdownPosition="top"
+									botsList={botsList}
+									activeBot={activeBot}
+									onSelectBot={onSelectBot}
+									onOpenBotManager={onOpenBotManager}
 								/>
 								{onConfigureModel && (
 									<Button
