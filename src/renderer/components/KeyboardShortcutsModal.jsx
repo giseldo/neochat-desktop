@@ -169,6 +169,13 @@ export default function KeyboardShortcutsModal({ isOpen, onClose }) {
         keys: [modKey, 'T']
       },
       {
+        id: 'toggleMetrics',
+        category: 'navigation',
+        title: t('shortcuts.items.toggleMetrics') || 'Alternar Aba de Métricas',
+        description: t('shortcuts.items.toggleMetricsDesc') || 'Expande ou recolhe a aba lateral direita de métricas da conversa.',
+        keys: [modKey, isMac ? '⌥' : 'Alt', 'M']
+      },
+      {
         id: 'toggleCompareMode',
         category: 'navigation',
         title: t('shortcuts.items.toggleCompareMode') || 'Alternar Comparação de Modelos',

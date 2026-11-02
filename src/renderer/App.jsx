@@ -12,7 +12,7 @@ import { useArtifacts } from './context/ArtifactsContext';
 import { useProjects } from './context/ProjectContext';
 import { useLanguage } from './context/LanguageContext';
 import { useTheme, COLOR_THEMES } from './context/ThemeContext';
-import { Settings, PanelLeftClose, PanelLeft, Radio, MessagesSquare, Sparkles, Store, Columns2, X, FolderKanban, BookOpen, Scale, Bot, Workflow, ChevronDown, Keyboard, Key, AlertCircle, PenSquare, Terminal, Briefcase, MessageSquare, Globe, Clock, Activity, LayoutGrid, MoreHorizontal, Brain, FolderTree, Compass, Sliders, Cpu, Palette, ChevronRight, Sun, Moon, Laptop } from 'lucide-react';
+import { Settings, PanelLeftClose, PanelLeft, Radio, MessagesSquare, Sparkles, Store, Columns2, X, FolderKanban, BookOpen, Scale, Bot, Workflow, ChevronDown, Keyboard, Key, AlertCircle, PenSquare, Terminal, Briefcase, MessageSquare, Globe, Clock, Activity, LayoutGrid, MoreHorizontal, Brain, FolderTree, Compass, Sliders, Cpu, Palette, ChevronRight, ChevronLeft, Sun, Moon, Laptop } from 'lucide-react';
 import { Button } from './components/ui/button';
 import { cn } from './lib/utils';
 import { groupModels, getModelGroup, getModelDisplayName as getModelDisplayNameLib } from './lib/modelGrouping';
@@ -34,7 +34,8 @@ const CanvasPanel = lazy(() => import('./components/CanvasPanel'));
 const WorkspaceExplorerPanel = lazy(() => import('./components/WorkspaceExplorerPanel'));
 const McpCatalogModal = lazy(() => import('./components/McpCatalogModal'));
 const TrajectoryView = lazy(() => import('./components/TrajectoryView'));
-const ConversationStats = lazy(() => import('./components/ConversationStats'));
+const ConversationStatsPanel = lazy(() => import('./components/ConversationStats'));
+const ConversationStatsTrigger = lazy(() => import('./components/ConversationStats').then(m => ({ default: m.ConversationStatsTrigger })));
 const ProjectModal = lazy(() => import('./components/ProjectModal'));
 const MoveToProjectModal = lazy(() => import('./components/MoveToProjectModal'));
 const KnowledgeBaseModal = lazy(() => import('./components/KnowledgeBaseModal'));
@@ -429,6 +430,26 @@ function App() {
     runningTasksCount
   } = useCompanionPanels(setIsCommandPaletteOpen);
   // --- End Terminal, Tasks & Browser State ---
+
+  // --- Conversation Metrics Collapsible Right Tab State ---
+  const [isMetricsTabOpen, setIsMetricsTabOpen] = useState(() => {
+    try {
+      return localStorage.getItem('neochat_metrics_tab_open') === 'true';
+    } catch {
+      return false;
+    }
+  });
+
+  const toggleMetricsTab = useCallback(() => {
+    setIsMetricsTabOpen(prev => {
+      const next = !prev;
+      try {
+        localStorage.setItem('neochat_metrics_tab_open', String(next));
+      } catch {}
+      return next;
+    });
+  }, []);
+  // --- End Conversation Metrics Tab State ---
 
   // Open workspace file in Canvas side-by-side
   const handleOpenFileInCanvas = useCallback(async (filePath) => {
@@ -2826,6 +2847,13 @@ function App() {
         return;
       }
 
+      // Ctrl/Cmd + Alt + M: Toggle Conversation Metrics Right Tab
+      if (isModifier && e.altKey && e.key.toLowerCase() === 'm') {
+        e.preventDefault();
+        toggleMetricsTab();
+        return;
+      }
+
       // Ctrl/Cmd + Shift + C: Toggle Canvas
       if (isModifier && e.shiftKey && e.key.toLowerCase() === 'c') {
         e.preventDefault();
@@ -2868,7 +2896,7 @@ function App() {
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
     };
-  }, [handleNewChat, toggleSidebar, collapseSidebar, handleToggleCanvas, handleToggleCodeInterpreter, handleToggleArtifacts, navigate, interfaceMode, handleInterfaceModeChange]);
+  }, [handleNewChat, toggleSidebar, collapseSidebar, toggleMetricsTab, handleToggleCanvas, handleToggleCodeInterpreter, handleToggleArtifacts, navigate, interfaceMode, handleInterfaceModeChange]);
 
   // Handle when a chat is loaded from history - switch API mode and sync active project if needed
   const handleChatLoaded = useCallback(async (chat) => {
@@ -3029,8 +3057,8 @@ function App() {
                 </Button>
               )}
 
-              {/* Conversation Metrics & Parameters */}
-              {sortedModels.length === 0 ? (
+              {/* Configure API Key Alert if no models */}
+              {sortedModels.length === 0 && (
                 <Link
                   to="/settings"
                   className="flex items-center gap-1.5 px-2.5 py-1 text-xs rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/30 transition-colors font-medium shrink-0"
@@ -3039,17 +3067,6 @@ function App() {
                   <Key className="w-3.5 h-3.5 flex-shrink-0 text-amber-500" />
                   <span className="truncate hidden md:inline">{t('common.configureApiKey')}</span>
                 </Link>
-              ) : (
-                <Suspense fallback={null}>
-                  <ConversationStats
-                    messages={messages}
-                    selectedModel={selectedModel}
-                    modelConfigs={modelConfigs}
-                    onConfigureModel={() => setIsModelParamsModalOpen(true)}
-                    onOpenTrajectory={() => setActiveTab('trajectory')}
-                    isTrajectoryActive={activeTab === 'trajectory'}
-                  />
-                </Suspense>
               )}
 
 
@@ -3084,6 +3101,19 @@ function App() {
             </div>
 
             <div className="flex items-center space-x-1.5 sm:space-x-2">
+              {/* Conversation Metrics Collapsible Right Tab Toggle */}
+              {sortedModels.length > 0 && (
+                <Suspense fallback={null}>
+                  <ConversationStatsTrigger
+                    messages={messages}
+                    selectedModel={selectedModel}
+                    modelConfigs={modelConfigs}
+                    isOpen={isMetricsTabOpen}
+                    onToggle={toggleMetricsTab}
+                  />
+                </Suspense>
+              )}
+
               {/* Artifacts Header Indicator & Toggle Button */}
               {(artifacts.length > 0 || Boolean(activeArtifact)) && (
                 <Button
@@ -3221,6 +3251,32 @@ function App() {
                               </div>
                             </div>
                             <div className="text-[10px] text-muted-foreground truncate">{t('header.trajectorySubtitle') || 'Linha do tempo & eventos detalhados'}</div>
+                          </div>
+                        </button>
+
+                        {/* Conversation Metrics Side Tab */}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIsToolsDropdownOpen(false);
+                            toggleMetricsTab();
+                          }}
+                          className={cn(
+                            "w-full flex items-center gap-2.5 px-3 py-2 rounded-xl transition-colors text-left",
+                            isMetricsTabOpen
+                              ? "bg-primary/10 text-primary font-medium"
+                              : "hover:bg-muted/80 text-foreground"
+                          )}
+                        >
+                          <Activity className="w-4 h-4 text-primary shrink-0" />
+                          <div className="flex-1 min-w-0">
+                            <div className="font-semibold flex items-center justify-between gap-1">
+                              <span>{pt ? 'Métricas da Conversa' : 'Conversation Metrics'}</span>
+                              <div className="flex items-center gap-1.5 shrink-0">
+                                {isMetricsTabOpen && <span className="px-1.5 py-0.5 rounded bg-primary/20 text-primary text-[10px] font-mono font-semibold">Aberto</span>}
+                              </div>
+                            </div>
+                            <div className="text-[10px] text-muted-foreground truncate">{pt ? 'Tokens, velocidade e ocupação de contexto' : 'Tokens, speed and context usage'}</div>
                           </div>
                         </button>
 
@@ -3732,7 +3788,7 @@ function App() {
         )}
 
         {/* Main Content */}
-        <div className="flex-1 flex overflow-hidden">
+        <div className="flex-1 flex overflow-hidden relative">
           <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
             <div className="flex-1 overflow-y-auto custom-scrollbar">
               <div className={cn(
@@ -4106,6 +4162,55 @@ function App() {
               </div>
             </div>
           </div>
+
+          {/* Collapsed Metrics Tab Handle on Right Edge */}
+          {!isMetricsTabOpen && sortedModels.length > 0 && (
+            <button
+              type="button"
+              onClick={() => {
+                setIsMetricsTabOpen(true);
+                try { localStorage.setItem('neochat_metrics_tab_open', 'true'); } catch {}
+              }}
+              className="absolute right-0 top-1/2 -translate-y-1/2 z-30 flex flex-col items-center gap-1.5 py-3 px-1 rounded-l-xl bg-card/90 hover:bg-card border border-r-0 border-border shadow-md hover:shadow-lg text-muted-foreground hover:text-primary transition-all cursor-pointer group select-none max-md:hidden"
+              title={pt ? "Métricas da conversa (Expandir aba lateral)" : "Conversation metrics (Expand side tab)"}
+              aria-label={pt ? "Métricas da conversa (Expandir aba lateral)" : "Conversation metrics (Expand side tab)"}
+            >
+              <Activity className="w-3.5 h-3.5 text-primary group-hover:scale-110 transition-transform" />
+              <span className="[writing-mode:vertical-rl] rotate-180 text-[10px] font-semibold tracking-wider uppercase text-muted-foreground group-hover:text-foreground">
+                {pt ? "Métricas" : "Metrics"}
+              </span>
+              <ChevronLeft className="w-3 h-3 text-muted-foreground group-hover:-translate-x-0.5 transition-transform" />
+            </button>
+          )}
+
+          {/* Side-by-side Conversation Metrics Collapsible Right Tab */}
+          {isMetricsTabOpen && (
+            <Suspense fallback={null}>
+              <ConversationStatsPanel
+                messages={messages}
+                selectedModel={selectedModel}
+                modelConfigs={modelConfigs}
+                onClose={() => {
+                  setIsMetricsTabOpen(false);
+                  try { localStorage.setItem('neochat_metrics_tab_open', 'false'); } catch {}
+                }}
+                onConfigureModel={() => setIsModelParamsModalOpen(true)}
+                onOpenTrajectory={() => setActiveTab('trajectory')}
+                isTrajectoryActive={activeTab === 'trajectory'}
+              />
+            </Suspense>
+          )}
+
+          {/* Mobile backdrop for Metrics Tab */}
+          {isMetricsTabOpen && (
+            <div 
+              className="fixed inset-0 bg-black/50 backdrop-blur-xs z-40 md:hidden" 
+              onClick={() => {
+                setIsMetricsTabOpen(false);
+                try { localStorage.setItem('neochat_metrics_tab_open', 'false'); } catch {}
+              }} 
+            />
+          )}
 
           {/* Side-by-side Artifacts Panel */}
           {activeArtifact && !isCanvasOpen && (
