@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { createPortal } from 'react-dom';
-import { Link, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Search, Eye, EyeOff, Plus, Trash2, Edit3, Save, X, RefreshCw, Key, Settings as SettingsIcon, Zap, Cpu, Server, AlertCircle, CheckCircle, Sun, Moon, Laptop, Languages, Check, Terminal, Globe, Palette, Type, Sparkles, Sliders, ExternalLink, Route, User, Wrench, Download, UploadCloud, BarChart3, GitBranch, Mic, Volume2, Info, Keyboard, Folder, FolderOpen, RotateCcw, Lightbulb, Star, ChevronDown, ChevronUp, HardDrive, Brain, Flame, AlignJustify, Maximize2, Blocks, Bot, HelpCircle, Copy, Github, ImagePlus, Scissors, Play, Square, Loader2 } from 'lucide-react';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { ArrowLeft, Search, Eye, EyeOff, Plus, Trash2, Edit3, Save, X, RefreshCw, Key, Settings as SettingsIcon, Zap, Cpu, Server, AlertCircle, CheckCircle, Sun, Moon, Laptop, Languages, Check, Terminal, Globe, Palette, Type, Sparkles, Sliders, ExternalLink, Route, User, Wrench, Download, UploadCloud, BarChart3, GitBranch, Mic, Volume2, Info, Keyboard, Folder, FolderOpen, RotateCcw, Lightbulb, Star, ChevronDown, ChevronUp, HardDrive, Brain, Flame, AlignJustify, Maximize2, Blocks, Bot, HelpCircle, Copy, Github, ImagePlus, Scissors, Play, Square, Loader2, FlaskConical, Radio, Compass, Clock, BookOpen, LayoutGrid, Workflow, Columns } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, SettingsRow, SettingsChoices, SettingsSelect } from '../components/settings/SettingsSection';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
@@ -364,7 +364,16 @@ function Settings() {
     isDark
   } = useTheme();
   const { language, setLanguage, t } = useLanguage();
-  const [activeCategory, setActiveCategory] = useState('interface');
+  const location = useLocation();
+  const initialCategoryFromQuery = new URLSearchParams(location.search).get('tab');
+  const [activeCategory, setActiveCategory] = useState(initialCategoryFromQuery || 'interface');
+
+  useEffect(() => {
+    const tab = new URLSearchParams(location.search).get('tab');
+    if (tab) {
+      setActiveCategory(tab);
+    }
+  }, [location.search]);
   const [searchQuery, setSearchQuery] = useState('');
   const searchInputRef = useRef(null);
   const [isPromptTemplatesModalOpen, setIsPromptTemplatesModalOpen] = useState(false);
@@ -389,6 +398,22 @@ function Settings() {
     showWelcomeSuggestions: false,
     showButtonLabels: false,
     relatedQuestions: { enabled: true },
+    labs: {
+      enabled: true,
+      podcast: false,
+      arena: false,
+      news: false,
+      briefing: false,
+      graph: false,
+      sandbox: false,
+      swarm: false,
+      workflows: false,
+      compareModels: false,
+      backgroundTasks: false,
+      trajectory: false,
+      metrics: false,
+      pluginsHub: false
+    },
     apiKeys: {},
     temperature: 0.7,
     top_p: 0.95,
@@ -719,6 +744,7 @@ function Settings() {
     { id: 'all', label: t('settings.navAll') || 'Todas', icon: Sliders, desc: 'Todas as configurações do aplicativo' },
     { id: 'interface', label: t('settings.navInterface') || 'Interface & Aparência', icon: Palette, desc: 'Personalize o modo de uso, temas, cores, tipografia e abas da tela' },
     { id: 'features', label: t('settings.navFeatures') || 'Ativar/Desativar Recursos', icon: Zap, desc: 'Controle de voz Whisper, leitura TTS, busca web, ferramentas e atalhos' },
+    { id: 'labs', label: '🧪 NeoChat Labs', icon: FlaskConical, desc: 'Recursos experimentais e secundários: habilite ou desabilite para manter o menu e o app focados' },
     { id: 'models', label: t('settings.navModels') || 'Modelos & Provedores', icon: Cpu, desc: 'Provedores de IA, chaves de API, parâmetros e catálogo de modelos' },
     { id: 'integrations', label: t('settings.navIntegrations') || 'Integrações & MCP', icon: Server, desc: 'Servidores MCP locais e remotos, conectores Google e permissões' },
     { id: 'system', label: t('settings.navSystem') || 'Sistema & Dados', icon: Folder, desc: 'Pasta de armazenamento, atualizações, backups e histórico' },
@@ -970,6 +996,14 @@ function Settings() {
       isPowerOnly: true
     },
     {
+      id: 'labsHub',
+      category: 'labs',
+      title: '🧪 NeoChat Labs (Recursos Experimentais & Opcionais)',
+      desc: 'Habilite ou desabilite recursos secundários para despoluir o menu de ferramentas e manter o aplicativo focado',
+      keywords: 'labs laboratorio experimental recursos menu podcast arena debate briefing noticias swarm workflows sandbox grafo data studio metricas trajetoria comparador despoluir essencial',
+      isPowerOnly: false
+    },
+    {
       id: 'pluginsHub',
       category: 'plugins',
       title: 'Módulos & Extensões (Plugins Hub)',
@@ -996,7 +1030,6 @@ function Settings() {
     {
       id: 'helpTips',
       category: 'help',
-      title: t('settings.tipsTitle') || 'Dicas Rápidas de Produtividade',
       desc: t('settings.tipsDesc') || 'Recursos essenciais para o fluxo de trabalho no NeoChat',
       keywords: 'dicas tips popup atalho slash comandos mcp ferramentas modelos produtividade',
       isPowerOnly: false
@@ -1244,6 +1277,22 @@ function Settings() {
             showWelcomeSuggestions: false,
             showButtonLabels: false,
             relatedQuestions: { enabled: true },
+    labs: {
+      enabled: true,
+      podcast: false,
+      arena: false,
+      news: false,
+      briefing: false,
+      graph: false,
+      sandbox: false,
+      swarm: false,
+      workflows: false,
+      compareModels: false,
+      backgroundTasks: false,
+      trajectory: false,
+      metrics: false,
+      pluginsHub: false
+    },
             enableThinkingSummaries: true,
             useResponsesApi: false,
             logApiRequests: false,
@@ -3499,6 +3548,337 @@ function Settings() {
             </div>
           </CardContent>
         </Card>
+      </div>
+    );
+  };
+
+  const LABS_FEATURES_CONFIG = [
+    {
+      key: 'podcast',
+      title: 'Podcast & Audio Studio',
+      tag: 'Áudio & TTS',
+      tagColor: 'bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/20',
+      icon: Radio,
+      iconColor: 'text-purple-500',
+      description: 'Estúdio de áudio com diálogo entre dois apresentadores virtuais gerado via TTS (estilo NotebookLM).',
+      menuItem: 'Podcast & Audio Studio'
+    },
+    {
+      key: 'arena',
+      title: 'AI Arena & Debate',
+      tag: 'Multi-Modelos',
+      tagColor: 'bg-orange-500/10 text-orange-600 dark:text-orange-400 border-orange-500/20',
+      icon: Bot,
+      iconColor: 'text-orange-500',
+      description: 'Rodadas autônomas de debate, votação e síntese de consenso entre múltiplos modelos de IA simultâneos.',
+      menuItem: 'AI Arena & Debate'
+    },
+    {
+      key: 'news',
+      title: 'Descoberta & Notícias IA',
+      tag: 'Radar & Feed',
+      tagColor: 'bg-sky-500/10 text-sky-600 dark:text-sky-400 border-sky-500/20',
+      icon: Compass,
+      iconColor: 'text-sky-500',
+      description: 'Radar de notícias e lançamentos de IA com síntese multi-fonte, categorização e citações diretas.',
+      menuItem: 'Descoberta & Notícias IA'
+    },
+    {
+      key: 'briefing',
+      title: 'Proactive Daily Briefing',
+      tag: 'Produtividade',
+      tagColor: 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20',
+      icon: Clock,
+      iconColor: 'text-amber-500',
+      description: 'Resumo matinal proativo inteligente reunindo previsão, commits recentes, agenda e status diário.',
+      menuItem: 'Proactive Daily Briefing'
+    },
+    {
+      key: 'graph',
+      title: 'Grafo & Data Studio',
+      tag: 'RAG & Dados',
+      tagColor: 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20',
+      icon: BookOpen,
+      iconColor: 'text-blue-500',
+      description: 'Visualizador de grafo bidimensional (2D) de nós de documentos, embeddings de RAG e gráficos interativos.',
+      menuItem: 'Grafo & Data Studio'
+    },
+    {
+      key: 'sandbox',
+      title: 'Live Dev Sandbox',
+      tag: 'Prototipagem Dev',
+      tagColor: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20',
+      icon: LayoutGrid,
+      iconColor: 'text-emerald-500',
+      description: 'Ambiente de preview em tempo real para prototipagem rápida de HTML, Tailwind CSS e componentes React.',
+      menuItem: 'Live Dev Sandbox'
+    },
+    {
+      key: 'swarm',
+      title: 'Equipe Swarm Multi-Agente',
+      tag: 'Agentes Autônomos',
+      tagColor: 'bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border-indigo-500/20',
+      icon: Bot,
+      iconColor: 'text-indigo-500',
+      description: 'Orquestração de enxame com múltiplos agentes especializados (Pesquisador, Coder, Reviewer) em paralelo.',
+      menuItem: 'Equipe Swarm'
+    },
+    {
+      key: 'workflows',
+      title: 'Workflows & Automações',
+      tag: 'Pipelines',
+      tagColor: 'bg-teal-500/10 text-teal-600 dark:text-teal-400 border-teal-500/20',
+      icon: Workflow,
+      iconColor: 'text-teal-500',
+      description: 'Criação e execução de fluxos encadeados, triggers automáticos e rotinas de tarefas recorrentes.',
+      menuItem: 'Workflows'
+    },
+    {
+      key: 'compareModels',
+      title: 'Comparar Modelos (Side-by-Side)',
+      tag: 'Benchmarking',
+      tagColor: 'bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/20',
+      icon: Columns,
+      iconColor: 'text-purple-500',
+      description: 'Interface em split-screen para enviar o mesmo prompt para dois provedores/modelos diferentes lado a lado.',
+      menuItem: 'Comparar Modelos'
+    },
+    {
+      key: 'backgroundTasks',
+      title: 'Tarefas em Segundo Plano',
+      tag: 'Processos',
+      tagColor: 'bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 border-cyan-500/20',
+      icon: Clock,
+      iconColor: 'text-cyan-500',
+      description: 'Painel de supervisão e gerenciamento de processos assíncronos, downloads e tarefas em background.',
+      menuItem: 'Tarefas em Segundo Plano'
+    },
+    {
+      key: 'trajectory',
+      title: 'Trajetória & Linha do Tempo',
+      tag: 'Diagnóstico',
+      tagColor: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20',
+      icon: Route,
+      iconColor: 'text-emerald-500',
+      description: 'Linha do tempo técnica exibindo eventos detalhados, chamadas de ferramenta e pensamentos internos do agente.',
+      menuItem: 'Trajetória'
+    },
+    {
+      key: 'metrics',
+      title: 'Métricas da Conversa',
+      tag: 'Telemetria',
+      tagColor: 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20',
+      icon: BarChart3,
+      iconColor: 'text-blue-500',
+      description: 'Métricas em tempo real de contagem de tokens, velocidade de geração (tokens/s) e ocupação do context window.',
+      menuItem: 'Métricas da Conversa'
+    },
+    {
+      key: 'pluginsHub',
+      title: 'Módulos & Extensões (Hub no Menu)',
+      tag: 'Extensibilidade',
+      tagColor: 'bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border-indigo-500/20',
+      icon: Sparkles,
+      iconColor: 'text-indigo-500',
+      description: 'Exibe o atalho para a Central de Módulos e Plugins diretamente no menu de ferramentas.',
+      menuItem: 'Módulos & Extensões'
+    }
+  ];
+
+  const handleLabsMasterToggle = (checked) => {
+    const updatedLabs = {
+      ...(settings.labs || {}),
+      enabled: checked
+    };
+    const updatedSettings = {
+      ...settings,
+      labs: updatedLabs
+    };
+    setSettings(updatedSettings);
+    saveSettings(updatedSettings);
+    window.dispatchEvent(new CustomEvent('neochat:settings-updated', { detail: updatedSettings }));
+  };
+
+  const handleLabFeatureToggle = (featureKey, currentVal) => {
+    const updatedLabs = {
+      ...(settings.labs || { enabled: true }),
+      [featureKey]: !currentVal
+    };
+    const updatedSettings = {
+      ...settings,
+      labs: updatedLabs
+    };
+    setSettings(updatedSettings);
+    saveSettings(updatedSettings);
+    window.dispatchEvent(new CustomEvent('neochat:settings-updated', { detail: updatedSettings }));
+  };
+
+  const handleApplyLabsPreset = (presetType) => {
+    let updatedFeatures = {};
+    if (presetType === 'essential') {
+      LABS_FEATURES_CONFIG.forEach(f => {
+        updatedFeatures[f.key] = false;
+      });
+    } else if (presetType === 'developer') {
+      const devKeys = ['sandbox', 'workflows', 'compareModels', 'backgroundTasks', 'trajectory', 'metrics'];
+      LABS_FEATURES_CONFIG.forEach(f => {
+        updatedFeatures[f.key] = devKeys.includes(f.key);
+      });
+    } else if (presetType === 'all') {
+      LABS_FEATURES_CONFIG.forEach(f => {
+        updatedFeatures[f.key] = true;
+      });
+    }
+
+    const updatedLabs = {
+      ...(settings.labs || {}),
+      enabled: true,
+      ...updatedFeatures
+    };
+    const updatedSettings = {
+      ...settings,
+      labs: updatedLabs
+    };
+    setSettings(updatedSettings);
+    saveSettings(updatedSettings);
+    window.dispatchEvent(new CustomEvent('neochat:settings-updated', { detail: updatedSettings }));
+  };
+
+  const renderLabsSection = () => {
+    const hasVisible = visibleCardIds.has('labsHub');
+    if (!hasVisible) return null;
+
+    const labsEnabled = settings.labs?.enabled !== false;
+    const activeCount = LABS_FEATURES_CONFIG.filter(f => labsEnabled && Boolean(settings.labs?.[f.key])).length;
+
+    return (
+      <div className="space-y-6">
+        {(activeCategory === 'all' || activeCategory === 'labs') && !searchQuery && (
+          <div className="flex items-center gap-2 pb-2 border-b border-border/60">
+            <FlaskConical className="w-5 h-5 text-primary" />
+            <div>
+              <h2 className="text-base font-bold text-foreground">NeoChat Labs & Recursos Opcionais</h2>
+              <p className="text-xs text-muted-foreground">
+                Habilite ou desabilite recursos secundários para despoluir o menu de ferramentas e manter a aplicação ágil e focada.
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* Master Card & Presets */}
+        <Card className="border-primary/20 bg-primary/5">
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between">
+              <div className="space-y-1">
+                <CardTitle className="flex items-center gap-2 text-base">
+                  <FlaskConical className="w-5 h-5 text-primary" />
+                  <span>Modo NeoChat Labs</span>
+                </CardTitle>
+                <CardDescription>
+                  Itens desativados são completamente removidos do menu principal e da paleta de comandos para uma experiência limpa e focada.
+                </CardDescription>
+              </div>
+              <Switch
+                checked={labsEnabled}
+                onChange={(e) => handleLabsMasterToggle(e.target.checked)}
+              />
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex flex-wrap items-center justify-between gap-3 pt-2 border-t border-primary/10">
+              <div className="text-xs text-muted-foreground">
+                <strong className="text-foreground">{activeCount}</strong> de {LABS_FEATURES_CONFIG.length} recursos secundários ativos no menu
+              </div>
+              <div className="flex items-center gap-2">
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={() => handleApplyLabsPreset('essential')}
+                  className="h-7 text-xs px-2.5 bg-background hover:bg-muted"
+                >
+                  🎯 Modo Essencial (Clean)
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={() => handleApplyLabsPreset('developer')}
+                  className="h-7 text-xs px-2.5 bg-background hover:bg-muted"
+                >
+                  🛠️ Modo Dev
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={() => handleApplyLabsPreset('all')}
+                  className="h-7 text-xs px-2.5 bg-background hover:bg-muted"
+                >
+                  🚀 Ativar Todos
+                </Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Individual Feature Cards Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+          {LABS_FEATURES_CONFIG.map(feat => {
+            const IconComp = feat.icon;
+            const isFeatureActive = labsEnabled && Boolean(settings.labs?.[feat.key]);
+
+            return (
+              <div
+                key={feat.key}
+                className={cn(
+                  'p-3.5 rounded-xl border transition-all flex flex-col justify-between gap-3',
+                  isFeatureActive
+                    ? 'bg-card border-border hover:border-primary/40 shadow-xs'
+                    : 'bg-muted/30 border-border/40 opacity-75'
+                )}
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex items-start gap-2.5 min-w-0">
+                    <div className={cn('p-2 rounded-lg shrink-0', isFeatureActive ? 'bg-primary/10' : 'bg-muted')}>
+                      <IconComp className={cn('w-4 h-4', feat.iconColor)} />
+                    </div>
+                    <div className="space-y-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="font-semibold text-xs text-foreground truncate">{feat.title}</span>
+                        <Badge variant="outline" className={cn('text-[9px] px-1.5 py-0 border font-medium', feat.tagColor)}>
+                          {feat.tag}
+                        </Badge>
+                      </div>
+                      <p className="text-[11px] text-muted-foreground line-clamp-2 leading-relaxed">
+                        {feat.description}
+                      </p>
+                    </div>
+                  </div>
+
+                  <Switch
+                    checked={isFeatureActive}
+                    disabled={!labsEnabled}
+                    onChange={() => handleLabFeatureToggle(feat.key, Boolean(settings.labs?.[feat.key]))}
+                  />
+                </div>
+
+                <div className="flex items-center justify-between pt-2 border-t border-border/50 text-[10px]">
+                  <span className={cn(
+                    'inline-flex items-center gap-1.5 font-medium',
+                    isFeatureActive ? 'text-emerald-500' : 'text-muted-foreground'
+                  )}>
+                    <span className={cn('w-1.5 h-1.5 rounded-full', isFeatureActive ? 'bg-emerald-500 animate-pulse' : 'bg-muted-foreground/60')} />
+                    {isFeatureActive ? 'Visível no Menu' : 'Oculto do Menu'}
+                  </span>
+                  <span className="text-muted-foreground font-mono text-[9px] truncate max-w-[140px]">
+                    Item: {feat.menuItem}
+                  </span>
+                </div>
+              </div>
+            );
+          })}
+        </div>
       </div>
     );
   };
@@ -8399,6 +8779,7 @@ function Settings() {
             {/* Render sections according to active filter / category */}
             {(activeCategory === 'all' || activeCategory === 'interface') && renderInterfaceSection()}
             {(activeCategory === 'all' || activeCategory === 'features') && renderFeaturesSection()}
+            {(activeCategory === 'all' || activeCategory === 'labs') && renderLabsSection()}
             {(activeCategory === 'all' || activeCategory === 'models') && renderModelsSection()}
             {(activeCategory === 'all' || activeCategory === 'integrations') && renderIntegrationsSection()}
             {(activeCategory === 'all' || activeCategory === 'system') && renderSystemSection()}

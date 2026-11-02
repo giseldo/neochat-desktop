@@ -12,7 +12,7 @@ import { useArtifacts } from './context/ArtifactsContext';
 import { useProjects } from './context/ProjectContext';
 import { useLanguage } from './context/LanguageContext';
 import { useTheme, COLOR_THEMES } from './context/ThemeContext';
-import { Settings, PanelLeftClose, PanelLeft, Radio, MessagesSquare, Sparkles, Store, Columns2, X, FolderKanban, BookOpen, Scale, Bot, Workflow, ChevronDown, Keyboard, Key, AlertCircle, PenSquare, Terminal, Briefcase, MessageSquare, Globe, Clock, Activity, LayoutGrid, MoreHorizontal, Brain, FolderTree, Compass, Sliders, Cpu, Palette, ChevronRight, ChevronLeft, Sun, Moon, Laptop } from 'lucide-react';
+import { Settings, PanelLeftClose, PanelLeft, Radio, MessagesSquare, Sparkles, Store, Columns2, X, FolderKanban, BookOpen, Scale, Bot, Workflow, ChevronDown, Keyboard, Key, AlertCircle, PenSquare, Terminal, Briefcase, MessageSquare, Globe, Clock, Activity, LayoutGrid, MoreHorizontal, Brain, FolderTree, Compass, Sliders, Cpu, Palette, ChevronRight, ChevronLeft, Sun, Moon, Laptop, FlaskConical } from 'lucide-react';
 import { Button } from './components/ui/button';
 import { cn } from './lib/utils';
 import { groupModels, getModelGroup, getModelDisplayName as getModelDisplayNameLib } from './lib/modelGrouping';
@@ -225,6 +225,43 @@ function App() {
   const [isModelParamsModalOpen, setIsModelParamsModalOpen] = useState(false);
   const { isToolsDropdownOpen, setIsToolsDropdownOpen, toolsDropdownRef } = useToolsDropdown();
   const [toolsSubmenu, setToolsSubmenu] = useState(null); // null | 'theme'
+  const [labsSettings, setLabsSettings] = useState({
+    enabled: true,
+    podcast: false,
+    arena: false,
+    news: false,
+    briefing: false,
+    graph: false,
+    sandbox: false,
+    swarm: false,
+    workflows: false,
+    compareModels: false,
+    backgroundTasks: false,
+    trajectory: false,
+    metrics: false,
+    pluginsHub: false
+  });
+
+  const isLabActive = useCallback((key) => {
+    if (labsSettings?.enabled === false) return false;
+    return Boolean(labsSettings?.[key]);
+  }, [labsSettings]);
+
+  const activeLabsCount = useMemo(() => {
+    if (labsSettings?.enabled === false) return 0;
+    const keys = ['podcast', 'arena', 'news', 'briefing', 'graph', 'sandbox', 'swarm', 'workflows', 'compareModels', 'backgroundTasks', 'trajectory', 'metrics', 'pluginsHub'];
+    return keys.filter(k => Boolean(labsSettings?.[k])).length;
+  }, [labsSettings]);
+
+  useEffect(() => {
+    const handleSettingsUpdated = (e) => {
+      if (e.detail?.labs) {
+        setLabsSettings(e.detail.labs);
+      }
+    };
+    window.addEventListener('neochat:settings-updated', handleSettingsUpdated);
+    return () => window.removeEventListener('neochat:settings-updated', handleSettingsUpdated);
+  }, []);
 
   useEffect(() => {
     if (!isToolsDropdownOpen) {
@@ -758,6 +795,9 @@ function App() {
         // Load useResponsesApi setting
         setUseResponsesApi(settings.useResponsesApi || false);
         setIsUserMemoryEnabled(settings.userMemory?.enabled !== false);
+        if (settings.labs) {
+          setLabsSettings(settings.labs);
+        }
 
         // Strict opt-in: filter available models by enabledModels
         const activeModels = filterModels(availableModels, configs, settings.enabledModels || []);
@@ -3224,93 +3264,7 @@ function App() {
 
                         <div className="my-1 border-t border-border/60" />
 
-                        {isPowerUser && (
-                          <>
-
-                        {/* Trajectory */}
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setIsToolsDropdownOpen(false);
-                            setActiveTab(activeTab === 'trajectory' ? 'chat' : 'trajectory');
-                          }}
-                          className={cn(
-                            "w-full flex items-center gap-2.5 px-3 py-2 rounded-xl transition-colors text-left",
-                            activeTab === 'trajectory'
-                              ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 font-medium"
-                              : "hover:bg-muted/80 text-foreground"
-                          )}
-                        >
-                          <Activity className="w-4 h-4 text-emerald-500 shrink-0" />
-                          <div className="flex-1 min-w-0">
-                            <div className="font-semibold flex items-center justify-between gap-1">
-                              <span>{t('trajectory.trajectoryTab') || 'Trajetória'}</span>
-                              <div className="flex items-center gap-1.5 shrink-0">
-                                <kbd className="px-1.5 py-0.5 rounded bg-muted/80 text-[10px] font-mono font-medium border border-border/60 text-muted-foreground">{modKey}+T</kbd>
-                                {activeTab === 'trajectory' && <span className="px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-[10px] font-mono font-semibold">Aberto</span>}
-                              </div>
-                            </div>
-                            <div className="text-[10px] text-muted-foreground truncate">{t('header.trajectorySubtitle') || 'Linha do tempo & eventos detalhados'}</div>
-                          </div>
-                        </button>
-
-                        {/* Conversation Metrics Side Tab */}
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setIsToolsDropdownOpen(false);
-                            toggleMetricsTab();
-                          }}
-                          className={cn(
-                            "w-full flex items-center gap-2.5 px-3 py-2 rounded-xl transition-colors text-left",
-                            isMetricsTabOpen
-                              ? "bg-primary/10 text-primary font-medium"
-                              : "hover:bg-muted/80 text-foreground"
-                          )}
-                        >
-                          <Activity className="w-4 h-4 text-primary shrink-0" />
-                          <div className="flex-1 min-w-0">
-                            <div className="font-semibold flex items-center justify-between gap-1">
-                              <span>{pt ? 'Métricas da Conversa' : 'Conversation Metrics'}</span>
-                              <div className="flex items-center gap-1.5 shrink-0">
-                                {isMetricsTabOpen && <span className="px-1.5 py-0.5 rounded bg-primary/20 text-primary text-[10px] font-mono font-semibold">Aberto</span>}
-                              </div>
-                            </div>
-                            <div className="text-[10px] text-muted-foreground truncate">{pt ? 'Tokens, velocidade e ocupação de contexto' : 'Tokens, speed and context usage'}</div>
-                          </div>
-                        </button>
-
-                        <div className="my-1 border-t border-border/60" />
-
-                        {/* Compare Models */}
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setIsToolsDropdownOpen(false);
-                            setIsCompareMode(!isCompareMode);
-                          }}
-                          className={cn(
-                            "w-full flex items-center gap-2.5 px-3 py-2 rounded-xl transition-colors text-left",
-                            isCompareMode
-                              ? "bg-purple-500/10 text-purple-700 dark:text-purple-300 font-medium"
-                              : "hover:bg-muted/80 text-foreground"
-                          )}
-                        >
-                          <Scale className="w-4 h-4 text-purple-500 shrink-0" />
-                          <div className="flex-1 min-w-0">
-                            <div className="font-semibold flex items-center justify-between gap-1">
-                              <span>{t('header.compareModels') || 'Comparar Modelos'}</span>
-                              <div className="flex items-center gap-1.5 shrink-0">
-                                <kbd className="px-1.5 py-0.5 rounded bg-muted/80 text-[10px] font-mono font-medium border border-border/60 text-muted-foreground">{modKey}+M</kbd>
-                                {isCompareMode && <span className="px-1.5 py-0.5 rounded bg-purple-500/20 text-purple-600 dark:text-purple-400 text-[10px] font-mono font-semibold">Aberto</span>}
-                              </div>
-                            </div>
-                            <div className="text-[10px] text-muted-foreground truncate">{t('header.compareModelsSubtitle') || 'Visualização lado a lado'}</div>
-                          </div>
-                        </button>
-
-                        <div className="my-1 border-t border-border/60" />
-
+                        {/* CORE WORKSPACE & DEV TOOLS */}
                         {/* Terminal Workspace */}
                         <button
                           type="button"
@@ -3332,8 +3286,6 @@ function App() {
                             <div className="text-[10px] text-muted-foreground truncate">PowerShell & comandos</div>
                           </div>
                         </button>
-
-
 
                         {/* Workspace File Explorer */}
                         <button
@@ -3398,35 +3350,6 @@ function App() {
                               </div>
                             </div>
                             <div className="text-[10px] text-muted-foreground truncate">Painel embutido</div>
-                          </div>
-                        </button>
-
-                        {/* Background Tasks */}
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setIsToolsDropdownOpen(false);
-                            setIsTasksOpen(!isTasksOpen);
-                          }}
-                          className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-muted/80 text-foreground transition-colors text-left"
-                        >
-                          <Clock className="w-4 h-4 text-cyan-500 shrink-0" />
-                          <div className="flex-1 min-w-0">
-                            <div className="font-semibold text-foreground flex items-center justify-between gap-1">
-                              <span>Tarefas em Segundo Plano</span>
-                              <div className="flex items-center gap-1.5 shrink-0">
-                                {runningTasksCount > 0 && (
-                                  <span className="px-1.5 py-0.5 rounded-full bg-blue-500 text-white text-[9px] font-bold">
-                                    {runningTasksCount}
-                                  </span>
-                                )}
-                                <kbd className="px-1.5 py-0.5 rounded bg-muted/80 text-[10px] font-mono font-medium border border-border/60 text-muted-foreground">{modKey}+Shift+T</kbd>
-                                {isTasksOpen && (
-                                  <span className="px-1.5 py-0.5 rounded bg-cyan-500/20 text-cyan-600 dark:text-cyan-400 text-[10px] font-mono font-semibold">Aberto</span>
-                                )}
-                              </div>
-                            </div>
-                            <div className="text-[10px] text-muted-foreground truncate">Processos e tarefas ativas</div>
                           </div>
                         </button>
 
@@ -3528,205 +3451,341 @@ function App() {
                           </div>
                         </button>
 
-                        <div className="my-1 border-t border-border/60" />
-
-                        {/* Swarm */}
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setIsToolsDropdownOpen(false);
-                            setIsSwarmModalOpen(true);
-                          }}
-                          className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-muted/80 text-foreground transition-colors text-left"
-                        >
-                          <Bot className="w-4 h-4 text-indigo-500 shrink-0" />
-                          <div className="flex-1 min-w-0">
-                            <div className="font-semibold text-foreground flex items-center justify-between gap-1">
-                              <span>Equipe Swarm</span>
-                              <div className="flex items-center gap-1.5 shrink-0">
-                                {isSwarmModalOpen && <span className="px-1.5 py-0.5 rounded bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 text-[10px] font-mono font-semibold">Aberto</span>}
-                              </div>
+                        {/* OPTIONAL NEOCHAT LABS FEATURES (Shown only when enabled in Labs) */}
+                        {activeLabsCount > 0 && (
+                          <>
+                            <div className="my-1 border-t border-border/60" />
+                            <div className="px-3 py-1.5 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+                              <FlaskConical className="w-3.5 h-3.5 text-primary" />
+                              <span>Recursos do Labs</span>
                             </div>
-                            <div className="text-[10px] text-muted-foreground truncate">Multi-agentes autônomos</div>
-                          </div>
-                        </button>
 
+                            {/* Compare Models */}
+                            {isLabActive('compareModels') && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setIsToolsDropdownOpen(false);
+                                  setIsCompareMode(!isCompareMode);
+                                }}
+                                className={cn(
+                                  "w-full flex items-center gap-2.5 px-3 py-2 rounded-xl transition-colors text-left",
+                                  isCompareMode
+                                    ? "bg-purple-500/10 text-purple-700 dark:text-purple-300 font-medium"
+                                    : "hover:bg-muted/80 text-foreground"
+                                )}
+                              >
+                                <Scale className="w-4 h-4 text-purple-500 shrink-0" />
+                                <div className="flex-1 min-w-0">
+                                  <div className="font-semibold flex items-center justify-between gap-1">
+                                    <span>{t('header.compareModels') || 'Comparar Modelos'}</span>
+                                    <div className="flex items-center gap-1.5 shrink-0">
+                                      <kbd className="px-1.5 py-0.5 rounded bg-muted/80 text-[10px] font-mono font-medium border border-border/60 text-muted-foreground">{modKey}+M</kbd>
+                                      {isCompareMode && <span className="px-1.5 py-0.5 rounded bg-purple-500/20 text-purple-600 dark:text-purple-400 text-[10px] font-mono font-semibold">Aberto</span>}
+                                    </div>
+                                  </div>
+                                  <div className="text-[10px] text-muted-foreground truncate">{t('header.compareModelsSubtitle') || 'Visualização lado a lado'}</div>
+                                </div>
+                              </button>
+                            )}
 
+                            {/* Background Tasks */}
+                            {isLabActive('backgroundTasks') && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setIsToolsDropdownOpen(false);
+                                  setIsTasksOpen(!isTasksOpen);
+                                }}
+                                className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-muted/80 text-foreground transition-colors text-left"
+                              >
+                                <Clock className="w-4 h-4 text-cyan-500 shrink-0" />
+                                <div className="flex-1 min-w-0">
+                                  <div className="font-semibold text-foreground flex items-center justify-between gap-1">
+                                    <span>Tarefas em Segundo Plano</span>
+                                    <div className="flex items-center gap-1.5 shrink-0">
+                                      {runningTasksCount > 0 && (
+                                        <span className="px-1.5 py-0.5 rounded-full bg-blue-500 text-white text-[9px] font-bold">
+                                          {runningTasksCount}
+                                        </span>
+                                      )}
+                                      <kbd className="px-1.5 py-0.5 rounded bg-muted/80 text-[10px] font-mono font-medium border border-border/60 text-muted-foreground">{modKey}+Shift+T</kbd>
+                                      {isTasksOpen && (
+                                        <span className="px-1.5 py-0.5 rounded bg-cyan-500/20 text-cyan-600 dark:text-cyan-400 text-[10px] font-mono font-semibold">Aberto</span>
+                                      )}
+                                    </div>
+                                  </div>
+                                  <div className="text-[10px] text-muted-foreground truncate">Processos e tarefas ativas</div>
+                                </div>
+                              </button>
+                            )}
 
-                        {/* Workflows */}
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setIsToolsDropdownOpen(false);
-                            setIsWorkflowsOpen(true);
-                          }}
-                          className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-muted/80 text-foreground transition-colors text-left"
-                        >
-                          <Workflow className="w-4 h-4 text-teal-500 shrink-0" />
-                          <div className="flex-1 min-w-0">
-                            <div className="font-semibold text-foreground flex items-center justify-between gap-1">
-                              <span>{t('workflows.title') || 'Workflows'}</span>
-                              <div className="flex items-center gap-1.5 shrink-0">
-                                {isWorkflowsOpen && <span className="px-1.5 py-0.5 rounded bg-teal-500/20 text-teal-600 dark:text-teal-400 text-[10px] font-mono font-semibold">Aberto</span>}
-                              </div>
-                            </div>
-                            <div className="text-[10px] text-muted-foreground truncate">Fluxos de trabalho automatizados</div>
-                          </div>
-                        </button>
+                            {/* Trajectory */}
+                            {isLabActive('trajectory') && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setIsToolsDropdownOpen(false);
+                                  setActiveTab(activeTab === 'trajectory' ? 'chat' : 'trajectory');
+                                }}
+                                className={cn(
+                                  "w-full flex items-center gap-2.5 px-3 py-2 rounded-xl transition-colors text-left",
+                                  activeTab === 'trajectory'
+                                    ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 font-medium"
+                                    : "hover:bg-muted/80 text-foreground"
+                                )}
+                              >
+                                <Activity className="w-4 h-4 text-emerald-500 shrink-0" />
+                                <div className="flex-1 min-w-0">
+                                  <div className="font-semibold flex items-center justify-between gap-1">
+                                    <span>{t('trajectory.trajectoryTab') || 'Trajetória'}</span>
+                                    <div className="flex items-center gap-1.5 shrink-0">
+                                      <kbd className="px-1.5 py-0.5 rounded bg-muted/80 text-[10px] font-mono font-medium border border-border/60 text-muted-foreground">{modKey}+T</kbd>
+                                      {activeTab === 'trajectory' && <span className="px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-[10px] font-mono font-semibold">Aberto</span>}
+                                    </div>
+                                  </div>
+                                  <div className="text-[10px] text-muted-foreground truncate">{t('header.trajectorySubtitle') || 'Linha do tempo & eventos detalhados'}</div>
+                                </div>
+                              </button>
+                            )}
 
+                            {/* Conversation Metrics Side Tab */}
+                            {isLabActive('metrics') && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setIsToolsDropdownOpen(false);
+                                  toggleMetricsTab();
+                                }}
+                                className={cn(
+                                  "w-full flex items-center gap-2.5 px-3 py-2 rounded-xl transition-colors text-left",
+                                  isMetricsTabOpen
+                                    ? "bg-primary/10 text-primary font-medium"
+                                    : "hover:bg-muted/80 text-foreground"
+                                )}
+                              >
+                                <Activity className="w-4 h-4 text-primary shrink-0" />
+                                <div className="flex-1 min-w-0">
+                                  <div className="font-semibold flex items-center justify-between gap-1">
+                                    <span>{pt ? 'Métricas da Conversa' : 'Conversation Metrics'}</span>
+                                    <div className="flex items-center gap-1.5 shrink-0">
+                                      {isMetricsTabOpen && <span className="px-1.5 py-0.5 rounded bg-primary/20 text-primary text-[10px] font-mono font-semibold">Aberto</span>}
+                                    </div>
+                                  </div>
+                                  <div className="text-[10px] text-muted-foreground truncate">{pt ? 'Tokens, velocidade e ocupação de contexto' : 'Tokens, speed and context usage'}</div>
+                                </div>
+                              </button>
+                            )}
 
+                            {/* Swarm */}
+                            {isLabActive('swarm') && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setIsToolsDropdownOpen(false);
+                                  setIsSwarmModalOpen(true);
+                                }}
+                                className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-muted/80 text-foreground transition-colors text-left"
+                              >
+                                <Bot className="w-4 h-4 text-indigo-500 shrink-0" />
+                                <div className="flex-1 min-w-0">
+                                  <div className="font-semibold text-foreground flex items-center justify-between gap-1">
+                                    <span>Equipe Swarm</span>
+                                    <div className="flex items-center gap-1.5 shrink-0">
+                                      {isSwarmModalOpen && <span className="px-1.5 py-0.5 rounded bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 text-[10px] font-mono font-semibold">Aberto</span>}
+                                    </div>
+                                  </div>
+                                  <div className="text-[10px] text-muted-foreground truncate">Multi-agentes autônomos</div>
+                                </div>
+                              </button>
+                            )}
 
-                        {/* AI Arena */}
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setIsToolsDropdownOpen(false);
-                            setIsArenaModalOpen(true);
-                          }}
-                          className="w-full flex items-center gap-2.5 px-3 py-1.5 rounded-xl hover:bg-muted/80 text-foreground transition-colors text-left"
-                        >
-                          <Bot className="w-4 h-4 text-orange-400 shrink-0" />
-                          <div className="flex-1 min-w-0">
-                            <div className="font-semibold text-foreground flex items-center justify-between gap-1">
-                              <span>AI Arena & Debate</span>
-                              <div className="flex items-center gap-1.5 shrink-0">
-                                {isArenaModalOpen && <span className="px-1.5 py-0.5 rounded bg-orange-500/20 text-orange-600 dark:text-orange-400 text-[10px] font-mono font-semibold">Aberto</span>}
-                              </div>
-                            </div>
-                            <div className="text-[10px] text-muted-foreground truncate">Debate em rodadas & consenso</div>
-                          </div>
-                        </button>
+                            {/* Workflows */}
+                            {isLabActive('workflows') && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setIsToolsDropdownOpen(false);
+                                  setIsWorkflowsOpen(true);
+                                }}
+                                className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-muted/80 text-foreground transition-colors text-left"
+                              >
+                                <Workflow className="w-4 h-4 text-teal-500 shrink-0" />
+                                <div className="flex-1 min-w-0">
+                                  <div className="font-semibold text-foreground flex items-center justify-between gap-1">
+                                    <span>{t('workflows.title') || 'Workflows'}</span>
+                                    <div className="flex items-center gap-1.5 shrink-0">
+                                      {isWorkflowsOpen && <span className="px-1.5 py-0.5 rounded bg-teal-500/20 text-teal-600 dark:text-teal-400 text-[10px] font-mono font-semibold">Aberto</span>}
+                                    </div>
+                                  </div>
+                                  <div className="text-[10px] text-muted-foreground truncate">Fluxos de trabalho automatizados</div>
+                                </div>
+                              </button>
+                            )}
 
-                        {/* Web Sandbox */}
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setIsToolsDropdownOpen(false);
-                            setIsLiveSandboxOpen(true);
-                          }}
-                          className="w-full flex items-center gap-2.5 px-3 py-1.5 rounded-xl hover:bg-muted/80 text-foreground transition-colors text-left"
-                        >
-                          <LayoutGrid className="w-4 h-4 text-emerald-400 shrink-0" />
-                          <div className="flex-1 min-w-0">
-                            <div className="font-semibold text-foreground flex items-center justify-between gap-1">
-                              <span>Live Dev Sandbox</span>
-                              <div className="flex items-center gap-1.5 shrink-0">
-                                {isLiveSandboxOpen && <span className="px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-[10px] font-mono font-semibold">Aberto</span>}
-                              </div>
-                            </div>
-                            <div className="text-[10px] text-muted-foreground truncate">Preview HTML/Tailwind/React</div>
-                          </div>
-                        </button>
+                            {/* AI Arena */}
+                            {isLabActive('arena') && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setIsToolsDropdownOpen(false);
+                                  setIsArenaModalOpen(true);
+                                }}
+                                className="w-full flex items-center gap-2.5 px-3 py-1.5 rounded-xl hover:bg-muted/80 text-foreground transition-colors text-left"
+                              >
+                                <Bot className="w-4 h-4 text-orange-400 shrink-0" />
+                                <div className="flex-1 min-w-0">
+                                  <div className="font-semibold text-foreground flex items-center justify-between gap-1">
+                                    <span>AI Arena & Debate</span>
+                                    <div className="flex items-center gap-1.5 shrink-0">
+                                      {isArenaModalOpen && <span className="px-1.5 py-0.5 rounded bg-orange-500/20 text-orange-600 dark:text-orange-400 text-[10px] font-mono font-semibold">Aberto</span>}
+                                    </div>
+                                  </div>
+                                  <div className="text-[10px] text-muted-foreground truncate">Debate em rodadas & consenso</div>
+                                </div>
+                              </button>
+                            )}
 
-                        {/* Podcast Studio */}
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setIsToolsDropdownOpen(false);
-                            setIsPodcastStudioOpen(true);
-                          }}
-                          className="w-full flex items-center gap-2.5 px-3 py-1.5 rounded-xl hover:bg-muted/80 text-foreground transition-colors text-left"
-                        >
-                          <Radio className="w-4 h-4 text-purple-400 shrink-0" />
-                          <div className="flex-1 min-w-0">
-                            <div className="font-semibold text-foreground flex items-center justify-between gap-1">
-                              <span>Podcast & Audio Studio</span>
-                              <div className="flex items-center gap-1.5 shrink-0">
-                                {isPodcastStudioOpen && <span className="px-1.5 py-0.5 rounded bg-purple-500/20 text-purple-600 dark:text-purple-400 text-[10px] font-mono font-semibold">Aberto</span>}
-                              </div>
-                            </div>
-                            <div className="text-[10px] text-muted-foreground truncate">NotebookLM style 2-hosts TTS</div>
-                          </div>
-                        </button>
+                            {/* Web Sandbox */}
+                            {isLabActive('sandbox') && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setIsToolsDropdownOpen(false);
+                                  setIsLiveSandboxOpen(true);
+                                }}
+                                className="w-full flex items-center gap-2.5 px-3 py-1.5 rounded-xl hover:bg-muted/80 text-foreground transition-colors text-left"
+                              >
+                                <LayoutGrid className="w-4 h-4 text-emerald-400 shrink-0" />
+                                <div className="flex-1 min-w-0">
+                                  <div className="font-semibold text-foreground flex items-center justify-between gap-1">
+                                    <span>Live Dev Sandbox</span>
+                                    <div className="flex items-center gap-1.5 shrink-0">
+                                      {isLiveSandboxOpen && <span className="px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-[10px] font-mono font-semibold">Aberto</span>}
+                                    </div>
+                                  </div>
+                                  <div className="text-[10px] text-muted-foreground truncate">Preview HTML/Tailwind/React</div>
+                                </div>
+                              </button>
+                            )}
 
-                        {/* Knowledge Graph */}
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setIsToolsDropdownOpen(false);
-                            setIsKnowledgeGraphOpen(true);
-                          }}
-                          className="w-full flex items-center gap-2.5 px-3 py-1.5 rounded-xl hover:bg-muted/80 text-foreground transition-colors text-left"
-                        >
-                          <BookOpen className="w-4 h-4 text-blue-400 shrink-0" />
-                          <div className="flex-1 min-w-0">
-                            <div className="font-semibold text-foreground flex items-center justify-between gap-1">
-                              <span>Grafo & Data Studio</span>
-                              <div className="flex items-center gap-1.5 shrink-0">
-                                {isKnowledgeGraphOpen && <span className="px-1.5 py-0.5 rounded bg-blue-500/20 text-blue-600 dark:text-blue-400 text-[10px] font-mono font-semibold">Aberto</span>}
-                              </div>
-                            </div>
-                            <div className="text-[10px] text-muted-foreground truncate">Grafo 2D do RAG & gráficos</div>
-                          </div>
-                        </button>
+                            {/* Podcast Studio */}
+                            {isLabActive('podcast') && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setIsToolsDropdownOpen(false);
+                                  setIsPodcastStudioOpen(true);
+                                }}
+                                className="w-full flex items-center gap-2.5 px-3 py-1.5 rounded-xl hover:bg-muted/80 text-foreground transition-colors text-left"
+                              >
+                                <Radio className="w-4 h-4 text-purple-400 shrink-0" />
+                                <div className="flex-1 min-w-0">
+                                  <div className="font-semibold text-foreground flex items-center justify-between gap-1">
+                                    <span>Podcast & Audio Studio</span>
+                                    <div className="flex items-center gap-1.5 shrink-0">
+                                      {isPodcastStudioOpen && <span className="px-1.5 py-0.5 rounded bg-purple-500/20 text-purple-600 dark:text-purple-400 text-[10px] font-mono font-semibold">Aberto</span>}
+                                    </div>
+                                  </div>
+                                  <div className="text-[10px] text-muted-foreground truncate">NotebookLM style 2-hosts TTS</div>
+                                </div>
+                              </button>
+                            )}
 
-                        {/* Daily Briefing */}
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setIsToolsDropdownOpen(false);
-                            setIsDailyBriefingOpen(true);
-                          }}
-                          className="w-full flex items-center gap-2.5 px-3 py-1.5 rounded-xl hover:bg-muted/80 text-foreground transition-colors text-left"
-                        >
-                          <Clock className="w-4 h-4 text-amber-400 shrink-0" />
-                          <div className="flex-1 min-w-0">
-                            <div className="font-semibold text-foreground flex items-center justify-between gap-1">
-                              <span>Proactive Daily Briefing</span>
-                              <div className="flex items-center gap-1.5 shrink-0">
-                                {isDailyBriefingOpen && <span className="px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-600 dark:text-amber-400 text-[10px] font-mono font-semibold">Aberto</span>}
-                              </div>
-                            </div>
-                            <div className="text-[10px] text-muted-foreground truncate">Resumo matinal inteligente</div>
-                          </div>
-                        </button>
+                            {/* Knowledge Graph */}
+                            {isLabActive('graph') && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setIsToolsDropdownOpen(false);
+                                  setIsKnowledgeGraphOpen(true);
+                                }}
+                                className="w-full flex items-center gap-2.5 px-3 py-1.5 rounded-xl hover:bg-muted/80 text-foreground transition-colors text-left"
+                              >
+                                <BookOpen className="w-4 h-4 text-blue-400 shrink-0" />
+                                <div className="flex-1 min-w-0">
+                                  <div className="font-semibold text-foreground flex items-center justify-between gap-1">
+                                    <span>Grafo & Data Studio</span>
+                                    <div className="flex items-center gap-1.5 shrink-0">
+                                      {isKnowledgeGraphOpen && <span className="px-1.5 py-0.5 rounded bg-blue-500/20 text-blue-600 dark:text-blue-400 text-[10px] font-mono font-semibold">Aberto</span>}
+                                    </div>
+                                  </div>
+                                  <div className="text-[10px] text-muted-foreground truncate">Grafo 2D do RAG & gráficos</div>
+                                </div>
+                              </button>
+                            )}
 
-                        {/* AI News & Discovery */}
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setIsToolsDropdownOpen(false);
-                            setIsNewsDiscoverOpen(true);
-                          }}
-                          className="w-full flex items-center gap-2.5 px-3 py-1.5 rounded-xl hover:bg-muted/80 text-foreground transition-colors text-left"
-                        >
-                          <Compass className="w-4 h-4 text-sky-400 shrink-0" />
-                          <div className="flex-1 min-w-0">
-                            <div className="font-semibold text-foreground flex items-center justify-between gap-1">
-                              <span>Descoberta & Notícias IA</span>
-                              <div className="flex items-center gap-1.5 shrink-0">
-                                {isNewsDiscoverOpen && <span className="px-1.5 py-0.5 rounded bg-sky-500/20 text-sky-600 dark:text-sky-400 text-[10px] font-mono font-semibold">Aberto</span>}
-                              </div>
-                            </div>
-                            <div className="text-[10px] text-muted-foreground truncate">Síntese multi-fonte e citações</div>
-                          </div>
-                        </button>
+                            {/* Daily Briefing */}
+                            {isLabActive('briefing') && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setIsToolsDropdownOpen(false);
+                                  setIsDailyBriefingOpen(true);
+                                }}
+                                className="w-full flex items-center gap-2.5 px-3 py-1.5 rounded-xl hover:bg-muted/80 text-foreground transition-colors text-left"
+                              >
+                                <Clock className="w-4 h-4 text-amber-400 shrink-0" />
+                                <div className="flex-1 min-w-0">
+                                  <div className="font-semibold text-foreground flex items-center justify-between gap-1">
+                                    <span>Proactive Daily Briefing</span>
+                                    <div className="flex items-center gap-1.5 shrink-0">
+                                      {isDailyBriefingOpen && <span className="px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-600 dark:text-amber-400 text-[10px] font-mono font-semibold">Aberto</span>}
+                                    </div>
+                                  </div>
+                                  <div className="text-[10px] text-muted-foreground truncate">Resumo matinal inteligente</div>
+                                </div>
+                              </button>
+                            )}
 
-                        {/* Plugins & Modules Hub */}
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setIsToolsDropdownOpen(false);
-                            setIsPluginsManagerOpen(true);
-                          }}
-                          className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-muted/80 text-foreground transition-colors text-left"
-                        >
-                          <Sparkles className="w-4 h-4 text-indigo-400 shrink-0" />
-                          <div className="flex-1 min-w-0">
-                            <div className="font-semibold text-foreground flex items-center justify-between gap-1">
-                              <span>Módulos & Extensões</span>
-                              <div className="flex items-center gap-1.5 shrink-0">
-                                <span className="px-1.5 py-0.5 rounded bg-indigo-500/20 text-indigo-400 text-[9px] font-semibold">Hub</span>
-                                {isPluginsManagerOpen && <span className="px-1.5 py-0.5 rounded bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 text-[10px] font-mono font-semibold">Aberto</span>}
-                              </div>
-                            </div>
-                            <div className="text-[10px] text-muted-foreground truncate">Ativar/desativar módulos (0MB idle)</div>
-                          </div>
-                        </button>
-                      </>
-                    )}
+                            {/* AI News & Discovery */}
+                            {isLabActive('news') && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setIsToolsDropdownOpen(false);
+                                  setIsNewsDiscoverOpen(true);
+                                }}
+                                className="w-full flex items-center gap-2.5 px-3 py-1.5 rounded-xl hover:bg-muted/80 text-foreground transition-colors text-left"
+                              >
+                                <Compass className="w-4 h-4 text-sky-400 shrink-0" />
+                                <div className="flex-1 min-w-0">
+                                  <div className="font-semibold text-foreground flex items-center justify-between gap-1">
+                                    <span>Descoberta & Notícias IA</span>
+                                    <div className="flex items-center gap-1.5 shrink-0">
+                                      {isNewsDiscoverOpen && <span className="px-1.5 py-0.5 rounded bg-sky-500/20 text-sky-600 dark:text-sky-400 text-[10px] font-mono font-semibold">Aberto</span>}
+                                    </div>
+                                  </div>
+                                  <div className="text-[10px] text-muted-foreground truncate">Síntese multi-fonte e citações</div>
+                                </div>
+                              </button>
+                            )}
 
-                    {isPowerUser && <div className="my-1 border-t border-border/60" />}
+                            {/* Plugins & Modules Hub */}
+                            {isLabActive('pluginsHub') && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setIsToolsDropdownOpen(false);
+                                  setIsPluginsManagerOpen(true);
+                                }}
+                                className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-muted/80 text-foreground transition-colors text-left"
+                              >
+                                <Sparkles className="w-4 h-4 text-indigo-400 shrink-0" />
+                                <div className="flex-1 min-w-0">
+                                  <div className="font-semibold text-foreground flex items-center justify-between gap-1">
+                                    <span>Módulos & Extensões</span>
+                                    <div className="flex items-center gap-1.5 shrink-0">
+                                      <span className="px-1.5 py-0.5 rounded bg-indigo-500/20 text-indigo-400 text-[9px] font-semibold">Hub</span>
+                                      {isPluginsManagerOpen && <span className="px-1.5 py-0.5 rounded bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 text-[10px] font-mono font-semibold">Aberto</span>}
+                                    </div>
+                                  </div>
+                                  <div className="text-[10px] text-muted-foreground truncate">Ativar/desativar módulos (0MB idle)</div>
+                                </div>
+                              </button>
+                            )}
+                          </>
+                        )}
 
 
 
@@ -3760,6 +3819,32 @@ function App() {
                         <span className="font-medium">{t('header.keyboardShortcuts') || 'Atalhos de Teclado'}</span>
                       </div>
                       <kbd className="px-1.5 py-0.5 rounded bg-muted/80 text-[10px] font-mono font-medium border border-border/60 text-muted-foreground">{modKey}+/</kbd>
+                    </button>
+
+                    <div className="my-1 border-t border-border/60" />
+
+                    {/* NeoChat Labs Settings Shortcut */}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsToolsDropdownOpen(false);
+                        navigate('/settings?tab=labs');
+                      }}
+                      className="w-full flex items-center justify-between px-3 py-2 rounded-xl hover:bg-primary/10 text-primary transition-colors text-left group"
+                    >
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <FlaskConical className="w-4 h-4 text-primary shrink-0 transition-transform group-hover:scale-110" />
+                        <div className="flex-1 min-w-0">
+                          <div className="font-semibold text-foreground text-xs flex items-center justify-between gap-1">
+                            <span>NeoChat Labs</span>
+                            <span className="px-1.5 py-0.5 rounded bg-primary/20 text-primary text-[9px] font-mono font-medium">Configurar</span>
+                          </div>
+                          <div className="text-[10px] text-muted-foreground truncate">
+                            {activeLabsCount > 0 ? `${activeLabsCount} recurso(s) ativo(s)` : 'Modo Foco Ativo (0 extras)'}
+                          </div>
+                        </div>
+                      </div>
+                      <ChevronRight className="w-3.5 h-3.5 text-muted-foreground group-hover:translate-x-0.5 transition-transform shrink-0" />
                     </button>
                       </>
                     )}
@@ -4356,6 +4441,8 @@ function App() {
 
           {/* Command Palette Global Launcher (Ctrl+Shift+P) */}
           <CommandPaletteModal
+            labsSettings={labsSettings}
+            onOpenLabs={() => navigate('/settings?tab=labs')}
             isOpen={isCommandPaletteOpen}
             onClose={() => setIsCommandPaletteOpen(false)}
             onOpenSettings={() => navigate('/settings')}

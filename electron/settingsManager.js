@@ -53,6 +53,25 @@ function normalizeImageGeneration(value = {}) {
     };
 }
 
+function normalizeLabs(value = {}) {
+    return {
+        enabled: value.enabled !== false,
+        podcast: Boolean(value.podcast),
+        arena: Boolean(value.arena),
+        news: Boolean(value.news),
+        briefing: Boolean(value.briefing),
+        graph: Boolean(value.graph),
+        sandbox: Boolean(value.sandbox),
+        swarm: Boolean(value.swarm),
+        workflows: Boolean(value.workflows),
+        compareModels: Boolean(value.compareModels),
+        backgroundTasks: Boolean(value.backgroundTasks),
+        trajectory: Boolean(value.trajectory),
+        metrics: Boolean(value.metrics),
+        pluginsHub: Boolean(value.pluginsHub)
+    };
+}
+
 function persistSettings(settings, settingsPath) {
     const result = secretStore ? secretStore.save(settings) : { protected: false, publicSettings: settings };
     const temporaryPath = `${settingsPath}.tmp`;
@@ -129,7 +148,9 @@ function loadSettings() {
                 enabled: true,
                 autoExtract: true
             },
-            relatedQuestions: { enabled: true }
+            relatedQuestions: { enabled: true },
+        labs: normalizeLabs(),
+            labs: normalizeLabs()
         };
     }
     const userDataPath = appInstance.getPath('userData');
@@ -210,7 +231,8 @@ function loadSettings() {
             enabled: true,
             autoExtract: true
         },
-        relatedQuestions: { enabled: true }
+        relatedQuestions: { enabled: true },
+        labs: normalizeLabs()
     };
 
     try {
@@ -277,6 +299,7 @@ function loadSettings() {
     settings.observability = { ...defaultSettings.observability, ...(settings.observability || {}), defaultRate: { ...defaultSettings.observability.defaultRate, ...(settings.observability?.defaultRate || {}) } };
     settings.gitIntegration = { ...defaultSettings.gitIntegration, ...(settings.gitIntegration || {}) };
     settings.relatedQuestions = { ...defaultSettings.relatedQuestions, ...(settings.relatedQuestions || {}) };
+    settings.labs = normalizeLabs(settings.labs);
 
             settings.mcpServers = settings.mcpServers || defaultSettings.mcpServers;
             settings.disabledMcpServers = settings.disabledMcpServers || defaultSettings.disabledMcpServers;
@@ -438,6 +461,7 @@ module.exports = {
     reinitialize,
     normalizeTts,
     normalizeVoiceInput,
-    normalizeImageGeneration
+    normalizeImageGeneration,
+    normalizeLabs
 };
 

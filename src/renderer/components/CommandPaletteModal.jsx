@@ -78,6 +78,8 @@ export function CommandPaletteModal({
   isOpen,
   onClose,
   onOpenSettings,
+  labsSettings,
+  onOpenLabs,
   onOpenKnowledgeBase,
   onOpenWorkflows,
   onOpenProjects,
@@ -279,6 +281,16 @@ export function CommandPaletteModal({
         shortcut: `${modKey}+,`,
         keywords: ['configurações', 'configuracoes', 'settings', 'provedores', 'api keys', 'chaves', 'interface', 'opções', 'ajustes', 'memoria', 'memória', 'preferencias'],
         action: () => { onClose(); onOpenSettings?.(); }
+      },
+      {
+        id: 'nav_labs',
+        category: 'nav',
+        categoryLabel: 'Navegação',
+        title: '🧪 NeoChat Labs (Recursos Experimentais)',
+        subtitle: 'Ativar/desativar recursos opcionais e despoluir menus',
+        icon: FlaskConical,
+        keywords: ['labs', 'laboratorio', 'experimental', 'opcoes', 'menu', 'configurar', 'despoluir', 'clean'],
+        action: () => { onClose(); onOpenLabs ? onOpenLabs() : onOpenSettings?.('labs'); }
       },
       {
         id: 'nav_canvas',
@@ -615,7 +627,28 @@ export function CommandPaletteModal({
       });
     }
 
-    return items;
+    const LABS_COMMAND_MAP = {
+      nav_arena: 'arena',
+      nav_sandbox: 'sandbox',
+      nav_podcast: 'podcast',
+      nav_graph: 'graph',
+      nav_briefing: 'briefing',
+      nav_news: 'news',
+      nav_swarm: 'swarm',
+      nav_workflows: 'workflows',
+      nav_compare: 'compareModels',
+      nav_tasks: 'backgroundTasks',
+      nav_trajectory: 'trajectory',
+      nav_plugins: 'pluginsHub'
+    };
+
+    return items.filter(cmd => {
+      const labKey = LABS_COMMAND_MAP[cmd.id];
+      if (labKey) {
+        return isLabActive(labKey);
+      }
+      return true;
+    });
   }, [
     availableModels,
     currentModel,
