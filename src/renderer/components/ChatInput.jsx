@@ -1,4 +1,4 @@
-import { ArrowRight, Loader2, ImagePlus, Hammer, ChevronRight, ChevronLeft, Upload, Zap, ZapOff, Square, Mic, MicOff, Terminal, Globe, BookOpen, Camera, Bot, Layout, X, Code2, Briefcase, MessageSquare, RotateCcw, Plus, Check, Cpu, Blocks, Sparkles, ScrollText, SlidersHorizontal, Key } from "lucide-react";
+import { ArrowRight, Loader2, ImagePlus, Hammer, ChevronRight, ChevronLeft, Upload, Zap, ZapOff, Square, Mic, MicOff, Terminal, Globe, BookOpen, Camera, Bot, Repeat2, Layout, X, Code2, Briefcase, MessageSquare, RotateCcw, Plus, Check, Cpu, Blocks, Sparkles, ScrollText, SlidersHorizontal, Key } from "lucide-react";
 import React, { useContext, useEffect, useRef, useState, useMemo } from "react";
 import { Link } from "react-router-dom";
 import { createPortal } from "react-dom";
@@ -1633,11 +1633,11 @@ function ChatInput({
 								onClick={() => onModeChange(agentModeActive ? 'chat' : 'code')}
 								disabled={loading}
 								aria-pressed={agentModeActive}
-								aria-label={language === 'pt' ? (agentModeActive ? 'Desativar modo Code' : 'Ativar modo Code') : (agentModeActive ? 'Disable Code mode' : 'Enable Code mode')}
-								title={language === 'pt' ? (agentModeActive ? 'Desativar modo Code' : 'Ativar modo Code') : (agentModeActive ? 'Disable Code mode' : 'Enable Code mode')}
+								aria-label={language === 'pt' ? (agentModeActive ? 'Desativar modo Agent Loop' : 'Ativar modo Agent Loop') : (agentModeActive ? 'Disable Agent Loop mode' : 'Enable Agent Loop mode')}
+								title={language === 'pt' ? (agentModeActive ? 'Desativar modo Agent Loop' : 'Ativar modo Agent Loop') : (agentModeActive ? 'Disable Agent Loop mode' : 'Enable Agent Loop mode')}
 								className={cn('h-8 w-8 rounded-xl shrink-0 focus-visible:ring-2 focus-visible:ring-primary/50', agentModeActive ? 'bg-orange-500/10 text-orange-500 hover:bg-orange-500/20 hover:text-orange-600' : 'text-muted-foreground hover:text-foreground hover:bg-muted/80')}
 							>
-								<Bot className="w-4 h-4" aria-hidden="true" />
+								<Repeat2 className="w-4 h-4" aria-hidden="true" />
 							</Button>
 						)}
 

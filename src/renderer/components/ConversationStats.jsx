@@ -6,7 +6,6 @@ import {
   ChevronLeft, 
   PanelRight, 
   PanelRightClose, 
-  SlidersHorizontal, 
   ArrowRight,
   Gauge,
   Sparkles
@@ -160,7 +159,6 @@ export function ConversationStatsPanel({
   selectedModel = '',
   modelConfigs = {},
   onClose,
-  onConfigureModel,
   onOpenTrajectory,
   isTrajectoryActive = false,
   className
@@ -431,7 +429,7 @@ export function ConversationStatsPanel({
         </dl>
 
         {/* Shortcut Action Links */}
-        {(onOpenTrajectory || onConfigureModel) && (
+        {onOpenTrajectory && (
           <div className="pt-3 border-t border-border/60 space-y-1">
             {onOpenTrajectory && (
               <button
@@ -460,19 +458,6 @@ export function ConversationStatsPanel({
               </button>
             )}
 
-            {onConfigureModel && (
-              <button
-                type="button"
-                onClick={onConfigureModel}
-                className="w-full flex items-center justify-between py-2 px-2.5 rounded-lg text-xs text-muted-foreground hover:text-foreground hover:bg-muted/70 transition-colors cursor-pointer group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
-              >
-                <span className="flex items-center gap-2">
-                  <SlidersHorizontal className="w-3.5 h-3.5 shrink-0" />
-                  <span>{pt ? 'Parâmetros do modelo' : 'Model parameters'}</span>
-                </span>
-                <ArrowRight className="w-3 h-3 text-muted-foreground/60 group-hover:translate-x-0.5 transition-transform" />
-              </button>
-            )}
           </div>
         )}
       </div>

@@ -4373,7 +4373,6 @@ function App() {
                   setIsMetricsTabOpen(false);
                   try { localStorage.setItem('neochat_metrics_tab_open', 'false'); } catch {}
                 }}
-                onConfigureModel={() => setIsModelParamsModalOpen(true)}
                 onOpenTrajectory={() => setActiveTab('trajectory')}
                 isTrajectoryActive={activeTab === 'trajectory'}
               />
