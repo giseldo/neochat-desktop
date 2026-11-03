@@ -68,7 +68,8 @@ function normalizeLabs(value = {}) {
         backgroundTasks: Boolean(value.backgroundTasks),
         trajectory: Boolean(value.trajectory),
         metrics: Boolean(value.metrics),
-        pluginsHub: Boolean(value.pluginsHub)
+        pluginsHub: Boolean(value.pluginsHub),
+        agenticEmployees: Boolean(value.agenticEmployees)
     };
 }
 

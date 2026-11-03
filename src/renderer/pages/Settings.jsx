@@ -412,7 +412,8 @@ function Settings() {
       backgroundTasks: false,
       trajectory: false,
       metrics: false,
-      pluginsHub: false
+      pluginsHub: false,
+      agenticEmployees: false
     },
     apiKeys: {},
     temperature: 0.7,
@@ -1291,7 +1292,8 @@ function Settings() {
       backgroundTasks: false,
       trajectory: false,
       metrics: false,
-      pluginsHub: false
+      pluginsHub: false,
+      agenticEmployees: false
     },
             enableThinkingSummaries: true,
             useResponsesApi: false,
@@ -3682,6 +3684,16 @@ function Settings() {
       iconColor: 'text-indigo-500',
       description: 'Exibe o atalho para a Central de Módulos e Plugins diretamente no menu de ferramentas.',
       menuItem: 'Módulos & Extensões'
+    },
+    {
+      key: 'agenticEmployees',
+      title: 'Funcionários Agênticos',
+      tag: 'Agentes & VM',
+      tagColor: 'bg-violet-500/10 text-violet-600 dark:text-violet-400 border-violet-500/20',
+      icon: Bot,
+      iconColor: 'text-violet-500',
+      description: 'Assistentes virtuais autônomos com memória de longo prazo, VM/sandbox isolada e persona especializada.',
+      menuItem: 'Funcionários Agênticos'
     }
   ];
 
@@ -3871,9 +3883,19 @@ function Settings() {
                     <span className={cn('w-1.5 h-1.5 rounded-full', isFeatureActive ? 'bg-emerald-500 animate-pulse' : 'bg-muted-foreground/60')} />
                     {isFeatureActive ? 'Visível no Menu' : 'Oculto do Menu'}
                   </span>
-                  <span className="text-muted-foreground font-mono text-[9px] truncate max-w-[140px]">
-                    Item: {feat.menuItem}
-                  </span>
+                  {feat.key === 'agenticEmployees' && isFeatureActive ? (
+                    <button
+                      type="button"
+                      onClick={() => window.dispatchEvent(new CustomEvent('neochat:open-bots-gallery'))}
+                      className="text-primary hover:underline font-semibold cursor-pointer text-[10px]"
+                    >
+                      Gerenciar Funcionários →
+                    </button>
+                  ) : (
+                    <span className="text-muted-foreground font-mono text-[9px] truncate max-w-[140px]">
+                      Item: {feat.menuItem}
+                    </span>
+                  )}
                 </div>
               </div>
             );

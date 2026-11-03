@@ -63,6 +63,7 @@ function ChatInput({
 	activeBot = null,
 	onSelectBot = null,
 	onOpenBotManager = null,
+	showAgenticEmployeesInModelSelector = false,
 }) {
 	const effectiveToolsCount = typeof toolsCount === 'number' && toolsCount > 0
 		? toolsCount
@@ -1727,6 +1728,7 @@ function ChatInput({
 									activeBot={activeBot}
 									onSelectBot={onSelectBot}
 									onOpenBotManager={onOpenBotManager}
+									showAgenticEmployees={showAgenticEmployeesInModelSelector}
 								/>
 								{onConfigureModel && (
 									<Button

@@ -22,6 +22,7 @@ assert.strictEqual(defaultLabs.backgroundTasks, false, 'backgroundTasks default 
 assert.strictEqual(defaultLabs.trajectory, false, 'trajectory default must be false');
 assert.strictEqual(defaultLabs.metrics, false, 'metrics default must be false');
 assert.strictEqual(defaultLabs.pluginsHub, false, 'pluginsHub default must be false');
+assert.strictEqual(defaultLabs.agenticEmployees, false, 'agenticEmployees default must be false');
 console.log('  ✅ normalizeLabs defaults verified (clean focus mode)');
 
 // 2. Test normalizeLabs preserves custom true values
@@ -66,7 +67,7 @@ console.log('  ✅ Strict boolean coercion verified');
 
 // 5. Test Presets logic
 function applyPreset(presetType) {
-  const allKeys = ['podcast', 'arena', 'news', 'briefing', 'graph', 'sandbox', 'swarm', 'workflows', 'compareModels', 'backgroundTasks', 'trajectory', 'metrics', 'pluginsHub'];
+  const allKeys = ['podcast', 'arena', 'news', 'briefing', 'graph', 'sandbox', 'swarm', 'workflows', 'compareModels', 'backgroundTasks', 'trajectory', 'metrics', 'pluginsHub', 'agenticEmployees'];
   const res = { enabled: true };
   if (presetType === 'essential') {
     allKeys.forEach(k => { res[k] = false; });
@@ -81,7 +82,7 @@ function applyPreset(presetType) {
 
 const essentialPreset = applyPreset('essential');
 assert.strictEqual(Object.keys(essentialPreset).filter(k => k !== 'enabled').every(k => essentialPreset[k] === false), true);
-console.log('  ✅ Preset "Modo Essencial / Clean" sets all 13 experimental items to false');
+console.log('  ✅ Preset "Modo Essencial / Clean" sets all 14 experimental items to false');
 
 const devPreset = applyPreset('developer');
 assert.strictEqual(devPreset.sandbox, true);

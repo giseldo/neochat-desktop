@@ -275,7 +275,8 @@ function App() {
     backgroundTasks: false,
     trajectory: false,
     metrics: false,
-    pluginsHub: false
+    pluginsHub: false,
+    agenticEmployees: false
   });
 
   const isLabActive = useCallback((key) => {
@@ -285,9 +286,15 @@ function App() {
 
   const activeLabsCount = useMemo(() => {
     if (labsSettings?.enabled === false) return 0;
-    const keys = ['podcast', 'arena', 'news', 'briefing', 'graph', 'sandbox', 'swarm', 'workflows', 'compareModels', 'backgroundTasks', 'trajectory', 'metrics', 'pluginsHub'];
+    const keys = ['podcast', 'arena', 'news', 'briefing', 'graph', 'sandbox', 'swarm', 'workflows', 'compareModels', 'backgroundTasks', 'trajectory', 'metrics', 'pluginsHub', 'agenticEmployees'];
     return keys.filter(k => Boolean(labsSettings?.[k])).length;
   }, [labsSettings]);
+
+  useEffect(() => {
+    const handleOpenBotsGallery = () => setIsBotsGalleryOpen(true);
+    window.addEventListener('neochat:open-bots-gallery', handleOpenBotsGallery);
+    return () => window.removeEventListener('neochat:open-bots-gallery', handleOpenBotsGallery);
+  }, []);
 
   useEffect(() => {
     const handleSettingsUpdated = (e) => {
@@ -3605,6 +3612,45 @@ function App() {
                               </button>
                             )}
 
+                            {/* Funcionários Agênticos */}
+                            {isLabActive('agenticEmployees') && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setIsToolsDropdownOpen(false);
+                                  setIsBotsGalleryOpen(true);
+                                }}
+                                className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-muted/80 text-foreground transition-colors text-left cursor-pointer"
+                              >
+                                <Bot className="w-4 h-4 text-violet-500 shrink-0" />
+                                <div className="flex-1 min-w-0">
+                                  <div className="font-semibold text-foreground flex items-center justify-between gap-1">
+                                    <span>{t('sidebar.botsTitle') || 'Funcionários Agênticos'}</span>
+                                    <div className="flex items-center gap-1.5 shrink-0">
+                                      {botsList.length > 0 && (
+                                        <span className="px-1.5 py-0.2 rounded-full bg-violet-500/15 text-violet-600 dark:text-violet-400 font-mono text-[9px] font-bold">
+                                          {botsList.length}
+                                        </span>
+                                      )}
+                                      {activeBot && (
+                                        <span className="px-1.5 py-0.5 rounded bg-violet-500/20 text-violet-600 dark:text-violet-400 text-[10px] font-mono font-semibold">
+                                          Ativo
+                                        </span>
+                                      )}
+                                      {isBotsGalleryOpen && (
+                                        <span className="px-1.5 py-0.5 rounded bg-violet-500/20 text-violet-600 dark:text-violet-400 text-[10px] font-mono font-semibold">
+                                          Aberto
+                                        </span>
+                                      )}
+                                    </div>
+                                  </div>
+                                  <div className="text-[10px] text-muted-foreground truncate">
+                                    {activeBot ? `Ativo: ${activeBot.name}` : (pt ? 'Assistentes com sandbox VM e memória' : 'Assistants with sandbox VM & memory')}
+                                  </div>
+                                </div>
+                              </button>
+                            )}
+
                             {/* Swarm */}
                             {isLabActive('swarm') && (
                               <button
@@ -3964,6 +4010,7 @@ function App() {
                           activeBot={activeBot}
                           onSelectBot={handleSelectBotFromSelector}
                           onOpenBotManager={() => setIsBotsGalleryOpen(true)}
+                          showAgenticEmployeesInModelSelector={isLabActive('agenticEmployees')}
                         />
                       </div>
                     </div>
@@ -4021,6 +4068,7 @@ function App() {
                           activeBot={activeBot}
                           onSelectBot={handleSelectBotFromSelector}
                           onOpenBotManager={() => setIsBotsGalleryOpen(true)}
+                          showAgenticEmployeesInModelSelector={isLabActive('agenticEmployees')}
                         />
                       </div>
                     </div>
@@ -4083,6 +4131,7 @@ function App() {
                           activeBot={activeBot}
                           onSelectBot={handleSelectBotFromSelector}
                           onOpenBotManager={() => setIsBotsGalleryOpen(true)}
+                          showAgenticEmployeesInModelSelector={isLabActive('agenticEmployees')}
                         />
                       </div>
                     </div>
@@ -4283,6 +4332,7 @@ function App() {
                           activeBot={activeBot}
                           onSelectBot={handleSelectBotFromSelector}
                           onOpenBotManager={() => setIsBotsGalleryOpen(true)}
+                          showAgenticEmployeesInModelSelector={isLabActive('agenticEmployees')}
                         />
                       </div>
                     </div>
@@ -4526,6 +4576,7 @@ function App() {
             onOpenNewsDiscover={() => setIsNewsDiscoverOpen(true)}
             onOpenMcpHub={() => setIsMcpHubOpen(true)}
             onOpenComputerVision={() => setIsComputerVisionOpen(true)}
+            onOpenBotManager={() => setIsBotsGalleryOpen(true)}
             onTriggerSnip={handleStartSnip}
             onTriggerVoice={() => {
               // Trigger voice push-to-talk

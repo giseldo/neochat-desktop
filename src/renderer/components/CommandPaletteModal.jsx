@@ -106,6 +106,7 @@ export function CommandPaletteModal({
   onOpenNewsDiscover,
   onOpenMcpHub,
   onOpenComputerVision,
+  onOpenBotManager,
   onTriggerSnip,
   onTriggerVoice,
   availableModels = [],
@@ -404,6 +405,16 @@ export function CommandPaletteModal({
         action: () => { onClose(); onOpenWorkflows?.(); }
       },
       {
+        id: 'nav_agentic_employees',
+        category: 'nav',
+        categoryLabel: 'Navegação',
+        title: 'Funcionários Agênticos (Bots & Agentes)',
+        subtitle: 'Gerenciar funcionários e assistentes virtuais com VM e memória',
+        icon: Bot,
+        keywords: ['funcionários', 'agentes', 'bots', 'vm', 'sandbox', 'memoria', 'labs'],
+        action: () => { onClose(); onOpenBotManager ? onOpenBotManager() : window.dispatchEvent(new CustomEvent('neochat:open-bots-gallery')); }
+      },
+      {
         id: 'nav_projects',
         category: 'nav',
         categoryLabel: 'Navegação',
@@ -646,7 +657,8 @@ export function CommandPaletteModal({
       nav_compare: 'compareModels',
       nav_tasks: 'backgroundTasks',
       nav_trajectory: 'trajectory',
-      nav_plugins: 'pluginsHub'
+      nav_plugins: 'pluginsHub',
+      nav_agentic_employees: 'agenticEmployees'
     };
 
     return items.filter(cmd => {

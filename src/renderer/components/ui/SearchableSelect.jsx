@@ -28,6 +28,7 @@ export function SearchableSelect({
   activeBot = null,
   onSelectBot = null,
   onOpenBotManager = null,
+  showAgenticEmployees = false,
 }) {
   const { t } = useLanguage();
   const [isOpen, setIsOpen] = useState(false);
@@ -39,9 +40,9 @@ export function SearchableSelect({
 
   const favoriteSet = useMemo(() => new Set(favoriteItems || []), [favoriteItems]);
 
-  // Filtered Funcionários Agênticos
+  // Filtered Funcionários Agênticos (visible only when enabled in NeoChat Labs)
   const filteredBots = useMemo(() => {
-    if (!botsList || botsList.length === 0) return [];
+    if (!showAgenticEmployees || !botsList || botsList.length === 0) return [];
     const query = searchQuery.trim().toLowerCase();
     if (!query) return botsList;
     return botsList.filter(b =>
@@ -49,7 +50,7 @@ export function SearchableSelect({
       (b.description && b.description.toLowerCase().includes(query)) ||
       (b.preferredModel && b.preferredModel.toLowerCase().includes(query))
     );
-  }, [botsList, searchQuery]);
+  }, [showAgenticEmployees, botsList, searchQuery]);
 
   // Default accessors if not provided
   const displayValue = getDisplayValue 
@@ -217,13 +218,13 @@ export function SearchableSelect({
         disabled={disabled}
         className={cn(
           "flex h-8 w-full items-center justify-between gap-1.5 rounded-xl border border-border/80 bg-background/50 px-2.5 py-1 text-xs sm:text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 transition-colors min-w-0 overflow-hidden",
-          activeBot ? "border-primary/50 bg-primary/10 hover:bg-primary/15 shadow-2xs" : "",
+          (activeBot && showAgenticEmployees) ? "border-primary/50 bg-primary/10 hover:bg-primary/15 shadow-2xs" : "",
           isOpen && "ring-2 ring-ring ring-offset-2"
         )}
         aria-haspopup="listbox"
         aria-expanded={isOpen}
       >
-        {activeBot ? (
+        {(activeBot && showAgenticEmployees) ? (
           <div className="flex items-center gap-1.5 min-w-0 flex-1">
             <BotAvatar persona={activeBot} className="w-4 h-4 rounded-sm shadow-2xs shrink-0" iconClassName="w-2.5 h-2.5" />
             <span className="truncate text-left font-semibold text-xs text-foreground">
