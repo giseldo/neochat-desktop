@@ -488,8 +488,8 @@ export const translations = {
       expandImage: 'Visualizar em tela cheia',
     },
     personas: {
-      buttonTitle: 'Selecionar Funcionário Agêntico',
-      dropdownTitle: 'Funcionários Agênticos',
+      buttonTitle: 'Selecionar Persona / Assistente Especializado',
+      dropdownTitle: 'Assistentes Especialistas',
       createButton: 'Criar',
       editTitle: 'Editar assistente',
       customizeTitle: 'Personalizar assistente',
@@ -2345,8 +2345,8 @@ export const translations = {
       expandImage: 'View fullscreen',
     },
     personas: {
-      buttonTitle: 'Select Agentic Employee',
-      dropdownTitle: 'Agentic Employees',
+      buttonTitle: 'Select Persona / Specialized Assistant',
+      dropdownTitle: 'Specialist Assistants',
       createButton: 'Create',
       editTitle: 'Edit assistant',
       customizeTitle: 'Customize assistant',

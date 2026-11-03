@@ -1329,43 +1329,34 @@ function ChatInput({
 										</button>
 									)}
 
-									{/* Funcionários Agênticos */}
+									{/* Assistentes Especialistas (Personas) */}
 									<button
 										type="button"
-										onClick={() => {
-											setIsPlusMenuOpen(false);
-											if (onOpenBotManager) {
-												onOpenBotManager();
-											} else {
-												setPlusMenuView("personas");
-											}
-										}}
-										className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-muted/80 text-foreground transition-colors text-left cursor-pointer"
+										onClick={() => setPlusMenuView("personas")}
+										className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-muted/80 text-foreground transition-colors text-left"
 									>
 										<Bot className="w-4 h-4 text-violet-500 shrink-0" />
 										<div className="flex-1 min-w-0">
 											<div className="font-semibold text-foreground flex items-center gap-1.5">
-												<span>{t('sidebar.botsTitle') || 'Funcionários Agênticos'}</span>
-												{(activeBot || (activePersona && activePersona.id !== 'none' && activePersona.id !== 'disabled')) && (
+												<span>{t('personas.dropdownTitle') || 'Assistentes Especialistas'}</span>
+												{activePersona && activePersona.id !== 'none' && activePersona.id !== 'disabled' && (
 													<span className="w-1.5 h-1.5 rounded-full bg-violet-500 shrink-0" />
 												)}
 											</div>
 											<div className="text-[10px] text-muted-foreground truncate">
-												{activeBot
-													? activeBot.name
-													: activePersona && activePersona.id !== 'none' && activePersona.id !== 'disabled'
-														? (activePersona.name || 'Personalizado')
-														: (t('personas.deactivated') || 'Desativado')}
+												{activePersona && activePersona.id !== 'none' && activePersona.id !== 'disabled'
+													? (activePersona.name || 'Personalizado')
+													: (t('personas.deactivated') || 'Desativado')}
 											</div>
 										</div>
 										<div className="flex items-center gap-1 shrink-0">
 											<div className={cn(
 												"px-2 py-0.5 rounded-md text-[10px] font-medium border",
-												activeBot || (activePersona && activePersona.id !== 'none' && activePersona.id !== 'disabled')
+												activePersona && activePersona.id !== 'none' && activePersona.id !== 'disabled'
 													? "bg-violet-500/20 text-violet-600 dark:text-violet-400 border-violet-500/30 font-semibold"
 													: "bg-muted text-muted-foreground border-border/60"
 											)}>
-												{activeBot || (activePersona && activePersona.id !== 'none' && activePersona.id !== 'disabled') ? 'ON' : 'OFF'}
+												{activePersona && activePersona.id !== 'none' && activePersona.id !== 'disabled' ? 'ON' : 'OFF'}
 											</div>
 											<ChevronRight className="w-3.5 h-3.5 text-muted-foreground" />
 										</div>
